@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>LoRaWAN</short>
+  <description>Connection from the LoRaWAN packet_forwarder.</description>
+  <port protocol="udp" port="1680"/>
+</service>

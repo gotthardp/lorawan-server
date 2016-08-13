@@ -18,7 +18,7 @@ The server:
 The server aims to be an all-in-one software package for small private LoRaWAN networks.
 However:
  * You still need to buy your LoRaWAN Gateway.
- * You will need to deploy and maintain it youself. (With my support.)
+ * You will need to deploy and maintain it yourself. (With my support.)
  * It will probably never support the sophisticated management features of the
    commercial-grade network-servers.
 
@@ -56,6 +56,14 @@ For example:
     % username and password for the admin interface
     {http_admin_credentials, {<<"admin">>, <<"admin">>}}
 ]}].
+```
+
+You may need to enable communication channels from LoRaWAN gateways in your firewall.
+If you use the `firewalld` (Fedora, RHEL, CentOS) do:
+```bash
+cp lorawan-forwarder.xml /usr/lib/firewalld/services
+firewall-cmd --permanent --add-service=lorawan-forwarder
+firewall-cmd --reload
 ```
 
 ### Configuration of the packet_forwarder
@@ -118,7 +126,9 @@ list will be updated automatically once the device joins the network.
 
 ## Development
 
-The lorawan-server is designed to be highly extensible.
+The lorawan-server is designed to be highly extensible. I encourage you to
+[Learn You Some Erlang](http://learnyousomeerlang.com/introduction) and develop
+your own applications.
 
 ### Custom application handlers
 
