@@ -1,0 +1,20 @@
+%
+% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% All rights reserved.
+% Distributed under the terms of the MIT License. See the LICENSE file.
+%
+{application, lorawan_server,
+    [{description, "LoRaWAN Application Server"},
+    {vsn, "0.0.1"},
+    {modules, []},
+    {registered, []},
+    {mod, {lorawan_app, []}},
+    {env, [
+        {netid, <<42,42,42>>},
+        {forwarder_port, 1680},
+        {http_admin_port, 80},
+        {http_admin_credentials, {<<"admin">>, <<"admin">>}}
+    ]},
+    {applications, [kernel, stdlib, lager, cowboy, mnesia, jsx]}]}.
+
+% end of file

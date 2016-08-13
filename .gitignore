@@ -1,0 +1,5 @@
+_build
+rebar.lock
+
+priv/admin/etc
+priv/admin/node_modules
