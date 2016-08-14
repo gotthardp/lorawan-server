@@ -51,12 +51,22 @@ create_link(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case jsx:is_json(Data) of
         true ->
-            Rec = lorawan_admin:parse_link(jsx:decode(Data, [{labels, atom}])),
-            mnesia:transaction(fun() ->
-                ok = mnesia:write(links, Rec, write) end),
+            import_links(jsx:decode(Data, [{labels, atom}])),
             {true, Req2, State};
         false ->
             {stop, cowboy_req:reply(400, Req2), State}
     end.
+
+import_links([]) -> ok;
+import_links([First|Rest]) when is_list(First) ->
+    add_link(First),
+    import_links(Rest);
+import_links([First|_Rest] = Data) when is_tuple(First) ->
+    add_link(Data).
+
+add_link(Data) ->
+    Rec = lorawan_admin:parse_link(Data),
+    mnesia:transaction(fun() ->
+        ok = mnesia:write(links, Rec, write) end).
 
 % end of file

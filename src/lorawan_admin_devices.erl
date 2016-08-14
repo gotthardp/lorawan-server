@@ -51,12 +51,22 @@ create_device(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case jsx:is_json(Data) of
         true ->
-            Rec = lorawan_admin:parse_device(jsx:decode(Data, [{labels, atom}])),
-            mnesia:transaction(fun() ->
-                ok = mnesia:write(devices, Rec, write) end),
+            import_devices(jsx:decode(Data, [{labels, atom}])),
             {true, Req2, State};
         false ->
             {stop, cowboy_req:reply(400, Req2), State}
     end.
+
+import_devices([]) -> ok;
+import_devices([First|Rest]) when is_list(First) ->
+    add_device(First),
+    import_devices(Rest);
+import_devices([First|_Rest] = Data) when is_tuple(First) ->
+    add_device(Data).
+
+add_device(Data) ->
+    Rec = lorawan_admin:parse_device(Data),
+    mnesia:transaction(fun() ->
+        ok = mnesia:write(devices, Rec, write) end).
 
 % end of file

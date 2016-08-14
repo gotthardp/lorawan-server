@@ -1,0 +1,2 @@
+wget --user=admin --password=admin --output-document=dbdevices.json http://localhost/devices
+wget --user=admin --password=admin --output-document=dblinks.json http://localhost/links

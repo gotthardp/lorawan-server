@@ -1,0 +1,2 @@
+wget --user=admin --password=admin --header=Content-Type:application/json --post-file=dbdevices.json http://localhost/devices
+wget --user=admin --password=admin --header=Content-Type:application/json --post-file=dblinks.json http://localhost/links
