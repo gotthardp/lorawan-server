@@ -18,6 +18,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     devices.listView().fields([
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('app').label('Application'),
+        nga.field('appid').label('AppID'),
         nga.field('appeui').label('AppEUI'),
         nga.field('appkey').label('AppKey'),
         nga.field('link', 'reference')
@@ -32,6 +33,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
+        nga.field('appid').label('AppID'),
         nga.field('appeui').label('AppEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
             .validation({ required: true, pattern: '[A-Za-z0-9]{16}' }),
@@ -50,6 +52,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     links.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('app').label('Application'),
+        nga.field('appid').label('AppID'),
         nga.field('nwkskey').label('NwkSKey'),
         nga.field('appskey').label('AppSKey'),
         nga.field('fcntup', 'number').label('FCnt Up'),
@@ -63,6 +66,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
+        nga.field('appid').label('AppID'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Za-z0-9]{32}' }),

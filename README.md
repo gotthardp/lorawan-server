@@ -136,10 +136,10 @@ To implement a new application you need to create a new `lorawan_application_xxx
 and register it in the
 [`lorawan_application.erl`](https://github.com/gotthardp/lorawan-server/blob/master/src/lorawan_application.erl).
 
-Your module just needs to export a `handle/4` function for data processing.
+Your module just needs to export a `handle/5` function for data processing.
 
 ```erlang
-handle(DevAddr, my_app, PortIn, DataIn) ->
+handle(DevAddr, my_app, AppID, PortIn, DataIn) ->
     %% application logic
     %% ...
     {send, PortOut, DataOut}.

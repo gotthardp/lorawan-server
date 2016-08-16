@@ -35,6 +35,7 @@ start(_Type, _Args) ->
             create_tables()
     end,
 
+    lorawan_application:init(),
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/applications", lorawan_admin_applications, []},

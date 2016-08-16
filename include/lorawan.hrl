@@ -9,8 +9,8 @@
 -record(rflora, {freq, datr, codr}).
 -record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
 
--record(device, {deveui, app, appeui, appkey, link}).
--record(link, {devaddr, app, nwkskey, appskey, fcntup, fcntdown}).
+-record(device, {deveui, app, appid, appeui, appkey, link}).
+-record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown}).
 
 -define(to_record(Record, List),
     list_to_tuple([Record|[proplists:get_value(X, List) || X <- record_info(fields, Record)]])).

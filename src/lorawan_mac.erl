@@ -43,7 +43,7 @@ process_frame(RxQ, _RF, MType, Msg, MIC) ->
             case crypto:cmac(aes_cbc128, L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
-                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, FPort, Data);
+                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, FPort, Data);
                 MIC2 ->
                     {error, bad_mic}
             end;
@@ -73,7 +73,7 @@ handle_join(RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
         end,
 
         lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
-        ok = mnesia:write(links, #link{devaddr=NewAddr, app=D#device.app, nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0}, write),
+        ok = mnesia:write(links, #link{devaddr=NewAddr, app=D#device.app, appid=D#device.appid, nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0}, write),
         NewAddr
     end),
 
@@ -116,12 +116,12 @@ fcnt_gap(A, B) ->
         A > B -> 16#FFFF - A + B
     end.
 
-handle_rxpk(RxQ, 2, DevAddr, App, Port, Data) ->
-    case lorawan_application:handle(DevAddr, App, Port, reverse(Data)) of
-        {send, Port, DataOut} ->
+handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->
+    case lorawan_application:handle(DevAddr, App, AppID, Port, reverse(Data)) of
+        {send, PortOut, DataOut} ->
             % transmitting for the RX2 window
             Time = RxQ#rxq.tmst + 2000000,
-            txpk(Time, #rflora{freq=869.525, datr= <<"SF9BW125">>, codr= <<"4/5">>}, DevAddr, Port, reverse(DataOut));
+            txpk(Time, #rflora{freq=869.525, datr= <<"SF9BW125">>, codr= <<"4/5">>}, DevAddr, PortOut, DataOut);
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
@@ -139,7 +139,7 @@ txpk(Time, RF, DevAddr, FPort, Data) ->
     end),
 
     FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
-    MACPayload = <<(reverse(DevAddr)):4/binary, 0, (L#link.fcntdown):16/little-unsigned-integer, FPort:8, FRMPayload/binary>>,
+    MACPayload = <<(reverse(DevAddr)):4/binary, 0, (L#link.fcntdown):16/little-unsigned-integer, FPort:8, (reverse(FRMPayload))/binary>>,
     Msg = <<3:3, 0:3, 0:2, MACPayload/binary>>,
     MIC = crypto:cmac(aes_cbc128, L#link.nwkskey, <<(b0(1, DevAddr, L#link.fcntdown, byte_size(Msg)))/binary, Msg/binary>>, 4),
     PHYPayload = <<Msg/binary, MIC/binary>>,
