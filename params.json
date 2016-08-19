@@ -1,0 +1,6 @@
+{
+  "name": "LoRaWAN Server",
+  "tagline": "Compact server for private networks",
+  "body": "Open-source LoRaWAN Server that integrates both the network-server and the application-server. This is useful for application providers that operate their own LoRaWAN network or for device and application developers.\r\n\r\nThe server:\r\n * Communicates with remote LoRaWAN gateways.\r\n * Performs all required encryption and integrity checks.\r\n * Invokes modules with the application logic.\r\n * Supports (any number of) Class A devices.\r\n * Supports both the activation by personalization and the over-the-air activation.\r\n * Supports unconfirmed data uplink and downlink.\r\n * Is distributed under the MIT license.\r\n\r\nThe server aims to be an all-in-one software package for small private LoRaWAN networks.\r\nHowever:\r\n * You still need to buy your LoRaWAN Gateway.\r\n * You will need to deploy and maintain it yourself. (With my support.)\r\n * It will probably never support the sophisticated management features of the commercial-grade network-servers.\r\n\r\n### Support or Contact\r\nPlease view the [Github page](https://github.com/gotthardp/lorawan-server) for more information.",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
