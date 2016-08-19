@@ -1,8 +1,8 @@
 # Compact LoRaWAN Server
 
-Integrates both the network-server and the application-server. This is useful
-for application providers that operate their own LoRaWAN network, or for device
-and application developers.
+Open-source LoRaWAN Server that integrates both the network-server and the application-server.
+This is useful for application providers that operate their own LoRaWAN network,
+or for device and application developers.
 
 The server:
  * Communicates with remote LoRaWAN gateways. It currently supports:
