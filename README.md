@@ -30,11 +30,12 @@ if you find a bug or miss a feature.
 
 ## Installation
 
+Type `yum install erlang npm` or `apt-get install erlang npm`
+
 You will need the following prerequisites:
- * Erlang/OTP beyond 19.x (the bleeding edge Erlang, beyond the latest stable).
-   Currently you need [my own fork](https://github.com/gotthardp/otp/tree/otp-crypto-cmac/ERL-82).
+ * Erlang/OTP 18 or later.
+ * npm, the JavaScript package manager.
  * [Rebar3](https://www.rebar3.org/docs/getting-started)
- * npm, the JavaScript package manager. Just type `yum install npm` or `apt-get install npm`.
 
 Build and release the lorawan-server by
 ```bash

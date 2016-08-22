@@ -6,8 +6,6 @@
 % LoRaWAN 1.0.1 compliant MAC implementation
 % Supports Class A devices
 %
-% Requires the crypto:cmac/4 from https://github.com/erlang/otp/pull/1138
-%
 -module(lorawan_mac).
 
 -export([process_frame/5]).
@@ -25,7 +23,7 @@ process_frame(RxQ, RF, 0, Msg, MIC) ->
         [] ->
             {error, {unknown_deveui, DevEUI}};
         [D] ->
-            case crypto:cmac(aes_cbc128, D#device.appkey, Msg, 4) of
+            case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
                     handle_join(RxQ, RF, AppEUI, DevEUI, DevNonce, D#device.appkey);
                 MIC2 ->
@@ -40,7 +38,7 @@ process_frame(RxQ, _RF, MType, Msg, MIC) ->
 
     case check_link(DevAddr, FCnt) of
         {ok, L} ->
-            case crypto:cmac(aes_cbc128, L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
+            case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
                     handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, FPort, Data);
@@ -89,7 +87,7 @@ create_devaddr(NetID) ->
 txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr) ->
     MHDR = <<1:3, 0:3, 0:2>>,
     MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1, 0:3, 3:4, 1>>,
-    MIC = crypto:cmac(aes_cbc128, AppKey, <<MHDR/binary, MACPayload/binary>>, 4),
+    MIC = aes_cmac:aes_cmac(AppKey, <<MHDR/binary, MACPayload/binary>>, 4),
 
     % yes, decrypt; see LoRaWAN specification, Section 6.2.5
     PHYPayload = crypto:block_decrypt(aes_ecb, AppKey, padded(16, <<MACPayload/binary, MIC/binary>>)),
@@ -141,7 +139,7 @@ txpk(Time, RF, DevAddr, FPort, Data) ->
     FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
     MACPayload = <<(reverse(DevAddr)):4/binary, 0, (L#link.fcntdown):16/little-unsigned-integer, FPort:8, (reverse(FRMPayload))/binary>>,
     Msg = <<3:3, 0:3, 0:2, MACPayload/binary>>,
-    MIC = crypto:cmac(aes_cbc128, L#link.nwkskey, <<(b0(1, DevAddr, L#link.fcntdown, byte_size(Msg)))/binary, Msg/binary>>, 4),
+    MIC = aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(1, DevAddr, L#link.fcntdown, byte_size(Msg)))/binary, Msg/binary>>, 4),
     PHYPayload = <<Msg/binary, MIC/binary>>,
     {send, Time, RF, PHYPayload}.
 
