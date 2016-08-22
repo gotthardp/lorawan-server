@@ -33,9 +33,9 @@ if you find a bug or miss a feature.
 Type `yum install erlang npm` or `apt-get install erlang npm`
 
 You will need the following prerequisites:
- * Erlang/OTP 18 or later.
- * npm, the JavaScript package manager.
+ * Erlang/OTP 18 or later
  * [Rebar3](https://www.rebar3.org/docs/getting-started)
+ * npm, the JavaScript package manager
 
 Build and release the lorawan-server by
 ```bash
