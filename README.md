@@ -13,6 +13,7 @@ The server:
  * Supports (any number of) Class A devices.
  * Supports both the activation by personalization and the over-the-air activation.
  * Supports unconfirmed data uplink and downlink.
+ * Supports the EU 868 band.
  * Is free, distributed under the MIT license.
 
 The server aims to be an all-in-one software package for small private LoRaWAN networks.
