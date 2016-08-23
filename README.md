@@ -31,21 +31,20 @@ if you find a bug or miss a feature.
 
 ## Installation
 
-Type `yum install erlang npm` or `apt-get install erlang npm`
+You will need the Erlang/OTP 18 or later.
+Try typing `yum install erlang` or `apt-get install erlang`.
 
-You will need the following prerequisites:
- * Erlang/OTP 18 or later
- * [Rebar3](https://www.rebar3.org/docs/getting-started)
- * npm, the JavaScript package manager
-
-Build and release the lorawan-server by
+Download the binary release
+[lorawan-server-0.1.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases/download/v0.1.0/lorawan-server-0.1.0.tar.gz)
+and unpack it by:
 ```bash
-git clone https://github.com/gotthardp/lorawan-server.git
+mkdir lorawan-server
+mv lorawan-server-0.1.0.tar.gz lorawan-server/
 cd lorawan-server
-rebar3 release
+tar -zxvf lorawan-server-0.1.0.tar.gz
 ```
 
-Review the `lorawan_server.config` with the server configuration.
+Review the `lorawan-server/releases/0.1.0/sys.config` with the server configuration.
 For example:
 ```erlang
 [{lorawan_server, [
@@ -95,7 +94,7 @@ For example:
 
 Run the lorawan-server release by
 ```bash
-cd _build/default/rel/lorawan-server
+cd lorawan-server
 bin/lorawan-server foreground
 ```
 
@@ -146,6 +145,21 @@ handle(DevAddr, my_app, AppID, PortIn, DataIn) ->
     %% ...
     {send, PortOut, DataOut}.
 ```
+
+### Build Instructions
+
+You will need the following prerequisites:
+ * Rebar3, the Erlang build tool. Please follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
+ * npm, the JavaScript package manager. Try typing `yum install npm` or `apt-get install npm`.
+
+Build and release the lorawan-server by
+```bash
+git clone https://github.com/gotthardp/lorawan-server.git
+cd lorawan-server
+rebar3 release
+```
+
+The release will be created in `lorawan-server/_build/default/rel/lorawan-server`.
 
 ## Copyright and Licensing
 
