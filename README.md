@@ -36,7 +36,7 @@ You will need the Erlang/OTP 18 or later.
  * On Linux, try typing `yum install erlang` or `apt-get install erlang`.
  * On Windows, install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads).
 
-Download the binary release
+Then download the binary release
 [lorawan-server-0.1.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases/download/v0.1.0/lorawan-server-0.1.0.tar.gz)
 and unpack it by:
 ```bash
@@ -94,7 +94,7 @@ For example:
 
 ## Usage
 
-Run the lorawan-server release by
+Run the lorawan-server release by:
 ```bash
 cd lorawan-server
 bin/lorawan-server foreground
@@ -156,7 +156,7 @@ You will need the following prerequisites:
    * On Linux, try typing `yum install npm` or `apt-get install npm`.
    * On Windows, install the [Node.js](https://nodejs.org/en/).
 
-Build and release the lorawan-server by
+Then build and release the lorawan-server by:
 ```bash
 git clone https://github.com/gotthardp/lorawan-server.git
 cd lorawan-server
