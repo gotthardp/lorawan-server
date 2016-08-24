@@ -14,6 +14,7 @@ The server:
  * Supports both the activation by personalization and the over-the-air activation.
  * Supports unconfirmed data uplink and downlink.
  * Supports the EU 868 band.
+ * Runs on all major operating systems, including Windows, Linux, OS X and Solaris.
  * Is free, distributed under the MIT license.
 
 The server aims to be an all-in-one software package for small private LoRaWAN networks.
@@ -32,7 +33,8 @@ if you find a bug or miss a feature.
 ## Installation
 
 You will need the Erlang/OTP 18 or later.
-Try typing `yum install erlang` or `apt-get install erlang`.
+ * On Linux, try typing `yum install erlang` or `apt-get install erlang`.
+ * On Windows, install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads).
 
 Download the binary release
 [lorawan-server-0.1.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases/download/v0.1.0/lorawan-server-0.1.0.tar.gz)
@@ -150,7 +152,9 @@ handle(DevAddr, my_app, AppID, PortIn, DataIn) ->
 
 You will need the following prerequisites:
  * Rebar3, the Erlang build tool. Please follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
- * npm, the JavaScript package manager. Try typing `yum install npm` or `apt-get install npm`.
+ * npm, the JavaScript package manager.
+   * On Linux, try typing `yum install npm` or `apt-get install npm`.
+   * On Windows, install the [Node.js](https://nodejs.org/en/).
 
 Build and release the lorawan-server by
 ```bash
