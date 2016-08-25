@@ -55,7 +55,7 @@ For example:
     % UDP port listening for packets from the packet_forwarder Gateway
     {forwarder_port, 1680},
     % HTTP port for web-administration and REST API
-    {http_admin_port, 80},
+    {http_admin_port, 8080},
     % username and password for the admin interface
     {http_admin_credentials, {<<"admin">>, <<"admin">>}}
 ]}].
@@ -101,7 +101,7 @@ bin/lorawan-server foreground
 ```
 
 You can administrate and manage the server via a set of web-pages or via a REST API.
-By default, the server listens on HTTP port 80 and expects "admin" as both username and password.
+By default, the server listens on HTTP port 8080 and expects "admin" as both username and password.
 
 ### REST API
 

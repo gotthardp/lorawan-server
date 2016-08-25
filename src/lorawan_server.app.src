@@ -12,7 +12,7 @@
     {env, [
         {netid, <<42,42,42>>},
         {forwarder_port, 1680},
-        {http_admin_port, 80},
+        {http_admin_port, 8080},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}}
     ]},
     {applications, [kernel, stdlib, lager, cowboy, mnesia, jsx]}]}.
