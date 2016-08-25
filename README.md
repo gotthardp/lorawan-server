@@ -14,7 +14,8 @@ The server:
  * Supports both the activation by personalization and the over-the-air activation.
  * Supports unconfirmed data uplink and downlink.
  * Supports the EU 868 band.
- * Runs on all major operating systems, including Windows, Linux, OS X and Solaris.
+ * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,
+   even in a Docker container.
  * Is free, distributed under the MIT license.
 
 The server aims to be an all-in-one software package for small private LoRaWAN networks.
