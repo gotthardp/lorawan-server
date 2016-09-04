@@ -8,13 +8,37 @@
 %
 -module(lorawan_mac).
 
--export([process_frame/5]).
+-export([process_frame/6, process_status/2]).
 -export([binary_to_hex/1, hex_to_binary/1]).
 
 -define(MAX_FCNT_GAP, 16384).
 -include("lorawan.hrl").
 
-process_frame(RxQ, RF, 0, Msg, MIC) ->
+process_frame(MAC, RxQ, RF, MType, Msg, MIC) ->
+    case mnesia:dirty_read(gateways, MAC) of
+        [] ->
+            {error, {unknown_mac, MAC}};
+        [G] ->
+            process_frame1(G#gateway.netid, RxQ, RF, MType, Msg, MIC)
+    end.
+
+process_status(MAC, S) ->
+    case mnesia:dirty_read(gateways, MAC) of
+        [] ->
+            {error, {unknown_mac, MAC}};
+        [G] ->
+            G2 = if
+                % store gateway GPS position
+                S#stat.lati /= 0; S#stat.long /= 0; S#stat.alti /= 0 ->
+                    G#gateway{ gpspos={S#stat.lati, S#stat.long}, gpsalt=S#stat.alti };
+                % position not received
+                true -> G
+            end,
+            mnesia:dirty_write(gateways, G2),
+            ok
+    end.
+
+process_frame1(NetID, RxQ, RF, 0, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = MACPayload,
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
@@ -25,12 +49,12 @@ process_frame(RxQ, RF, 0, Msg, MIC) ->
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
-                    handle_join(RxQ, RF, AppEUI, DevEUI, DevNonce, D#device.appkey);
-                MIC2 ->
+                    handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, D#device.appkey);
+                _MIC2 ->
                     {error, bad_mic}
             end
     end;
-process_frame(RxQ, _RF, MType, Msg, MIC) ->
+process_frame1(_NetID, RxQ, _RF, MType, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, FPending:1, FOptsLen:4,
         FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
@@ -42,7 +66,7 @@ process_frame(RxQ, _RF, MType, Msg, MIC) ->
                 MIC ->
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
                     handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, FPort, Data);
-                MIC2 ->
+                _MIC2 ->
                     {error, bad_mic}
             end;
         {error, Error} ->
@@ -50,10 +74,8 @@ process_frame(RxQ, _RF, MType, Msg, MIC) ->
     end.
 
 
-handle_join(RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
-    {ok, NetID} = application:get_env(netid),
+handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
     AppNonce = crypto:rand_bytes(3),
-
     NwkSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#01, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
     AppSKey = crypto:block_encrypt(aes_ecb, AppKey,

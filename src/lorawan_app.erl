@@ -16,6 +16,14 @@ has_tables(ReqTables) ->
     lists:all(fun(Table) -> lists:member(Table, AllTables) end, ReqTables).
 
 create_tables() ->
+    mnesia:create_table(users, [
+        {record_name, user},
+        {attributes, record_info(fields, user)},
+        {disc_copies, [node()]}]),
+    mnesia:create_table(gateways, [
+        {record_name, gateway},
+        {attributes, record_info(fields, gateway)},
+        {disc_copies, [node()]}]),
     mnesia:create_table(devices, [
         {record_name, device},
         {attributes, record_info(fields, device)},
@@ -25,20 +33,32 @@ create_tables() ->
         {attributes, record_info(fields, link)},
         {disc_copies, [node()]}]).
 
+set_defaults() ->
+    {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),
+    mnesia:dirty_write(users, #user{name=User, pass=Pass}).
+
 start(_Type, _Args) ->
-    case has_tables([devices, links]) of
-        true -> ok;
+    AllTables = [users, gateways, devices, links],
+    case has_tables(AllTables) of
+        true ->
+            mnesia:wait_for_tables(AllTables, 2000);
         false ->
             stopped = mnesia:stop(),
             mnesia:create_schema([node()]),
             ok = mnesia:start(),
-            create_tables()
+            create_tables(),
+            mnesia:wait_for_tables(AllTables, 2000),
+            set_defaults()
     end,
 
     lorawan_application:init(),
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/applications", lorawan_admin_applications, []},
+            {"/users", lorawan_admin_users, []},
+            {"/users/:name", lorawan_admin_user, []},
+            {"/gateways", lorawan_admin_gateways, []},
+            {"/gateways/:mac", lorawan_admin_gateway, []},
             {"/devices", lorawan_admin_devices, []},
             {"/devices/:deveui", lorawan_admin_device, []},
             {"/links", lorawan_admin_links, []},

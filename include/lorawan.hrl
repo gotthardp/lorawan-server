@@ -9,6 +9,8 @@
 -record(rflora, {freq, datr, codr}).
 -record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
 
+-record(user, {name, pass}).
+-record(gateway, {mac, netid, gpspos, gpsalt}).
 -record(device, {deveui, app, appid, appeui, appkey, link}).
 -record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown}).
 

@@ -1,5 +1,6 @@
 _build
 rebar.lock
+db*.json
 
 priv/admin/etc
 priv/admin/node_modules

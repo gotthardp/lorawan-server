@@ -51,13 +51,11 @@ Review the `lorawan-server/releases/0.1.0/sys.config` with the server configurat
 For example:
 ```erlang
 [{lorawan_server, [
-    % 3-byte unique LoRaWAN Network Identifier (NetID)
-    {netid, <<42,42,42>>},
     % UDP port listening for packets from the packet_forwarder Gateway
     {forwarder_port, 1680},
     % HTTP port for web-administration and REST API
     {http_admin_port, 8080},
-    % username and password for the admin interface
+    % default username and password for the admin interface
     {http_admin_credentials, {<<"admin">>, <<"admin">>}}
 ]}].
 ```
@@ -111,6 +109,10 @@ The following REST resources are made available:
   Resource        | Methods          | Explanation
  -----------------|------------------| ------------------------------------------------
   /applications   | GET              | Supported LoRaWAN applications
+  /users          | GET, POST        | Users of the admin interface
+  /users/*ABC*    | GET, PUT, DELETE | User *ABC*
+  /gateways       | GET, POST        | LoRaWAN gateways
+  /gateways/*123* | GET, PUT, DELETE | Gateway with MAC=*123*
   /devices        | GET, POST        | Devices registered for over-the-air activation
   /devices/*123*  | GET, PUT, DELETE | Device with DevEUI=*123*
   /links          | GET, POST        | Activated devices
@@ -121,8 +123,10 @@ The following REST resources are made available:
 The management web-pages are available under `/admin`. It is just a wrapper around
 the REST API.
 
-To add a personalized device, create a new *Link* list entry.
-To add an OTAA device, create a new *Device* list entry and start the device. The *Link*
+To register a new gateway, create a new *Gateways* list entry.
+
+To add a personalized device, create a new *Links* list entry.
+To add an OTAA device, create a new *Devices* list entry and start the device. The *Links*
 list will be updated automatically once the device joins the network.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin.png)

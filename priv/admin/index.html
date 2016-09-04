@@ -4,10 +4,15 @@
         <meta charset="utf-8">
         <title>Server Admin</title>
         <link rel="stylesheet" href="/admin/node_modules/ng-admin/build/ng-admin.min.css">
+        <style>
+        .angular-google-map-container { height: 400px; }
+        </style>
     </head>
     <body ng-app="myApp">
         <div ui-view></div>
         <script src="/admin/node_modules/ng-admin/build/ng-admin.min.js" type="text/javascript"></script>
+        <script src="/admin/node_modules/angular-simple-logger/dist/angular-simple-logger.min.js"></script>
+        <script src="/admin/node_modules/angular-google-maps/dist/angular-google-maps.min.js" type="text/javascript"></script>
         <script src="/admin/admin.js" type="text/javascript"></script>
     </body>
 </html>

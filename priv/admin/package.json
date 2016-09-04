@@ -1,6 +1,7 @@
 {
   "private": true,
   "dependencies": {
-    "ng-admin": "latest"
+    "ng-admin": "latest",
+    "angular-google-maps": "2.3.4"
   }
 }

@@ -65,7 +65,7 @@ rxpk(MAC, [Pk|More]) ->
     Size = byte_size(PHYPayload)-4,
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
     <<MType:3, _:5, _/binary>> = Msg,
-    case lorawan_mac:process_frame(RxQ, RF, MType, Msg, MIC) of
+    case lorawan_mac:process_frame(MAC, RxQ, RF, MType, Msg, MIC) of
         ok -> ok;
         {send, Time2, RF2, PHYPayload2} ->
             txsend(Time2, RF2, PHYPayload2);
@@ -74,12 +74,13 @@ rxpk(MAC, [Pk|More]) ->
     end,
     rxpk(MAC, More).
 
-status(_MAC, Pk) ->
+status(MAC, Pk) ->
     S = ?to_record(stat, Pk),
-    %% TODO: what shall we do with this information?
-    %lager:debug("rxnb ~w, rxok ~w, rxfw ~w, ackr ~w, dwnb ~w, txnb ~w",
-    %    [S#stat.rxnb, S#stat.rxok, S#stat.rxfw, S#stat.ackr, S#stat.dwnb, S#stat.txnb]),
-    ok.
+    case lorawan_mac:process_status(MAC, S) of
+        ok -> ok;
+        {error, Error} ->
+            lager:error("ERROR: ~w", [Error])
+    end.
 
 txsend(Time, RF, PHYPayload) ->
     % TX only supported on radio A

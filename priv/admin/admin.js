@@ -3,16 +3,54 @@
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
-var myApp = angular.module('myApp', ['ng-admin']);
+var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/');
 
     var applications = nga.entity('applications')
         .identifier(nga.field('name'));
+    var users = nga.entity('users')
+        .identifier(nga.field('name'));
+    var gateways = nga.entity('gateways')
+        .identifier(nga.field('mac'));
     var devices = nga.entity('devices')
         .identifier(nga.field('deveui'));
     var links = nga.entity('links')
         .identifier(nga.field('devaddr'));
+
+    // ---- users
+    users.listView().fields([
+        nga.field('name').isDetailLink(true)
+    ]);
+    users.creationView().fields([
+        nga.field('name'),
+        nga.field('pass', 'password')
+    ]);
+    users.editionView().fields(users.creationView().fields());
+    // add to the admin application
+    admin.addEntity(users);
+
+    // ---- gateways
+    gateways.listView().fields([
+        nga.field('mac').label('MAC').isDetailLink(true),
+        nga.field('netid').label('NetID')
+    ]);
+    gateways.creationView().fields([
+        nga.field('mac').label('MAC')
+            .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
+            .validation({ required: true, pattern: '[A-Za-z0-9]{16}' }),
+        nga.field('netid').label('NetID')
+            .attributes({ placeholder: 'e.g. 0123AB' })
+            .validation({ required: true, pattern: '[A-Za-z0-9]{6}' }),
+        nga.field('gpspos', 'template')
+            .validation({required: true })
+            .label('Location')
+            .template('<map location="value"></map>'),
+        nga.field('gpsalt', 'number').label('Altitude')
+    ]);
+    gateways.editionView().fields(gateways.creationView().fields());
+    // add to the admin application
+    admin.addEntity(gateways);
 
     // ---- devices
     devices.listView().fields([
@@ -99,3 +137,48 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // attach the admin application to the DOM and execute it
     nga.configure(admin);
 }]);
+// http://stackoverflow.com/questions/35895411/ng-admin-and-google-maps
+myApp.directive('map', [function () {
+return {
+    restrict: 'E',
+    scope: {
+        value: '=location',
+    },
+    link: function($scope, uiGmapIsReady) {
+        if ($scope.value == undefined) {
+            $scope.value = { lat: 48.88, lon: 14.12};
+        }
+        $scope.map = { center: { latitude: $scope.value.lat, longitude: $scope.value.lon }, zoom: 4 };
+        $scope.marker = {
+            id: 0,
+            coords: {
+                latitude: $scope.value.lat,
+                longitude: $scope.value.lon
+            },
+            options: { draggable: true },
+            events: {
+                dragend: function (marker, eventName, args) {
+                    $scope.value = { lat: marker.getPosition().lat(), lon: marker.getPosition().lng() };
+                }
+            }
+        };
+    },
+    template:
+    `
+    <div class="row list-view">
+        <div class="col-lg-12">
+            <ui-gmap-google-map center="map.center" zoom="map.zoom" draggable="true" options="options" pan=true refresh="true">
+                <ui-gmap-marker coords="marker.coords" options="marker.options" events="marker.events" idkey="marker.id">
+                </ui-gmap-marker>
+            </ui-gmap-google-map>
+        </div>
+    </div>
+    `
+};}]);
+myApp.config(function (uiGmapGoogleMapApiProvider) {
+    uiGmapGoogleMapApiProvider.configure({
+        key: '',
+        v: '3',
+        libraries: 'visualization'
+    });
+});
