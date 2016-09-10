@@ -80,7 +80,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true, pattern: '[A-Za-z0-9]{32}' }),
         nga.field('link')
             .attributes({ placeholder: 'e.g. ABC12345' })
-            .validation({ pattern: '[A-Za-z0-9]{32}' })
+            .validation({ pattern: '[A-Za-z0-9]{8}' })
     ]);
     devices.editionView().fields(devices.creationView().fields());
     // add to the admin application
