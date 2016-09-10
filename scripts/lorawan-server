@@ -1,0 +1,9 @@
+#!/bin/sh
+SCRIPT=$(readlink $0 || true)
+if [ -z $SCRIPT ]; then
+    SCRIPT=$0
+fi;
+SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+
+cd $ROOT_DIR && erl -noinput +Bd -sname lorawan -pa lib/*/ebin -s lorawan_app -config releases/0.1.0/sys.config

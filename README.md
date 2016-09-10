@@ -6,10 +6,12 @@ or for device and application developers.
 
 The server:
  * Communicates with remote LoRaWAN gateways. It currently supports:
-   * [Packet Forwarder](https://github.com/Lora-net/packet_forwarder) used in LoRa demo kits
+   * [Packet Forwarder](https://github.com/Lora-net/packet_forwarder) used in Semtech LoRa demo kits
+     or (LORANK-8)[http://webshop.ideetron.nl/LORANK-8] gateways.
  * Performs all required encryption and integrity checks.
  * Invokes modules with the application logic. It provides examples for:
-   * LoRaMote Demo
+   * [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
+   * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
  * Supports (any number of) Class A devices.
  * Supports both the activation by personalization and the over-the-air activation.
  * Supports unconfirmed data uplink and downlink.
@@ -96,7 +98,7 @@ For example:
 Run the lorawan-server release by:
 ```bash
 cd lorawan-server
-bin/lorawan-server foreground
+bin/lorawan-server
 ```
 
 You can administrate and manage the server via a set of web-pages or via a REST API.
