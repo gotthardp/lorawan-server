@@ -11,4 +11,4 @@ EXPOSE 1680/udp
 EXPOSE 8080/tcp
 
 WORKDIR /lorawan-server/_build/default/rel/lorawan-server
-CMD bin/lorawan-server foreground
+CMD bin/lorawan-server
