@@ -10,7 +10,8 @@
 
 % update this list to add/remove applications
 list_all() ->
-    [{<<"loramote">>, lorawan_application_mote}].
+    [{<<"semtech-mote">>, lorawan_application_semtech_mote},
+    {<<"microchip-mote">>, lorawan_application_microchip_mote}].
 
 init() ->
     do_init(list_all()).
