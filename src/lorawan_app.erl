@@ -67,6 +67,7 @@ start(_Type, _Args) ->
             {"/devices/:deveui", lorawan_admin_device, []},
             {"/links", lorawan_admin_links, []},
             {"/links/:devaddr", lorawan_admin_link, []},
+            {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
         ]}
