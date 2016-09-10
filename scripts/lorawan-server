@@ -6,4 +6,12 @@ fi;
 SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
-cd $ROOT_DIR && erl -noinput +Bd -sname lorawan -pa lib/*/ebin -s lorawan_app -config releases/0.1.0/sys.config
+__possible_sys="$ROOT_DIR/releases/0.1.0/sys.config"
+if [ -f "$__possible_sys" ]; then
+    SYS_CONFIG="$__possible_sys"
+elif [ -L "$__possible_sys".orig ]; then
+    mv "$__possible_sys".orig "$__possible_sys"
+    SYS_CONFIG="$__possible_sys"
+fi
+
+cd $ROOT_DIR && erl -noinput +Bd -sname lorawan -pa lib/*/ebin -s lorawan_app -config $SYS_CONFIG
