@@ -1,7 +1,7 @@
-# Compact LoRaWAN Server
+# Compact server for private LoRa networks
 
 Open-source LoRaWAN Server that integrates both the network-server and the application-server.
-This is useful for application providers that operate their own LoRaWAN network,
+This is useful for application providers that operate their own LoRa network,
 or for device and application developers.
 
 The server:
@@ -20,7 +20,7 @@ The server:
    even in a Docker container.
  * Is free, distributed under the MIT license.
 
-The server aims to be an all-in-one software package for small private LoRaWAN networks.
+The server aims to be an all-in-one software package for small private LoRa networks.
 However:
  * You still need to buy your LoRaWAN Gateway.
  * You will need to deploy and maintain it yourself. (With my support.)
@@ -135,6 +135,7 @@ list will be updated automatically once the device joins the network.
 
 
 ## Development
+[![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)
 
 The lorawan-server is designed to be highly extensible. I encourage you to
 [Learn You Some Erlang](http://learnyousomeerlang.com/introduction) and develop
