@@ -6,8 +6,8 @@
 -module(lorawan_app).
 -behaviour(application).
 
--export([start/2]).
--export([stop/1]).
+-export([start/0]).
+-export([start/2, stop/1]).
 
 -include("lorawan.hrl").
 
@@ -37,6 +37,9 @@ set_defaults() ->
     {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),
     mnesia:dirty_write(users, #user{name=User, pass=Pass}).
 
+start() ->
+    application:ensure_all_started(lorawan_server).
+
 start(_Type, _Args) ->
     AllTables = [users, gateways, devices, links],
     case has_tables(AllTables) of
@@ -55,6 +58,7 @@ start(_Type, _Args) ->
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/applications", lorawan_admin_applications, []},
+            {"/applications/:name", lorawan_admin_application, []},
             {"/users", lorawan_admin_users, []},
             {"/users/:name", lorawan_admin_user, []},
             {"/gateways", lorawan_admin_gateways, []},
