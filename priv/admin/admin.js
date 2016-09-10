@@ -120,6 +120,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(links);
 
+    // ---- menu
+    admin.menu(nga.menu()
+        .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
+        .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
+        .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
+        .addChild(nga.menu(links).icon('<span class="fa fa-rss fa-fw"></span>'))
+    );
+
     // ---- dashboard
     admin.dashboard(nga.dashboard()
         .addCollection(nga.collection(devices)
