@@ -56,8 +56,8 @@ process_frame1(NetID, RxQ, RF, 0, Msg, MIC) ->
     end;
 process_frame1(_NetID, RxQ, _RF, MType, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
-    <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, FPending:1, FOptsLen:4,
-        FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
+    <<DevAddr0:4/binary, _ADR:1, _ADRACKReq:1, _ACK:1, _FPending:1, FOptsLen:4,
+        FCnt:16/little-unsigned-integer, _FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
     DevAddr = reverse(DevAddr0),
 
     case check_link(DevAddr, FCnt) of
