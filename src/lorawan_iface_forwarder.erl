@@ -37,20 +37,29 @@ handle_cast(_Req, State) ->
 
 % PUSH DATA
 handle_info({udp, Socket, Host, Port, <<1, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
-    Data2 = jsx:decode(Data, [{labels, atom}]),
-    % PUSH ACK
-    gen_udp:send(Socket, Host, Port, <<1, Token:16, 1>>),
-    lists:foreach(
-        fun ({rxpk, Pk}) -> rxpk(MAC, Pk);
-            ({stat, Pk}) -> status(MAC, Pk)
-        end, Data2),
+    case jsx:is_json(Data) of
+        true ->
+            Data2 = jsx:decode(Data, [{labels, atom}]),
+            lists:foreach(
+                fun ({rxpk, Pk}) -> rxpk(MAC, Pk);
+                    ({stat, Pk}) -> status(MAC, Pk)
+                end, Data2),
+            % PUSH ACK
+            gen_udp:send(Socket, Host, Port, <<1, Token:16, 1>>);
+        false ->
+            lager:error("Ignored PUSH_DATA: JSON syntax error")
+    end,
     {noreply, State};
 
 % PULL DATA
 handle_info({udp, Socket, Host, Port, <<1, Token:16, 2, _MAC:8/binary>>}, #state{sock=Socket}=State) ->
     % PULL ACK
     gen_udp:send(Socket, Host, Port, <<1, Token:16, 4>>),
-    {noreply, State#state{pulladdr={Host, Port}}}.
+    {noreply, State#state{pulladdr={Host, Port}}};
+
+% something strange
+handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
+    {noreply, State}.
 
 terminate(_Reason, _State) ->
   ok.
