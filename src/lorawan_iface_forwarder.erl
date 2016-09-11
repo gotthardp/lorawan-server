@@ -22,17 +22,19 @@ start_link(Port) ->
 
 init([Port]) ->
     {ok, Socket} = gen_udp:open(Port, [binary]),
-    {ok, #state{sock=Socket}}.
+    {ok, #state{sock=Socket, pulladdr=dict:new()}}.
 
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({send, Packet}, #state{sock=Socket, pulladdr={Host, Port}}=State) ->
-    % PULL RESP
-    gen_udp:send(Socket, Host, Port, <<1, 0:16, 3, Packet/binary>>),
-    {noreply, State};
-handle_cast(_Req, State) ->
-    lager:info("Downlink request ignored. Gateway not connected."),
+handle_cast({send, MAC, Packet}, #state{sock=Socket, pulladdr=Dict}=State) ->
+    case dict:find(MAC, Dict) of
+        {ok, {Host, Port}} ->
+            % PULL RESP
+            gen_udp:send(Socket, Host, Port, <<1, 0:16, 3, Packet/binary>>);
+        error ->
+            lager:info("Downlink request ignored. Gateway ~w not connected.", [MAC])
+    end,
     {noreply, State}.
 
 % PUSH DATA
@@ -52,10 +54,11 @@ handle_info({udp, Socket, Host, Port, <<1, Token:16, 0, MAC:8/binary, Data/binar
     {noreply, State};
 
 % PULL DATA
-handle_info({udp, Socket, Host, Port, <<1, Token:16, 2, _MAC:8/binary>>}, #state{sock=Socket}=State) ->
+handle_info({udp, Socket, Host, Port, <<1, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket, pulladdr=Dict}=State) ->
+    Dict2 = dict:store(MAC, {Host, Port}, Dict),
     % PULL ACK
     gen_udp:send(Socket, Host, Port, <<1, Token:16, 4>>),
-    {noreply, State#state{pulladdr={Host, Port}}};
+    {noreply, State#state{pulladdr=Dict2}};
 
 % something strange
 handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
@@ -77,7 +80,7 @@ rxpk(MAC, [Pk|More]) ->
     case lorawan_mac:process_frame(MAC, RxQ, RF, MType, Msg, MIC) of
         ok -> ok;
         {send, Time2, RF2, PHYPayload2} ->
-            txsend(Time2, RF2, PHYPayload2);
+            txsend(MAC, Time2, RF2, PHYPayload2);
         {error, Error} ->
             lager:error("ERROR: ~w", [Error])
     end,
@@ -91,10 +94,10 @@ status(MAC, Pk) ->
             lager:error("ERROR: ~w", [Error])
     end.
 
-txsend(Time, RF, PHYPayload) ->
+txsend(MAC, Time, RF, PHYPayload) ->
     % TX only supported on radio A
     Pk = jsx:encode([{txpk, build_txpk(#txq{tmst=Time, rfch=0, powe=14}, RF, PHYPayload)}]),
-    gen_server:cast({global, ?MODULE}, {send, Pk}).
+    gen_server:cast({global, ?MODULE}, {send, MAC, Pk}).
 
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),

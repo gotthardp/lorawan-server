@@ -5,9 +5,9 @@ This is useful for application providers that operate their own LoRa network,
 or for device and application developers.
 
 The server:
- * Communicates with remote LoRaWAN gateways. It currently supports:
-   * [Packet Forwarder](https://github.com/Lora-net/packet_forwarder) used in Semtech LoRa demo kits
-     and [LORANK-8](http://webshop.ideetron.nl/LORANK-8) gateways.
+ * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
+   * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
+     such as the Semtech LoRa demo kit and [LORANK-8](http://webshop.ideetron.nl/LORANK-8) gateways.
  * Performs all required encryption and integrity checks.
  * Invokes modules with the application logic. It provides examples for:
    * [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
