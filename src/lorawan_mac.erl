@@ -29,7 +29,8 @@ process_status(MAC, S) ->
         [G] ->
             G2 = if
                 % store gateway GPS position
-                S#stat.lati /= 0; S#stat.long /= 0; S#stat.alti /= 0 ->
+                is_number(S#stat.lati), is_number(S#stat.long), is_number(S#stat.alti),
+                S#stat.lati /= 0, S#stat.long /= 0, S#stat.alti /= 0 ->
                     G#gateway{ gpspos={S#stat.lati, S#stat.long}, gpsalt=S#stat.alti };
                 % position not received
                 true -> G
