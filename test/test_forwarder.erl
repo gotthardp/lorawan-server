@@ -23,8 +23,8 @@ push_and_pull(MAC, Data) ->
             Error
     end.
 
-rxpk(Data) ->
-    Pk = [{modu, <<"LORA">>}, {data, base64:encode(Data)}],
+rxpk(Base64Data) ->
+    Pk = [{modu, <<"LORA">>}, {tmst, 0}, {data, Base64Data}],
     [{rxpk, [Pk]}].
 
 
@@ -61,7 +61,9 @@ await_pull(Socket) ->
     receive
         % PULL_RESP
         {udp, Socket, _, _, <<1, _:16, 3, Data/binary>>} ->
-            {ok, jsx:decode(Data, [{labels, atom}])}
+            Pk = jsx:decode(Data, [{labels, atom}]),
+            TxPk = proplists:get_value(txpk, Pk),
+            {ok, {proplists:get_value(data, TxPk)}}
         after 100 ->
             {error, timeout}
     end.

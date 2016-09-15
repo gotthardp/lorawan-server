@@ -34,6 +34,7 @@ create_tables() ->
         {disc_copies, [node()]}]).
 
 set_defaults() ->
+    lager:info("Created default user:password"),
     {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),
     mnesia:dirty_write(users, #user{name=User, pass=Pass}).
 

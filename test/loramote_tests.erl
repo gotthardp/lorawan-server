@@ -11,8 +11,9 @@ loramote_test_() ->
     {setup,
         fun() ->
             {ok, _} = application:ensure_all_started(lorawan_server),
+            lager:set_loglevel(lager_console_backend, debug),
             test_admin:add_device(<<"0000000000000000">>),
-            test_admin:add_link(<<"72712B4A">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>)
+            test_admin:add_link(<<"11223344">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>)
         end,
         fun(_State) ->
             application:stop(lorawan_server)
@@ -21,8 +22,10 @@ loramote_test_() ->
 
 loramote_test(_State) ->
     [
-    ?_assertEqual({error, timeout}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, <<"bad_json">>))
-%    ?_assertEqual(ok, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, test_forwarder:rxpk(<<"IJ+qrB+s17zlqkQNfsokit0">>)))
+    ?_assertEqual({error, timeout}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, <<"bad_json">>)),
+    % random messages from LoRa Mote
+    ?_assertEqual({ok,{<<"YEQzIhEAAQAChkQA7Q4=">>}}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, test_forwarder:rxpk("QEQzIhEABAACP24OaiNddeeybMAun0EwVHf4eaY="))),
+    ?_assertEqual({ok,{<<"YEQzIhEAAgACfIYtaVc=">>}}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, test_forwarder:rxpk("QEQzIhEA0AACHaxbOsSlM9izylIPYNdD3QuCrXI=")))
     ].
 
 % end of file
