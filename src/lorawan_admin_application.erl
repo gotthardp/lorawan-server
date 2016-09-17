@@ -31,6 +31,7 @@ get_application(Req, User) ->
     {jsx:encode([{name, cowboy_req:binding(name, Req)}]), Req, User}.
 
 resource_exists(Req, State) ->
-    {proplists:is_defined(cowboy_req:binding(name, Req), lorawan_application:list_all()), Req, State}.
+    {ok, Modules} = application:get_env(lorawan_server, plugins),
+    {proplists:is_defined(cowboy_req:binding(name, Req), Modules), Req, State}.
 
 % end of file

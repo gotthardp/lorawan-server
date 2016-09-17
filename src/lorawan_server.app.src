@@ -10,6 +10,9 @@
     {registered, []},
     {mod, {lorawan_app, []}},
     {env, [
+        {plugins, [
+            {<<"semtech-mote">>, lorawan_application_semtech_mote},
+            {<<"microchip-mote">>, lorawan_application_microchip_mote}]},
         {forwarder_port, 1680},
         {http_admin_port, 8080},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}}

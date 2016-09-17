@@ -60,7 +60,7 @@ start(_Type, _Args) ->
             set_defaults()
     end,
 
-    lorawan_application:init(),
+    {ok, Handlers} = lorawan_application:init(),
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/applications", lorawan_admin_applications, []},
@@ -77,7 +77,7 @@ start(_Type, _Args) ->
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
-        ]}
+        ]++Handlers}
     ]),
     {ok, Port} = application:get_env(http_admin_port),
     {ok, _} = cowboy:start_clear(http, 100, [{port, Port}], #{

@@ -5,26 +5,23 @@
 %
 -module(lorawan_application).
 
--export([list_all/0]).
 -export([init/0, handle/5]).
 
-% update this list to add/remove applications
-list_all() ->
-    [{<<"semtech-mote">>, lorawan_application_semtech_mote},
-    {<<"microchip-mote">>, lorawan_application_microchip_mote}].
-
 init() ->
-    do_init(list_all()).
+    {ok, Modules} = application:get_env(plugins),
+    do_init(Modules, []).
 
-do_init([]) -> ok;
-do_init([{App, Module}|Rest]) ->
+do_init([], Acc) -> {ok, Acc};
+do_init([{App, Module}|Rest], Acc) ->
     case apply(Module, init, [App]) of
-        ok -> do_init(Rest);
+        ok -> do_init(Rest, Acc);
+        {ok, Handlers} -> do_init(Rest, Acc++Handlers);
         Else -> Else
     end.
 
 handle(DevAddr, App, AppID, Port, Data) ->
-    case proplists:get_value(App, list_all()) of
+    {ok, Modules} = application:get_env(plugins),
+    case proplists:get_value(App, Modules) of
         undefined ->
             {error, {unknown_app, App}};
         Module ->

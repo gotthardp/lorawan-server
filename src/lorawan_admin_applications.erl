@@ -27,9 +27,10 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 get_applications(Req, User) ->
+    {ok, Modules} = application:get_env(lorawan_server, plugins),
     A = lists:map(
         fun({Name, _Module}) -> [{name, Name}] end,
-        lorawan_application:list_all()),
+        Modules),
     {jsx:encode(A), Req, User}.
 
 % end of file
