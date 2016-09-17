@@ -17,6 +17,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('deveui'));
     var links = nga.entity('links')
         .identifier(nga.field('devaddr'));
+    var rxframes = nga.entity('rxframes')
+        .identifier(nga.field('id'))
+        .readOnly();
 
     // ---- users
     users.listView().fields([
@@ -120,12 +123,32 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(links);
 
+    // ---- rxframes
+    rxframes.listView().fields([
+        nga.field('devaddr').label('DevAddr'),
+        nga.field('fcnt').label('FCnt'),
+        nga.field('data'),
+        nga.field('rflora.freq').label('Freq'),
+        nga.field('rflora.datr').label('Data Rate'),
+        nga.field('rflora.codr').label('Coding'),
+        nga.field('macrxq', 'embedded_list').label('Received via')
+            .targetFields([
+                nga.field('mac').label('Gateway'),
+                nga.field('rxq.rssi').label('RSSI'),
+                nga.field('rxq.lsnr').label('SNR'),
+                nga.field('rxq.stat').label('CRC')
+            ])
+    ]);
+    // add to the admin application
+    admin.addEntity(rxframes);
+
     // ---- menu
     admin.menu(nga.menu()
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
         .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(links).icon('<span class="fa fa-rss fa-fw"></span>'))
+        .addChild(nga.menu(rxframes))
     );
 
     // ---- dashboard

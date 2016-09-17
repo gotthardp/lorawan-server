@@ -31,7 +31,7 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 get_links(Req, User) ->
-    {jsx:encode(read_links()), Req, User}.
+    lorawan_admin:paginate(Req, User, read_links()).
 
 read_links() ->
     lists:foldl(

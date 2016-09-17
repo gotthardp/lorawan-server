@@ -31,7 +31,7 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 get_gateways(Req, User) ->
-    {jsx:encode(read_gateways()), Req, User}.
+    lorawan_admin:paginate(Req, User, read_gateways()).
 
 read_gateways() ->
     lists:foldl(

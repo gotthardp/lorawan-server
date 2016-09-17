@@ -19,7 +19,7 @@ process_frame(MAC, RxQ, RF, MType, Msg, MIC) ->
         [] ->
             {error, {unknown_mac, MAC}};
         [G] ->
-            process_frame1(G#gateway.netid, RxQ, RF, MType, Msg, MIC)
+            process_frame1(G#gateway.netid, MAC, RxQ, RF, MType, Msg, MIC)
     end.
 
 process_status(MAC, S) ->
@@ -39,7 +39,7 @@ process_status(MAC, S) ->
             ok
     end.
 
-process_frame1(NetID, RxQ, RF, 0, Msg, MIC) ->
+process_frame1(NetID, _MAC, RxQ, RF, 0, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = MACPayload,
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
@@ -55,7 +55,7 @@ process_frame1(NetID, RxQ, RF, 0, Msg, MIC) ->
                     {error, bad_mic}
             end
     end;
-process_frame1(_NetID, RxQ, _RF, MType, Msg, MIC) ->
+process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<DevAddr0:4/binary, _ADR:1, _ADRACKReq:1, _ACK:1, _FPending:1, FOptsLen:4,
         FCnt:16/little-unsigned-integer, _FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
@@ -66,7 +66,8 @@ process_frame1(_NetID, RxQ, _RF, MType, Msg, MIC) ->
             case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
-                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, FPort, Data);
+                    {atomic, ok} = store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
+                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, FPort, reverse(Data));
                 _MIC2 ->
                     {error, bad_mic}
             end;
@@ -137,8 +138,18 @@ fcnt_gap(A, B) ->
         A > B -> 16#FFFF - A + B
     end.
 
+store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
+    mnesia:transaction(fun() ->
+        case mnesia:read(rxframes, {DevAddr, FCnt}, write) of
+            [] ->
+                mnesia:write(rxframes, #rxframe{devcnt={DevAddr, FCnt}, macrxq=[{MAC, RxQ}], rflora=RF, data=Data}, write);
+            [F] ->
+                mnesia:write(rxframes, F#rxframe{macrxq=[{MAC, RxQ} | F#rxframe.macrxq]}, write)
+        end
+    end).
+
 handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->
-    case lorawan_application:handle(DevAddr, App, AppID, Port, reverse(Data)) of
+    case lorawan_application:handle(DevAddr, App, AppID, Port, Data) of
         {send, PortOut, DataOut} ->
             % transmitting for the RX2 window
             Time = RxQ#rxq.tmst + 2000000,

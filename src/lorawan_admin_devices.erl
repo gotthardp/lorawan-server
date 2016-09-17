@@ -31,7 +31,7 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 get_devices(Req, User) ->
-    {jsx:encode(read_devices()), Req, User}.
+    lorawan_admin:paginate(Req, User, read_devices()).
 
 read_devices() ->
     lists:foldl(

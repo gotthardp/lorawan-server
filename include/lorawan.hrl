@@ -13,6 +13,7 @@
 -record(gateway, {mac, netid, gpspos, gpsalt}).
 -record(device, {deveui, app, appid, appeui, appkey, link}).
 -record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown}).
+-record(rxframe, {devcnt, macrxq, rflora, data}).
 
 -define(to_record(Record, List),
     list_to_tuple([Record|[proplists:get_value(X, List) || X <- record_info(fields, Record)]])).
