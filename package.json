@@ -1,7 +1,7 @@
 {
   "private": true,
   "dependencies": {
-    "ng-admin": "latest",
+    "ng-admin": "1.0.0-alpha5",
     "angular-simple-logger": ">=0.0.1",
     "angular-google-maps": "2.3.4"
   }
