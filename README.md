@@ -144,16 +144,23 @@ your own applications.
 ### Custom application handlers
 
 To implement a new application you need to create a new `lorawan_application_xxx.erl` module
-and register it in the
-[`lorawan_application.erl`](https://github.com/gotthardp/lorawan-server/blob/master/src/lorawan_application.erl).
+and register it in the [`sys.config`](lorawan_server.config):
+```erlang
+{lorawan_server, [
+    {plugins, [
+        {<<"my-app">>, lorawan_application_xxx},
+        ...
+    ]}
+```
 
-Your module just needs to export a `handle/5` function for data processing.
+Your module needs to export `init/1` and the `handle/5` function for data processing. The `handle/5`
+function shall return either `ok` or a tuple `{send, PortOut, DataOut}` to send a response back.
 
 ```erlang
-handle(DevAddr, my_app, AppID, PortIn, DataIn) ->
+handle(DevAddr, <<"my-app">>, AppID, PortIn, <<"DataIn">>) ->
     %% application logic
     %% ...
-    {send, PortOut, DataOut}.
+    {send, PortOut, <<"DataOut">>}.
 ```
 
 ### Build Instructions
