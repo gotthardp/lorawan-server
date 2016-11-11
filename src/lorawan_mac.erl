@@ -163,10 +163,7 @@ handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->
 txpk(Time, RF, DevAddr, FPort, Data) ->
     {atomic, L} = mnesia:transaction(fun() ->
         [D] = mnesia:read(links, DevAddr, write),
-        FCnt =  case D#link.fcntdown of
-                    N when N < 16#FFFF -> N+1;
-                    _Else -> 0
-                end,
+        FCnt =  (D#link.fcntdown + 1) band 16#FFFFFFFF,
         NewD = D#link{fcntdown=FCnt},
         mnesia:write(links, NewD, write),
         NewD
