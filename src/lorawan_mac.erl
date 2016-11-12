@@ -134,10 +134,10 @@ check_link(DevAddr, FCnt) ->
     end.
 
 fcnt_gap(A, B) ->
-    C = A band 16#FFFF,
+    A16 = A band 16#FFFF,
     if
-        C > B -> 16#FFFF - C + B;
-        true  -> B - C
+        A16 > B -> 16#FFFF - A16 + B;
+        true  -> B - A16
     end.
 
 store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
