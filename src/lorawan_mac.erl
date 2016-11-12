@@ -125,7 +125,8 @@ check_link(DevAddr, FCnt) ->
         [L] ->
             case fcnt_gap(L#link.fcntup, FCnt) of
                 N when N < ?MAX_FCNT_GAP ->
-                    mnesia:dirty_write(links, L#link{fcntup=FCnt}),
+                    NewFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
+                    mnesia:dirty_write(links, L#link{fcntup = NewFCnt}),
                     {ok, L};
                 BigN ->
                     {error, {fcnt_gap_too_large, BigN}}
@@ -133,9 +134,10 @@ check_link(DevAddr, FCnt) ->
     end.
 
 fcnt_gap(A, B) ->
+    A16 = A band 16#FFFF,
     if
-        A =< B -> B - A;
-        A > B -> 16#FFFF - A + B
+        A16 > B -> 16#FFFF - A16 + B;
+        true  -> B - A16
     end.
 
 store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
@@ -161,10 +163,7 @@ handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->
 txpk(Time, RF, DevAddr, FPort, Data) ->
     {atomic, L} = mnesia:transaction(fun() ->
         [D] = mnesia:read(links, DevAddr, write),
-        FCnt =  case D#link.fcntdown of
-                    N when N < 16#FFFF -> N+1;
-                    _Else -> 0
-                end,
+        FCnt =  (D#link.fcntdown + 1) band 16#FFFFFFFF,
         NewD = D#link{fcntdown=FCnt},
         mnesia:write(links, NewD, write),
         NewD
