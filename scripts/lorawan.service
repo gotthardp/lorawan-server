@@ -1,0 +1,10 @@
+[Unit]
+Description=LoRaWAN Server
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/var/lib/lorawan/bin/lorawan-daemon
+
+[Install]
+WantedBy=multi-user.target

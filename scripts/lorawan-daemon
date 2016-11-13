@@ -1,0 +1,2 @@
+#!/bin/sh
+su lorawan -s /bin/sh -c "/var/lib/lorawan/bin/lorawan-server" &
