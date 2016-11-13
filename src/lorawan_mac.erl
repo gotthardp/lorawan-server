@@ -8,13 +8,16 @@
 %
 -module(lorawan_mac).
 
--export([process_frame/6, process_status/2]).
+-export([process_frame/4, process_status/2]).
 -export([binary_to_hex/1, hex_to_binary/1]).
 
 -define(MAX_FCNT_GAP, 16384).
 -include("lorawan.hrl").
 
-process_frame(MAC, RxQ, RF, MType, Msg, MIC) ->
+process_frame(MAC, RxQ, RF, PHYPayload) ->
+    Size = byte_size(PHYPayload)-4,
+    <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
+    <<MType:3, _:5, _/binary>> = Msg,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
             {error, {unknown_mac, MAC}};
@@ -66,7 +69,7 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
             case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
-                    {atomic, ok} = store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
+                    store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
                     handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, FPort, reverse(Data));
                 _MIC2 ->
                     {error, bad_mic}
@@ -125,10 +128,12 @@ check_link(DevAddr, FCnt) ->
         [L] ->
             case fcnt_gap(L#link.fcntup, FCnt) of
                 N when N < ?MAX_FCNT_GAP ->
-                    NewFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
-                    mnesia:dirty_write(links, L#link{fcntup = NewFCnt}),
+                    % L#link.fcntup is 32b, but the received FCnt may be 16b only
+                    LastFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
+                    mnesia:dirty_write(links, L#link{fcntup = LastFCnt}),
                     {ok, L};
                 BigN ->
+                    lager:error("~w has a large FCnt gap: last ~b, current ~b", [DevAddr, L#link.fcntup, FCnt]),
                     {error, {fcnt_gap_too_large, BigN}}
             end
     end.
@@ -141,14 +146,8 @@ fcnt_gap(A, B) ->
     end.
 
 store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
-    mnesia:transaction(fun() ->
-        case mnesia:read(rxframes, {DevAddr, FCnt}, write) of
-            [] ->
-                mnesia:write(rxframes, #rxframe{devcnt={DevAddr, FCnt}, macrxq=[{MAC, RxQ}], rflora=RF, data=Data}, write);
-            [F] ->
-                mnesia:write(rxframes, F#rxframe{macrxq=[{MAC, RxQ} | F#rxframe.macrxq]}, write)
-        end
-    end).
+    % TODO: store the data is a proper time-series database
+    ok.
 
 handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->
     case lorawan_application:handle(DevAddr, App, AppID, Port, Data) of

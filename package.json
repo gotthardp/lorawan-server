@@ -1,6 +1,7 @@
 {
   "private": true,
   "dependencies": {
+    "jquery": ">=1.0",
     "ng-admin": "1.0.0-beta2",
     "angular-simple-logger": ">=0.0.1",
     "angular-google-maps": "2.3.4"

@@ -12,11 +12,12 @@
     {env, [
         {plugins, [
             {<<"semtech-mote">>, lorawan_application_semtech_mote},
-            {<<"microchip-mote">>, lorawan_application_microchip_mote}]},
+            {<<"microchip-mote">>, lorawan_application_microchip_mote},
+            {<<"websocket">>, lorawan_application_websocket}]},
         {forwarder_port, 1680},
         {http_admin_port, 8080},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}}
     ]},
-    {applications, [kernel, stdlib, lager, cowboy, mnesia, jsx]}]}.
+    {applications, [kernel, stdlib, lager, cowboy, mnesia, jsx, lorawan_iotag]}]}.
 
 % end of file

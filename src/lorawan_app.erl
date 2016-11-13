@@ -32,10 +32,10 @@ create_tables() ->
         {record_name, link},
         {attributes, record_info(fields, link)},
         {disc_copies, [node()]}]),
-    mnesia:create_table(rxframes, [
+    mnesia:create_table(txframes, [
         {type, ordered_set},
-        {record_name, rxframe},
-        {attributes, record_info(fields, rxframe)},
+        {record_name, txframe},
+        {attributes, record_info(fields, txframe)},
         {disc_copies, [node()]}]).
 
 set_defaults() ->
@@ -47,7 +47,7 @@ start() ->
     application:ensure_all_started(lorawan_server).
 
 start(_Type, _Args) ->
-    AllTables = [users, gateways, devices, links, rxframes],
+    AllTables = [users, gateways, devices, links, txframes],
     case has_tables(AllTables) of
         true ->
             mnesia:wait_for_tables(AllTables, 2000);
@@ -73,7 +73,8 @@ start(_Type, _Args) ->
             {"/devices/:deveui", lorawan_admin_device, []},
             {"/links", lorawan_admin_links, []},
             {"/links/:devaddr", lorawan_admin_link, []},
-            {"/rxframes", lorawan_admin_rxframes, []},
+            {"/txframes", lorawan_admin_txframes, []},
+            {"/txframes/:frid", lorawan_admin_txframe, []},
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}

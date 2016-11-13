@@ -13,10 +13,12 @@
 -record(gateway, {mac, netid, gpspos, gpsalt}).
 -record(device, {deveui, app, appid, appeui, appkey, link}).
 -record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown}).
--record(rxframe, {devcnt, macrxq, rflora, data}).
+-record(txframe, {frid, datetime, devaddr, port, data}).
 
--define(to_record(Record, List),
-    list_to_tuple([Record|[proplists:get_value(X, List) || X <- record_info(fields, Record)]])).
+-define(to_record(Record, List, Default),
+    list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).
+
+-define(to_record(Record, List), ?to_record(Record, List, undefined)).
 
 -define(to_proplist(Record, RecData),
     lists:filter(fun({_, undefined}) -> false;

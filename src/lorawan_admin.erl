@@ -5,12 +5,13 @@
 %
 -module(lorawan_admin).
 
--export([handle_authorization/2, paginate/3]).
+-export([handle_authorization/2, get_filters/1, paginate/3]).
+-export([parse_admin/1]).
 -export([parse_user/1, build_user/1]).
 -export([parse_gateway/1, build_gateway/1]).
 -export([parse_device/1, build_device/1]).
 -export([parse_link/1, build_link/1]).
--export([build_rxframe/1]).
+-export([build_txframe/1]).
 
 -include("lorawan.hrl").
 
@@ -18,7 +19,7 @@ handle_authorization(Req, State) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {basic, User, Pass} ->
             case user_password(User) of
-                Pass -> {true, Req, User};
+                Pass -> {true, Req, State};
                 _ -> {{false, <<"Basic realm=\"lorawan-server\"">>}, Req, State}
             end;
         _ ->
@@ -31,14 +32,20 @@ user_password(User) ->
         [U] -> U#user.pass
     end.
 
-paginate(Req, User, List) ->
+get_filters(Req) ->
+    case cowboy_req:match_qs([{'_filters', [], <<"{}">>}], Req) of
+        #{'_filters' := Filter} ->
+            jsx:decode(Filter, [{labels, atom}])
+    end.
+
+paginate(Req, State, List) ->
     case cowboy_req:match_qs([{'_page', [], <<"1">>}, {'_perPage', [], undefined}], Req) of
         #{'_perPage' := undefined} ->
-            {jsx:encode(List), Req, User};
+            {jsx:encode(List), Req, State};
         #{'_page' := Page0, '_perPage' := PerPage0} ->
             {Page, PerPage} = {binary_to_integer(Page0), binary_to_integer(PerPage0)},
             Req2 = cowboy_req:set_resp_header(<<"X-Total-Count">>, integer_to_binary(length(List)), Req),
-            {jsx:encode(lists:sublist(List, 1+(Page-1)*PerPage, PerPage)), Req2, User}
+            {jsx:encode(lists:sublist(List, 1+(Page-1)*PerPage, PerPage)), Req2, State}
     end.
 
 parse_user(List) ->
@@ -61,8 +68,8 @@ parse_link(List) ->
 build_link(Rec) ->
     build_admin(?to_proplist(link, Rec)).
 
-build_rxframe(Rec) ->
-    build_admin(?to_proplist(rxframe, Rec)).
+build_txframe(Rec) ->
+    build_admin(?to_proplist(txframe, Rec)).
 
 parse_admin(List) ->
     lists:map(
@@ -72,7 +79,7 @@ parse_admin(List) ->
                                 Key == deveui; Key == appeui; Key == appkey; Key == link;
                                 Key == devaddr; Key == nwkskey; Key == appskey -> {Key, lorawan_mac:hex_to_binary(Value)};
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
-            ({Key, Value}) -> {Key, Value}
+            (Else) -> Else
         end,
         List).
 
@@ -83,14 +90,11 @@ build_admin(List) ->
             ({Key, Value}, A) when Key == mac; Key == netid;
                                 Key == deveui; Key == appeui; Key == appkey; Key == link;
                                 Key == devaddr; Key == nwkskey; Key == appskey;
-                                Key == data -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
+                                Key == data;
+                                Key == frid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
             ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
-            ({Key, {DevAddr, FCnt}}, A) when Key == devcnt ->
-                [{id, <<(lorawan_mac:binary_to_hex(DevAddr))/binary, $/, (integer_to_binary(FCnt))/binary>>},
-                {devaddr, lorawan_mac:binary_to_hex(DevAddr)}, {fcnt, FCnt}] ++ A;
-            ({Key, Value}, A) when Key == rflora -> [{Key, ?to_proplist(rflora, Value)} | A];
-            ({Key, Value}, A) when Key == macrxq -> [{Key, build_macrxq(Value)} | A];
-            ({Key, Value}, A) -> [{Key, Value} | A]
+            ({Key, Value}, A) when Key == datetime -> [{Key, build_datetime(Value)} | A];
+            (Else, A) -> [Else | A]
         end,
         [], List).
 
@@ -100,8 +104,9 @@ parse_latlon(List) ->
 build_latlon({Lat, Lon}) ->
     [{lat, Lat}, {lon, Lon}].
 
-build_macrxq([]) -> [];
-build_macrxq([{MAC, RxQ}|Rest]) ->
-    [[{mac, lorawan_mac:binary_to_hex(MAC)}, {rxq, ?to_proplist(rxq, RxQ)}] | build_macrxq(Rest)].
+build_datetime(DateTime) ->
+    {{Year, Month, Day}, {Hour, Minute, Second}} = calendar:gregorian_seconds_to_datetime(DateTime),
+    list_to_binary(lists:flatten(io_lib:fwrite("~b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0b",
+        [Year, Month, Day, Hour, Minute, Second]))).
 
 % end of file

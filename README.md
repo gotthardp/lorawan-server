@@ -9,9 +9,11 @@ The server:
    * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
      such as the Semtech LoRa demo kit and [LORANK-8](http://webshop.ideetron.nl/LORANK-8) gateways.
  * Performs all required encryption and integrity checks.
- * Invokes modules with the application logic. It provides examples for:
+ * Invokes internal modules with application logic. It provides examples for:
    * [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
    * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
+ * Invokes external modules with application logic. It currently supports:
+   * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
  * Supports (any number of) Class A devices.
  * Supports both the activation by personalization and the over-the-air activation.
  * Supports unconfirmed data uplink and downlink.

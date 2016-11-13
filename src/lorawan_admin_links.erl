@@ -30,8 +30,8 @@ content_types_provided(Req, State) ->
         {{<<"application">>, <<"json">>, []}, get_links}
     ], Req, State}.
 
-get_links(Req, User) ->
-    lorawan_admin:paginate(Req, User, read_links()).
+get_links(Req, State) ->
+    lorawan_admin:paginate(Req, State, read_links()).
 
 read_links() ->
     lists:foldl(

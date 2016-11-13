@@ -1,8 +1,11 @@
+erl_crash.dump
+
 _build
 rebar.lock
 db*.json
 
 node_modules/
+priv/admin/jquery.min.js
 priv/admin/angular-google-maps.min.js
 priv/admin/angular-simple-logger.min.js
 priv/admin/ng-admin.min.css

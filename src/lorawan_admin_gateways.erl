@@ -30,8 +30,8 @@ content_types_provided(Req, State) ->
         {{<<"application">>, <<"json">>, []}, get_gateways}
     ], Req, State}.
 
-get_gateways(Req, User) ->
-    lorawan_admin:paginate(Req, User, read_gateways()).
+get_gateways(Req, State) ->
+    lorawan_admin:paginate(Req, State, read_gateways()).
 
 read_gateways() ->
     lists:foldl(

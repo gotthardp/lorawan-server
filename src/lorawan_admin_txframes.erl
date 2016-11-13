@@ -3,14 +3,14 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_admin_rxframes).
+-module(lorawan_admin_txframes).
 
 -export([init/2]).
 -export([is_authorized/2]).
 -export([allowed_methods/2]).
 -export([content_types_provided/2]).
 
--export([get_rxframes/2]).
+-export([get_txframes/2]).
 
 -include("lorawan.hrl").
 
@@ -25,19 +25,16 @@ allowed_methods(Req, State) ->
 
 content_types_provided(Req, State) ->
     {[
-        {{<<"application">>, <<"json">>, []}, get_rxframes}
+        {{<<"application">>, <<"json">>, []}, get_txframes}
     ], Req, State}.
 
-get_rxframes(Req, User) ->
-    lorawan_admin:paginate(Req, User, read_rxframes()).
+get_txframes(Req, State) ->
+    lorawan_admin:paginate(Req, State,
+        read_txframes(lorawan_admin:get_filters(Req))).
 
-read_rxframes() ->
-    lists:foldl(
-        fun(Key, Acc)->
-            [Rec] = mnesia:dirty_read(rxframes, Key),
-            [lorawan_admin:build_rxframe(Rec)|Acc]
-        end,
-        [],
-        mnesia:dirty_all_keys(rxframes)).
+read_txframes(Filter) ->
+    lists:map(
+        fun(Rec)-> lorawan_admin:build_txframe(Rec) end,
+        mnesia:dirty_select(txframes, [{?to_record(txframe, lorawan_admin:parse_admin(Filter), '_'), [], ['$_']}])).
 
 % end of file

@@ -17,9 +17,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('deveui'));
     var links = nga.entity('links')
         .identifier(nga.field('devaddr'));
-    var rxframes = nga.entity('rxframes')
-        .identifier(nga.field('id'))
-        .readOnly();
+    var txframes = nga.entity('txframes')
+        .identifier(nga.field('frid'));
 
     // ---- users
     users.listView().fields([
@@ -117,30 +116,21 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntup', 'number').label('FCnt Up')
             .defaultValue(0),
         nga.field('fcntdown', 'number').label('FCnt Down')
-            .defaultValue(0)
+            .defaultValue(0),
+        nga.field('downlinks', 'referenced_list')
+            .targetEntity(txframes)
+            .targetReferenceField('devaddr')
+            .targetFields([
+                nga.field('datetime').label('Creation Time'),
+                nga.field('port'),
+                nga.field('data')
+            ])
+            .listActions(['delete'])
     ]);
     links.editionView().fields(links.creationView().fields());
     // add to the admin application
     admin.addEntity(links);
-
-    // ---- rxframes
-    rxframes.listView().fields([
-        nga.field('devaddr').label('DevAddr'),
-        nga.field('fcnt').label('FCnt'),
-        nga.field('data'),
-        nga.field('rflora.freq').label('Freq'),
-        nga.field('rflora.datr').label('Data Rate'),
-        nga.field('rflora.codr').label('Coding'),
-        nga.field('macrxq', 'embedded_list').label('Received via')
-            .targetFields([
-                nga.field('mac').label('Gateway'),
-                nga.field('rxq.rssi').label('RSSI'),
-                nga.field('rxq.lsnr').label('SNR'),
-                nga.field('rxq.stat').label('CRC')
-            ])
-    ]);
-    // add to the admin application
-    admin.addEntity(rxframes);
+    admin.addEntity(txframes);
 
     // ---- menu
     admin.menu(nga.menu()
@@ -148,7 +138,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(links).icon('<span class="fa fa-rss fa-fw"></span>'))
-        .addChild(nga.menu(rxframes))
     );
 
     // ---- dashboard

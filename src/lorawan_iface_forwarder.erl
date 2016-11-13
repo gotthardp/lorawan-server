@@ -12,6 +12,7 @@
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([txsend/5]).
 
 -include("lorawan.hrl").
 
@@ -21,6 +22,7 @@ start_link(Port) ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [Port], []).
 
 init([Port]) ->
+    process_flag(trap_exit, true),
     {ok, Socket} = gen_udp:open(Port, [binary]),
     {ok, #state{sock=Socket, pulladdr=dict:new()}}.
 
@@ -62,6 +64,10 @@ handle_info({udp, Socket, Host, Port, <<1, Token:16, 2, MAC:8/binary>>}, #state{
 
 % something strange
 handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
+    {noreply, State};
+
+% handler termination
+handle_info({'EXIT', _FromPid, _Reason}, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -74,16 +80,7 @@ code_change(_OldVsn, State, _Extra) ->
 rxpk(_MAC, []) -> ok;
 rxpk(MAC, [Pk|More]) ->
     {RxQ, RF, PHYPayload} = parse_rxpk(Pk),
-    Size = byte_size(PHYPayload)-4,
-    <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
-    <<MType:3, _:5, _/binary>> = Msg,
-    case lorawan_mac:process_frame(MAC, RxQ, RF, MType, Msg, MIC) of
-        ok -> ok;
-        {send, Time2, RF2, PHYPayload2} ->
-            txsend(MAC, Time2, RF2, PHYPayload2);
-        {error, Error} ->
-            lager:error("ERROR: ~w", [Error])
-    end,
+    lorawan_handler:handle_rxpk(MAC, RxQ, RF, PHYPayload),
     rxpk(MAC, More).
 
 status(MAC, Pk) ->
@@ -94,10 +91,10 @@ status(MAC, Pk) ->
             lager:error("ERROR: ~w", [Error])
     end.
 
-txsend(MAC, Time, RF, PHYPayload) ->
+txsend(Pid, MAC, Time, RF, PHYPayload) ->
     % TX only supported on radio A
     Pk = jsx:encode([{txpk, build_txpk(#txq{tmst=Time, rfch=0, powe=14}, RF, PHYPayload)}]),
-    gen_server:cast({global, ?MODULE}, {send, MAC, Pk}).
+    gen_server:cast(Pid, {send, MAC, Pk}).
 
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),
