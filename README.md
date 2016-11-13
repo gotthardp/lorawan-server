@@ -12,7 +12,7 @@ The server:
  * Invokes internal modules with application logic. It provides examples for:
    * [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
    * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
- * Invokes external modules with application logic. It currently supports:
+ * Invokes external applications. It currently supports connections via:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
  * Supports (any number of) Class A devices.
  * Supports both the activation by personalization and the over-the-air activation.
@@ -35,67 +35,15 @@ functions may not be implemented. I will gladly assist you. Please
 if you find a bug or miss a feature.
 
 
-## Installation
+## Documentation
 
-You will need the Erlang/OTP 18 or later.
- * On Linux, try typing `yum install erlang` or `apt-get install erlang`.
- * On Windows, install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads).
+The lorawan-server includes all components required to run a private LoRa network:
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/server-architecture.png)
 
-Then download the binary release
-[lorawan-server-0.1.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases/download/v0.1.0/lorawan-server-0.1.0.tar.gz)
-and unpack it by:
-```bash
-mkdir lorawan-server
-mv lorawan-server-0.1.0.tar.gz lorawan-server/
-cd lorawan-server
-tar -zxvf lorawan-server-0.1.0.tar.gz
-```
+### Usage
 
-Review the `lorawan-server/releases/0.1.0/sys.config` with the server configuration.
-For example:
-```erlang
-[{lorawan_server, [
-    % UDP port listening for packets from the packet_forwarder Gateway
-    {forwarder_port, 1680},
-    % HTTP port for web-administration and REST API
-    {http_admin_port, 8080},
-    % default username and password for the admin interface
-    {http_admin_credentials, {<<"admin">>, <<"admin">>}}
-]}].
-```
-
-You may need to enable communication channels from LoRaWAN gateways in your firewall.
-If you use the `firewalld` (Fedora, RHEL, CentOS) do:
-```bash
-cp lorawan-forwarder.xml /usr/lib/firewalld/services
-firewall-cmd --permanent --add-service=lorawan-forwarder
-firewall-cmd --reload
-```
-
-### Configuration of the packet_forwarder
-
-Edit the [`global_conf.json`](https://github.com/Lora-net/packet_forwarder/blob/master/lora_pkt_fwd/global_conf.json)
-in your Gateway and update the `server_address`, `serv_port_up` and `serv_port_down` as necessary.
-
-For example:
-```json
-{
-    "gateway_conf": {
-        "gateway_ID": "AA555A0000000000",
-        "server_address": "server.example.com",
-        "serv_port_up": 1680,
-        "serv_port_down": 1680,
-        "keepalive_interval": 10,
-        "stat_interval": 30,
-        "push_timeout_ms": 100,
-        "forward_crc_valid": true,
-        "forward_crc_error": false,
-        "forward_crc_disabled": false
-    }
-}
-```
-
-## Usage
+The [Installation Instructions](doc/Installation.md) describe how to build,
+install and configure the server.
 
 Run the lorawan-server release by:
 ```bash
@@ -103,84 +51,27 @@ cd lorawan-server
 bin/lorawan-server
 ```
 
-You can administrate and manage the server via a set of web-pages or via a REST API.
-By default, the server listens on HTTP port 8080 and expects "admin" as both username and password.
+You can administrate and manage the server via a set of web-pages or via a REST API
+as described in the [Administration Guide](doc/Administration.md).
 
-### REST API
+### Integration
 
-The following REST resources are made available:
+You can integrate lorawan-server with external applications using the WebSocket
+interface as described in the [WebSocket Guide](doc/WebSockets.md).
 
-  Resource        | Methods          | Explanation
- -----------------|------------------| ------------------------------------------------
-  /applications   | GET              | Supported LoRaWAN applications
-  /users          | GET, POST        | Users of the admin interface
-  /users/*ABC*    | GET, PUT, DELETE | User *ABC*
-  /gateways       | GET, POST        | LoRaWAN gateways
-  /gateways/*123* | GET, PUT, DELETE | Gateway with MAC=*123*
-  /devices        | GET, POST        | Devices registered for over-the-air activation
-  /devices/*123*  | GET, PUT, DELETE | Device with DevEUI=*123*
-  /links          | GET, POST        | Activated devices
-  /links/*123*    | GET, PUT, DELETE | Activated device with DevAddr=*123*
+You can also use the internal web server and develop application modules using
+custom REST APIs.
 
-### Web Admin
-
-The management web-pages are available under `/admin`. It is just a wrapper around
-the REST API.
-
-To register a new gateway, create a new *Gateways* list entry.
-
-To add a personalized device, create a new *Links* list entry.
-To add an OTAA device, create a new *Devices* list entry and start the device. The *Links*
-list will be updated automatically once the device joins the network.
-
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin.png)
-
-
-## Development
+### Development
 [![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)
 
 The lorawan-server is designed to be highly extensible. I encourage you to
 [Learn You Some Erlang](http://learnyousomeerlang.com/introduction) and develop
 your own applications.
 
-### Custom application handlers
+To implement a new application you need to build a new application module
+as described in the [Handler Development Guide](doc/Handlers.md).
 
-To implement a new application you need to create a new `lorawan_application_xxx.erl` module
-and register it in the [`sys.config`](lorawan_server.config):
-```erlang
-{lorawan_server, [
-    {plugins, [
-        {<<"my-app">>, lorawan_application_xxx},
-        ...
-    ]}
-```
-
-Your module needs to export `init/1` and the `handle/5` function for data processing. The `handle/5`
-function shall return either `ok` or a tuple `{send, PortOut, DataOut}` to send a response back.
-
-```erlang
-handle(DevAddr, <<"my-app">>, AppID, PortIn, <<"DataIn">>) ->
-    %% application logic
-    %% ...
-    {send, PortOut, <<"DataOut">>}.
-```
-
-### Build Instructions
-
-You will need the following prerequisites:
- * Rebar3, the Erlang build tool. Please follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
- * npm, the JavaScript package manager.
-   * On Linux, try typing `yum install npm` or `apt-get install npm`.
-   * On Windows, install the [Node.js](https://nodejs.org/en/).
-
-Then build and release the lorawan-server by:
-```bash
-git clone https://github.com/gotthardp/lorawan-server.git
-cd lorawan-server
-rebar3 release
-```
-
-The release will be created in `lorawan-server/_build/default/rel/lorawan-server`.
 
 ## Copyright and Licensing
 
