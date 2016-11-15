@@ -145,7 +145,7 @@ fcnt_gap(A, B) ->
         true  -> B - A16
     end.
 
-store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
+store_rxpk(_MAC, _RxQ, _RF, _DevAddr, _FCnt, _Data) ->
     % TODO: store the data is a proper time-series database
     ok.
 
