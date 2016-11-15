@@ -28,7 +28,7 @@ start:
 clean:
 	@$(REBAR) clean
 
-.PHONY: pack test
+.PHONY: package test
 
 ## release package
 package:
