@@ -80,7 +80,7 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
 
 
 handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
-    AppNonce = crypto:rand_bytes(3),
+    AppNonce = crypto:strong_rand_bytes(3),
     NwkSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#01, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
     AppSKey = crypto:block_encrypt(aes_ecb, AppKey,
@@ -109,7 +109,7 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
 create_devaddr(NetID) ->
     <<_:17, NwkID:7>> = NetID,
     %% FIXME: verify uniqueness
-    <<NwkID:7, 0:1, (crypto:rand_bytes(3))/binary>>.
+    <<NwkID:7, 0:1, (crypto:strong_rand_bytes(3))/binary>>.
 
 txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr) ->
     MHDR = <<1:3, 0:3, 0:2>>,
@@ -145,7 +145,7 @@ fcnt_gap(A, B) ->
         true  -> B - A16
     end.
 
-store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
+store_rxpk(_MAC, _RxQ, _RF, _DevAddr, _FCnt, _Data) ->
     % TODO: store the data is a proper time-series database
     ok.
 
