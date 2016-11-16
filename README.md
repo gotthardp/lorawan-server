@@ -69,8 +69,8 @@ The lorawan-server is designed to be highly extensible. I encourage you to
 [Learn You Some Erlang](http://learnyousomeerlang.com/introduction) and develop
 your own applications.
 
-To implement a new application you need to build a new application module
-as described in the [Handler Development Guide](doc/Handlers.md).
+To implement a new application you need to create a new module implementing the
+`lorawan_application` behaviour as described in the [Handler Development Guide](doc/Handlers.md).
 
 
 ## Copyright and Licensing

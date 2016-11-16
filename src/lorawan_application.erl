@@ -5,11 +5,19 @@
 %
 -module(lorawan_application).
 
--export([init/0, handle/5]).
+-export([init/0, handle_join/3, handle_rx/5]).
 -export([store_frame/3, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
 -include("lorawan.hrl").
+
+-callback init(App :: binary()) ->
+    ok | {ok, [Path :: cowboy_router:route_path()]}.
+-callback handle_join(DevAddr :: binary(), App :: binary(), AppID :: binary()) ->
+    ok | {error, Error :: term()}.
+-callback handle_rx(DevAddr :: binary(), App :: binary(), AppID :: binary(), Port :: integer(), Data :: binary()) ->
+    ok | {send, Port :: integer(), Data :: binary()} |
+    {error, Error :: term()}.
 
 init() ->
     {ok, Modules} = application:get_env(plugins),
@@ -23,13 +31,23 @@ do_init([{App, Module}|Rest], Acc) ->
         Else -> Else
     end.
 
-handle(DevAddr, App, AppID, Port, Data) ->
+handle_join(DevAddr, App, AppID) ->
+    % delete previously stored frames
+    [mnesia:dirty_delete_object(txframes, Obj) ||
+        Obj <- mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})],
+    % callback
+    invoke_handler(handle_join, App, [DevAddr, App, AppID]).
+
+handle_rx(DevAddr, App, AppID, Port, Data) ->
+    invoke_handler(handle_rx, App, [DevAddr, App, AppID, Port, Data]).
+
+invoke_handler(Fun, App, Params) ->
     {ok, Modules} = application:get_env(plugins),
     case proplists:get_value(App, Modules) of
         undefined ->
             {error, {unknown_app, App}};
         Module ->
-            apply(Module, handle, [DevAddr, App, AppID, Port, Data])
+            apply(Module, Fun, Params)
     end.
 
 store_frame(DevAddr, Port, Data) ->

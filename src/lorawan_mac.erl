@@ -86,7 +86,7 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
     AppSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#02, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
 
-    {atomic, DevAddr} = mnesia:transaction(fun() ->
+    {atomic, {DevAddr, App, AppID}} = mnesia:transaction(fun() ->
         [D] = mnesia:read(devices, DevEUI, write),
         NewAddr = if
             D#device.link == undefined;
@@ -99,12 +99,15 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
 
         lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
         ok = mnesia:write(links, #link{devaddr=NewAddr, app=D#device.app, appid=D#device.appid, nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0}, write),
-        NewAddr
+        {NewAddr, D#device.app, D#device.appid}
     end),
-
-    % transmitting after join accept delay 1
-    Time = RxQ#rxq.tmst + 5000000,
-    txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr).
+    case lorawan_application:handle_join(DevAddr, App, AppID) of
+        ok ->
+            % transmitting after join accept delay 1
+            Time = RxQ#rxq.tmst + 5000000,
+            txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr);
+        {error, Error} -> {error, Error}
+    end.
 
 create_devaddr(NetID) ->
     <<_:17, NwkID:7>> = NetID,
@@ -150,7 +153,7 @@ store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
     ok.
 
 handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->
-    case lorawan_application:handle(DevAddr, App, AppID, Port, Data) of
+    case lorawan_application:handle_rx(DevAddr, App, AppID, Port, Data) of
         {send, PortOut, DataOut} ->
             % transmitting for the RX2 window
             Time = RxQ#rxq.tmst + 2000000,
