@@ -54,6 +54,15 @@ bin/lorawan-server
 You can administrate and manage the server via a set of web-pages or via a REST API
 as described in the [Administration Guide](doc/Administration.md).
 
+Use the `dbexport` script to backup your list of users, gateways, devices and links.
+This will create several `db*.json` files. Use the `dbimport` script to write these
+files back to the server database.
+
+The database is stored in the `Mnesia.lorawan@localhost` directory. To upgrade
+the database structure or recover from database errors you should do `dbexport`,
+then shutdown the server, update the server binaries, delete the Mnesia directory,
+start the server and do `dbimport`.
+
 ### Integration
 
 You can integrate lorawan-server with external applications using the WebSocket
