@@ -144,7 +144,7 @@ check_link(DevAddr, FCnt) ->
 fcnt_gap(A, B) ->
     A16 = A band 16#FFFF,
     if
-        A16 > B -> 16#FFFF - A16 + B;
+        A16 > B -> 16#10000 - A16 + B;
         true  -> B - A16
     end.
 
