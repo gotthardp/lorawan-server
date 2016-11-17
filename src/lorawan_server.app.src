@@ -10,6 +10,10 @@
     {registered, []},
     {mod, {lorawan_app, []}},
     {env, [
+        {join_delay1, 5000000}, % milliseconds
+        {rx_delay2, 2000000}, % milliseconds
+        {rx2_rf, {869.525, <<"SF9BW125">>, <<"4/5">>}},
+        % {rx2_rf, {434.665, <<"SF9BW125">>, <<"4/5">>}},
         {plugins, [
             {<<"semtech-mote">>, lorawan_application_semtech_mote},
             {<<"microchip-mote">>, lorawan_application_microchip_mote},

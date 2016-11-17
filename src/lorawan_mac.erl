@@ -103,8 +103,9 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
     end),
     case lorawan_application:handle_join(DevAddr, App, AppID) of
         ok ->
+            {ok, JoinDelay1} = application:get_env(join_delay1),
             % transmitting after join accept delay 1
-            Time = RxQ#rxq.tmst + 5000000,
+            Time = RxQ#rxq.tmst + JoinDelay1,
             txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr);
         {error, Error} -> {error, Error}
     end.
@@ -155,9 +156,11 @@ store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
 handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->
     case lorawan_application:handle_rx(DevAddr, App, AppID, Port, Data) of
         {send, PortOut, DataOut} ->
+            {ok, {TxFreq, TxRate, TxCoding}} = application:get_env(rx2_rf),
+            {ok, RxDelay2} = application:get_env(rx_delay2),
             % transmitting for the RX2 window
-            Time = RxQ#rxq.tmst + 2000000,
-            txpk(Time, #rflora{freq=869.525, datr= <<"SF9BW125">>, codr= <<"4/5">>}, DevAddr, PortOut, DataOut);
+            Time = RxQ#rxq.tmst + RxDelay2,
+            txpk(Time, #rflora{freq=TxFreq, datr=TxRate, codr=TxCoding}, DevAddr, PortOut, DataOut);
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
