@@ -67,7 +67,9 @@ For example:
 ## Build Instructions
 
 You will need the following prerequisites:
- * Rebar3, the Erlang build tool. Please follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
+ * Rebar3, the Erlang build tool.
+   * On Linux it will download automatically.
+   * On Windows follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
  * npm, the JavaScript package manager.
    * On Linux, try typing `yum install npm` or `apt-get install npm`.
    * On Windows, install the [Node.js](https://nodejs.org/en/).
@@ -76,7 +78,7 @@ Then build and release the lorawan-server by:
 ```bash
 git clone https://github.com/gotthardp/lorawan-server.git
 cd lorawan-server
-rebar3 release
+make release
 ```
 
 The release will be created in `lorawan-server/_build/default/rel/lorawan-server`.
