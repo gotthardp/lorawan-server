@@ -31,16 +31,17 @@ handle_call(_Request, _From, State) ->
 
 handle_cast({send, MAC, Packet}, #state{sock=Socket, pulladdr=Dict}=State) ->
     case dict:find(MAC, Dict) of
-        {ok, {Host, Port}} ->
+        {ok, {Host, Port, Version}} ->
+            ID = crypto:strong_rand_bytes(2),
             % PULL RESP
-            gen_udp:send(Socket, Host, Port, <<1, 0:16, 3, Packet/binary>>);
+            gen_udp:send(Socket, Host, Port, <<Version, ID/binary, 3, Packet/binary>>);
         error ->
             lager:info("Downlink request ignored. Gateway ~w not connected.", [MAC])
     end,
     {noreply, State}.
 
 % PUSH DATA
-handle_info({udp, Socket, Host, Port, <<1, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
+handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
     case jsx:is_json(Data) of
         true ->
             Data2 = jsx:decode(Data, [{labels, atom}]),
@@ -49,18 +50,36 @@ handle_info({udp, Socket, Host, Port, <<1, Token:16, 0, MAC:8/binary, Data/binar
                     ({stat, Pk}) -> status(MAC, Pk)
                 end, Data2),
             % PUSH ACK
-            gen_udp:send(Socket, Host, Port, <<1, Token:16, 1>>);
+            gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>);
         false ->
             lager:error("Ignored PUSH_DATA: JSON syntax error")
     end,
     {noreply, State};
 
 % PULL DATA
-handle_info({udp, Socket, Host, Port, <<1, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket, pulladdr=Dict}=State) ->
-    Dict2 = dict:store(MAC, {Host, Port}, Dict),
+handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket, pulladdr=Dict}=State) ->
+    Dict2 = dict:store(MAC, {Host, Port, Version}, Dict),
     % PULL ACK
-    gen_udp:send(Socket, Host, Port, <<1, Token:16, 4>>),
+    gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
     {noreply, State#state{pulladdr=Dict2}};
+
+% TX ACK
+handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, _MAC:8/binary>>}, #state{sock=Socket}=State) ->
+    % no error occured
+    {noreply, State};
+
+% TX ACK
+handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
+    case jsx:is_json(Data) of
+        true ->
+            Data2 = jsx:decode(Data, [{labels, atom}]),
+            Ack = proplists:get_value(txpk_ack, Data2),
+            Error = proplists:get_value(error, Ack),
+            lager:error("Transmission via ~w failed: ~s", [MAC, Error]);
+        false ->
+            lager:error("Ignored PUSH_DATA: JSON syntax error")
+    end,
+    {noreply, State};
 
 % something strange
 handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
