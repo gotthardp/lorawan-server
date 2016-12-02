@@ -20,6 +20,7 @@ process_frame(MAC, RxQ, RF, PHYPayload) ->
     <<MType:3, _:5, _/binary>> = Msg,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
+            lager:error("Unknown MAC ~s", [binary_to_hex(MAC)]),
             {error, {unknown_mac, MAC}};
         [G] ->
             process_frame1(G#gateway.netid, MAC, RxQ, RF, MType, Msg, MIC)
@@ -28,6 +29,7 @@ process_frame(MAC, RxQ, RF, PHYPayload) ->
 process_status(MAC, S) ->
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
+            lager:error("Unknown MAC ~s", [binary_to_hex(MAC)]),
             {error, {unknown_mac, MAC}};
         [G] ->
             G2 = if
@@ -49,6 +51,7 @@ process_frame1(NetID, _MAC, RxQ, RF, 0, Msg, MIC) ->
 
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
+            lager:error("Unknown DevEUI ~s", [binary_to_hex(DevEUI)]),
             {error, {unknown_deveui, DevEUI}};
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
@@ -128,6 +131,7 @@ txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr) ->
 check_link(DevAddr, FCnt) ->
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
+            lager:error("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
             {error, {unknown_devaddr, DevAddr}};
         [L] ->
             case fcnt_gap(L#link.fcntup, FCnt) of
