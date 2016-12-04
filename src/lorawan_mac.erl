@@ -153,8 +153,12 @@ fcnt_gap(A, B) ->
         true  -> B - A16
     end.
 
-store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, Data) ->
-    % TODO: store the data is a proper time-series database
+store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, _Data) ->
+    % store #rxframe{frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}
+    mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
+        mac=MAC, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr,
+        freq=RF#rflora.freq, datr=RF#rflora.datr, codr=RF#rflora.codr,
+        devaddr=DevAddr, fcnt=FCnt}),
     ok.
 
 handle_rxpk(RxQ, 2, DevAddr, App, AppID, Port, Data) ->

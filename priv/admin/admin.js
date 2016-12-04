@@ -3,7 +3,7 @@
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
-var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps']);
+var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/');
 
@@ -19,6 +19,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('devaddr'));
     var txframes = nga.entity('txframes')
         .identifier(nga.field('frid'));
+    var rxframes = nga.entity('rxframes')
+        .identifier(nga.field('devaddr'))
+        .readOnly();
 
     // ---- users
     users.listView().fields([
@@ -116,7 +119,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntup', 'number').label('FCnt Up')
             .defaultValue(0),
         nga.field('fcntdown', 'number').label('FCnt Down')
-            .defaultValue(0),
+            .defaultValue(0)
+    ]);
+    links.editionView().fields(
+        links.creationView().fields().concat([
+        nga.field('devaddr', 'template').label('RX Quality')
+            .template('<graph value="value"></graph>'),
         nga.field('downlinks', 'referenced_list')
             .targetEntity(txframes)
             .targetReferenceField('devaddr')
@@ -126,8 +134,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('data')
             ])
             .listActions(['delete'])
-    ]);
-    links.editionView().fields(links.creationView().fields());
+    ]));
     // add to the admin application
     admin.addEntity(links);
     admin.addEntity(txframes);
@@ -157,6 +164,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // attach the admin application to the DOM and execute it
     nga.configure(admin);
 }]);
+
 // http://stackoverflow.com/questions/35895411/ng-admin-and-google-maps
 myApp.directive('map', [function () {
 return {
@@ -188,13 +196,13 @@ return {
     <div class="row list-view">
         <div class="col-lg-12">
             <ui-gmap-google-map center="map.center" zoom="map.zoom" draggable="true" options="options" pan=true refresh="true">
-                <ui-gmap-marker coords="marker.coords" options="marker.options" events="marker.events" idkey="marker.id">
-                </ui-gmap-marker>
+                <ui-gmap-marker coords="marker.coords" options="marker.options" events="marker.events" idkey="marker.id"/>
             </ui-gmap-google-map>
         </div>
     </div>
     `
 };}]);
+
 myApp.config(function (uiGmapGoogleMapApiProvider) {
     uiGmapGoogleMapApiProvider.configure({
         key: '',
@@ -202,3 +210,45 @@ myApp.config(function (uiGmapGoogleMapApiProvider) {
         libraries: 'visualization'
     });
 });
+
+myApp.directive('graph', ['$http', function($http) {
+return {
+    restrict: 'E',
+    scope: {
+        value: '=',
+    },
+    link: function($scope) {
+            $scope.myChartObject = {};
+            $scope.myChartObject.type = "LineChart";
+            $http({method: 'GET', url: '/rxq/'.concat($scope.value)})
+                .success( function( data, status, headers, config ) {
+                    $scope.myChartObject.data = data.array;
+                });
+            $scope.myChartObject.options = {
+                "vAxes": {
+                    0: {"title": 'Temps (Celsius)'},
+                    1: {"title": 'Daylight'}
+                },
+                "series": {
+                    0: {"targetAxisIndex": 0},
+                    1: {"targetAxisIndex": 1}
+                },
+                "chartArea": {
+                    "top": 0, "bottom": "10%",
+                    "left": 0, "right": 0
+                },
+                "legend": {
+                    "position": "none"
+                },
+                "vAxis": {
+                    "textPosition": "in",
+                    "gridlines": {"count": -1}
+                },
+                "vAxes": {
+                    0: {"maxValue": 0},
+                    1: {"minValue": 0}
+                }
+            };
+    },
+    template: '<div google-chart chart="myChartObject"></div>'
+};}]);

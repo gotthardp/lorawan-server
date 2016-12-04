@@ -14,6 +14,7 @@
 -record(device, {deveui, app, appid, appeui, appkey, link}).
 -record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown}).
 -record(txframe, {frid, datetime, devaddr, port, data}).
+-record(rxframe, {frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}).
 
 -define(to_record(Record, List, Default),
     list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).

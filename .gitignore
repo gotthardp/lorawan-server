@@ -8,5 +8,6 @@ node_modules/
 priv/admin/jquery.min.js
 priv/admin/angular-google-maps.min.js
 priv/admin/angular-simple-logger.min.js
+priv/admin/ng-google-chart.min.js
 priv/admin/ng-admin.min.css
 priv/admin/ng-admin.min.js

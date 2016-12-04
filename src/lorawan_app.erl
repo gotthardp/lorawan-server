@@ -9,56 +9,12 @@
 -export([start/0]).
 -export([start/2, stop/1]).
 
--include("lorawan.hrl").
-
-has_tables(ReqTables) ->
-    AllTables = mnesia:system_info(tables),
-    lists:all(fun(Table) -> lists:member(Table, AllTables) end, ReqTables).
-
-create_tables() ->
-    mnesia:create_table(users, [
-        {record_name, user},
-        {attributes, record_info(fields, user)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(gateways, [
-        {record_name, gateway},
-        {attributes, record_info(fields, gateway)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(devices, [
-        {record_name, device},
-        {attributes, record_info(fields, device)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(links, [
-        {record_name, link},
-        {attributes, record_info(fields, link)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(txframes, [
-        {type, ordered_set},
-        {record_name, txframe},
-        {attributes, record_info(fields, txframe)},
-        {disc_copies, [node()]}]).
-
-set_defaults() ->
-    lager:info("Created default user:password"),
-    {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),
-    mnesia:dirty_write(users, #user{name=User, pass=Pass}).
-
 start() ->
-    application:ensure_all_started(lorawan_server).
+    {ok, _Started} = application:ensure_all_started(lorawan_server).
 
 start(_Type, _Args) ->
-    AllTables = [users, gateways, devices, links, txframes],
-    case has_tables(AllTables) of
-        true ->
-            mnesia:wait_for_tables(AllTables, 2000);
-        false ->
-            stopped = mnesia:stop(),
-            mnesia:create_schema([node()]),
-            ok = mnesia:start(),
-            create_tables(),
-            mnesia:wait_for_tables(AllTables, 2000),
-            set_defaults()
-    end,
+    lorawan_db:ensure_tables(),
+    {ok, _} = timer:apply_interval(3600*1000, lorawan_db, trim_tables, []),
 
     {ok, Handlers} = lorawan_application:init(),
     Dispatch = cowboy_router:compile([
@@ -75,6 +31,7 @@ start(_Type, _Args) ->
             {"/links/:devaddr", lorawan_admin_link, []},
             {"/txframes", lorawan_admin_txframes, []},
             {"/txframes/:frid", lorawan_admin_txframe, []},
+            {"/rxq/:devaddr", lorawan_admin_rxq, []},
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
