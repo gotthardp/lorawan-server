@@ -6,7 +6,7 @@
 -module(lorawan_db).
 
 -export([ensure_tables/0, trim_tables/0]).
--export([get_rxframes/1]).
+-export([get_rxframes/1, purge_rxframes/1, purge_txframes/1]).
 
 -include("lorawan.hrl").
 
@@ -63,7 +63,7 @@ set_defaults() ->
     mnesia:dirty_write(users, #user{name=User, pass=Pass}).
 
 trim_tables() ->
-    lists:foreach(fun(R) -> delete_rxframes(R) end,
+    lists:foreach(fun(R) -> trim_rxframes(R) end,
         mnesia:dirty_all_keys(links)).
 
 get_rxframes(DevAddr) ->
@@ -74,10 +74,18 @@ get_rxframes(DevAddr) ->
         true -> {[], Rec}
     end.
 
-delete_rxframes(DevAddr) ->
+trim_rxframes(DevAddr) ->
     {ExpRec, _} = get_rxframes(DevAddr),
     lager:debug("Expired ~w rxframes from ~w", [length(ExpRec), DevAddr]),
     lists:foreach(fun(R) -> mnesia:dirty_delete(rxframes, R) end,
         ExpRec).
+
+purge_rxframes(DevAddr) ->
+    [mnesia:dirty_delete(rxframes, Rec) ||
+        Rec <- mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr)].
+
+purge_txframes(DevAddr) ->
+    [mnesia:dirty_delete_object(txframes, Obj) ||
+        Obj <- mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})].
 
 % end of file

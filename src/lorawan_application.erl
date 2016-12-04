@@ -32,9 +32,9 @@ do_init([{App, Module}|Rest], Acc) ->
     end.
 
 handle_join(DevAddr, App, AppID) ->
-    % delete previously stored frames
-    [mnesia:dirty_delete_object(txframes, Obj) ||
-        Obj <- mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})],
+    % delete previously stored RX and TX frames
+    lorawan_db:purge_rxframes(DevAddr),
+    lorawan_db:purge_txframes(DevAddr),
     % callback
     invoke_handler(handle_join, App, [DevAddr, App, AppID]).
 
