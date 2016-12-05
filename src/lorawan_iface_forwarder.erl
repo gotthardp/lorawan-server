@@ -96,11 +96,30 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 
-rxpk(_MAC, []) -> ok;
-rxpk(MAC, [Pk|More]) ->
-    {RxQ, RF, PHYPayload} = parse_rxpk(Pk),
-    lorawan_handler:handle_rxpk(MAC, RxQ, RF, PHYPayload),
-    rxpk(MAC, More).
+rxpk(MAC, PkList) ->
+    PkList2 = lists:map(fun(Pk) -> parse_rxpk(Pk) end, PkList),
+    % due to reflections the gateways may have received the same frame twice
+    Unique = remove_duplicates(PkList2, []),
+    % handle the frames sequentially
+    lists:foreach(fun({RxQ, RF, PHYPayload}) ->
+        lorawan_handler:handle_rxpk(MAC, RxQ, RF, PHYPayload) end, Unique).
+
+remove_duplicates([{RxQ, RF, PHYPayload} | Tail], Unique) ->
+    % check if the first element is duplicate
+    case lists:keytake(PHYPayload, 3, Tail) of
+        {value, {RxQ2, RF2, PHYPayload}, Tail2} ->
+            % select element of a better quality and re-check for other duplicates
+            if
+                RxQ#rxq.rssi >= RxQ2#rxq.rssi ->
+                    remove_duplicates([{RxQ, RF, PHYPayload} | Tail2], Unique);
+                true -> % else
+                    remove_duplicates([{RxQ2, RF2, PHYPayload} | Tail2], Unique)
+            end;
+        false ->
+            remove_duplicates(Tail, [{RxQ, RF, PHYPayload} | Unique])
+    end;
+remove_duplicates([], Unique) ->
+    Unique.
 
 status(MAC, Pk) ->
     S = ?to_record(stat, Pk),
