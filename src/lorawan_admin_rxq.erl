@@ -31,13 +31,13 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    {ActRec, _} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
-                [{id, <<"rssi">>}, {label, <<"RSSI">>}, {type, <<"number">>}],
-                [{id, <<"snr">>}, {label, <<"SNR">>}, {type, <<"number">>}]
+                [{id, <<"rssi">>}, {label, <<"RSSI (dBm)">>}, {type, <<"number">>}],
+                [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(fun(#rxframe{fcnt=FCnt, rssi=RSSI, lsnr=SNR}) ->
                     [{c, [

@@ -240,6 +240,7 @@ return {
                 "legend": {
                     "position": "none"
                 },
+                "pointSize": 3,
                 "vAxis": {
                     "textPosition": "in",
                     "gridlines": {"count": -1}

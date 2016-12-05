@@ -70,18 +70,18 @@ get_rxframes(DevAddr) ->
     Rec = mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr),
     % split the list into expired and actual records
     if
-        length(Rec) > 10 -> lists:split(length(Rec)-10, Rec);
-        true -> {[], Rec}
+        length(Rec) > 50 -> lists:split(50, Rec);
+        true -> {Rec, []}
     end.
 
 trim_rxframes(DevAddr) ->
-    {ExpRec, _} = get_rxframes(DevAddr),
+    {_, ExpRec} = get_rxframes(DevAddr),
     lager:debug("Expired ~w rxframes from ~w", [length(ExpRec), DevAddr]),
-    lists:foreach(fun(R) -> mnesia:dirty_delete(rxframes, R) end,
+    lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
         ExpRec).
 
 purge_rxframes(DevAddr) ->
-    [mnesia:dirty_delete(rxframes, Rec) ||
+    [mnesia:dirty_delete_object(rxframes, Rec) ||
         Rec <- mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr)].
 
 purge_txframes(DevAddr) ->
