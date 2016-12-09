@@ -123,6 +123,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]);
     links.editionView().fields(
         links.creationView().fields().concat([
+        nga.field('test', 'template').label('Ignore me, I am test')
+            .template('<p class="readonly half">{{value.device}}</p><ma-input-field class="half" type="number" field="::field" value="value.desired"></ma-input-field>'),
         nga.field('devaddr', 'template').label('RX Quality')
             .template('<graph value="value"></graph>'),
         nga.field('downlinks', 'referenced_list')
@@ -226,8 +228,8 @@ return {
                 });
             $scope.myChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Temps (Celsius)'},
-                    1: {"title": 'Daylight'}
+                    0: {"title": 'RSSI (dBm)'},
+                    1: {"title": 'SNR (dB)'}
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},
