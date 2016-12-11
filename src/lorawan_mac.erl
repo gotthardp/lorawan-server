@@ -254,12 +254,15 @@ txpk(Time, RF, DevAddr, FOpts0, FPort, Data) ->
 
     FOpts = encode_fopts(FOpts0),
     FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
-    FHDR = <<(reverse(DevAddr)):4/binary, (L#link.adr_flag_set):1, 0:3, (byte_size(FOpts)):4, (L#link.fcntdown):16/little-unsigned-integer, FOpts/binary>>,
+    FHDR = <<(reverse(DevAddr)):4/binary, (get_adr_flag(L)):1, 0:3, (byte_size(FOpts)):4, (L#link.fcntdown):16/little-unsigned-integer, FOpts/binary>>,
     MACPayload = <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>,
     Msg = <<3:3, 0:3, 0:2, MACPayload/binary>>,
     MIC = aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(1, DevAddr, L#link.fcntdown, byte_size(Msg)))/binary, Msg/binary>>, 4),
     PHYPayload = <<Msg/binary, MIC/binary>>,
     {send, Time, RF, PHYPayload}.
+
+get_adr_flag(#link{adr_flag_set=undefined}) -> 0;
+get_adr_flag(#link{adr_flag_set=ADR}) -> ADR.
 
 encode_fopts(FOpts) ->
     encode_fopt(FOpts, <<>>).
