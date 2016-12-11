@@ -1,5 +1,6 @@
 erl_crash.dump
 
+rebar3
 _build
 rebar.lock
 db*.json
@@ -11,3 +12,4 @@ priv/admin/angular-simple-logger.min.js
 priv/admin/ng-google-chart.min.js
 priv/admin/ng-admin.min.css
 priv/admin/ng-admin.min.js
+log/

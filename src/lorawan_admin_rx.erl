@@ -3,7 +3,7 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_admin_rxq).
+-module(lorawan_admin_rx).
 
 -export([init/2]).
 -export([is_authorized/2]).
@@ -36,14 +36,14 @@ get_rxframe(Req, State) ->
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
-                [{id, <<"rssi">>}, {label, <<"RSSI (dBm)">>}, {type, <<"number">>}],
-                [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
+                [{id, <<"datr">>}, {label, <<"Data Rate">>}, {type, <<"number">>}],
+                [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
                 ]},
-            {rows, lists:map(fun(#rxframe{fcnt=FCnt, rssi=RSSI, lsnr=SNR}) ->
+            {rows, lists:map(fun(#rxframe{fcnt=FCnt, datr=DatR, freq=Freq}) ->
                     [{c, [
                         [{v, FCnt}],
-                        [{v, RSSI}],
-                        [{v, SNR}]
+                        [{v, datr_to_num(DatR)}, {f, DatR}],
+                        [{v, Freq}]
                     ]}]
                 end, ActRec)
             }
@@ -55,6 +55,18 @@ resource_exists(Req, State) ->
             lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req)), #rxframe.devaddr) of
         [] -> {false, Req, State};
         [_First|_Rest] -> {true, Req, State}
+    end.
+
+datr_to_num(Config) ->
+    [SF, BW] = binary:split(Config, [<<"SF">>, <<"BW">>], [global, trim_all]),
+    case {binary_to_integer(SF), binary_to_integer(BW)} of
+        {12, 125} -> 0;
+        {11, 125} -> 1;
+        {10, 125} -> 2;
+        {9, 125} -> 3;
+        {8, 125} -> 4;
+        {7, 125} -> 5;
+        {7, 250} -> 6
     end.
 
 % end of file

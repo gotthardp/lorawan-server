@@ -51,7 +51,6 @@ create_tables() ->
         {attributes, record_info(fields, txframe)},
         {disc_copies, [node()]}]),
     mnesia:create_table(rxframes, [
-        {type, ordered_set},
         {record_name, rxframe},
         {attributes, record_info(fields, rxframe)},
         {index, [mac, devaddr]},
@@ -68,14 +67,15 @@ trim_tables() ->
 
 get_rxframes(DevAddr) ->
     Rec = mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr),
+    SRec = lists:sort(fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A < B end, Rec),
     % split the list into expired and actual records
     if
-        length(Rec) > 50 -> lists:split(50, Rec);
-        true -> {Rec, []}
+        length(SRec) > 50 -> lists:split(length(SRec)-50, SRec);
+        true -> {[], SRec}
     end.
 
 trim_rxframes(DevAddr) ->
-    {_, ExpRec} = get_rxframes(DevAddr),
+    {ExpRec, _} = get_rxframes(DevAddr),
     lager:debug("Expired ~w rxframes from ~w", [length(ExpRec), DevAddr]),
     lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
         ExpRec).

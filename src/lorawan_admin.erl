@@ -79,6 +79,7 @@ parse_admin(List) ->
                                 Key == deveui; Key == appeui; Key == appkey; Key == link;
                                 Key == devaddr; Key == nwkskey; Key == appskey -> {Key, lorawan_mac:hex_to_binary(Value)};
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
+            ({Key, Value}) when Key == adr_use; Key == adr_set -> {Key, parse_adr(Value)};
             (Else) -> Else
         end,
         List).
@@ -94,6 +95,7 @@ build_admin(List) ->
                                 Key == frid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
             ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
             ({Key, Value}, A) when Key == datetime -> [{Key, build_datetime(Value)} | A];
+            ({Key, Value}, A) when Key == adr_use; Key == adr_set -> [{Key, build_adr(Value)} | A];
             (Else, A) -> [Else | A]
         end,
         [], List).
@@ -108,5 +110,12 @@ build_datetime(DateTime) ->
     {{Year, Month, Day}, {Hour, Minute, Second}} = calendar:gregorian_seconds_to_datetime(DateTime),
     list_to_binary(lists:flatten(io_lib:fwrite("~b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0b",
         [Year, Month, Day, Hour, Minute, Second]))).
+
+parse_adr(List) ->
+    {proplists:get_value(power, List), proplists:get_value(datr, List),
+        binary_to_integer(proplists:get_value(chans, List), 2)}.
+
+build_adr({TXPower, DataRate, Chans}) ->
+    [{power, TXPower}, {datr, DataRate}, {chans, integer_to_binary(Chans, 2)}].
 
 % end of file

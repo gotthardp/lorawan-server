@@ -23,6 +23,32 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('devaddr'))
         .readOnly();
 
+    on_off_choices = [
+        { value: 0, label: 'OFF' },
+        { value: 1, label: 'ON' },
+    ];
+
+    // ---- EU863-870 interpretation
+
+    data_rate_choices = [
+        { value: 0, label: 'SF12 125 kHz (250 bit/s)' },
+        { value: 1, label: 'SF11 125 kHz (440 bit/s)' },
+        { value: 2, label: 'SF10 125 kHz (980 bit/s)' },
+        { value: 3, label: 'SF9 125 kHz (1760 bit/s)' },
+        { value: 4, label: 'SF8 125 kHz (3125 bit/s)' },
+        { value: 5, label: 'SF7 125 kHz (5470 bit/s)' },
+        { value: 6, label: 'SF7 250 kHz (11000 bit/s)' }
+    ];
+
+    power_choices = [
+        { value: 0, label: '20 dBm' },
+        { value: 1, label: '14 dBm' },
+        { value: 2, label: '11 dBm' },
+        { value: 3, label: '8 dBm' },
+        { value: 4, label: '5 dBm' },
+        { value: 5, label: '2 dBm' }
+    ];
+
     // ---- users
     users.listView().fields([
         nga.field('name').isDetailLink(true)
@@ -85,7 +111,18 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true, pattern: '[A-Za-z0-9]{32}' }),
         nga.field('link')
             .attributes({ placeholder: 'e.g. ABC12345' })
-            .validation({ pattern: '[A-Za-z0-9]{8}' })
+            .validation({ pattern: '[A-Za-z0-9]{8}' }),
+        nga.field('adr_flag_set', 'choice').label('Set ADR')
+            .choices(on_off_choices)
+            .defaultValue(1), // ON
+        nga.field('adr_set.power', 'choice').label('Set power')
+            .choices(power_choices)
+            .defaultValue(1), // 14 dBm
+        nga.field('adr_set.datr', 'choice').label('Set data rate')
+            .choices(data_rate_choices) // DR0
+            .defaultValue(0),
+        nga.field('adr_set.chans', 'template').label('Set channels')
+            .template('<channels field="field" count="16" value="value"></channels>')
     ]);
     devices.editionView().fields(devices.creationView().fields());
     // add to the admin application
@@ -119,14 +156,37 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntup', 'number').label('FCnt Up')
             .defaultValue(0),
         nga.field('fcntdown', 'number').label('FCnt Down')
-            .defaultValue(0)
+            .defaultValue(0),
+        nga.field('adr_flag_set', 'choice').label('Set ADR')
+            .choices(on_off_choices)
+            .defaultValue(1), // ON
+        nga.field('adr_set.power', 'choice').label('Set power')
+            .choices(power_choices)
+            .defaultValue(1), // 14 dBm
+        nga.field('adr_set.datr', 'choice').label('Set data rate')
+            .choices(data_rate_choices) // DR0
+            .defaultValue(0),
+        nga.field('adr_set.chans', 'template').label('Set channels')
+            .template('<channels field="field" count="16" value="value"></channels>')
     ]);
     links.editionView().fields(
         links.creationView().fields().concat([
-        nga.field('test', 'template').label('Ignore me, I am test')
-            .template('<p class="readonly half">{{value.device}}</p><ma-input-field class="half" type="number" field="::field" value="value.desired"></ma-input-field>'),
+        nga.field('adr_flag_use', 'choice').label('Used ADR')
+            .choices(on_off_choices)
+            .editable(false),
+        nga.field('adr_use.power', 'choice').label('Used power')
+            .choices(power_choices)
+            .editable(false),
+        nga.field('adr_use.datr', 'choice').label('Used data rate')
+            .choices(data_rate_choices)
+            .editable(false),
+        nga.field('adr_use.chans', 'template').label('Used channels')
+            .template('<channels field="field" count="16" value="value"></channels>')
+            .editable(false),
+        nga.field('devaddr', 'template').label('RX')
+            .template('<rgraph value="value"></rgraph>'),
         nga.field('devaddr', 'template').label('RX Quality')
-            .template('<graph value="value"></graph>'),
+            .template('<qgraph value="value"></qgraph>'),
         nga.field('downlinks', 'referenced_list')
             .targetEntity(txframes)
             .targetReferenceField('devaddr')
@@ -166,6 +226,42 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // attach the admin application to the DOM and execute it
     nga.configure(admin);
 }]);
+
+myApp.directive('channels', [function () {
+return {
+    restrict: 'E',
+    scope: {
+        field: '&',
+        count: '=',
+        value: '=',
+    },
+    link: function($scope) {
+        const field = $scope.field();
+        if ($scope.value == undefined) {
+            $scope.value = '111';
+        }
+        $scope.name = field.name();
+        $scope.readonly = !field.editable();
+        $scope.bits = [];
+        for (var i = 0; i < $scope.count; i++) {
+            $scope.bits.push({id:i, val:(i < $scope.value.length ? $scope.value[$scope.value.length-1-i] == '1' : false)});
+        }
+        $scope.bits = $scope.bits.reverse();
+        $scope.change = function() {
+            $scope.value = '';
+            for (var i = 0; i < $scope.count; i++) {
+                $scope.value += $scope.bits[i].val ? '1' : '0';
+            }
+        }
+    },
+    template:
+    `
+    <p ng-repeat="bit in bits" class="channel_check">
+      <input type="checkbox" id="{{name}}bit{{bit.id}}" ng-model="bit.val" ng-disabled="readonly" ng-change="change()"/>
+      <label for="{{name}}bit{{bit.id}}">{{bit.id}}</label>
+    </p>
+    `
+};}]);
 
 // http://stackoverflow.com/questions/35895411/ng-admin-and-google-maps
 myApp.directive('map', [function () {
@@ -213,20 +309,63 @@ myApp.config(function (uiGmapGoogleMapApiProvider) {
     });
 });
 
-myApp.directive('graph', ['$http', function($http) {
+myApp.directive('rgraph', ['$http', function($http) {
 return {
     restrict: 'E',
     scope: {
         value: '=',
     },
     link: function($scope) {
-            $scope.myChartObject = {};
-            $scope.myChartObject.type = "LineChart";
+            $scope.rxChartObject = {};
+            $scope.rxChartObject.type = "LineChart";
+            $http({method: 'GET', url: '/rx/'.concat($scope.value)})
+                .success( function( data, status, headers, config ) {
+                    $scope.rxChartObject.data = data.array;
+                });
+            $scope.rxChartObject.options = {
+                "vAxes": {
+                    0: {"title": 'Data Rate'},
+                    1: {"title": 'Frequency (MHz)'}
+                },
+                "series": {
+                    0: {"targetAxisIndex": 0},
+                    1: {"targetAxisIndex": 1}
+                },
+                "chartArea": {
+                    "top": 0, "bottom": "10%",
+                    "left": 0, "right": 0
+                },
+                "legend": {
+                    "position": "none"
+                },
+                "pointSize": 3,
+                "vAxis": {
+                    "textPosition": "in",
+                    "gridlines": {"count": -1}
+                },
+                "vAxes": {
+                    0: {"minValue": 0, "maxValue": 7},
+                    1: {"minValue": 868, "maxValue": 869}
+                }
+            };
+    },
+    template: '<div google-chart chart="rxChartObject"></div>'
+};}]);
+
+myApp.directive('qgraph', ['$http', function($http) {
+return {
+    restrict: 'E',
+    scope: {
+        value: '=',
+    },
+    link: function($scope) {
+            $scope.rxqChartObject = {};
+            $scope.rxqChartObject.type = "LineChart";
             $http({method: 'GET', url: '/rxq/'.concat($scope.value)})
                 .success( function( data, status, headers, config ) {
-                    $scope.myChartObject.data = data.array;
+                    $scope.rxqChartObject.data = data.array;
                 });
-            $scope.myChartObject.options = {
+            $scope.rxqChartObject.options = {
                 "vAxes": {
                     0: {"title": 'RSSI (dBm)'},
                     1: {"title": 'SNR (dB)'}
@@ -253,5 +392,5 @@ return {
                 }
             };
     },
-    template: '<div google-chart chart="myChartObject"></div>'
+    template: '<div google-chart chart="rxqChartObject"></div>'
 };}]);

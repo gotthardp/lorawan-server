@@ -34,7 +34,7 @@ content_types_provided(Req, State) ->
 
 get_link(Req, User) ->
     [Rec] = mnesia:dirty_read(links, lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req))),
-    {jsx:encode([{test, [{device,1}, {desired,2}]} | lorawan_admin:build_link(Rec)]), Req, User}.
+    {jsx:encode(lorawan_admin:build_link(Rec)), Req, User}.
 
 content_types_accepted(Req, State) ->
     {[

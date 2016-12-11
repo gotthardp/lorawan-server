@@ -11,8 +11,9 @@
 
 -record(user, {name, pass}).
 -record(gateway, {mac, netid, gpspos, gpsalt}).
--record(device, {deveui, app, appid, appeui, appkey, link}).
--record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown}).
+-record(device, {deveui, app, appid, appeui, appkey, link, adr_flag_set, adr_set}).
+-record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown,
+    adr_flag_use, adr_flag_set, adr_use, adr_set}).
 -record(txframe, {frid, datetime, devaddr, port, data}).
 -record(rxframe, {frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}).
 

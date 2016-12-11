@@ -31,6 +31,7 @@ start(_Type, _Args) ->
             {"/links/:devaddr", lorawan_admin_link, []},
             {"/txframes", lorawan_admin_txframes, []},
             {"/txframes/:frid", lorawan_admin_txframe, []},
+            {"/rx/:devaddr", lorawan_admin_rx, []},
             {"/rxq/:devaddr", lorawan_admin_rxq, []},
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
