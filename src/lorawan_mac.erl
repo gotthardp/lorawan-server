@@ -193,7 +193,10 @@ handle_fopts(Link, FOpts) ->
     send_adr(Link2, []).
 
 send_adr(Link, FOptsOut) ->
-    IsIncomplete = lists:member(undefined, tuple_to_list(Link#link.adr_set)),
+    IsIncomplete = case Link#link.adr_set of
+        undefined -> true;
+        Tuple -> lists:member(undefined, tuple_to_list(Tuple))
+    end,
     if
         Link#link.adr_flag_use == 1, Link#link.adr_flag_set == 1,
         not IsIncomplete, Link#link.adr_use /= Link#link.adr_set ->
