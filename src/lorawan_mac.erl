@@ -68,11 +68,6 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
     DevAddr = reverse(DevAddr0),
     FOpts = parse_fopts(FOpts0),
 
-    case ADRACKReq of
-        0 -> ok;
-        1 -> lager:debug("ADRACK REQ")
-    end,
-
     case check_link(DevAddr, FCnt) of
         {ok, L} ->
             case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
@@ -81,7 +76,7 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
                     mnesia:dirty_write(links, L2),
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
                     store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
-                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, FOptsOut, FPort, reverse(Data));
+                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, ADRACKReq, FOptsOut, FPort, reverse(Data));
                 _MIC2 ->
                     {error, bad_mic}
             end;
@@ -231,31 +226,47 @@ store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, _Data) ->
         devaddr=DevAddr, fcnt=FCnt}),
     ok.
 
-handle_rxpk(RxQ, 2, DevAddr, App, AppID, FOptsOut, Port, Data) ->
+handle_rxpk(RxQ, 2, DevAddr, App, AppID, ADRACKReq, FOptsOut, Port, Data) ->
+    {ok, {TxFreq, TxRate, TxCoding}} = application:get_env(rx2_rf),
+    {ok, RxDelay2} = application:get_env(rx_delay2),
+    % will transmit in the RX2 window
+    Time = RxQ#rxq.tmst + RxDelay2,
+    RF2 = #rflora{freq=TxFreq, datr=TxRate, codr=TxCoding},
+    % invoke applications
     case lorawan_application:handle_rx(DevAddr, App, AppID, Port, Data) of
         {send, PortOut, DataOut} ->
-            {ok, {TxFreq, TxRate, TxCoding}} = application:get_env(rx2_rf),
-            {ok, RxDelay2} = application:get_env(rx_delay2),
-            % transmitting for the RX2 window
-            Time = RxQ#rxq.tmst + RxDelay2,
-            txpk(Time, #rflora{freq=TxFreq, datr=TxRate, codr=TxCoding}, DevAddr, FOptsOut, PortOut, DataOut);
+            txpk(Time, RF2, DevAddr, FOptsOut, PortOut, DataOut);
+        ok when length(FOptsOut) > 0 ->
+            % application has no data, but we still need to send the MAC command
+            txpk(Time, RF2, DevAddr, FOptsOut, undefined, undefined);
+        ok when ADRACKReq == 1 ->
+            % nothing to send, but we still need to confirm we hear
+            lager:debug("ADRACKReq confirmed"),
+            txpk(Time, RF2, DevAddr, [], undefined, undefined);
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
 
-txpk(Time, RF, DevAddr, FOpts0, FPort, Data) ->
-    {atomic, L} = mnesia:transaction(fun() ->
+inc_fcntdown(DevAddr) ->
+    mnesia:transaction(fun() ->
         [D] = mnesia:read(links, DevAddr, write),
         FCnt =  (D#link.fcntdown + 1) band 16#FFFFFFFF,
         NewD = D#link{fcntdown=FCnt},
         mnesia:write(links, NewD, write),
         NewD
-    end),
+    end).
 
+txpk(Time, RF, DevAddr, FOpts0, FPort, Data) ->
+    {atomic, L} = inc_fcntdown(DevAddr),
     FOpts = encode_fopts(FOpts0),
-    FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
     FHDR = <<(reverse(DevAddr)):4/binary, (get_adr_flag(L)):1, 0:3, (byte_size(FOpts)):4, (L#link.fcntdown):16/little-unsigned-integer, FOpts/binary>>,
-    MACPayload = <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>,
+    MACPayload = case FPort of
+        undefined ->
+            <<FHDR/binary>>;
+        Num when Num > 0 ->
+            FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
+            <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>
+    end,
     Msg = <<3:3, 0:3, 0:2, MACPayload/binary>>,
     MIC = aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(1, DevAddr, L#link.fcntdown, byte_size(Msg)))/binary, Msg/binary>>, 4),
     PHYPayload = <<Msg/binary, MIC/binary>>,
