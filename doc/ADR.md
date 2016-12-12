@@ -23,7 +23,7 @@ server administration.
 For each connected node (link) you can define ADR paramaters to be requested by
 the server. Initally, this is the Device Configuration.
 
-The server administration also displays the last accepted node settings:
+The server administration also displays the node settings:
  - **Use ADR** indicates whether the node can do ADR;
  - **Use Power** indicates the last accepted TX power setting (in dBm);
  - **Use Data Rate** indicates the data rate;
@@ -32,3 +32,8 @@ The server administration also displays the last accepted node settings:
 The ADR request to change these settings is sent to the device only when both
 **Set ADR** and **Use ADR** are `ON`, when all ADR settings are defined (not null)
 and when some ADR parameter differs from the last accepted setting.
+
+If the device does not support (or allow) some of the requested settings, the
+entire request will fail. When a request fails, the requested ADR parameter(s) that
+caused the failure will be cleared (set to null) and no other parameter will become
+effective.
