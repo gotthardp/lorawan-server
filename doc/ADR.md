@@ -1,0 +1,34 @@
+# Adaptive Data Rate (ADR)
+
+For each node you can set the desired power, data rate and channels (frequencies)
+to be used for uplink transmissions.
+
+Please note that this functionality must be enabled in the device and requested
+by the server.
+
+## Device Configuration
+
+For each OTAA device you can define which ADR parameters shall be requested when
+the device joins the network:
+ - **Set ADR** can be used to request or disable ADR for this device;
+ - **Set Power** defines the power (in dBm) to be requested;
+ - **Set Data Rate** defines the data rate;
+ - **Set Channels** defines the set of channels.
+
+See the [Administration Guide](doc/Administration.md) for more details on the
+server administration.
+
+## Link Configuration
+
+For each connected node (link) you can define ADR paramaters to be requested by
+the server. Initally, this is the Device Configuration.
+
+The server administration also displays the last accepted node settings:
+ - **Use ADR** indicates whether the node can do ADR;
+ - **Use Power** indicates the last accepted TX power setting (in dBm);
+ - **Use Data Rate** indicates the data rate;
+ - **Use Channels** indicates the set of channels.
+
+The ADR request to change these settings is sent to the device only when both
+**Set ADR** and **Use ADR** are `ON`, when all ADR settings are defined (not null)
+and when some ADR parameter differs from the last accepted setting.

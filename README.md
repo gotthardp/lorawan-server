@@ -53,7 +53,8 @@ bin/lorawan-server
 ```
 
 You can administrate and manage the server via a set of web-pages or via a REST API
-as described in the [Administration Guide](doc/Administration.md).
+as described in the [Administration Guide](doc/Administration.md) and in the
+[Adaptive Data Rate (ADR) Guide](doc/ADR.md).
 
 Use the `dbexport` script to backup your list of users, gateways, devices and links.
 This will create several `db*.json` files. Use the `dbimport` script to write these
@@ -69,8 +70,8 @@ start the server and do `dbimport`.
 You can integrate lorawan-server with external applications using the WebSocket
 interface as described in the [WebSocket Guide](doc/WebSockets.md).
 
-You can also use the internal web server and develop application modules using
-custom REST APIs.
+You can also use the internal web server and develop application modules, which
+may offer custom REST APIs. See the [Handler Development Guide](doc/Handlers.md).
 
 ### Development
 [![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)
