@@ -309,19 +309,21 @@ myApp.config(function (uiGmapGoogleMapApiProvider) {
     });
 });
 
-myApp.directive('rgraph', ['$http', function($http) {
+myApp.directive('rgraph', ['$http', '$interval', function($http, $interval) {
 return {
     restrict: 'E',
     scope: {
         value: '=',
     },
     link: function($scope) {
+            function updateData() {
+                $http({method: 'GET', url: '/rx/'.concat($scope.value)})
+                    .success( function( data, status, headers, config ) {
+                        $scope.rxChartObject.data = data.array;
+                    });
+            }
             $scope.rxChartObject = {};
             $scope.rxChartObject.type = "LineChart";
-            $http({method: 'GET', url: '/rx/'.concat($scope.value)})
-                .success( function( data, status, headers, config ) {
-                    $scope.rxChartObject.data = data.array;
-                });
             $scope.rxChartObject.options = {
                 "vAxes": {
                     0: {"title": 'Data Rate'},
@@ -348,23 +350,30 @@ return {
                     1: {"minValue": 868, "maxValue": 869}
                 }
             };
+            updateData();
+            $scope.stopTime = $interval(updateData, 5000);
+            $scope.$on('$destroy', function() {
+                $interval.cancel($scope.stopTime);
+            });
     },
     template: '<div google-chart chart="rxChartObject"></div>'
 };}]);
 
-myApp.directive('qgraph', ['$http', function($http) {
+myApp.directive('qgraph', ['$http', '$interval', function($http, $interval) {
 return {
     restrict: 'E',
     scope: {
         value: '=',
     },
     link: function($scope) {
+            function updateData() {
+                $http({method: 'GET', url: '/rxq/'.concat($scope.value)})
+                    .success( function( data, status, headers, config ) {
+                        $scope.rxqChartObject.data = data.array;
+                    });
+            }
             $scope.rxqChartObject = {};
             $scope.rxqChartObject.type = "LineChart";
-            $http({method: 'GET', url: '/rxq/'.concat($scope.value)})
-                .success( function( data, status, headers, config ) {
-                    $scope.rxqChartObject.data = data.array;
-                });
             $scope.rxqChartObject.options = {
                 "vAxes": {
                     0: {"title": 'RSSI (dBm)'},
@@ -391,6 +400,11 @@ return {
                     1: {"minValue": 0}
                 }
             };
+            updateData();
+            $scope.stopTime = $interval(updateData, 5000);
+            $scope.$on('$destroy', function() {
+                $interval.cancel($scope.stopTime);
+            });
     },
     template: '<div google-chart chart="rxqChartObject"></div>'
 };}]);
