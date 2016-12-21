@@ -14,6 +14,7 @@
 -export([get_users/2]).
 -export([create_user/2]).
 
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
 init(Req, Opts) ->

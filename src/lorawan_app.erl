@@ -16,7 +16,7 @@ start(_Type, _Args) ->
     lorawan_db:ensure_tables(),
     {ok, _} = timer:apply_interval(3600*1000, lorawan_db, trim_tables, []),
 
-    {ok, Handlers} = lorawan_application:init(),
+    {ok, Handlers} = lorawan_application_handler:init(),
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/applications", lorawan_admin_applications, []},

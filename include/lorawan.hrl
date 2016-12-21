@@ -9,18 +9,6 @@
 -record(rflora, {freq, datr, codr}).
 -record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
 
--record(user, {name, pass}).
--record(gateway, {mac, netid, gpspos, gpsalt}).
--record(device, {deveui, app, appid, appeui, appkey, link, adr_flag_set, adr_set}).
--record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown,
-    adr_flag_use, adr_flag_set, adr_use, adr_set}).
--record(pending, {devaddr, phypayload}).
--record(txframe, {frid, datetime, devaddr, txdata}).
--record(rxframe, {frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}).
-
--record(rxdata, {port, data, last_lost=false, shall_reply=false}).
--record(txdata, {confirmed=false, port, data, pending=false}).
-
 -define(to_record(Record, List, Default),
     list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).
 

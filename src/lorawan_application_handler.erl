@@ -3,22 +3,14 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_application).
+-module(lorawan_application_handler).
 
 -export([init/0, handle_join/3, handle_rx/4]).
 -export([store_frame/2, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
--include("lorawan.hrl").
 
--callback init(App :: binary()) ->
-    ok | {ok, [Path :: cowboy_router:route_path()]}.
--callback handle_join(DevAddr :: binary(), App :: binary(), AppID :: binary()) ->
-    ok | {error, Error :: term()}.
--callback handle_rx(DevAddr :: binary(), App :: binary(), AppID :: binary(), RxData :: #rxdata{}) ->
-    ok | retransmit |
-    {send, Port :: integer(), Data :: #txdata{}} |
-    {error, Error :: term()}.
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 init() ->
     {ok, Modules} = application:get_env(plugins),

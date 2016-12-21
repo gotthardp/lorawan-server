@@ -12,6 +12,8 @@
 -export([binary_to_hex/1, hex_to_binary/1]).
 
 -define(MAX_FCNT_GAP, 16384).
+
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
 process_frame(MAC, RxQ, RF, PHYPayload) ->
@@ -132,7 +134,7 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
         {NewAddr, D#device.app, D#device.appid}
     end),
     mnesia:dirty_delete(pending, DevAddr),
-    case lorawan_application:handle_join(DevAddr, App, AppID) of
+    case lorawan_application_handler:handle_join(DevAddr, App, AppID) of
         ok ->
             {ok, JoinDelay1} = application:get_env(join_delay1),
             % transmitting after join accept delay 1
@@ -257,7 +259,7 @@ handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port,
             false
     end,
     % invoke applications
-    case lorawan_application:handle_rx(DevAddr, App, AppID,
+    case lorawan_application_handler:handle_rx(DevAddr, App, AppID,
             #rxdata{port=Port, data=Data, last_lost=LastLost, shall_reply=ShallReply}) of
         retransmit ->
             {send, Time, RF2, LostFrame};

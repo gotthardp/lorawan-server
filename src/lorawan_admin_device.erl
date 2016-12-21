@@ -16,6 +16,7 @@
 -export([get_device/2]).
 -export([write_device/2]).
 
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
 init(Req, Opts) ->

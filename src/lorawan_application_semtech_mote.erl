@@ -11,7 +11,7 @@
 
 -export([init/1, handle_join/3, handle_rx/4]).
 
--include("lorawan.hrl").
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 init(_App) ->
     ok.

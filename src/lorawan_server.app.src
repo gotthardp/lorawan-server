@@ -22,6 +22,6 @@
         {http_admin_port, 8080},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}}
     ]},
-    {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx]}]}.
+    {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, lorawan_server_api]}]}.
 
 % end of file

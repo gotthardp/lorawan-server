@@ -9,6 +9,7 @@
 -export([websocket_init/1, websocket_handle/2, websocket_info/2]).
 -export([get_processes/1]).
 
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 -record(state, {deveui, devaddr}).
 
@@ -37,7 +38,7 @@ websocket_handle(Data, State) ->
     {ok, State}.
 
 store_frame(Port, Data, #state{devaddr=DevAddr} = State) ->
-    lorawan_application:store_frame(DevAddr, #txdata{port=Port, data=Data}),
+    lorawan_application_handler:store_frame(DevAddr, #txdata{port=Port, data=Data}),
     {ok, State}.
 
 websocket_info({send, _DevAddr, _AppID, #rxdata{data=Data}}, State) ->

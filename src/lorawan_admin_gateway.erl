@@ -16,6 +16,7 @@
 -export([get_gateway/2]).
 -export([write_gateway/2]).
 
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
 init(Req, Opts) ->

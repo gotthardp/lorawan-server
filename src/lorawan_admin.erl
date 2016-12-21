@@ -13,6 +13,7 @@
 -export([parse_link/1, build_link/1]).
 -export([build_txframe/1]).
 
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
 handle_authorization(Req, State) ->
