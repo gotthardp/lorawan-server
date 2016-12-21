@@ -37,10 +37,10 @@ websocket_handle(Data, State) ->
     {ok, State}.
 
 store_frame(Port, Data, #state{devaddr=DevAddr} = State) ->
-    lorawan_application:store_frame(DevAddr, Port, Data),
+    lorawan_application:store_frame(DevAddr, #txdata{port=Port, data=Data}),
     {ok, State}.
 
-websocket_info({send, _DevAddr, _AppID, _Port, Data}, State) ->
+websocket_info({send, _DevAddr, _AppID, #rxdata{data=Data}}, State) ->
     {reply, {binary, Data}, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~w", [Info]),

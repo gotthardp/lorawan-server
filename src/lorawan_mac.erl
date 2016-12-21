@@ -44,7 +44,7 @@ process_status(MAC, S) ->
             ok
     end.
 
-process_frame1(NetID, _MAC, RxQ, RF, 0, Msg, MIC) ->
+process_frame1(NetID, _MAC, RxQ, RF, 2#000, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = MACPayload,
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
@@ -63,7 +63,7 @@ process_frame1(NetID, _MAC, RxQ, RF, 0, Msg, MIC) ->
     end;
 process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
-    <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, _ACK:1, _RFU:1, FOptsLen:4,
+    <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
         FCnt:16/little-unsigned-integer, FOpts0:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
     DevAddr = reverse(DevAddr0),
     FOpts = parse_fopts(FOpts0),
@@ -76,7 +76,7 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
                     mnesia:dirty_write(links, L2),
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
                     store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
-                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, ADRACKReq, FOptsOut, FPort, reverse(Data));
+                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, ADRACKReq, ACK, FOptsOut, FPort, reverse(Data));
                 _MIC2 ->
                     {error, bad_mic}
             end;
@@ -131,6 +131,7 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
             adr_use={1, 0, 7}, adr_set=D#device.adr_set}, write),
         {NewAddr, D#device.app, D#device.appid}
     end),
+    mnesia:dirty_delete(pending, DevAddr),
     case lorawan_application:handle_join(DevAddr, App, AppID) of
         ok ->
             {ok, JoinDelay1} = application:get_env(join_delay1),
@@ -226,26 +227,57 @@ store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, _Data) ->
         devaddr=DevAddr, fcnt=FCnt}),
     ok.
 
-handle_rxpk(RxQ, 2, DevAddr, App, AppID, ADRACKReq, FOptsOut, Port, Data) ->
+handle_rxpk(RxQ, MType, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port, Data)
+        when MType == 2#010; MType == 2#100 ->
+    <<Confirm:1, _:2>> = <<MType:3>>,
+    handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port, Data).
+
+handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port, Data) ->
     {ok, {TxFreq, TxRate, TxCoding}} = application:get_env(rx2_rf),
     {ok, RxDelay2} = application:get_env(rx_delay2),
     % will transmit in the RX2 window
     Time = RxQ#rxq.tmst + RxDelay2,
     RF2 = #rflora{freq=TxFreq, datr=TxRate, codr=TxCoding},
-    % invoke applications
-    case lorawan_application:handle_rx(DevAddr, App, AppID, Port, Data) of
-        {send, PortOut, DataOut} ->
-            txpk(Time, RF2, DevAddr, FOptsOut, PortOut, DataOut);
-        ok when length(FOptsOut) > 0 ->
-            % application has no data, but we still need to send the MAC command
-            txpk(Time, RF2, DevAddr, FOptsOut, undefined, undefined);
-        ok when ADRACKReq == 1 ->
-            % nothing to send, but we still need to confirm we hear
+    % check whether last transmission was lost
+    {LastLost, LostFrame} = check_lost(ACK, DevAddr),
+    % check whether the response is required
+    ShallReply = if
+        Confirm == 1 ->
+            % confirmed uplink received
+            true;
+        ADRACKReq == 1 ->
+            % ADR ACK was requested
             lager:debug("ADRACKReq confirmed"),
-            txpk(Time, RF2, DevAddr, [], undefined, undefined);
+            true;
+        length(FOptsOut) > 0 ->
+            % have MAC commands to send
+            true;
+        true ->
+            % else
+            false
+    end,
+    % invoke applications
+    case lorawan_application:handle_rx(DevAddr, App, AppID,
+            #rxdata{port=Port, data=Data, last_lost=LastLost, shall_reply=ShallReply}) of
+        retransmit ->
+            {send, Time, RF2, LostFrame};
+        {send, TxData} ->
+            txpk(Time, RF2, DevAddr, Confirm, FOptsOut, TxData);
+        ok when ShallReply ->
+            % application has nothing to send, but we still need to repond
+            txpk(Time, RF2, DevAddr, Confirm, FOptsOut, #txdata{});
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
+
+check_lost(0, DevAddr) ->
+    case mnesia:dirty_read(pending, DevAddr) of
+        [] -> {false, undefined};
+        [Msg] -> {true, Msg#pending.phypayload}
+    end;
+check_lost(1, DevAddr) ->
+    ok = mnesia:dirty_delete(pending, DevAddr),
+    {false, undefined}.
 
 inc_fcntdown(DevAddr) ->
     mnesia:transaction(fun() ->
@@ -256,10 +288,18 @@ inc_fcntdown(DevAddr) ->
         NewD
     end).
 
-txpk(Time, RF, DevAddr, FOpts0, FPort, Data) ->
+txpk(Time, RF, DevAddr, ACK, FOpts0, #txdata{confirmed=false} = TxData) ->
+    {send, Time, RF, encode_txpk(2#011, DevAddr, ACK, FOpts0, TxData)};
+txpk(Time, RF, DevAddr, ACK, FOpts0, #txdata{confirmed=true} = TxData) ->
+    PHYPayload = encode_txpk(2#101, DevAddr, ACK, FOpts0, TxData),
+    mnesia:dirty_write(pending, #pending{devaddr=DevAddr, phypayload=PHYPayload}),
+    {send, Time, RF, PHYPayload}.
+
+encode_txpk(MType, DevAddr, ACK, FOpts0, #txdata{port=FPort, data=Data, pending=FPending}) ->
     {atomic, L} = inc_fcntdown(DevAddr),
     FOpts = encode_fopts(FOpts0),
-    FHDR = <<(reverse(DevAddr)):4/binary, (get_adr_flag(L)):1, 0:3, (byte_size(FOpts)):4, (L#link.fcntdown):16/little-unsigned-integer, FOpts/binary>>,
+    FHDR = <<(reverse(DevAddr)):4/binary, (get_adr_flag(L)):1, 0:1, ACK:1, (bool_to_bit(FPending)):1, (byte_size(FOpts)):4,
+        (L#link.fcntdown):16/little-unsigned-integer, FOpts/binary>>,
     MACPayload = case FPort of
         undefined ->
             <<FHDR/binary>>;
@@ -267,10 +307,12 @@ txpk(Time, RF, DevAddr, FOpts0, FPort, Data) ->
             FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
             <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>
     end,
-    Msg = <<3:3, 0:3, 0:2, MACPayload/binary>>,
+    Msg = <<MType:3, 0:3, 0:2, MACPayload/binary>>,
     MIC = aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(1, DevAddr, L#link.fcntdown, byte_size(Msg)))/binary, Msg/binary>>, 4),
-    PHYPayload = <<Msg/binary, MIC/binary>>,
-    {send, Time, RF, PHYPayload}.
+    <<Msg/binary, MIC/binary>>.
+
+bool_to_bit(true) -> 1;
+bool_to_bit(false) -> 0.
 
 get_adr_flag(#link{adr_flag_set=undefined}) -> 0;
 get_adr_flag(#link{adr_flag_set=ADR}) -> ADR.

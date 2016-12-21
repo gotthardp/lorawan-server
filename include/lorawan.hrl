@@ -14,8 +14,12 @@
 -record(device, {deveui, app, appid, appeui, appkey, link, adr_flag_set, adr_set}).
 -record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown,
     adr_flag_use, adr_flag_set, adr_use, adr_set}).
--record(txframe, {frid, datetime, devaddr, port, data}).
+-record(pending, {devaddr, phypayload}).
+-record(txframe, {frid, datetime, devaddr, txdata}).
 -record(rxframe, {frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}).
+
+-record(rxdata, {port, data, last_lost=false, shall_reply=false}).
+-record(txdata, {confirmed=false, port, data, pending=false}).
 
 -define(to_record(Record, List, Default),
     list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).

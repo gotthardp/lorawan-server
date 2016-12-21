@@ -80,6 +80,7 @@ parse_admin(List) ->
                                 Key == devaddr; Key == nwkskey; Key == appskey -> {Key, lorawan_mac:hex_to_binary(Value)};
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
             ({Key, Value}) when Key == adr_use; Key == adr_set -> {Key, parse_adr(Value)};
+            ({Key, Value}) when Key == txdata -> {Key, ?to_record(txdata, parse_admin(Value))};
             (Else) -> Else
         end,
         List).
@@ -96,6 +97,7 @@ build_admin(List) ->
             ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
             ({Key, Value}, A) when Key == datetime -> [{Key, build_datetime(Value)} | A];
             ({Key, Value}, A) when Key == adr_use; Key == adr_set -> [{Key, build_adr(Value)} | A];
+            ({Key, Value}, A) when Key == txdata -> [{Key, build_admin(?to_proplist(txdata, Value))} | A];
             (Else, A) -> [Else | A]
         end,
         [], List).

@@ -192,8 +192,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetReferenceField('devaddr')
             .targetFields([
                 nga.field('datetime').label('Creation Time'),
-                nga.field('port'),
-                nga.field('data')
+                nga.field('txdata.port'),
+                nga.field('txdata.data')
             ])
             .listActions(['delete'])
     ]));

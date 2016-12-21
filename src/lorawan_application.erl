@@ -5,8 +5,8 @@
 %
 -module(lorawan_application).
 
--export([init/0, handle_join/3, handle_rx/5]).
--export([store_frame/3, send_stored_frames/2]).
+-export([init/0, handle_join/3, handle_rx/4]).
+-export([store_frame/2, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
 -include("lorawan.hrl").
@@ -15,8 +15,9 @@
     ok | {ok, [Path :: cowboy_router:route_path()]}.
 -callback handle_join(DevAddr :: binary(), App :: binary(), AppID :: binary()) ->
     ok | {error, Error :: term()}.
--callback handle_rx(DevAddr :: binary(), App :: binary(), AppID :: binary(), Port :: integer(), Data :: binary()) ->
-    ok | {send, Port :: integer(), Data :: binary()} |
+-callback handle_rx(DevAddr :: binary(), App :: binary(), AppID :: binary(), RxData :: #rxdata{}) ->
+    ok | retransmit |
+    {send, Port :: integer(), Data :: #txdata{}} |
     {error, Error :: term()}.
 
 init() ->
@@ -38,8 +39,8 @@ handle_join(DevAddr, App, AppID) ->
     % callback
     invoke_handler(handle_join, App, [DevAddr, App, AppID]).
 
-handle_rx(DevAddr, App, AppID, Port, Data) ->
-    invoke_handler(handle_rx, App, [DevAddr, App, AppID, Port, Data]).
+handle_rx(DevAddr, App, AppID, RxData) ->
+    invoke_handler(handle_rx, App, [DevAddr, App, AppID, RxData]).
 
 invoke_handler(Fun, App, Params) ->
     {ok, Modules} = application:get_env(plugins),
@@ -50,10 +51,11 @@ invoke_handler(Fun, App, Params) ->
             apply(Module, Fun, Params)
     end.
 
-store_frame(DevAddr, Port, Data) ->
+store_frame(DevAddr, TxData) ->
     Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
     mnesia:transaction(fun() ->
-        ok = mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>, datetime=Now, devaddr=DevAddr, port=Port, data=Data}, write)
+        mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
+            datetime=Now, devaddr=DevAddr, txdata=TxData}, write)
     end).
 
 send_stored_frames(DevAddr, DefPort) ->
@@ -63,21 +65,26 @@ send_stored_frames(DevAddr, DefPort) ->
             receive
                 % the record name returned is 'txframes' regardless any record_name settings
                 {mnesia_table_event, {write, TxFrame, _ActivityId}} when element(#txframe.devaddr, TxFrame) == DevAddr ->
-                    transmit_and_delete(setelement(1, TxFrame, txframe), DefPort)
+                    transmit_and_delete(DefPort, setelement(1, TxFrame, txframe), false)
                 after ?MAX_DELAY ->
                     ok
             end;
+        [TheOnly] ->
+            transmit_and_delete(DefPort, TheOnly, false);
         [First|_Tail] ->
-            transmit_and_delete(First, DefPort)
+            transmit_and_delete(DefPort, First, true)
     end.
 
-transmit_and_delete(TxFrame, DefPort) ->
+transmit_and_delete(DefPort, TxFrame, Pending) ->
     mnesia:dirty_delete(txframes, TxFrame#txframe.frid),
+    TxData = TxFrame#txframe.txdata,
     % raw websocket does not define port
     OutPort = if
-        TxFrame#txframe.port == undefined -> DefPort;
-        true -> TxFrame#txframe.port
+        TxData#txdata.port == undefined -> DefPort;
+        true -> TxData#txdata.port
     end,
-    {send, OutPort, TxFrame#txframe.data}.
+    % add the pending flag
+    OutPending = TxData#txdata.pending or Pending,
+    {send, TxData#txdata{port=OutPort, pending=OutPending}}.
 
 % end of file

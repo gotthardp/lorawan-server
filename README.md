@@ -16,7 +16,7 @@ The server:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
  * Supports (any number of) Class A devices.
  * Supports both the activation by personalization and the over-the-air activation.
- * Supports unconfirmed data uplink and downlink.
+ * Supports both unconfirmed and confirmed data uplink and downlink.
  * Supports the EU 868 band.
  * Supports per-node configuration of TX power and data rate (manual ADR).
  * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,

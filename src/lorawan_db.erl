@@ -11,7 +11,7 @@
 -include("lorawan.hrl").
 
 ensure_tables() ->
-    AllTables = [users, gateways, devices, links, txframes, rxframes],
+    AllTables = [users, gateways, devices, links, pending, txframes, rxframes],
     case has_tables(AllTables) of
         true ->
             mnesia:wait_for_tables(AllTables, 2000);
@@ -44,6 +44,10 @@ create_tables() ->
     mnesia:create_table(links, [
         {record_name, link},
         {attributes, record_info(fields, link)},
+        {disc_copies, [node()]}]),
+    mnesia:create_table(pending, [
+        {record_name, pending},
+        {attributes, record_info(fields, pending)},
         {disc_copies, [node()]}]),
     mnesia:create_table(txframes, [
         {type, ordered_set},
