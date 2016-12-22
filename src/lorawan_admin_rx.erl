@@ -16,6 +16,9 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
+% range encompassing all possible LoRaWAN bands
+-define(DEFAULT_RANGE, {433, 928}).
+
 init(Req, Opts) ->
     {cowboy_rest, Req, Opts}.
 
@@ -33,6 +36,13 @@ content_types_provided(Req, State) ->
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
     {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    % guess which frequency band the device is using
+    {Min, Max} = case ActRec of
+        [#rxframe{freq=Freq} | _] ->
+            find_range(Freq, [{433, 435}, {779, 787}, {863, 870}, {902, 928}]);
+        [] ->
+            ?DEFAULT_RANGE
+    end,
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
@@ -49,7 +59,7 @@ get_rxframe(Req, State) ->
                 end, ActRec)
             }
         ],
-    {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.
+    {jsx:encode([{devaddr, DevAddr}, {array, Array}, {'band', [{minValue, Min}, {maxValue, Max}]}]), Req, State}.
 
 resource_exists(Req, State) ->
     case mnesia:dirty_index_read(rxframes,
@@ -57,6 +67,12 @@ resource_exists(Req, State) ->
         [] -> {false, Req, State};
         [_First|_Rest] -> {true, Req, State}
     end.
+
+find_range(Freq, [{Min, Max}|_Res]) when Freq >= Min, Freq =< Max -> {Min, Max};
+% we assume the Min-Max tuples are ordered
+find_range(Freq, [{_Min, Max}|_Rest]) when Freq < Max -> ?DEFAULT_RANGE;
+find_range(Freq, [_MinMax|Rest]) -> find_range(Freq, Rest);
+find_range(_Freq, []) -> ?DEFAULT_RANGE.
 
 datr_to_num(Config) ->
     [SF, BW] = binary:split(Config, [<<"SF">>, <<"BW">>], [global, trim_all]),

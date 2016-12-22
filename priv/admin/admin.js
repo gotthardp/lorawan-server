@@ -320,6 +320,7 @@ return {
                 $http({method: 'GET', url: '/rx/'.concat($scope.value)})
                     .success( function( data, status, headers, config ) {
                         $scope.rxChartObject.data = data.array;
+                        $scope.rxChartObject.options.vAxes[1] = data.band;
                     });
             }
             $scope.rxChartObject = {};
@@ -347,7 +348,7 @@ return {
                 },
                 "vAxes": {
                     0: {"minValue": 0, "maxValue": 7},
-                    1: {"minValue": 868, "maxValue": 869}
+                    1: {"minValue": 433, "maxValue": 928}
                 }
             };
             updateData();
