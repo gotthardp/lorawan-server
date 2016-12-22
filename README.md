@@ -17,7 +17,7 @@ The server:
  * Supports (any number of) Class A devices.
  * Supports both the activation by personalization and the over-the-air activation.
  * Supports both unconfirmed and confirmed data uplink and downlink.
- * Supports the EU 868 band.
+ * Supports the EU868 and EU433 bands.
  * Supports per-node configuration of TX power and data rate (manual ADR).
  * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,
    even in a Docker container.
