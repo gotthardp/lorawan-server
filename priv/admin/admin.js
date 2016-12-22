@@ -69,10 +69,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.creationView().fields([
         nga.field('mac').label('MAC')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{16}' }),
+            .map(function strip(value, entry) {
+                return value.replace('/-:/g', '')
+            })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
         nga.field('netid').label('NetID')
             .attributes({ placeholder: 'e.g. 0123AB' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{6}' }),
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
         nga.field('gpspos', 'template')
             .validation({required: true })
             .label('Location')
@@ -97,7 +100,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     devices.creationView().fields([
         nga.field('deveui').label('DevEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{16}' }),
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{16}' }),
         nga.field('app', 'reference').label('Application')
             .targetEntity(applications)
             .targetField(nga.field('name'))
@@ -105,13 +108,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appid').label('AppID'),
         nga.field('appeui').label('AppEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{16}' }),
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{16}' }),
         nga.field('appkey').label('AppKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{32}' }),
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
         nga.field('link')
             .attributes({ placeholder: 'e.g. ABC12345' })
-            .validation({ pattern: '[A-Za-z0-9]{8}' }),
+            .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(on_off_choices)
             .defaultValue(1), // ON
@@ -141,7 +144,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     links.creationView().fields([
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{8}' }),
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('app', 'reference').label('Application')
             .targetEntity(applications)
             .targetField(nga.field('name'))
@@ -149,10 +152,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appid').label('AppID'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{32}' }),
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
         nga.field('appskey').label('AppSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
-            .validation({ required: true, pattern: '[A-Za-z0-9]{32}' }),
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
         nga.field('fcntup', 'number').label('FCnt Up')
             .defaultValue(0),
         nga.field('fcntdown', 'number').label('FCnt Down')
