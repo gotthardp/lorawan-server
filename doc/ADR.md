@@ -15,7 +15,7 @@ the device joins the network:
  - **Set Data Rate** defines the data rate;
  - **Set Channels** defines the set of channels.
 
-See the [Administration Guide](doc/Administration.md) for more details on the
+See the [Administration Guide](Administration.md) for more details on the
 server administration.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-device.png)

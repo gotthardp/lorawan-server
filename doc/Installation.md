@@ -24,7 +24,7 @@ Review the `lorawan-server/releases/0.1.0/sys.config` with the server configurat
  * By default the EU868 band is enabled. If you want to use another band,
    uncomment the respective `rx2_rf` field.
  * To enable/disable applications, modify the `plugins` section. For more details
-   see the [Handler Development Guide](doc/Handlers.md).
+   see the [Handler Development Guide](Handlers.md).
 
 For example:
 ```erlang

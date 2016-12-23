@@ -50,13 +50,13 @@ For each LoRaWAN gateway you can set:
 
 For each device, which may connect to your network, you can set:
  * *DevEUI* of the device
- * *Application* identifier corresponding to one of the [Handlers](doc/Handlers.md) configured.
+ * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
  * *AppID*, which is a string with application-specific configuration.
  * *AppEUI* and *AppKey*
 
 Once the device joins the network, the *Link* field will contain a reference to the *Links* list.
 
-Optionally, you can also define a set of [ADR](doc/ADR.md) parameters. Once the device
+Optionally, you can also define a set of [ADR](ADR.md) parameters. Once the device
 joins the network, the server will attempt to configure the device accordingly.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-device.png)
@@ -65,15 +65,15 @@ joins the network, the server will attempt to configure the device accordingly.
 
 For each device, which is connected (has a link) to the network, you can set:
  * *DevEUI* of the device
- * *Application* identifier corresponding to one of the [Handlers](doc/Handlers.md) configured.
+ * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
  * *AppID*, which is a string with application-specific configuration.
  * *NwkSKey* and *AppSKey*
 
-Optionally, you can also set the [ADR](doc/ADR.md) parameters. The server will attempt
+Optionally, you can also set the [ADR](ADR.md) parameters. The server will attempt
 to configure the device accordingly.
 
 Below the configuration options you can monitor the performance of the device. You
-can see the assumed [ADR](doc/ADR.md) parameters and two graphs that display the last
+can see the assumed [ADR](ADR.md) parameters and two graphs that display the last
 50 received frames.
 
 The *Downlinks* table lists frames created by the application, which are scheduled for
