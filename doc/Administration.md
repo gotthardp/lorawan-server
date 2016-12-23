@@ -26,10 +26,58 @@ The following REST resources are made available:
 The management web-pages are available under `/admin`. It is just a wrapper around
 the REST API.
 
-To register a new gateway, create a new *Gateways* list entry.
+You (at least) have to:
+ * Add LoRaWAN gateways you want to use to the *Gateways* list.
+ * Configure each device you want to use:
+   * To add a personalized device, create a new *Links* list entry.
+   * To add an OTAA device, create a new *Devices* list entry and start the device. The *Links*
+     list will be updated automatically once the device joins the network.
 
-To add a personalized device, create a new *Links* list entry.
-To add an OTAA device, create a new *Devices* list entry and start the device. The *Links*
-list will be updated automatically once the device joins the network.
+### Users
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin.png)
+List of identities that can manage the server.
+
+### Gateways
+
+For each LoRaWAN gateway you can set:
+ * *MAC* address of the gateway
+ * *NetID* of the network
+ * *Location* and *Altitude* of the gateway
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-gateway.png)
+
+### Devices
+
+For each device, which may connect to your network, you can set:
+ * *DevEUI* of the device
+ * *Application* identifier corresponding to one of the [Handlers](doc/Handlers.md) configured.
+ * *AppID*, which is a string with application-specific configuration.
+ * *AppEUI* and *AppKey*
+
+Once the device joins the network, the *Link* field will contain a reference to the *Links* list.
+
+Optionally, you can also define a set of [ADR](doc/ADR.md) parameters. Once the device
+joins the network, the server will attempt to configure the device accordingly.
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-device.png)
+
+### Links
+
+For each device, which is connected (has a link) to the network, you can set:
+ * *DevEUI* of the device
+ * *Application* identifier corresponding to one of the [Handlers](doc/Handlers.md) configured.
+ * *AppID*, which is a string with application-specific configuration.
+ * *NwkSKey* and *AppSKey*
+
+Optionally, you can also set the [ADR](doc/ADR.md) parameters. The server will attempt
+to configure the device accordingly.
+
+Below the configuration options you can monitor the performance of the device. You
+can see the assumed [ADR](doc/ADR.md) parameters and two graphs that display the last
+50 received frames.
+
+The *Downlinks* table lists frames created by the application, which are scheduled for
+transmission. Class A devices listen for downlinks only for 2 seconds after an uplink
+transmission, so it may take a while until all messages are transmitted.
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-link-status.png)

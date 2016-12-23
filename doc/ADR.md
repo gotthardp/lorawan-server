@@ -18,6 +18,8 @@ the device joins the network:
 See the [Administration Guide](doc/Administration.md) for more details on the
 server administration.
 
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-device.png)
+
 ## Link Configuration
 
 For each connected node (link) you can define ADR paramaters to be requested by
@@ -37,3 +39,5 @@ If the device does not support (or allow) some of the requested settings, the
 entire request will fail. When a request fails, the requested ADR parameter(s) that
 caused the failure will be cleared (set to null) and no other parameter will become
 effective.
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-link-status.png)

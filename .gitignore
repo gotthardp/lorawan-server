@@ -1,3 +1,4 @@
+Mnesia.*
 erl_crash.dump
 
 rebar3
