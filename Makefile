@@ -36,4 +36,7 @@ test:
 release: test
 	@$(REBAR3) release
 
+dist:
+	@$(REBAR3) tar
+
 # end of file

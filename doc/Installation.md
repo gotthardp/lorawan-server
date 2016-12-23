@@ -8,19 +8,19 @@ You will need the Erlang/OTP 18 or later.
  * On Linux, try typing `yum install erlang` or `apt-get install erlang`.
  * On Windows, install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads).
 
-Then download the binary release
-[lorawan-server-0.1.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases/download/v0.1.0/lorawan-server-0.1.0.tar.gz)
+Then download the latest binary release
+[lorawan-server-0.2.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
 and unpack it by:
 ```bash
 mkdir lorawan-server
-mv lorawan-server-0.1.0.tar.gz lorawan-server/
+mv lorawan-server-0.2.0.tar.gz lorawan-server/
 cd lorawan-server
-tar -zxvf lorawan-server-0.1.0.tar.gz
+tar -zxvf lorawan-server-0.2.0.tar.gz
 ```
 
 ## Server Configuration
 
-Review the `lorawan-server/releases/0.1.0/sys.config` with the server configuration:
+Review the `lorawan-server/releases/0.2.0/sys.config` with the server configuration:
  * By default the EU868 band is enabled. If you want to use another band,
    uncomment the respective `rx2_rf` field.
  * To enable/disable applications, modify the `plugins` section. For more details

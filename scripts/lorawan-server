@@ -6,7 +6,7 @@ fi;
 SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
-__possible_sys="$ROOT_DIR/releases/0.1.0/sys.config"
+__possible_sys="$ROOT_DIR/releases/0.2.0/sys.config"
 if [ -f "$__possible_sys" ]; then
     SYS_CONFIG="$__possible_sys"
 elif [ -L "$__possible_sys".orig ]; then
