@@ -116,9 +116,16 @@ build_datetime(DateTime) ->
 
 parse_adr(List) ->
     {proplists:get_value(power, List), proplists:get_value(datr, List),
-        binary_to_integer(proplists:get_value(chans, List), 2)}.
+        case proplists:get_value(chans, List) of
+            undefined -> undefined;
+            Val -> binary_to_integer(Val, 2)
+        end}.
 
 build_adr({TXPower, DataRate, Chans}) ->
-    [{power, TXPower}, {datr, DataRate}, {chans, integer_to_binary(Chans, 2)}].
+    [{power, TXPower}, {datr, DataRate}, {chans,
+        case Chans of
+            undefined -> undefined;
+            Val -> integer_to_binary(Val, 2)
+        end}].
 
 % end of file
