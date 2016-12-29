@@ -12,59 +12,83 @@
 -include("lorawan.hrl").
 
 ensure_tables() ->
-    AllTables = [users, gateways, devices, links, pending, txframes, rxframes],
-    case has_tables(AllTables) of
+    case mnesia:system_info(use_dir) of
         true ->
-            mnesia:wait_for_tables(AllTables, 2000);
+            ok;
         false ->
             stopped = mnesia:stop(),
+            lager:info("Database create schema"),
             mnesia:create_schema([node()]),
-            ok = mnesia:start(),
-            create_tables(),
-            mnesia:wait_for_tables(AllTables, 2000),
-            set_defaults()
+            ok = mnesia:start()
+    end,
+    lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef) end, [
+        {users, [
+            {record_name, user},
+            {attributes, record_info(fields, user)},
+            {disc_copies, [node()]}]},
+        {gateways, [
+            {record_name, gateway},
+            {attributes, record_info(fields, gateway)},
+            {disc_copies, [node()]}]},
+        {devices, [
+            {record_name, device},
+            {attributes, record_info(fields, device)},
+            {disc_copies, [node()]}]},
+        {links, [
+            {record_name, link},
+            {attributes, record_info(fields, link)},
+            {disc_copies, [node()]}]},
+        {pending, [
+            {record_name, pending},
+            {attributes, record_info(fields, pending)},
+            {disc_copies, [node()]}]},
+        {txframes, [
+            {type, ordered_set},
+            {record_name, txframe},
+            {attributes, record_info(fields, txframe)},
+            {disc_copies, [node()]}]},
+        {rxframes, [
+            {record_name, rxframe},
+            {attributes, record_info(fields, rxframe)},
+            {index, [mac, devaddr]},
+            {disc_copies, [node()]}]}
+    ]).
+
+ensure_table(Name, TabDef) ->
+    case lists:member(Name, mnesia:system_info(tables)) of
+        true ->
+            mnesia:wait_for_tables([Name], 2000),
+            ensure_fields(Name, TabDef);
+        false ->
+            lager:info("Database create ~w", [Name]),
+            mnesia:create_table(Name, TabDef),
+            mnesia:wait_for_tables([Name], 2000),
+            set_defaults(Name)
     end.
 
-has_tables(ReqTables) ->
-    AllTables = mnesia:system_info(tables),
-    lists:all(fun(Table) -> lists:member(Table, AllTables) end, ReqTables).
+ensure_fields(Name, TabDef) ->
+    OldAttrs = mnesia:table_info(Name, attributes),
+    NewAttrs = proplists:get_value(attributes, TabDef),
+    if
+        OldAttrs == NewAttrs ->
+            ok;
+        true ->
+            lager:info("Database update ~w: ~w to ~w", [Name, OldAttrs, NewAttrs]),
+            {atomic, ok} = mnesia:transform_table(Name,
+                fun(OldRec) ->
+                    [Rec|Values] = tuple_to_list(OldRec),
+                    PropList = lists:zip(OldAttrs, Values),
+                    list_to_tuple([Rec|[proplists:get_value(X, PropList) || X <- NewAttrs]])
+                end,
+                NewAttrs)
+    end.
 
-create_tables() ->
-    mnesia:create_table(users, [
-        {record_name, user},
-        {attributes, record_info(fields, user)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(gateways, [
-        {record_name, gateway},
-        {attributes, record_info(fields, gateway)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(devices, [
-        {record_name, device},
-        {attributes, record_info(fields, device)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(links, [
-        {record_name, link},
-        {attributes, record_info(fields, link)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(pending, [
-        {record_name, pending},
-        {attributes, record_info(fields, pending)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(txframes, [
-        {type, ordered_set},
-        {record_name, txframe},
-        {attributes, record_info(fields, txframe)},
-        {disc_copies, [node()]}]),
-    mnesia:create_table(rxframes, [
-        {record_name, rxframe},
-        {attributes, record_info(fields, rxframe)},
-        {index, [mac, devaddr]},
-        {disc_copies, [node()]}]).
-
-set_defaults() ->
-    lager:info("Created default user:password"),
+set_defaults(users) ->
+    lager:info("Database create default user:password"),
     {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),
-    mnesia:dirty_write(users, #user{name=User, pass=Pass}).
+    mnesia:dirty_write(users, #user{name=User, pass=Pass});
+set_defaults(_Else) ->
+    ok.
 
 trim_tables() ->
     lists:foreach(fun(R) -> trim_rxframes(R) end,
