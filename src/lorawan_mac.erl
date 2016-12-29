@@ -136,10 +136,11 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
     mnesia:dirty_delete(pending, DevAddr),
     case lorawan_application_handler:handle_join(DevAddr, App, AppID) of
         ok ->
+            {ok, {_RxFreq, RxRate, _RxCoding}} = application:get_env(rx2_rf),
             {ok, JoinDelay1} = application:get_env(join_delay1),
             % transmitting after join accept delay 1
             Time = RxQ#rxq.tmst + JoinDelay1,
-            txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr);
+            txaccept(Time, RF, RxRate, AppKey, AppNonce, NetID, DevAddr);
         {error, Error} -> {error, Error}
     end.
 
@@ -148,9 +149,9 @@ create_devaddr(NetID) ->
     %% FIXME: verify uniqueness
     <<NwkID:7, 0:1, (crypto:strong_rand_bytes(3))/binary>>.
 
-txaccept(Time, RF, AppKey, AppNonce, NetID, DevAddr) ->
-    MHDR = <<1:3, 0:3, 0:2>>,
-    MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1, 0:3, 3:4, 1>>,
+txaccept(Time, RF, Rx2Rate, AppKey, AppNonce, NetID, DevAddr) ->
+    MHDR = <<2#001:3, 0:3, 0:2>>,
+    MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1, 0:3, Rx2Rate:4, 1>>,
     MIC = aes_cmac:aes_cmac(AppKey, <<MHDR/binary, MACPayload/binary>>, 4),
 
     % yes, decrypt; see LoRaWAN specification, Section 6.2.5
@@ -239,7 +240,7 @@ handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port,
     {ok, RxDelay2} = application:get_env(rx_delay2),
     % will transmit in the RX2 window
     Time = RxQ#rxq.tmst + RxDelay2,
-    RF2 = #rflora{freq=TxFreq, datr=TxRate, codr=TxCoding},
+    RF2 = #rflora{freq=TxFreq, datr=datar_to_bin(TxRate), codr=TxCoding},
     % check whether last transmission was lost
     {LastLost, LostFrame} = check_lost(ACK, DevAddr),
     % check whether the response is required
@@ -371,6 +372,14 @@ padded(Bytes, Msg) ->
         0 -> Msg;
         N -> <<Msg/bitstring, 0:(8*Bytes-N)>>
     end.
+
+datar_to_bin(0) -> <<"SF12BW125">>;
+datar_to_bin(1) -> <<"SF11BW125">>;
+datar_to_bin(2) -> <<"SF10BW125">>;
+datar_to_bin(3) -> <<"SF9BW125">>;
+datar_to_bin(4) -> <<"SF8BW125">>;
+datar_to_bin(5) -> <<"SF7BW125">>;
+datar_to_bin(6) -> <<"SF7BW250">>.
 
 % stackoverflow.com/questions/3768197/erlang-ioformatting-a-binary-to-hex
 % a little magic from http://stackoverflow.com/users/2760050/himangshuj
