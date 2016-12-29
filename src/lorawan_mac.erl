@@ -22,7 +22,7 @@ process_frame(MAC, RxQ, RF, PHYPayload) ->
     <<MType:3, _:5, _/binary>> = Msg,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
-            lager:error("Unknown MAC ~s", [binary_to_hex(MAC)]),
+            lager:warning("Unknown MAC ~s", [binary_to_hex(MAC)]),
             {error, {unknown_mac, MAC}};
         [G] ->
             process_frame1(G#gateway.netid, MAC, RxQ, RF, MType, Msg, MIC)
@@ -31,7 +31,7 @@ process_frame(MAC, RxQ, RF, PHYPayload) ->
 process_status(MAC, S) ->
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
-            lager:error("Unknown MAC ~s", [binary_to_hex(MAC)]),
+            lager:warning("Unknown MAC ~s", [binary_to_hex(MAC)]),
             {error, {unknown_mac, MAC}};
         [G] ->
             G2 = if
@@ -53,7 +53,7 @@ process_frame1(NetID, _MAC, RxQ, RF, 2#000, Msg, MIC) ->
 
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
-            lager:error("Unknown DevEUI ~s", [binary_to_hex(DevEUI)]),
+            lager:warning("Unknown DevEUI ~s", [binary_to_hex(DevEUI)]),
             {error, {unknown_deveui, DevEUI}};
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
@@ -162,7 +162,7 @@ txaccept(Time, RF, Rx2Rate, AppKey, AppNonce, NetID, DevAddr) ->
 check_link(DevAddr, FCnt) ->
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
-            lager:error("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
+            lager:warning("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
             {error, {unknown_devaddr, DevAddr}};
         [L] ->
             case fcnt_gap(L#link.fcntup, FCnt) of
@@ -171,7 +171,7 @@ check_link(DevAddr, FCnt) ->
                     LastFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
                     {ok, L#link{fcntup = LastFCnt}};
                 BigN ->
-                    lager:error("~w has a large FCnt gap: last ~b, current ~b", [DevAddr, L#link.fcntup, FCnt]),
+                    lager:warning("~w has a large FCnt gap: last ~b, current ~b", [DevAddr, L#link.fcntup, FCnt]),
                     {error, {fcnt_gap_too_large, BigN}}
             end
     end.
