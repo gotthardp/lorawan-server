@@ -18,7 +18,7 @@ the device joins the network:
 See the [Administration Guide](Administration.md) for more details on the
 server administration.
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-device.png)
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
 
 ## Link Configuration
 
@@ -40,4 +40,4 @@ entire request will fail. When a request fails, the requested ADR parameter(s) t
 caused the failure will be cleared (set to null) and no other parameter will become
 effective.
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-link-status.png)
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-link-status.png)

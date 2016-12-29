@@ -39,7 +39,7 @@ if you find a bug or miss a feature.
 ## Documentation
 
 The lorawan-server includes all components required to run a private LoRa network:
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/server-architecture.png)
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/server-architecture.png)
 
 ### Usage
 

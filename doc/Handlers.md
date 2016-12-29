@@ -1,5 +1,12 @@
 # Building Custom Handlers
 
+Each application handler may implement:
+  * LoRaWAN application handlers (see `lorawan_application` behaviour);
+  * HTTP server handlers for
+[static files](https://ninenines.eu/docs/en/cowboy/2.0/guide/static_files/),
+[REST](https://ninenines.eu/docs/en/cowboy/2.0/guide/rest_handlers/) or
+[Websockets](https://ninenines.eu/docs/en/cowboy/2.0/guide/ws_handlers/).
+
 To implement a new application you need to create a `lorawan_application_xxx.erl`
 module implementing the `lorawan_application` behaviour and register it in the
 [`sys.config`](lorawan_server.config):
@@ -68,3 +75,11 @@ handle_rx(DevAddr, <<"my-app">>, AppID, #rxdata{port=PortIn, data= <<"DataIn">>}
     %% ...
     {send, #txdata{port=PortOut, data= <<"DataOut">>}}.
 ```
+
+## HTTP Server
+
+lorawan-server integrates the Cowboy HTTP server. The applications may use the
+full potential of this server.
+Please refer to the [Cowboy 2.0 User Guide](https://ninenines.eu/docs/en/cowboy/2.0/guide/),
+or [Cowboy 2.0 Function Reference](https://ninenines.eu/docs/en/cowboy/2.0/manual/)
+for more details.

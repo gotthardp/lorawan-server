@@ -3,6 +3,10 @@
 You can administrate and manage the server via a set of web-pages or via a REST API.
 By default, the server listens on HTTP port 8080 and expects "admin" as both username and password.
 
+The port and default credentials (which are set when the server database is created)
+can be changed in the [`sys.config`](lorawan_server.config). The credentials can
+be then altered via the admin interface.
+
 ## REST API
 
 The following REST resources are made available:
@@ -35,7 +39,7 @@ You (at least) have to:
 
 ### Users
 
-List of identities that can manage the server.
+List of user identities that can manage the server. All have the same access rights.
 
 ### Gateways
 
@@ -44,7 +48,7 @@ For each LoRaWAN gateway you can set:
  * *NetID* of the network
  * *Location* and *Altitude* of the gateway
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-gateway.png)
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-gateway.png)
 
 ### Devices
 
@@ -59,7 +63,7 @@ Once the device joins the network, the *Link* field will contain a reference to 
 Optionally, you can also define a set of [ADR](ADR.md) parameters. Once the device
 joins the network, the server will attempt to configure the device accordingly.
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-device.png)
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
 
 ### Links
 
@@ -80,4 +84,4 @@ The *Downlinks* table lists frames created by the application, which are schedul
 transmission. Class A devices listen for downlinks only for 2 seconds after an uplink
 transmission, so it may take a while until all messages are transmitted.
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin-link-status.png)
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-link-status.png)
