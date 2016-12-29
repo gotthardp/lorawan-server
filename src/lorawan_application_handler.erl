@@ -17,12 +17,18 @@ init() ->
     do_init(Modules, []).
 
 do_init([], Acc) -> {ok, Acc};
-do_init([{App, Module}|Rest], Acc) ->
-    case apply(Module, init, [App]) of
+do_init([Application|Rest], Acc) ->
+    case invoke_init(Application) of
         ok -> do_init(Rest, Acc);
         {ok, Handlers} -> do_init(Rest, Acc++Handlers);
         Else -> Else
     end.
+
+invoke_init({AppID, {App, Module}}) ->
+    {ok, _Started} = application:ensure_all_started(App),
+    apply(Module, init, [AppID]);
+invoke_init({AppID, Module}) when is_atom(Module) ->
+    apply(Module, init, [AppID]).
 
 handle_join(DevAddr, App, AppID) ->
     % delete previously stored RX and TX frames

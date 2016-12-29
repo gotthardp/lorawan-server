@@ -18,6 +18,30 @@ module implementing the `lorawan_application` behaviour and register it in the
     ]}
 ```
 
+The custom application may be implemented as a standalone Erlang application `app_x`.
+In such case do:
+```erlang
+{lorawan_server, [
+    {plugins, [
+        {<<"my-app">>, {app_x, lorawan_application_xxx}},
+        ...
+    ]}
+```
+
+This standalone Erlang application `app_x` may be included in the lorawan-server
+release defined in the `rebar.config`:
+```erlang
+{deps, [
+    {app_x, {git, "https://github.com/your_account/app-x.git", {branch, "master"}}},
+    ...
+]}.
+{relx, [
+    {release, {'lorawan-server', "0.0.0"},
+        [lorawan_server, app_x]},
+    ...
+]}.
+```
+
 ## lorawan_application Behaviour
 
 Your module needs to export `init/1`, `handle_join/3` and `handle_rx/4` functions.
