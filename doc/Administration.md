@@ -4,7 +4,7 @@ You can administrate and manage the server via a set of web-pages or via a REST 
 By default, the server listens on HTTP port 8080 and expects "admin" as both username and password.
 
 The port and default credentials (which are set when the server database is created)
-can be changed in the [`sys.config`](lorawan_server.config). The credentials can
+can be changed in the [`sys.config`](../lorawan_server.config). The credentials can
 be then altered via the admin interface.
 
 ## REST API

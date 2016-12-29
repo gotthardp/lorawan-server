@@ -9,7 +9,7 @@ Each application handler may implement:
 
 To implement a new application you need to create a `lorawan_application_xxx.erl`
 module implementing the `lorawan_application` behaviour and register it in the
-[`sys.config`](lorawan_server.config):
+[`sys.config`](../lorawan_server.config):
 ```erlang
 {lorawan_server, [
     {plugins, [
