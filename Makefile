@@ -21,6 +21,9 @@ $(REBAR3):
 	wget $(REBAR3_URL) || curl -Lo rebar3 $(REBAR3_URL)
 	@chmod a+x rebar3
 
+upgrade:
+	@$(REBAR3) upgrade
+
 deps:
 	@$(REBAR3) get-deps
 
@@ -33,7 +36,7 @@ distclean: clean
 test:
 	@$(REBAR3) eunit
 
-release: test
+release:
 	@$(REBAR3) release
 
 dist:

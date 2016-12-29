@@ -3,11 +3,6 @@
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
-function formatDate(value, entry) {
-    var d = new Date(value);
-    return d.toLocaleDateString()+" "+d.toLocaleTimeString()
-}
-
 var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/');
@@ -96,11 +91,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('app').label('Application'),
         nga.field('appid').label('AppID'),
-        nga.field('appeui').label('AppEUI'),
-        nga.field('appkey').label('AppKey'),
         nga.field('link', 'reference')
             .targetEntity(links)
-            .targetField(nga.field('devaddr'))
+            .targetField(nga.field('devaddr')),
+        nga.field('last_join', 'datetime').label('Last Join')
     ]);
     devices.creationView().fields([
         nga.field('deveui').label('DevEUI')
@@ -120,6 +114,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('link')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
+        nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(on_off_choices)
             .defaultValue(1), // ON
@@ -141,10 +136,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('app').label('Application'),
         nga.field('appid').label('AppID'),
-        nga.field('nwkskey').label('NwkSKey'),
-        nga.field('appskey').label('AppSKey'),
         nga.field('fcntup', 'number').label('FCnt Up'),
-        nga.field('fcntdown', 'number').label('FCnt Down')
+        nga.field('fcntdown', 'number').label('FCnt Down'),
+        nga.field('last_rx', 'datetime').label('Last RX')
     ]);
     links.creationView().fields([
         nga.field('devaddr').label('DevAddr')
@@ -165,6 +159,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(0),
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0),
+        nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(on_off_choices)
             .defaultValue(1), // ON
@@ -199,8 +194,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(txframes)
             .targetReferenceField('devaddr')
             .targetFields([
-                nga.field('datetime').label('Creation Time')
-                    .map(formatDate),
+                nga.field('datetime', 'datetime').label('Creation Time'),
                 nga.field('txdata.port'),
                 nga.field('txdata.data')
             ])
@@ -222,12 +216,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     admin.dashboard(nga.dashboard()
         .addCollection(nga.collection(devices)
             .fields([
-                nga.field('deveui').label('DevEUI').isDetailLink(true)
+                nga.field('deveui').label('DevEUI').isDetailLink(true),
+                nga.field('last_join', 'datetime').label('Last Join')
             ])
         )
         .addCollection(nga.collection(links)
             .fields([
-                nga.field('devaddr').label('DevAddr').isDetailLink(true)
+                nga.field('devaddr').label('DevAddr').isDetailLink(true),
+                nga.field('last_rx', 'datetime').label('Last RX')
             ])
         )
     );

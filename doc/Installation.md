@@ -87,10 +87,21 @@ You will need the following prerequisites:
    * On Linux, try typing `yum install npm` or `apt-get install npm`.
    * On Windows, install the [Node.js](https://nodejs.org/en/).
 
-Then build and release the lorawan-server by:
+Get the latest sources by:
 ```bash
 git clone https://github.com/gotthardp/lorawan-server.git
 cd lorawan-server
+```
+
+If you already obtained the sources you can upgrade to the latest version by:
+```bash
+cd lorawan-server
+git pull
+make upgrade
+```
+
+Then build and release the lorawan-server by:
+```bash
 make release
 ```
 

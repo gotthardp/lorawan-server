@@ -75,7 +75,7 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
             case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
                     {L2, FOptsOut} = handle_fopts(store_adr(L, ADR), FOpts),
-                    mnesia:dirty_write(links, L2),
+                    mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
                     store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
                     handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, ADRACKReq, ACK, FOptsOut, FPort, reverse(Data));
@@ -121,11 +121,11 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewAddr = if
             D#device.link == undefined;
             byte_size(D#device.link) < 4 ->
-                Created = create_devaddr(NetID),
-                ok = mnesia:write(devices, D#device{link=Created}, write),
-                Created;
-            true -> D#device.link
+                create_devaddr(NetID);
+            true ->
+                D#device.link
         end,
+        ok = mnesia:write(devices, D#device{link=NewAddr, last_join=calendar:universal_time()}, write),
 
         lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
         ok = mnesia:write(links, #link{devaddr=NewAddr, app=D#device.app, appid=D#device.appid, nwkskey=NwkSKey, appskey=AppSKey,

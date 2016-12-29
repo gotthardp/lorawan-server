@@ -82,6 +82,7 @@ parse_admin(List) ->
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
             ({Key, Value}) when Key == adr_use; Key == adr_set -> {Key, parse_adr(Value)};
             ({Key, Value}) when Key == txdata -> {Key, ?to_record(txdata, parse_admin(Value))};
+            ({Key, Value}) when Key == last_join; Key == last_rx -> {Key, iso8601:parse(Value)};
             (Else) -> Else
         end,
         List).
@@ -96,9 +97,10 @@ build_admin(List) ->
                                 Key == data;
                                 Key == frid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
             ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
-            ({Key, Value}, A) when Key == datetime -> [{Key, build_datetime(Value)} | A];
             ({Key, Value}, A) when Key == adr_use; Key == adr_set -> [{Key, build_adr(Value)} | A];
             ({Key, Value}, A) when Key == txdata -> [{Key, build_admin(?to_proplist(txdata, Value))} | A];
+            ({Key, Value}, A) when Key == datetime;
+                                Key == last_join; Key == last_rx -> [{Key, iso8601:format(Value)} | A];
             (Else, A) -> [Else | A]
         end,
         [], List).
@@ -108,11 +110,6 @@ parse_latlon(List) ->
 
 build_latlon({Lat, Lon}) ->
     [{lat, Lat}, {lon, Lon}].
-
-build_datetime(DateTime) ->
-    {{Year, Month, Day}, {Hour, Minute, Second}} = calendar:gregorian_seconds_to_datetime(DateTime),
-    list_to_binary(lists:flatten(io_lib:fwrite("~b-~2..0b-~2..0bT~2..0b:~2..0b:~2..0b",
-        [Year, Month, Day, Hour, Minute, Second]))).
 
 parse_adr(List) ->
     {proplists:get_value(power, List), proplists:get_value(datr, List),

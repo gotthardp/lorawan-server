@@ -50,10 +50,9 @@ invoke_handler(Fun, App, Params) ->
     end.
 
 store_frame(DevAddr, TxData) ->
-    Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
     mnesia:transaction(fun() ->
         mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
-            datetime=Now, devaddr=DevAddr, txdata=TxData}, write)
+            datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}, write)
     end).
 
 send_stored_frames(DevAddr, DefPort) ->
