@@ -99,8 +99,7 @@
 
     function showScreen(txt) {
         var m = new Date();
-        var dateString = m.getUTCFullYear() +"/" + (m.getUTCMonth()+1) +"/"+ m.getUTCDate() + " "
-            + m.getUTCHours() + ":" + m.getUTCMinutes() + ":" + m.getUTCSeconds();
+        var dateString = m.toLocaleDateString()+" "+m.toLocaleTimeString();
 
         $('#output').prepend(dateString + ' ' + txt + '<br>');
     };

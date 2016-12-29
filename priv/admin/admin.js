@@ -3,6 +3,11 @@
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
+function formatDate(value, entry) {
+    var d = new Date(value);
+    return d.toLocaleDateString()+" "+d.toLocaleTimeString()
+}
+
 var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/');
@@ -69,8 +74,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.creationView().fields([
         nga.field('mac').label('MAC')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
-            .map(function strip(value, entry) {
-                return value.replace('/-:/g', '')
+            .transform(function strip(value, entry) {
+                return value.replace(/[-:]/g, '')
             })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
         nga.field('netid').label('NetID')
@@ -194,7 +199,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(txframes)
             .targetReferenceField('devaddr')
             .targetFields([
-                nga.field('datetime').label('Creation Time'),
+                nga.field('datetime').label('Creation Time')
+                    .map(formatDate),
                 nga.field('txdata.port'),
                 nga.field('txdata.data')
             ])
