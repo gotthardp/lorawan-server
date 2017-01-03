@@ -58,7 +58,13 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
 
 % PULL DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket, pulladdr=Dict}=State) ->
-    Dict2 = dict:store(MAC, {Host, Port, Version}, Dict),
+    Dict2 = case dict:find(MAC, Dict) of
+        {ok, {Host, Port, Version}} ->
+            Dict;
+        _Else ->
+            lager:info("Gateway ~w connected to ~w:~w", [MAC, Host, Port]),
+            dict:store(MAC, {Host, Port, Version}, Dict)
+    end,
     % PULL ACK
     gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
     {noreply, State#state{pulladdr=Dict2}};
