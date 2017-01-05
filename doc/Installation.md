@@ -10,13 +10,15 @@ You will need the Erlang/OTP 18 or later.
 
 Then download the latest binary release
 [lorawan-server-0.2.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
-and unpack it by:
+and (on Linux) unpack it by:
 ```bash
 mkdir lorawan-server
 mv lorawan-server-0.2.0.tar.gz lorawan-server/
 cd lorawan-server
 tar -zxvf lorawan-server-0.2.0.tar.gz
 ```
+
+On Windows you can use the [7-Zip](http://www.7-zip.org).
 
 ## Server Configuration
 
