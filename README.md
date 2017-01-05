@@ -44,7 +44,8 @@ The lorawan-server includes all components required to run a private LoRa networ
 ### Usage
 
 The [Installation Instructions](doc/Installation.md) describe how to build,
-install and configure the server.
+install and configure the server. You can either download a binary release or
+build it from source codes.
 
 Run the lorawan-server release by:
 ```bash
@@ -55,6 +56,11 @@ bin/lorawan-server
 You can administrate and manage the server via a set of web-pages or via a REST API
 as described in the [Administration Guide](doc/Administration.md) and in the
 [Adaptive Data Rate (ADR) Guide](doc/ADR.md).
+
+After the installation you have to:
+ * Add LoRaWAN gateways you want to use.
+ * Configure each device you want to use, either as a personalized device or
+   as an OTAA device.
 
 Use the `dbexport` script to backup your list of users, gateways, devices and links.
 This will create several `db*.json` files. Use the `dbimport` script to write these
@@ -88,7 +94,7 @@ To implement a new application you need to create a new module implementing the
 
 The MIT License (MIT)
 
-Copyright (c) 2016 Petr Gotthard
+Copyright (c) 2016-2017 Petr Gotthard
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
