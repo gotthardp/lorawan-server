@@ -104,10 +104,14 @@ get_rxframes(DevAddr) ->
     end.
 
 trim_rxframes(DevAddr) ->
-    {ExpRec, _} = get_rxframes(DevAddr),
-    lager:debug("Expired ~w rxframes from ~w", [length(ExpRec), DevAddr]),
-    lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
-        ExpRec).
+    case get_rxframes(DevAddr) of
+        {[], _} ->
+            ok;
+        {ExpRec, _} ->
+            lager:debug("Expired ~w rxframes from ~w", [length(ExpRec), DevAddr]),
+            lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
+                ExpRec)
+    end.
 
 purge_rxframes(DevAddr) ->
     [mnesia:dirty_delete_object(rxframes, Rec) ||
