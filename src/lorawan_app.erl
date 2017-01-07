@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -19,18 +19,12 @@ start(_Type, _Args) ->
     {ok, Handlers} = lorawan_application_handler:init(),
     Dispatch = cowboy_router:compile([
         {'_', [
-            {"/applications", lorawan_admin_applications, []},
-            {"/applications/:name", lorawan_admin_application, []},
-            {"/users", lorawan_admin_users, []},
-            {"/users/:name", lorawan_admin_user, []},
-            {"/gateways", lorawan_admin_gateways, []},
-            {"/gateways/:mac", lorawan_admin_gateway, []},
-            {"/devices", lorawan_admin_devices, []},
-            {"/devices/:deveui", lorawan_admin_device, []},
-            {"/links", lorawan_admin_links, []},
-            {"/links/:devaddr", lorawan_admin_link, []},
-            {"/txframes", lorawan_admin_txframes, []},
-            {"/txframes/:frid", lorawan_admin_txframe, []},
+            {"/applications/[:name]", lorawan_admin_applications, []},
+            {"/users/[:name]", lorawan_admin_users, []},
+            {"/gateways/[:mac]", lorawan_admin_gateways, []},
+            {"/devices/[:deveui]", lorawan_admin_devices, []},
+            {"/links/[:devaddr]", lorawan_admin_links, []},
+            {"/txframes/[:frid]", lorawan_admin_txframes, []},
             {"/rx/:devaddr", lorawan_admin_rx, []},
             {"/rxq/:devaddr", lorawan_admin_rxq, []},
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},

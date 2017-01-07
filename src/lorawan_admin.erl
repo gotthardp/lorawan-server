@@ -1,17 +1,12 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 -module(lorawan_admin).
 
 -export([handle_authorization/2, get_filters/1, paginate/3]).
--export([parse_admin/1]).
--export([parse_user/1, build_user/1]).
--export([parse_gateway/1, build_gateway/1]).
--export([parse_device/1, build_device/1]).
--export([parse_link/1, build_link/1]).
--export([build_txframe/1]).
+-export([parse_admin/1, build_admin/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -48,29 +43,6 @@ paginate(Req, State, List) ->
             Req2 = cowboy_req:set_resp_header(<<"X-Total-Count">>, integer_to_binary(length(List)), Req),
             {jsx:encode(lists:sublist(List, 1+(Page-1)*PerPage, PerPage)), Req2, State}
     end.
-
-parse_user(List) ->
-    ?to_record(user, parse_admin(List)).
-build_user(Rec) ->
-    build_admin(?to_proplist(user, Rec)).
-
-parse_gateway(List) ->
-    ?to_record(gateway, parse_admin(List)).
-build_gateway(Rec) ->
-    build_admin(?to_proplist(gateway, Rec)).
-
-parse_device(List) ->
-    ?to_record(device, parse_admin(List)).
-build_device(Rec) ->
-    build_admin(?to_proplist(device, Rec)).
-
-parse_link(List) ->
-    ?to_record(link, parse_admin(List)).
-build_link(Rec) ->
-    build_admin(?to_proplist(link, Rec)).
-
-build_txframe(Rec) ->
-    build_admin(?to_proplist(txframe, Rec)).
 
 parse_admin(List) ->
     lists:map(
