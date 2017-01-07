@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -8,6 +8,8 @@
 -record(txq, {tmst, rfch, powe}).
 -record(rflora, {freq, datr, codr}).
 -record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
+
+-record(ignored_link, {devaddr, mask}).
 
 -define(to_record(Record, List, Default),
     list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).

@@ -48,7 +48,7 @@ parse_admin(List) ->
     lists:map(
         fun ({Key, null}) -> {Key, undefined};
             ({Key, Value}) when Key == netid -> {Key, lorawan_mac:hex_to_binary(Value)};
-            ({Key, Value}) when Key == mac; Key == netid;
+            ({Key, Value}) when Key == mac; Key == netid; Key == mask;
                                 Key == deveui; Key == appeui; Key == appkey; Key == link;
                                 Key == devaddr; Key == nwkskey; Key == appskey -> {Key, lorawan_mac:hex_to_binary(Value)};
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
@@ -63,7 +63,7 @@ build_admin(List) ->
     lists:foldl(
         fun ({Key, undefined}, A) -> [{Key, null} | A];
             ({Key, Value}, A) when Key == netid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
-            ({Key, Value}, A) when Key == mac; Key == netid;
+            ({Key, Value}, A) when Key == mac; Key == netid; Key == mask;
                                 Key == deveui; Key == appeui; Key == appkey; Key == link;
                                 Key == devaddr; Key == nwkskey; Key == appskey;
                                 Key == data;

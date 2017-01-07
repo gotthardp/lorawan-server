@@ -9,6 +9,9 @@
 -export([start/0]).
 -export([start/2, stop/1]).
 
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan.hrl").
+
 start() ->
     {ok, _Started} = application:ensure_all_started(lorawan_server).
 
@@ -20,11 +23,18 @@ start(_Type, _Args) ->
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/applications/[:name]", lorawan_admin_applications, []},
-            {"/users/[:name]", lorawan_admin_users, []},
-            {"/gateways/[:mac]", lorawan_admin_gateways, []},
-            {"/devices/[:deveui]", lorawan_admin_devices, []},
-            {"/links/[:devaddr]", lorawan_admin_links, []},
-            {"/txframes/[:frid]", lorawan_admin_txframes, []},
+            {"/users/[:name]", lorawan_admin_database,
+                [users, user, record_info(fields, user), text]},
+            {"/gateways/[:mac]", lorawan_admin_database,
+                [gateways, gateway, record_info(fields, gateway), binary]},
+            {"/devices/[:deveui]", lorawan_admin_database,
+                [devices, device, record_info(fields, device), binary]},
+            {"/links/[:devaddr]", lorawan_admin_database,
+                [links, link, record_info(fields, link), binary]},
+            {"/ignored_links/[:devaddr]", lorawan_admin_database,
+                [ignored_links, ignored_link, record_info(fields, ignored_link), binary]},
+            {"/txframes/[:frid]", lorawan_admin_database,
+                [txframes, txframe, record_info(fields, txframe), binary]},
             {"/rx/:devaddr", lorawan_admin_rx, []},
             {"/rxq/:devaddr", lorawan_admin_rxq, []},
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},

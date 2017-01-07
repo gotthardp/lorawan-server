@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -37,6 +37,10 @@ ensure_tables() ->
         {links, [
             {record_name, link},
             {attributes, record_info(fields, link)},
+            {disc_copies, [node()]}]},
+        {ignored_links, [
+            {record_name, ignored_link},
+            {attributes, record_info(fields, ignored_link)},
             {disc_copies, [node()]}]},
         {pending, [
             {record_name, pending},

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+ * Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
@@ -16,6 +16,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var devices = nga.entity('devices')
         .identifier(nga.field('deveui'));
     var links = nga.entity('links')
+        .identifier(nga.field('devaddr'));
+    var ignored_links = nga.entity('ignored_links')
         .identifier(nga.field('devaddr'));
     var txframes = nga.entity('txframes')
         .identifier(nga.field('frid'));
@@ -204,12 +206,31 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     admin.addEntity(links);
     admin.addEntity(txframes);
 
+    // ---- ignored links
+    ignored_links.listView().title('Ignored Links');
+    ignored_links.listView().fields([
+        nga.field('devaddr').label('DevAddr').isDetailLink(true),
+        nga.field('mask')
+    ]);
+    ignored_links.creationView().fields([
+        nga.field('devaddr').label('DevAddr')
+            .attributes({ placeholder: 'e.g. ABC12345' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
+        nga.field('mask')
+            .attributes({ placeholder: 'e.g. FFFFFFFF' })
+            .validation({ pattern: '[A-Fa-f0-9]{8}' })
+    ]);
+    ignored_links.editionView().fields(ignored_links.creationView().fields());
+    // add to the admin application
+    admin.addEntity(ignored_links);
+
     // ---- menu
     admin.menu(nga.menu()
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
         .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(links).icon('<span class="fa fa-rss fa-fw"></span>'))
+        .addChild(nga.menu(ignored_links).icon('<span class="fa fa-ban fa-fw"></span>'))
     );
 
     // ---- dashboard

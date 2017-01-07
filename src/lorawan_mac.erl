@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -82,6 +82,8 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
                 _MIC2 ->
                     {error, bad_mic}
             end;
+        ignore ->
+            ok;
         {error, Error} ->
             {error, Error}
     end.
@@ -160,6 +162,26 @@ txaccept(Time, RF, Rx2Rate, AppKey, AppNonce, NetID, DevAddr) ->
 
 
 check_link(DevAddr, FCnt) ->
+    case is_ignored(DevAddr, mnesia:dirty_all_keys(ignored_links)) of
+        true ->
+            ignore;
+        false ->
+            check_link_fcnt(DevAddr, FCnt)
+    end.
+
+is_ignored(_DevAddr, []) ->
+    false;
+is_ignored(DevAddr, [Key|Rest]) ->
+    [#ignored_link{devaddr=MatchAddr, mask=MatchMask}] = mnesia:dirty_read(ignored_links, Key),
+    case match(DevAddr, MatchAddr, MatchMask) of
+        true -> true;
+        false -> is_ignored(DevAddr, Rest)
+    end.
+
+match(<<DevAddr:32>>, <<MatchAddr:32>>, <<MatchMask:32>>) ->
+    (DevAddr band MatchMask) == MatchAddr.
+
+check_link_fcnt(DevAddr, FCnt) ->
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
             lager:warning("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
