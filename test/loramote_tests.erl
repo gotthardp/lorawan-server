@@ -25,7 +25,7 @@ loramote_test(_State) ->
     ?_assertEqual({error, timeout}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, <<"bad_json">>)),
     % random messages from LoRa Mote
     ?_assertEqual({ok,{<<"YEQzIhEAAQAChkQA7Q4=">>}}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, test_forwarder:rxpk("QEQzIhEABAACP24OaiNddeeybMAun0EwVHf4eaY="))),
-    ?_assertEqual({ok,{<<"YEQzIhEAAgACfIYtaVc=">>}}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, test_forwarder:rxpk("QEQzIhEA0AACHaxbOsSlM9izylIPYNdD3QuCrXI=")))
+    ?_assertEqual({ok,{<<"YEQzIhEBAgAGAnyjfkSq">>}}, test_forwarder:push_and_pull(<<0,0,0,0,0,0,0,0>>, test_forwarder:rxpk("QEQzIhEA0AACHaxbOsSlM9izylIPYNdD3QuCrXI=")))
     ].
 
 % end of file

@@ -66,15 +66,14 @@ process_frame1(NetID, _MAC, RxQ, RF, 2#000, Msg, MIC) ->
 process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
-        FCnt:16/little-unsigned-integer, FOpts0:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
+        FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
     DevAddr = reverse(DevAddr0),
-    FOpts = parse_fopts(FOpts0),
 
     case check_link(DevAddr, FCnt) of
         {ok, L} ->
             case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
-                    {L2, FOptsOut} = handle_fopts(store_adr(L, ADR), FOpts),
+                    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(store_adr(L, ADR), FOpts),
                     mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
                     store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
@@ -87,29 +86,6 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
         {error, Error} ->
             {error, Error}
     end.
-
-parse_fopts(FOpts) ->
-    parse_fopt(FOpts, []).
-
-parse_fopt(<<16#02, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [link_check_req | Acc]);
-parse_fopt(<<16#03, _RFU:5, PowerACK:1, DataRateACK:1, ChannelMaskACK:1, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | Acc]);
-parse_fopt(<<16#04, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [duty_cycle_ans | Acc]);
-parse_fopt(<<16#05, _RFU:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{rx_param_setup_ans, RX1DROffsetACK, RX2DataRateACK, ChannelACK} | Acc]);
-parse_fopt(<<16#06, Battery:8, _RFU:2, Margin:6, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{dev_status_ans, Battery, Margin} | Acc]);
-parse_fopt(<<16#07, _RFU:6, DataRateRangeOK:1, ChannelFreqOK:1, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | Acc]);
-parse_fopt(<<16#08, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [rx_timing_setup_ans | Acc]);
-parse_fopt(<<>>, Acc) ->
-    Acc;
-parse_fopt(Unknown, Acc) ->
-    lager:warning("Unknown command ~w", [Unknown]),
-    Acc.
 
 handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
     AppNonce = crypto:strong_rand_bytes(3),
@@ -207,43 +183,6 @@ fcnt_gap(A, B) ->
 
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
-handle_fopts(Link, FOpts) ->
-    % process incoming commands
-    Link2 = lists:foldl(fun(FOpt, L) -> handle_fopt(FOpt, L) end, Link, FOpts),
-    % check for new commands
-    send_adr(Link2, []).
-
-send_adr(Link, FOptsOut) ->
-    IsIncomplete = case Link#link.adr_set of
-        undefined -> true;
-        Tuple -> lists:member(undefined, tuple_to_list(Tuple))
-    end,
-    if
-        Link#link.adr_flag_use == 1, Link#link.adr_flag_set == 1,
-        not IsIncomplete, Link#link.adr_use /= Link#link.adr_set ->
-            lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
-            {TXPower, DataRate, Chans} = Link#link.adr_set,
-            {Link, [{link_adr_req, DataRate, TXPower, Chans, 0, 0} | FOptsOut]};
-        true ->
-            {Link, FOptsOut}
-    end.
-
-handle_fopt({link_adr_ans,1,1,1}, Link) ->
-    lager:debug("LinkADRReq succeeded"),
-    Link#link{adr_use=Link#link.adr_set};
-handle_fopt({link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK}, Link) ->
-    lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
-    {TXPower, DataRate, Chans} = Link#link.adr_set,
-    % clear the settings that failed
-    Link#link{adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
-        clear_when_zero(ChannelMaskACK, Chans)}};
-handle_fopt(Unknown, Link) ->
-    lager:debug("Unknown FOpt ~w", [Unknown]),
-    Link.
-
-clear_when_zero(0, _Value) -> undefined;
-clear_when_zero(_Else, Value) -> Value.
-
 store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, _Data) ->
     % store #rxframe{frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}
     mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
@@ -274,7 +213,7 @@ handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port,
             % ADR ACK was requested
             lager:debug("ADRACKReq confirmed"),
             true;
-        length(FOptsOut) > 0 ->
+        byte_size(FOptsOut) > 0 ->
             % have MAC commands to send
             true;
         true ->
@@ -313,16 +252,15 @@ inc_fcntdown(DevAddr) ->
         NewD
     end).
 
-txpk(Time, RF, DevAddr, ACK, FOpts0, #txdata{confirmed=false} = TxData) ->
-    {send, Time, RF, encode_txpk(2#011, DevAddr, ACK, FOpts0, TxData)};
-txpk(Time, RF, DevAddr, ACK, FOpts0, #txdata{confirmed=true} = TxData) ->
-    PHYPayload = encode_txpk(2#101, DevAddr, ACK, FOpts0, TxData),
+txpk(Time, RF, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
+    {send, Time, RF, encode_txpk(2#011, DevAddr, ACK, FOpts, TxData)};
+txpk(Time, RF, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
+    PHYPayload = encode_txpk(2#101, DevAddr, ACK, FOpts, TxData),
     mnesia:dirty_write(pending, #pending{devaddr=DevAddr, phypayload=PHYPayload}),
     {send, Time, RF, PHYPayload}.
 
-encode_txpk(MType, DevAddr, ACK, FOpts0, #txdata{port=FPort, data=Data, pending=FPending}) ->
+encode_txpk(MType, DevAddr, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
     {atomic, L} = inc_fcntdown(DevAddr),
-    FOpts = encode_fopts(FOpts0),
     FHDR = <<(reverse(DevAddr)):4/binary, (get_adr_flag(L)):1, 0:1, ACK:1, (bool_to_bit(FPending)):1, (byte_size(FOpts)):4,
         (L#link.fcntdown):16/little-unsigned-integer, FOpts/binary>>,
     MACPayload = case FPort of
@@ -341,26 +279,6 @@ bool_to_bit(false) -> 0.
 
 get_adr_flag(#link{adr_flag_set=undefined}) -> 0;
 get_adr_flag(#link{adr_flag_set=ADR}) -> ADR.
-
-encode_fopts(FOpts) ->
-    encode_fopt(FOpts, <<>>).
-
-encode_fopt([{link_check_ans, Margin, GwCnt} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#02, Margin, GwCnt, Acc/binary>>);
-encode_fopt([{link_adr_req, DataRate, TXPower, ChMask, ChMaskCntl, NbRep} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#03, DataRate:4, TXPower:4, ChMask:16/little-unsigned-integer, 0:1, ChMaskCntl:3, NbRep:4, Acc/binary>>);
-encode_fopt([{duty_cycle_req, MaxDCycle} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#04, MaxDCycle, Acc/binary>>);
-encode_fopt([{rx_param_setup_req, RX1DROffset, RX2DataRate, Frequency} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#05, 0:1, RX1DROffset:3, RX2DataRate:4, Frequency:24/little-unsigned-integer, Acc/binary>>);
-encode_fopt([dev_status_req | Rest], Acc) ->
-    encode_fopt(Rest, <<16#06, Acc/binary>>);
-encode_fopt([{new_channel_req, ChIndex, Freq, MaxDR, MinDR} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#07, ChIndex, Freq:24/little-unsigned-integer, MaxDR:4, MinDR:4, Acc/binary>>);
-encode_fopt([{rx_timing_setup_req, Delay} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#08, 0:4, Delay:4, Acc/binary>>);
-encode_fopt([], Acc) ->
-    Acc.
 
 
 cipher(Bin, Key, Dir, DevAddr, FCnt) ->

@@ -54,7 +54,9 @@ parse_admin(List) ->
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
             ({Key, Value}) when Key == adr_use; Key == adr_set -> {Key, parse_adr(Value)};
             ({Key, Value}) when Key == txdata -> {Key, ?to_record(txdata, parse_admin(Value))};
-            ({Key, Value}) when Key == last_join; Key == last_rx -> {Key, iso8601:parse(Value)};
+            ({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
+                                Key == datetime -> {Key, iso8601:parse(Value)};
+            ({Key, Value}) when Key == devstat -> {Key, parse_devstat(Value)};
             (Else) -> Else
         end,
         List).
@@ -71,8 +73,9 @@ build_admin(List) ->
             ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
             ({Key, Value}, A) when Key == adr_use; Key == adr_set -> [{Key, build_adr(Value)} | A];
             ({Key, Value}, A) when Key == txdata -> [{Key, build_admin(?to_proplist(txdata, Value))} | A];
-            ({Key, Value}, A) when Key == datetime;
-                                Key == last_join; Key == last_rx -> [{Key, iso8601:format(Value)} | A];
+            ({Key, Value}, A) when Key == last_join; Key == last_rx; Key == devstat_time;
+                                Key == datetime -> [{Key, iso8601:format(Value)} | A];
+            ({Key, Value}, A) when Key == devstat -> [{Key, build_devstat(Value)} | A];
             (Else, A) -> [Else | A]
         end,
         [], List).
@@ -96,5 +99,11 @@ build_adr({TXPower, DataRate, Chans}) ->
             undefined -> null;
             Val when is_integer(Val) -> integer_to_binary(Val, 2)
         end}].
+
+parse_devstat(List) ->
+    {proplists:get_value(battery, List), proplists:get_value(margin, List)}.
+
+build_devstat({Battery, Margin}) ->
+    [{battery, Battery}, {margin, Margin}].
 
 % end of file

@@ -93,10 +93,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('app').label('Application'),
         nga.field('appid').label('AppID'),
+        nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('link', 'reference')
             .targetEntity(links)
-            .targetField(nga.field('devaddr')),
-        nga.field('last_join', 'datetime').label('Last Join')
+            .targetField(nga.field('devaddr'))
     ]);
     devices.creationView().fields([
         nga.field('deveui').label('DevEUI')
@@ -113,10 +113,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appkey').label('AppKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('link')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
-        nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(on_off_choices)
             .defaultValue(1), // ON
@@ -129,7 +129,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('adr_set.chans', 'template').label('Set channels')
             .template('<channels field="field" count="16" value="value"></channels>')
     ]);
+    devices.creationView().template(createWithTabsTemplate([
+        {name:"General", min:0, max:7},
+        {name:"ADR", min:7, max:11}
+    ]));
     devices.editionView().fields(devices.creationView().fields());
+    devices.editionView().template(editWithTabsTemplate([
+        {name:"General", min:0, max:7},
+        {name:"ADR", min:7, max:11}
+    ]));
     // add to the admin application
     admin.addEntity(devices);
 
@@ -140,9 +148,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appid').label('AppID'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
+        nga.field('devstat.battery', 'number').label('Battery'),
         nga.field('last_rx', 'datetime').label('Last RX')
     ]);
-    links.creationView().fields([
+    var linkFieldsGeneral = [
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
@@ -161,7 +170,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(0),
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0),
-        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('last_rx', 'datetime').label('Last RX')
+    ];
+    var linkFieldsADR = [
         nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(on_off_choices)
             .defaultValue(1), // ON
@@ -173,9 +184,23 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(0),
         nga.field('adr_set.chans', 'template').label('Set channels')
             .template('<channels field="field" count="16" value="value"></channels>')
-    ]);
-    links.editionView().fields(
-        links.creationView().fields().concat([
+    ];
+    links.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
+    links.creationView().template(createWithTabsTemplate([
+        {name:"General", min:0, max:8},
+        {name:"ADR", min:8, max:12}
+    ]));
+    links.editionView().fields(linkFieldsGeneral.concat([
+        nga.field('downlinks', 'referenced_list')
+            .targetEntity(txframes)
+            .targetReferenceField('devaddr')
+            .targetFields([
+                nga.field('datetime', 'datetime').label('Creation Time'),
+                nga.field('txdata.port'),
+                nga.field('txdata.data')
+            ])
+            .listActions(['delete'])
+    ]).concat(linkFieldsADR).concat([
         nga.field('adr_flag_use', 'choice').label('Used ADR')
             .choices(on_off_choices)
             .editable(false),
@@ -191,16 +216,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr', 'template').label('RX')
             .template('<rgraph value="value"></rgraph>'),
         nga.field('devaddr', 'template').label('RX Quality')
-            .template('<qgraph value="value"></qgraph>'),
-        nga.field('downlinks', 'referenced_list')
-            .targetEntity(txframes)
-            .targetReferenceField('devaddr')
-            .targetFields([
-                nga.field('datetime', 'datetime').label('Creation Time'),
-                nga.field('txdata.port'),
-                nga.field('txdata.data')
-            ])
-            .listActions(['delete'])
+            .template('<qgraph value="value"></qgraph>')
+    ]).concat([
+        nga.field('devstat.battery', 'number').label('Battery'),
+        nga.field('devstat.margin', 'number').label('Margin'),
+        nga.field('devstat_time', 'datetime').label('Status Time'),
+        nga.field('devstat_fcnt', 'number').label('Status FCnt')
+    ]));
+    links.editionView().template(editWithTabsTemplate([
+        {name:"General", min:0, max:9},
+        {name:"ADR", min:9, max:19},
+        {name:"Status", min:19, max:23}
     ]));
     // add to the admin application
     admin.addEntity(links);
@@ -244,6 +270,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(links)
             .fields([
                 nga.field('devaddr').label('DevAddr').isDetailLink(true),
+                nga.field('devstat.battery', 'number').label('Battery'),
                 nga.field('last_rx', 'datetime').label('Last RX')
             ])
         )
@@ -252,6 +279,86 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // attach the admin application to the DOM and execute it
     nga.configure(admin);
 }]);
+
+function createWithTabsTemplate(list) {
+    var R = `
+<div class="row">
+    <div class="col-lg-12">
+        <div class="tab-header">
+            <ma-view-actions override="::formController.actions" entry="entry" entity="::formController.entity">
+                <ma-list-button ng-if="::entity.listView().enabled" entity="::entity"></ma-list-button>
+            </ma-view-actions>
+            <h1 compile="::formController.title">
+                {{ 'CREATE_NEW' | translate }} {{ ::formController.view.entity.label() | humanize:true | singularize | translate }}
+            </h1>
+            <p class="lead" ng-if="::formController.description" compile="::formController.description">{{ ::formController.description }}</p>
+        </div>
+    </div>
+</div>
+<div class="row" id="create-view" ng-class="::'ng-admin-entity-' + formController.entity.name()">
+    <form class="col-lg-12 form-horizontal" name="formController.form" ng-submit="formController.submitCreation($event)">
+        <uib-tabset active="active">
+    `;
+    for(var i = 0; i < list.length; ++i)
+    {
+        R += '<uib-tab index="' +i+ '" heading="' +list[i].name+ '">'
+            + '<div ng-repeat="field in ::formController.fields.slice(' +list[i].min+ ',' +list[i].max+ ' ) track by $index" compile="::field.getTemplateValueWithLabel(entry)">'
+            + '<ma-field field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>'
+            + '</div>'
+            + '</uib-tab>';
+    }
+    R += `
+        </uib-tabset>
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+                <ma-submit-button label="SUBMIT"></ma-submit-button>
+            </div>
+        </div>
+    </form>
+</div>
+    `;
+    return R;
+}
+
+function editWithTabsTemplate(list) {
+    var R = `
+<div class="row">
+    <div class="col-lg-12">
+        <div class="tab-header">
+            <ma-view-actions override="::formController.actions" entry="entry" entity="::formController.entity">
+                <ma-list-button ng-if="::entity.listView().enabled" entity="::entity"></ma-list-button>
+                <ma-delete-button ng-if="::entity.deletionView().enabled" entry="entry" entity="::entity"></ma-delete-button>
+            </ma-view-actions>
+            <h1 compile="::formController.title">
+                {{ 'EDIT' | translate }} {{ ::formController.entity.label() | humanize:true | singularize | translate }} #{{ ::entry.identifierValue }}
+            </h1>
+        </div>
+    </div>
+</div>
+<div class="row" id="edit-view" ng-class="::'ng-admin-entity-' + formController.entity.name()">
+    <form class="col-lg-12 form-horizontal" name="formController.form" ng-submit="formController.submitEdition($event)">
+        <uib-tabset active="active">
+    `;
+    for(var i = 0; i < list.length; ++i)
+    {
+        R += '<uib-tab index="' +i+ '" heading="' +list[i].name+ '">'
+            + '<div ng-repeat="field in ::formController.fields.slice(' +list[i].min+ ',' +list[i].max+ ' ) track by $index" compile="::field.getTemplateValueWithLabel(entry)">'
+            + '<ma-field field="::field" value="entry.values[field.name()]" entry="entry" entity="::entity" form="formController.form" datastore="::formController.dataStore"></ma-field>'
+            + '</div>'
+            + '</uib-tab>';
+    }
+    R += `
+        </uib-tabset>
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+                <ma-submit-button label="SAVE_CHANGES"></ma-submit-button>
+            </div>
+        </div>
+    </form>
+</div>
+    `;
+    return R;
+}
 
 myApp.directive('channels', [function () {
 return {

@@ -11,7 +11,9 @@ add_device(MAC) ->
     post_json("gateways", [{mac, MAC}, {netid, <<"000000">>}, {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
 add_link(DevAddr, NwkSKey, AppSKey) ->
-    post_json("links", [{devaddr, DevAddr}, {app, <<"semtech-mote">>}, {nwkskey, NwkSKey}, {appskey, AppSKey}, {fcntup, 0}, {fcntdown, 0}]).
+    % set devstat_fcnt so we can test MAC
+    post_json("links", [{devaddr, DevAddr}, {app, <<"semtech-mote">>}, {nwkskey, NwkSKey}, {appskey, AppSKey},
+        {fcntup, 0}, {fcntdown, 0}, {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).
 
 post_json(Uri, Body) ->
     {ok, {{_Version, 204, _ReasonPhrase}, _Headers, _Body}} =

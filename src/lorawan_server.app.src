@@ -15,6 +15,8 @@
         % default RX2 frequency, data rate and coding rate
         {rx2_rf, {869.525, 3, <<"4/5">>}},
         % {rx2_rf, {434.665, 3, <<"4/5">>}},
+        % {sec, fcnt} after which the device status should be request
+        {devstat_gap, {86400, 100}},
         {plugins, [
             {<<"semtech-mote">>, lorawan_application_semtech_mote},
             {<<"microchip-mote">>, lorawan_application_microchip_mote},
