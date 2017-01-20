@@ -45,8 +45,19 @@ invoke_handler(Fun, App, Params) ->
     case proplists:get_value(App, Modules) of
         undefined ->
             {error, {unknown_app, App}};
+        {_, Module} ->
+            invoke_handler2(Module, Fun, Params);
         Module ->
-            apply(Module, Fun, Params)
+            invoke_handler2(Module, Fun, Params)
+    end.
+
+invoke_handler2(Module, Fun, Params) ->
+    case erlang:function_exported(Module, Fun, length(Params)) of
+        true ->
+            apply(Module, Fun, Params);
+        false ->
+            lager:warning("function ~w:~w/~w not exported", [Module, Fun, length(Params)]),
+            ok
     end.
 
 store_frame(DevAddr, TxData) ->
