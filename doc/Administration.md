@@ -18,10 +18,10 @@ The following REST resources are made available:
   /users/*ABC*    | GET, PUT, DELETE | User *ABC*
   /gateways       | GET, POST        | LoRaWAN gateways
   /gateways/*123* | GET, PUT, DELETE | Gateway with MAC=*123*
-  /devices        | GET, POST        | Devices registered for over-the-air activation
+  /devices        | GET, POST        | Devices registered for over-the-air activation (OTAA)
   /devices/*123*  | GET, PUT, DELETE | Device with DevEUI=*123*
-  /links          | GET, POST        | Activated devices
-  /links/*123*    | GET, PUT, DELETE | Activated device with DevAddr=*123*
+  /links          | GET, POST        | Active devices, both ABP and activated OTAA
+  /links/*123*    | GET, PUT, DELETE | Active device with DevAddr=*123*
   /txframes       | GET              | Frames scheduled for transmission
   /txframes/*123* | GET, DELETE      | Frame with ID=*123*
 
@@ -33,7 +33,7 @@ the REST API.
 You (at least) have to:
  * Add LoRaWAN gateways you want to use to the *Gateways* list.
  * Configure each device you want to use:
-   * To add a personalized device, create a new *Links* list entry.
+   * To add a device activated by personalization (ABP), create a new *Links* list entry.
    * To add an OTAA device, create a new *Devices* list entry and start the device. The *Links*
      list will be updated automatically once the device joins the network.
 

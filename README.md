@@ -59,8 +59,8 @@ as described in the [Administration Guide](doc/Administration.md) and in the
 
 After the installation you have to:
  * Add LoRaWAN gateways you want to use.
- * Configure each device you want to use, either as a personalized device or
-   as an OTAA device.
+ * Configure each device you want to use, either as a personalized device (ABP) or
+   as an over-the-air activated (OTAA) device.
 
 Use the `dbexport` script to backup your list of users, gateways, devices and links.
 This will create several `db*.json` files. Use the `dbimport` script to write these

@@ -6,7 +6,7 @@ Various protocols may be supported over WebSockets. Currently only one:
 
   URL             | Explanation
  -----------------|--------------------------------------------------------------------
-  /ws/*123*/raw   | Connection to raw data from a device with DevEUI=*123*. Sends the application data only, no port numbers nor flags.
+  /ws/*123*/raw   | Connection to raw data from a device with DevAddr=*123* or DevEUI=*123*. Sends the application data only, no port numbers nor flags.
 
 Multiple parallel connections may be established to one URL.
 When the device sends a frame, all connected clients will receive the application data.

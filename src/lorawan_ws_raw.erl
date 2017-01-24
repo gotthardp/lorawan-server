@@ -15,6 +15,11 @@
 
 init(Req, _Opts) ->
     DevEUI = lorawan_mac:hex_to_binary(cowboy_req:binding(deveui, Req)),
+    init0(Req, DevEUI).
+
+init0(Req, DevAddr) when byte_size(DevAddr) == 4 ->
+    {cowboy_websocket, Req, #state{devaddr=DevAddr}};
+init0(Req, DevEUI) when byte_size(DevEUI) == 8 ->
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
             lager:warning("WebSocket for unknown DevEUI: ~w", [DevEUI]),
