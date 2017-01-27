@@ -5,7 +5,7 @@
 %
 -module(lorawan_db).
 
--export([ensure_tables/0, trim_tables/0]).
+-export([ensure_tables/0, ensure_table/2, trim_tables/0]).
 -export([get_rxframes/1, purge_rxframes/1, purge_txframes/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").

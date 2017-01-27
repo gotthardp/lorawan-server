@@ -62,7 +62,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #
         {ok, {Host, Port, Version}} ->
             Dict;
         _Else ->
-            lager:info("Gateway ~w connected to ~w:~w", [MAC, Host, Port]),
+            lager:info("Gateway ~w at ~w:~w", [MAC, Host, Port]),
             dict:store(MAC, {Host, Port, Version}, Dict)
     end,
     % PULL ACK

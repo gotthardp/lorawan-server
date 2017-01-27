@@ -74,7 +74,7 @@ handle_fopt({link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK}, Link) ->
     Link#link{adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
         clear_when_zero(ChannelMaskACK, Chans)}};
 handle_fopt({dev_status_ans, Battery, Margin}, Link) ->
-    lager:debug("DevStatus: battry ~B, margin: ~B", [Battery, Margin]),
+    lager:debug("DevStatus: battery ~B, margin: ~B", [Battery, Margin]),
     Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup, devstat={Battery, Margin}};
 handle_fopt(Unknown, Link) ->
     lager:debug("Unknown FOpt ~w", [Unknown]),
