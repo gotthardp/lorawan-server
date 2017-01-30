@@ -37,6 +37,7 @@ start(_Type, _Args) ->
                 [txframes, txframe, record_info(fields, txframe), binary]},
             {"/rx/:devaddr", lorawan_admin_rx, []},
             {"/rxq/:devaddr", lorawan_admin_rxq, []},
+            {"/devstat/:devaddr", lorawan_admin_devstat, []},
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}

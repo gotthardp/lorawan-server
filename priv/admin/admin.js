@@ -221,12 +221,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devstat.battery', 'number').label('Battery'),
         nga.field('devstat.margin', 'number').label('Margin'),
         nga.field('devstat_time', 'datetime').label('Status Time'),
-        nga.field('devstat_fcnt', 'number').label('Status FCnt')
+        nga.field('devstat_fcnt', 'number').label('Status FCnt'),
+        nga.field('devaddr', 'template').label('Device Status')
+            .template('<dgraph value="value"></dgraph>')
     ]));
     links.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:9},
         {name:"ADR", min:9, max:19},
-        {name:"Status", min:19, max:23}
+        {name:"Status", min:19, max:24}
     ]));
     // add to the admin application
     admin.addEntity(links);
@@ -541,4 +543,51 @@ return {
             });
     },
     template: '<div google-chart chart="rxqChartObject"></div>'
+};}]);
+
+myApp.directive('dgraph', ['$http', '$interval', function($http, $interval) {
+return {
+    restrict: 'E',
+    scope: {
+        value: '=',
+    },
+    link: function($scope) {
+            function updateData() {
+                $http({method: 'GET', url: '/devstat/'.concat($scope.value)})
+                    .success( function( data, status, headers, config ) {
+                        $scope.rxdChartObject.data = data.array;
+                    });
+            }
+            $scope.rxdChartObject = {};
+            $scope.rxdChartObject.type = "LineChart";
+            $scope.rxdChartObject.options = {
+                "vAxes": {
+                    0: {"title": 'Battery'}
+                },
+                "series": {
+                    0: {"targetAxisIndex": 0}
+                },
+                "chartArea": {
+                    "top": 0, "bottom": "10%",
+                    "left": 0, "right": 0
+                },
+                "legend": {
+                    "position": "none"
+                },
+                "pointSize": 3,
+                "vAxis": {
+                    "textPosition": "in",
+                    "gridlines": {"count": -1}
+                },
+                "vAxes": {
+                    0: {"minValue":0, "maxValue": 255}
+                }
+            };
+            updateData();
+            $scope.stopTime = $interval(updateData, 5000);
+            $scope.$on('$destroy', function() {
+                $interval.cancel($scope.stopTime);
+            });
+    },
+    template: '<div google-chart chart="rxdChartObject"></div>'
 };}]);

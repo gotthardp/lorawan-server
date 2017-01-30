@@ -76,7 +76,7 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
                     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(store_adr(L, ADR), FOpts),
                     mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
                     Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
-                    store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, reverse(Data)),
+                    store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, L2#link.devstat, reverse(Data)),
                     handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, ADRACKReq, ACK, FOptsOut, FPort, reverse(Data));
                 _MIC2 ->
                     {error, bad_mic}
@@ -183,12 +183,12 @@ fcnt_gap(A, B) ->
 
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
-store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, _Data) ->
+store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, DevStat, _Data) ->
     % store #rxframe{frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}
     mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
         mac=MAC, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr,
         freq=RF#rflora.freq, datr=RF#rflora.datr, codr=RF#rflora.codr,
-        devaddr=DevAddr, fcnt=FCnt}),
+        devaddr=DevAddr, fcnt=FCnt, devstat=DevStat}),
     ok.
 
 handle_rxpk(RxQ, MType, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port, Data)
