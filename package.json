@@ -2,7 +2,7 @@
   "private": true,
   "dependencies": {
     "jquery": ">=1.0",
-    "ng-admin": "1.0.0-beta3",
+    "ng-admin": "1.0.0",
     "angular-simple-logger": ">=0.0.1",
     "angular-google-maps": "2.3.4",
     "angular-google-chart": "0.1.0"
