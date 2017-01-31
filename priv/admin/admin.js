@@ -453,9 +453,9 @@ return {
     link: function($scope) {
             function updateData() {
                 $http({method: 'GET', url: '/rx/'.concat($scope.value)})
-                    .success( function( data, status, headers, config ) {
-                        $scope.rxChartObject.data = data.array;
-                        $scope.rxChartObject.options.vAxes[1] = data.band;
+                    .then(function(response) {
+                        $scope.rxChartObject.data = response.data.array;
+                        $scope.rxChartObject.options.vAxes[1] = response.data.band;
                     });
             }
             $scope.rxChartObject = {};
@@ -504,8 +504,8 @@ return {
     link: function($scope) {
             function updateData() {
                 $http({method: 'GET', url: '/rxq/'.concat($scope.value)})
-                    .success( function( data, status, headers, config ) {
-                        $scope.rxqChartObject.data = data.array;
+                    .then(function(response) {
+                        $scope.rxqChartObject.data = response.data.array;
                     });
             }
             $scope.rxqChartObject = {};
@@ -554,8 +554,8 @@ return {
     link: function($scope) {
             function updateData() {
                 $http({method: 'GET', url: '/devstat/'.concat($scope.value)})
-                    .success( function( data, status, headers, config ) {
-                        $scope.rxdChartObject.data = data.array;
+                    .then(function(response) {
+                        $scope.rxdChartObject.data = response.data.array;
                     });
             }
             $scope.rxdChartObject = {};
