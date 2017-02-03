@@ -18,7 +18,8 @@ cd lorawan-server
 tar -zxvf lorawan-server-0.2.0.tar.gz
 ```
 
-On Windows you can use the [7-Zip](http://www.7-zip.org).
+On Windows you can unpack the release using the [7-Zip](http://www.7-zip.org).
+
 
 ## Server Configuration
 
@@ -55,6 +56,17 @@ cp lorawan-forwarder.xml /usr/lib/firewalld/services
 firewall-cmd --permanent --add-service=lorawan-forwarder
 firewall-cmd --reload
 ```
+
+## Running in background
+
+The lorawan-server can be started as a service (daemon).
+
+On Windows, the service is managed using `bin/lorawan-service.bat` *command*, where:
+ * *add* will add the service. Once added you can use the standard Windows control
+   panel administrative tools to start/stop or enable/disable the service.
+ * *remove* will remove the previously added service.
+ * *list* will display parameters of a previously added service.
+
 
 ## Configuration of the packet_forwarder
 
