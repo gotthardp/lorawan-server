@@ -113,6 +113,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appkey').label('AppKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('can_join', 'boolean').label('Can Join?')
+            .defaultValue(true),
         nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('link')
             .attributes({ placeholder: 'e.g. ABC12345' })

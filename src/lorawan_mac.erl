@@ -55,6 +55,9 @@ process_frame1(NetID, _MAC, RxQ, RF, 2#000, Msg, MIC) ->
         [] ->
             lager:warning("Unknown DevEUI ~s", [binary_to_hex(DevEUI)]),
             {error, {unknown_deveui, DevEUI}};
+        [D] when D#device.can_join == false ->
+            lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
+            ok;
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
