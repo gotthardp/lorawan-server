@@ -1,0 +1,10 @@
+USER=lorawan
+
+case "$1" in
+    configure)
+    useradd --home-dir /var/lib/lorawan-server --create-home $USER
+    ;;
+
+    *)
+    ;;
+esac

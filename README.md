@@ -44,8 +44,8 @@ The lorawan-server includes all components required to run a private LoRa networ
 ### Usage
 
 The [Installation Instructions](doc/Installation.md) describe how to build,
-install and configure the server. You can either download a binary release or
-build it from source codes.
+install and configure the server. You can use a Debian package, download the binary
+release and run it manually or build the server from source codes.
 
 Run the lorawan-server release by:
 ```bash

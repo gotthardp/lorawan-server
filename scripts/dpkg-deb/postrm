@@ -1,0 +1,11 @@
+USER=lorawan
+
+case "$1" in
+    remove|purge)
+    userdel -r $USER
+    systemctl disable lorawan-server
+    ;;
+
+    *)
+    ;;
+esac

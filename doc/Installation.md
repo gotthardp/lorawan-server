@@ -4,9 +4,23 @@ This document describes how to build, install and configure the lorawan-server.
 
 ## Installation
 
-You will need the Erlang/OTP 18 or later.
- * On Linux, try typing `yum install erlang` or `apt-get install erlang`.
- * On Windows, install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads).
+### Using the Debian package
+
+On the Debian Linux and its clones like Raspbian you can use the .deb package.
+
+Download the Debian package
+[lorawan-server-0.2.0-1.deb](https://github.com/gotthardp/lorawan-server/releases)
+and install it by:
+```bash
+dpkg -i lorawan-server-0.2.0-1.deb
+```
+
+Then start the server by `systemctl start lorawan-server`.
+
+### Using the Binary Release on Linux
+
+You will need the Erlang/OTP 18 or later. Try typing `yum install erlang` or
+`apt-get install erlang`.
 
 Then download the latest binary release
 [lorawan-server-0.2.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
@@ -18,8 +32,34 @@ cd lorawan-server
 tar -zxvf lorawan-server-0.2.0.tar.gz
 ```
 
-On Windows you can unpack the release using the [7-Zip](http://www.7-zip.org).
+You can run the server by:
+```bash
+bin/lorawan-server
+```
 
+The lorawan-server can be started in background as a daemon.
+On Linux systems with systemd you should:
+ * Unpack the binary release to `/usr/lib/lorawan-server`
+ * Copy `bin/lorawan-server.service` to `/lib/systemd/system`
+ * Create a dedicated user by `useradd --home-dir /var/lib/lorawan-server --create-home lorawan`
+ * Start the server by `systemctl start lorawan-server`
+
+### Using the Binary Release on Windows
+
+Install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads) of
+Erlang/OTP 18 or later.
+
+Unpack the release using the [7-Zip](http://www.7-zip.org) and run the server by
+```bash
+bin/lorawan-server.bat
+```
+
+You can also run the lorawan-server as a Windows service.
+The service is managed using `bin/lorawan-service.bat` *command*, where:
+ * *add* will add the service. Once added you can use the standard Windows control
+   panel administrative tools to start/stop or enable/disable the service.
+ * *remove* will remove the previously added service.
+ * *list* will display parameters of a previously added service.
 
 ## Server Configuration
 
@@ -56,17 +96,6 @@ cp lorawan-forwarder.xml /usr/lib/firewalld/services
 firewall-cmd --permanent --add-service=lorawan-forwarder
 firewall-cmd --reload
 ```
-
-## Running in background
-
-The lorawan-server can be started as a service (daemon).
-
-On Windows, the service is managed using `bin/lorawan-service.bat` *command*, where:
- * *add* will add the service. Once added you can use the standard Windows control
-   panel administrative tools to start/stop or enable/disable the service.
- * *remove* will remove the previously added service.
- * *list* will display parameters of a previously added service.
-
 
 ## Configuration of the packet_forwarder
 

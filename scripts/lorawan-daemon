@@ -1,2 +1,3 @@
 #!/bin/sh
-su lorawan -s /bin/sh -c "/var/lib/lorawan/bin/lorawan-server" &
+export LORAWAN_HOME=/var/lib/lorawan-server
+su lorawan -s /bin/sh -c "/usr/lib/lorawan-server/bin/lorawan-server" &

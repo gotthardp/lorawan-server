@@ -1,0 +1,14 @@
+Package: lorawan-server
+Version: 0.2.0
+Section: net
+Priority: optional
+Architecture: all
+Depends: erlang (>= 18.0-1)
+Maintainer: Petr Gotthard <petr.gotthard@centrum.cz>
+Description: Compact server for private LoRa networks
+ LoRaWAN is a Low Power Wide Area Network with features that support low-cost,
+ mobile, and secure bi-directional communication for Internet of Things (IoT),
+ machine-to-machine (M2M), and smart city, and industrial applications.
+ .
+ This package contains an open-source LoRaWAN Server that integrates both
+ the network-server and the application-server.
