@@ -38,7 +38,11 @@ if you find a bug or miss a feature.
 
 ## Documentation
 
-The lorawan-server includes all components required to run a private LoRa network:
+The lorawan-server includes all functions required to run a private LoRa network.
+You only need to install the [Erlang/OTP](http://www.erlang.org) 18 or later.
+
+The main components of the lorawan-server are shown in the following figure:
+
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/server-architecture.png)
 
 ### Usage
