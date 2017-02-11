@@ -12,6 +12,7 @@
 -export([binary_to_hex/1, hex_to_binary/1]).
 
 -define(MAX_FCNT_GAP, 16384).
+-define(MAX_LOST_AFTER_RESET, 10).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -110,7 +111,7 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
 
         lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
         ok = mnesia:write(links, #link{devaddr=NewAddr, app=D#device.app, appid=D#device.appid, nwkskey=NwkSKey, appskey=AppSKey,
-            fcntup=0, fcntdown=0, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
+            fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
             adr_use={1, 0, 7}, adr_set=D#device.adr_set}, write),
         {NewAddr, D#device.app, D#device.appid}
     end),
@@ -165,19 +166,40 @@ check_link_fcnt(DevAddr, FCnt) ->
         [] ->
             lager:warning("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
             {error, {unknown_devaddr, DevAddr}};
-        [L] ->
-            case fcnt_gap(L#link.fcntup, FCnt) of
+        [L] when L#link.fcnt_check == 3 ->
+            % checks disabled
+            {ok, L#link{fcntup = FCnt}};
+        [L] when L#link.fcnt_check == 2, FCnt < ?MAX_LOST_AFTER_RESET ->
+            % reset at 0
+            % works for 16b only since we cannot distinguish between reset and 32b rollover
+            {ok, L#link{fcntup = FCnt}};
+        [L] when L#link.fcnt_check == 1 ->
+            % strict 32-bit
+            case fcnt_gap32(L#link.fcntup, FCnt) of
                 N when N < ?MAX_FCNT_GAP ->
                     % L#link.fcntup is 32b, but the received FCnt may be 16b only
                     LastFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
                     {ok, L#link{fcntup = LastFCnt}};
-                BigN ->
-                    lager:warning("~w has a large FCnt gap: last ~b, current ~b", [DevAddr, L#link.fcntup, FCnt]),
-                    {error, {fcnt_gap_too_large, BigN}}
+                _BigN ->
+                    {error, {fcnt_gap_too_large, DevAddr, FCnt}}
+            end;
+        [L] ->
+            % strict 16-bit (default)
+            case fcnt_gap16(L#link.fcntup, FCnt) of
+                N when N < ?MAX_FCNT_GAP ->
+                    {ok, L#link{fcntup = FCnt}};
+                _BigN ->
+                    {error, {fcnt_gap_too_large, DevAddr, FCnt}}
             end
     end.
 
-fcnt_gap(A, B) ->
+fcnt_gap16(A, B) ->
+    if
+        A =< B -> B - A;
+        A > B -> 16#FFFF - A + B
+    end.
+
+fcnt_gap32(A, B) ->
     A16 = A band 16#FFFF,
     if
         A16 > B -> 16#10000 - A16 + B;

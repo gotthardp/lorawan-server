@@ -57,6 +57,13 @@ For each device, which may connect to your network, you can set:
  * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
  * *AppID*, which is a string with application-specific configuration.
  * *AppEUI* and *AppKey*
+ * *FCnt Check* to be used for this device
+   * *Strict 16-bit* (default) or *Strict 32-bit* indicate a standard compliant counter.
+   * *Reset on zero* allows personalized (ABP) devices to reset the counter.
+     This weakens device security a bit as more reply attacks are possible.
+   * *Disabled* disables the check for faulty devices.
+     This destroys the device security.
+ * *Can Join?* flag that allows you to prevent the device from joining
 
 Once the device joins the network, the *Link* field will contain a reference to the *Links* list.
 
@@ -72,6 +79,7 @@ For each device, which is connected (has a link) to the network, you can set:
  * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
  * *AppID*, which is a string with application-specific configuration.
  * *NwkSKey* and *AppSKey*
+ * *FCnt Check* to be used for this device (see the Devices section for more explanation).
 
 Optionally, you can also set the [ADR](ADR.md) parameters. The server will attempt
 to configure the device accordingly.

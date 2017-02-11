@@ -30,6 +30,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 1, label: 'ON' },
     ];
 
+    fcnt_choices = [
+        { value: 0, label: 'Strict 16-bit' },
+        { value: 1, label: 'Strict 32-bit' },
+        { value: 2, label: 'Reset on zero' },
+        { value: 3, label: 'Disabled' }
+    ];
+
     // ---- EU863-870 interpretation
 
     data_rate_choices = [
@@ -113,6 +120,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appkey').label('AppKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('fcnt_check', 'choice').label('FCnt Check')
+            .choices(fcnt_choices)
+            .defaultValue(0), // Strict 16-bit
         nga.field('can_join', 'boolean').label('Can Join?')
             .defaultValue(true),
         nga.field('last_join', 'datetime').label('Last Join'),
@@ -132,13 +142,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<channels field="field" count="16" value="value"></channels>')
     ]);
     devices.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:11}
+        {name:"General", min:0, max:9},
+        {name:"ADR", min:9, max:13}
     ]));
     devices.editionView().fields(devices.creationView().fields());
     devices.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:11}
+        {name:"General", min:0, max:9},
+        {name:"ADR", min:9, max:13}
     ]));
     // add to the admin application
     admin.addEntity(devices);
@@ -172,6 +182,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(0),
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0),
+        nga.field('fcnt_check', 'choice').label('FCnt Check')
+            .choices(fcnt_choices)
+            .defaultValue(0), // Strict 16-bit
         nga.field('last_rx', 'datetime').label('Last RX')
     ];
     var linkFieldsADR = [
@@ -189,8 +202,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ];
     links.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
     links.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:8},
-        {name:"ADR", min:8, max:12}
+        {name:"General", min:0, max:9},
+        {name:"ADR", min:9, max:13}
     ]));
     links.editionView().fields(linkFieldsGeneral.concat([
         nga.field('downlinks', 'referenced_list')
@@ -228,9 +241,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<dgraph value="value"></dgraph>')
     ]));
     links.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:9},
-        {name:"ADR", min:9, max:19},
-        {name:"Status", min:19, max:24}
+        {name:"General", min:0, max:10},
+        {name:"ADR", min:10, max:20},
+        {name:"Status", min:20, max:25}
     ]));
     // add to the admin application
     admin.addEntity(links);
