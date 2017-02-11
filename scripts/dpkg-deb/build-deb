@@ -1,13 +1,16 @@
-VERSION=0.2.0-1
-ROOT=/tmp/lorawan-server_${VERSION}_all
-
 REL=../../_build/default/rel/lorawan-server
+VERSION=`find ${REL} -type d -name "*.*.*" -printf "%f"`
+REVISION=1
+
+ROOT=/tmp/lorawan-server_${VERSION}-${REVISION}_all
+
 mkdir -p $ROOT/usr/lib/lorawan-server
 rsync -trL --chown=root:root $REL/bin $REL/lib $REL/releases $ROOT/usr/lib/lorawan-server
 
 mkdir -p $ROOT/lib/systemd/system
 rsync -t --chown=root:root $REL/bin/lorawan-server.service $ROOT/lib/systemd/system
 
+sed "s/<VERSION>/${VERSION}/" < control.template > control
 mkdir -p $ROOT/DEBIAN
 rsync -t --chown=root:root control postinst postrm $ROOT/DEBIAN
 

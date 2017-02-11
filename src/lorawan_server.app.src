@@ -5,7 +5,7 @@
 %
 {application, lorawan_server,
     [{description, "LoRaWAN Application Server"},
-    {vsn, "0.2.0"},
+    {vsn, "0.2.1"},
     {modules, []},
     {registered, []},
     {mod, {lorawan_app, []}},
@@ -25,6 +25,7 @@
         {http_admin_port, 8080},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}}
     ]},
-    {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, iso8601, lorawan_server_api]}]}.
+    {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, iso8601,
+        lorawan_server_api]}]}.
 
 % end of file

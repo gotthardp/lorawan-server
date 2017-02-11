@@ -1,5 +1,5 @@
 Package: lorawan-server
-Version: 0.2.0
+Version: <VERSION>
 Section: net
 Priority: optional
 Architecture: all

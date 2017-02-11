@@ -6,6 +6,7 @@ _build
 rebar.lock
 db*.json
 
+scripts/dpkg-deb/control
 node_modules/
 priv/admin/jquery.min.js
 priv/admin/angular-google-maps.min.js

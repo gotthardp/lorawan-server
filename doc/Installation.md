@@ -9,10 +9,10 @@ This document describes how to build, install and configure the lorawan-server.
 On the Debian Linux and its clones like Raspbian you can use the .deb package.
 
 Download the Debian package
-[lorawan-server-0.2.0-1.deb](https://github.com/gotthardp/lorawan-server/releases)
+[lorawan-server-<VERSION>.deb](https://github.com/gotthardp/lorawan-server/releases)
 and install it by:
 ```bash
-dpkg -i lorawan-server-0.2.0-1.deb
+dpkg -i lorawan-server-<VERSION>.deb
 ```
 
 Then start the server by `systemctl start lorawan-server`.
@@ -23,13 +23,13 @@ You will need the Erlang/OTP 18 or later. Try typing `yum install erlang` or
 `apt-get install erlang`.
 
 Then download the latest binary release
-[lorawan-server-0.2.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
+[lorawan-server-<VERSION>.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
 and (on Linux) unpack it by:
 ```bash
 mkdir lorawan-server
-mv lorawan-server-0.2.0.tar.gz lorawan-server/
+mv lorawan-server-<VERSION>.tar.gz lorawan-server/
 cd lorawan-server
-tar -zxvf lorawan-server-0.2.0.tar.gz
+tar -zxvf lorawan-server-<VERSION>.tar.gz
 ```
 
 You can run the server by:
@@ -63,7 +63,7 @@ The service is managed using `bin/lorawan-service.bat` *command*, where:
 
 ## Server Configuration
 
-Review the `lorawan-server/releases/0.2.0/sys.config` with the server configuration:
+Review the `lorawan-server/releases/<VERSION>/sys.config` with the server configuration:
  * By default the EU868 band is enabled. If you want to use another band,
    uncomment the respective `rx2_rf` field.
  * To enable/disable applications, modify the `plugins` section. For more details

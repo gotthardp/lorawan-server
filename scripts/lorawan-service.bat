@@ -28,7 +28,7 @@ for /D %%A in (%ROOT_DIR%\lib\*) do (
 echo %ROOT_DIR%
 echo !FILES!
 
-%ERLSRV% add "LoRaWAN Server" -w "%ROOT_DIR%" -sname lorawan -ar "+Bd -pa !FILES! -s lorawan_app -config releases\0.2.0\sys.config" -c "Handles packets received by LoRaWAN gateways"
+%ERLSRV% add "LoRaWAN Server" -w "%ROOT_DIR%" -sname lorawan -ar "+Bd -pa !FILES! -s lorawan_app -config releases\{{release_version}}\sys.config" -c "Handles packets received by LoRaWAN gateways"
 goto END
 
 :MISSING

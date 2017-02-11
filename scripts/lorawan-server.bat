@@ -18,4 +18,4 @@ for /D %%A in (%ROOT_DIR%\lib\*) do (
     set FILES=!FILES! %%A\ebin
 )
 
-cd %ROOT_DIR% && %ERLDIR% -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app -config releases/0.2.0/sys.config
+cd %ROOT_DIR% && %ERLDIR% -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app -config releases/{{release_version}}/sys.config
