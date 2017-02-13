@@ -107,11 +107,11 @@ build_devstat({Battery, Margin}) ->
     [{battery, Battery}, {margin, Margin}].
 
 intervals_to_text(List) when is_list(List) ->
-    lists:flatten(lists:join(", ",
+    lists:flatten(string:join(
         lists:map(
             fun ({A, A}) -> integer_to_list(A);
                 ({B, C}) -> [integer_to_list(B), "-", integer_to_list(C)]
-            end, List)));
+            end, List), ", "));
 intervals_to_text(_) ->
     % this is for backward compatibility, will be removed in few months
     % I don't think anyone ever used anything else than 7
