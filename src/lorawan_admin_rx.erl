@@ -38,8 +38,8 @@ get_rxframe(Req, State) ->
     {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % guess which frequency band the device is using
     {Min, Max} = case ActRec of
-        [#rxframe{freq=Freq} | _] ->
-            find_range(Freq, [{433, 435}, {779, 787}, {863, 870}, {902, 928}]);
+        [#rxframe{region=Region} | _] ->
+            lorawan_mac_region:freq_range(Region);
         [] ->
             ?DEFAULT_RANGE
     end,
@@ -50,10 +50,10 @@ get_rxframe(Req, State) ->
                 [{id, <<"datr">>}, {label, <<"Data Rate">>}, {type, <<"number">>}],
                 [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
                 ]},
-            {rows, lists:map(fun(#rxframe{fcnt=FCnt, datr=DatR, freq=Freq}) ->
+            {rows, lists:map(fun(#rxframe{fcnt=FCnt, region=Region, datr=DatR, freq=Freq}) ->
                     [{c, [
                         [{v, FCnt}],
-                        [{v, datr_to_num(DatR)}, {f, DatR}],
+                        [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
                         [{v, Freq}]
                     ]}]
                 end, ActRec)
@@ -66,24 +66,6 @@ resource_exists(Req, State) ->
             lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req)), #rxframe.devaddr) of
         [] -> {false, Req, State};
         [_First|_Rest] -> {true, Req, State}
-    end.
-
-find_range(Freq, [{Min, Max}|_Res]) when Freq >= Min, Freq =< Max -> {Min, Max};
-% we assume the Min-Max tuples are ordered
-find_range(Freq, [{_Min, Max}|_Rest]) when Freq < Max -> ?DEFAULT_RANGE;
-find_range(Freq, [_MinMax|Rest]) -> find_range(Freq, Rest);
-find_range(_Freq, []) -> ?DEFAULT_RANGE.
-
-datr_to_num(Config) ->
-    [SF, BW] = binary:split(Config, [<<"SF">>, <<"BW">>], [global, trim_all]),
-    case {binary_to_integer(SF), binary_to_integer(BW)} of
-        {12, 125} -> 0;
-        {11, 125} -> 1;
-        {10, 125} -> 2;
-        {9, 125} -> 3;
-        {8, 125} -> 4;
-        {7, 125} -> 5;
-        {7, 250} -> 6
     end.
 
 % end of file

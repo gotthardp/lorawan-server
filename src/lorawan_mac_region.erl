@@ -1,0 +1,146 @@
+%
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
+% All rights reserved.
+% Distributed under the terms of the MIT License. See the LICENSE file.
+%
+-module(lorawan_mac_region).
+
+-export([join1_rf/2, rx2_rf/2, rx2_dr/1, default_adr/1]).
+-export([datar_to_dr/2, freq_range/1]).
+
+-include("lorawan.hrl").
+
+join1_rf(Region, RxQ)
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
+    rf_same(Region, RxQ, RxQ#rxq.freq, join1_delay);
+join1_rf(<<"US902-928">> = Region, RxQ) ->
+    RxCh = pick_integer((RxQ#rxq.freq-902.3)/0.2, 64+(RxQ#rxq.freq-903.0)/1.6),
+    rf_same(Region, RxQ, 923.3 + (RxCh rem 8)*0.6, join1_delay);
+join1_rf(<<"AU915-928">> = Region, RxQ) ->
+    RxCh = pick_integer((RxQ#rxq.freq-915.2)/0.2, 64+(RxQ#rxq.freq-915.9)/1.6),
+    rf_same(Region, RxQ, 923.3 + (RxCh rem 8)*0.6, join1_delay);
+join1_rf(<<"CN470-510">> = Region, RxQ) ->
+    RxCh = (RxQ#rxq.freq-470.3)/0.2,
+    rf_same(Region, RxQ, 500.3 + (RxCh rem 48)*0.2, join1_delay).
+
+rx2_rf(Region, RxQ) ->
+    rf_fixed(Region, RxQ, rx2_delay).
+
+% the channels are overlapping, return the integer value
+pick_integer(Ch1, Ch2) ->
+    if
+        Ch1 - trunc(Ch1) < 0.01 -> trunc(Ch1);
+        Ch2 - trunc(Ch2) < 0.01 -> trunc(Ch2)
+    end.
+
+rf_fixed(Region, RxQ, Window) ->
+    {Freq, DataRate} = regional_config(rx2_rf, Region),
+    Delay = regional_config(Window, Region),
+    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay}.
+
+rf_same(Region, RxQ, Freq, Window) ->
+    % TODO: implement RX1DROffset
+    DataRate = datar_to_down(Region, RxQ#rxq.datr, 0),
+    Delay = regional_config(Window, Region),
+    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay}.
+
+datar_to_down(Region, DataRate, Offset) ->
+    Down = dr_to_down(Region, datar_to_dr(Region, DataRate)),
+    dr_to_datar(Region, lists:nth(Offset+1, Down)).
+
+dr_to_down(Region, DR)
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"CN470-510">> ->
+    case DR of
+        0 -> [0, 0, 0, 0, 0, 0];
+        1 -> [1, 0, 0, 0, 0, 0];
+        2 -> [2, 1, 0, 0, 0, 0];
+        3 -> [3, 2, 1, 0, 0, 0];
+        4 -> [4, 3, 2, 1, 0, 0];
+        5 -> [5, 4, 3, 2, 1, 0];
+        6 -> [6, 5, 4, 3, 2, 1];
+        7 -> [7, 6, 5, 4, 3, 2]
+    end;
+dr_to_down(Region, DR)
+        when Region == <<"US902-928">>; Region == <<"AU915-928">> ->
+    case DR of
+        0 -> [10, 9,  8,  8];
+        1 -> [11, 10, 9,  8];
+        2 -> [12, 11, 10, 9];
+        3 -> [13, 12, 11, 10];
+        4 -> [13, 13, 12, 11]
+    end.
+
+% data rate conversions
+
+rx2_dr(Region) ->
+    {_F, DataRate} = regional_config(rx2_delay, Region),
+    datar_to_dr(Region, DataRate).
+
+datars(Region)
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"CN470-510">> -> [
+    {0, {12, 125}},
+    {1, {11, 125}},
+    {2, {10, 125}},
+    {3, {9, 125}},
+    {4, {8, 125}},
+    {5, {7, 125}},
+    {6, {7, 250}}];
+datars(Region)
+        when Region == <<"US902-928">>; Region == <<"AU915-928">> -> [
+    {0,  {10, 125}},
+    {1,  {9, 125}},
+    {2,  {8, 125}},
+    {3,  {7, 125}},
+    {4,  {8, 500}},
+    {8,  {12, 500}},
+    {9,  {11, 500}},
+    {10, {10, 500}},
+    {11, {9, 500}},
+    {12, {8, 500}},
+    {13, {7, 500}}].
+
+dr_to_datar(Region, DR) ->
+    {_, DataRate} = lists:keyfind(DR, 1, datars(Region)),
+    tuple_to_datar(DataRate).
+
+datar_to_dr(Region, DataRate) ->
+    {DR, _} = lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)),
+    DR.
+
+tuple_to_datar({SF, BW}) ->
+    <<"SF", (integer_to_binary(SF))/binary, "BW", (integer_to_binary(BW))/binary>>.
+
+datar_to_tuple(DataRate) ->
+    [SF, BW] = binary:split(DataRate, [<<"SF">>, <<"BW">>], [global, trim_all]),
+    {binary_to_integer(SF), binary_to_integer(BW)}.
+
+regional_config(Param, Region) ->
+    {ok, Regions} = application:get_env(regions),
+    Config = proplists:get_value(Region, Regions, []),
+    proplists:get_value(Param, Config).
+
+% {TXPower, DataRate, Chans}
+default_adr(<<"EU863-870">>) -> {1, 0, <<2#111>>};
+default_adr(<<"US902-928">>) -> {5, 0, <<-1:72>>};
+default_adr(<<"CN779-787">>) -> {1, 0, <<2#111>>};
+default_adr(<<"EU433">>) -> {0, 0, <<2#111>>};
+default_adr(<<"AU915-928">>) -> {5, 0, <<-1:72>>};
+default_adr(<<"CN470-510">>) -> {2, 0, <<-1:96>>}.
+
+% {Min, Max}
+freq_range(<<"EU863-870">>) -> {863, 870};
+freq_range(<<"US902-928">>) -> {902, 928};
+freq_range(<<"CN779-787">>) -> {779, 787};
+freq_range(<<"EU433">>) -> {433, 435};
+freq_range(<<"AU915-928">>) -> {915, 928};
+freq_range(<<"CN470-510">>) -> {470, 510}.
+
+-include_lib("eunit/include/eunit.hrl").
+
+region_test_()-> [
+    ?_assertEqual(dr_to_datar(<<"EU863-870">>, 0), <<"SF12BW125">>),
+    ?_assertEqual(dr_to_datar(<<"US902-928">>, 8), <<"SF12BW500">>),
+    ?_assertEqual(datar_to_dr(<<"EU863-870">>, <<"SF9BW125">>), 3),
+    ?_assertEqual(datar_to_dr(<<"US902-928">>, <<"SF7BW500">>), 13)].
+
+% end of file

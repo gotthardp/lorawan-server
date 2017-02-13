@@ -90,14 +90,14 @@ parse_adr(List) ->
     {proplists:get_value(power, List), proplists:get_value(datr, List),
         case proplists:get_value(chans, List, null) of
             null -> undefined;
-            Val -> binary_to_integer(Val, 2)
+            Val -> text_to_intervals(binary_to_list(Val))
         end}.
 
 build_adr({TXPower, DataRate, Chans}) ->
     [{power, TXPower}, {datr, DataRate}, {chans,
         case Chans of
             undefined -> null;
-            Val when is_integer(Val) -> integer_to_binary(Val, 2)
+            Val -> list_to_binary(intervals_to_text(Val))
         end}].
 
 parse_devstat(List) ->
@@ -105,5 +105,37 @@ parse_devstat(List) ->
 
 build_devstat({Battery, Margin}) ->
     [{battery, Battery}, {margin, Margin}].
+
+intervals_to_text(List) when is_list(List) ->
+    lists:flatten(lists:join(", ",
+        lists:map(
+            fun ({A, A}) -> integer_to_list(A);
+                ({B, C}) -> [integer_to_list(B), "-", integer_to_list(C)]
+            end, List)));
+intervals_to_text(_) ->
+    % this is for backward compatibility, will be removed in few months
+    % I don't think anyone ever used anything else than 7
+    "0-2".
+
+text_to_intervals(Text) ->
+    lists:map(
+        fun (Item) ->
+            case string:tokens(Item, "- ") of
+                [A] -> {list_to_integer(A), list_to_integer(A)};
+                [B, C] -> {list_to_integer(B), list_to_integer(C)}
+            end
+        end, string:tokens(Text, ";, ")).
+
+-include_lib("eunit/include/eunit.hrl").
+
+bits_test_()-> [
+    ?_assertEqual("0", intervals_to_text([{0,0}])),
+    ?_assertEqual("0-2", intervals_to_text([{0,2}])),
+    ?_assertEqual("0-2, 5-7", intervals_to_text([{0,2},{5,7}])),
+    ?_assertEqual("0-71", intervals_to_text([{0,71}])),
+    ?_assertEqual([{0,0}], text_to_intervals("0")),
+    ?_assertEqual([{0,2},{5,7}], text_to_intervals("0-2, 5-7")),
+    ?_assertEqual([{0,71}], text_to_intervals("0-71"))
+].
 
 % end of file

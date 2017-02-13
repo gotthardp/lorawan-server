@@ -45,6 +45,7 @@ List of user identities that can manage the server. All have the same access rig
 
 For each LoRaWAN gateway you can set:
  * *MAC* address of the gateway
+ * *TX Channel* used for downlinks; usually 0
  * *NetID* of the network
  * *Location* and *Altitude* of the gateway
 
@@ -54,6 +55,7 @@ For each LoRaWAN gateway you can set:
 
 For each device, which may connect to your network, you can set:
  * *DevEUI* of the device
+ * *Region* that determines the LoRaWAN regional parameters
  * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
  * *AppID*, which is a string with application-specific configuration.
  * *AppEUI* and *AppKey*
@@ -76,6 +78,7 @@ joins the network, the server will attempt to configure the device accordingly.
 
 For each device, which is connected (has a link) to the network, you can set:
  * *DevEUI* of the device
+ * *Region* that determines the LoRaWAN regional parameters
  * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
  * *AppID*, which is a string with application-specific configuration.
  * *NwkSKey* and *AppSKey*

@@ -8,7 +8,7 @@
 %
 -module(lorawan_mac).
 
--export([process_frame/4, process_status/2]).
+-export([process_frame/3, process_status/2]).
 -export([binary_to_hex/1, hex_to_binary/1]).
 
 -define(MAX_FCNT_GAP, 16384).
@@ -17,7 +17,7 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
-process_frame(MAC, RxQ, RF, PHYPayload) ->
+process_frame(MAC, RxQ, PHYPayload) ->
     Size = byte_size(PHYPayload)-4,
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
     <<MType:3, _:5, _/binary>> = Msg,
@@ -25,8 +25,8 @@ process_frame(MAC, RxQ, RF, PHYPayload) ->
         [] ->
             lager:warning("Unknown MAC ~s", [binary_to_hex(MAC)]),
             {error, {unknown_mac, MAC}};
-        [G] ->
-            process_frame1(G#gateway.netid, MAC, RxQ, RF, MType, Msg, MIC)
+        [Gateway] ->
+            process_frame1(Gateway, RxQ, MType, Msg, MIC)
     end.
 
 process_status(MAC, S) ->
@@ -47,7 +47,7 @@ process_status(MAC, S) ->
             ok
     end.
 
-process_frame1(NetID, _MAC, RxQ, RF, 2#000, Msg, MIC) ->
+process_frame1(Gateway, RxQ, 2#000, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = MACPayload,
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
@@ -62,12 +62,12 @@ process_frame1(NetID, _MAC, RxQ, RF, 2#000, Msg, MIC) ->
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
-                    handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, D#device.appkey);
+                    handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, D#device.appkey);
                 _MIC2 ->
                     {error, bad_mic}
             end
     end;
-process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
+process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
         FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
@@ -79,9 +79,9 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
                 MIC ->
                     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(store_adr(L, ADR), FOpts),
                     mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
-                    Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, FCnt),
-                    store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, L2#link.devstat, reverse(Data)),
-                    handle_rxpk(RxQ, MType, DevAddr, L#link.app, L#link.appid, ADRACKReq, ACK, FOptsOut, FPort, reverse(Data));
+                    Data = cipher(FRMPayload, L2#link.appskey, MType band 1, DevAddr, FCnt),
+                    store_rxpk(Gateway, L2, RxQ, FCnt, reverse(Data)),
+                    handle_rxpk(Gateway, RxQ, MType, L2, ADRACKReq, ACK, FOptsOut, FPort, reverse(Data));
                 _MIC2 ->
                     {error, bad_mic}
             end;
@@ -91,14 +91,15 @@ process_frame1(_NetID, MAC, RxQ, RF, MType, Msg, MIC) ->
             {error, Error}
     end.
 
-handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
+handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     AppNonce = crypto:strong_rand_bytes(3),
+    NetID = Gateway#gateway.netid,
     NwkSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#01, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
     AppSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#02, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
 
-    {atomic, {DevAddr, App, AppID}} = mnesia:transaction(fun() ->
+    {atomic, Link} = mnesia:transaction(fun() ->
         [D] = mnesia:read(devices, DevEUI, write),
         NewAddr = if
             D#device.link == undefined;
@@ -110,19 +111,20 @@ handle_join(NetID, RxQ, RF, AppEUI, DevEUI, DevNonce, AppKey) ->
         ok = mnesia:write(devices, D#device{link=NewAddr, last_join=calendar:universal_time()}, write),
 
         lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
-        ok = mnesia:write(links, #link{devaddr=NewAddr, app=D#device.app, appid=D#device.appid, nwkskey=NwkSKey, appskey=AppSKey,
-            fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
-            adr_use={1, 0, 7}, adr_set=D#device.adr_set}, write),
-        {NewAddr, D#device.app, D#device.appid}
+        NewLink = #link{devaddr=NewAddr, region=D#device.region, app=D#device.app, appid=D#device.appid,
+            nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check,
+            adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
+            adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set},
+        ok = mnesia:write(links, NewLink, write),
+        NewLink
     end),
-    mnesia:dirty_delete(pending, DevAddr),
-    case lorawan_application_handler:handle_join(DevAddr, App, AppID) of
+    mnesia:dirty_delete(pending, Link#link.devaddr),
+    case lorawan_application_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid) of
         ok ->
-            {ok, {_RxFreq, RxRate, _RxCoding}} = application:get_env(rx2_rf),
-            {ok, JoinDelay1} = application:get_env(join_delay1),
             % transmitting after join accept delay 1
-            Time = RxQ#rxq.tmst + JoinDelay1,
-            txaccept(Time, RF, RxRate, AppKey, AppNonce, NetID, DevAddr);
+            TxQ = lorawan_mac_region:join1_rf(Link#link.region, RxQ),
+            RxRate = lorawan_mac_region:rx2_dr(Link#link.region),
+            txaccept(Gateway, TxQ, RxRate, AppKey, AppNonce, NetID, Link#link.devaddr);
         {error, Error} -> {error, Error}
     end.
 
@@ -131,14 +133,14 @@ create_devaddr(NetID) ->
     %% FIXME: verify uniqueness
     <<NwkID:7, 0:1, (crypto:strong_rand_bytes(3))/binary>>.
 
-txaccept(Time, RF, Rx2Rate, AppKey, AppNonce, NetID, DevAddr) ->
+txaccept(Gateway, TxQ, Rx2Rate, AppKey, AppNonce, NetID, DevAddr) ->
     MHDR = <<2#001:3, 0:3, 0:2>>,
     MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1, 0:3, Rx2Rate:4, 1>>,
     MIC = aes_cmac:aes_cmac(AppKey, <<MHDR/binary, MACPayload/binary>>, 4),
 
     % yes, decrypt; see LoRaWAN specification, Section 6.2.5
     PHYPayload = crypto:block_decrypt(aes_ecb, AppKey, padded(16, <<MACPayload/binary, MIC/binary>>)),
-    {send, Time, RF, <<MHDR/binary, PHYPayload/binary>>}.
+    {send, Gateway, TxQ, <<MHDR/binary, PHYPayload/binary>>}.
 
 
 check_link(DevAddr, FCnt) ->
@@ -208,27 +210,24 @@ fcnt_gap32(A, B) ->
 
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
-store_rxpk(MAC, RxQ, RF, DevAddr, FCnt, DevStat, _Data) ->
-    % store #rxframe{frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt}
+store_rxpk(Gateway, Link, RxQ, FCnt, _Data) ->
+    % store #rxframe{frid, mac, rssi, lsnr, region, freq, datr, codr, devaddr, fcnt, devstat}
     mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
-        mac=MAC, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr,
-        freq=RF#rflora.freq, datr=RF#rflora.datr, codr=RF#rflora.codr,
-        devaddr=DevAddr, fcnt=FCnt, devstat=DevStat}),
+        mac=Gateway#gateway.mac, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr,
+        region=Link#link.region, freq=RxQ#rxq.freq, datr=RxQ#rxq.datr, codr=RxQ#rxq.codr,
+        devaddr=Link#link.devaddr, fcnt=FCnt, devstat=Link#link.devstat}),
     ok.
 
-handle_rxpk(RxQ, MType, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port, Data)
+handle_rxpk(Gateway, RxQ, MType, Link, ADRACKReq, ACK, FOptsOut, Port, Data)
         when MType == 2#010; MType == 2#100 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
-    handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port, Data).
+    handle_uplink(Gateway, RxQ, Confirm, Link, ADRACKReq, ACK, FOptsOut, Port, Data).
 
-handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port, Data) ->
-    {ok, {TxFreq, TxRate, TxCoding}} = application:get_env(rx2_rf),
-    {ok, RxDelay2} = application:get_env(rx_delay2),
+handle_uplink(Gateway, RxQ, Confirm, Link, ADRACKReq, ACK, FOptsOut, Port, Data) ->
     % will transmit in the RX2 window
-    Time = RxQ#rxq.tmst + RxDelay2,
-    RF2 = #rflora{freq=TxFreq, datr=datar_to_bin(TxRate), codr=TxCoding},
+    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, RxQ),
     % check whether last transmission was lost
-    {LastLost, LostFrame} = check_lost(ACK, DevAddr),
+    {LastLost, LostFrame} = check_lost(ACK, Link#link.devaddr),
     % check whether the response is required
     ShallReply = if
         Confirm == 1 ->
@@ -246,15 +245,15 @@ handle_uplink(RxQ, Confirm, DevAddr, App, AppID, ADRACKReq, ACK, FOptsOut, Port,
             false
     end,
     % invoke applications
-    case lorawan_application_handler:handle_rx(DevAddr, App, AppID,
+    case lorawan_application_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
             #rxdata{port=Port, data=Data, last_lost=LastLost, shall_reply=ShallReply}) of
         retransmit ->
-            {send, Time, RF2, LostFrame};
+            {send, Gateway, TxQ, LostFrame};
         {send, TxData} ->
-            txpk(Time, RF2, DevAddr, Confirm, FOptsOut, TxData);
+            txpk(Gateway, TxQ, Link#link.devaddr, Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            txpk(Time, RF2, DevAddr, Confirm, FOptsOut, #txdata{});
+            txpk(Gateway, TxQ, Link#link.devaddr, Confirm, FOptsOut, #txdata{});
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
@@ -277,12 +276,12 @@ inc_fcntdown(DevAddr) ->
         NewD
     end).
 
-txpk(Time, RF, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
-    {send, Time, RF, encode_txpk(2#011, DevAddr, ACK, FOpts, TxData)};
-txpk(Time, RF, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
+txpk(Gateway, TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
+    {send, Gateway, TxQ, encode_txpk(2#011, DevAddr, ACK, FOpts, TxData)};
+txpk(Gateway, TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
     PHYPayload = encode_txpk(2#101, DevAddr, ACK, FOpts, TxData),
     mnesia:dirty_write(pending, #pending{devaddr=DevAddr, phypayload=PHYPayload}),
-    {send, Time, RF, PHYPayload}.
+    {send, Gateway, TxQ, PHYPayload}.
 
 encode_txpk(MType, DevAddr, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
     {atomic, L} = inc_fcntdown(DevAddr),
@@ -337,14 +336,6 @@ padded(Bytes, Msg) ->
         0 -> Msg;
         N -> <<Msg/bitstring, 0:(8*Bytes-N)>>
     end.
-
-datar_to_bin(0) -> <<"SF12BW125">>;
-datar_to_bin(1) -> <<"SF11BW125">>;
-datar_to_bin(2) -> <<"SF10BW125">>;
-datar_to_bin(3) -> <<"SF9BW125">>;
-datar_to_bin(4) -> <<"SF8BW125">>;
-datar_to_bin(5) -> <<"SF7BW125">>;
-datar_to_bin(6) -> <<"SF7BW250">>.
 
 % stackoverflow.com/questions/3768197/erlang-ioformatting-a-binary-to-hex
 % a little magic from http://stackoverflow.com/users/2760050/himangshuj

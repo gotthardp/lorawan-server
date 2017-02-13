@@ -13,7 +13,8 @@ the device joins the network:
  - **Set ADR** can be used to request or disable ADR for this device;
  - **Set Power** defines the power (in dBm) to be requested;
  - **Set Data Rate** defines the data rate;
- - **Set Channels** defines the set of channels.
+ - **Set Channels** defines the set of channels to be used. The channels are given
+   as a comma-separated list of interfaces, e.g. `0-2` (for EU) or `0-71` (for US).
 
 See the [Administration Guide](Administration.md) for more details on the
 server administration.
@@ -29,7 +30,7 @@ The server administration also displays the node settings:
  - **Use ADR** indicates whether the node can do ADR;
  - **Use Power** indicates the last accepted TX power setting (in dBm);
  - **Use Data Rate** indicates the data rate;
- - **Use Channels** indicates the set of channels.
+ - **Use Channels** indicates the set of channels to be used.
 
 The ADR request to change these settings is sent to the device only when both
 **Set ADR** and **Use ADR** are `ON`, when all ADR settings are defined (not null)

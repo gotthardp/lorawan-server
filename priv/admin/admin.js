@@ -37,25 +37,66 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 3, label: 'Disabled' }
     ];
 
-    // ---- EU863-870 interpretation
+    region_choices = [
+        { value: 'EU863-870', label: 'EU 863-870MHz' },
+        { value: 'US902-928', label: 'US 902-928MHz' },
+        { value: 'CN779-787', label: 'China 779-787MHz' },
+        { value: 'EU433', label: 'EU 433MHz' },
+        { value: 'AU915-928', label: 'Australia 915-928MHz' },
+        { value: 'CN470-510', label: 'China 470-510MHz' }
+    ];
 
     data_rate_choices = [
-        { value: 0, label: 'SF12 125 kHz (250 bit/s)' },
-        { value: 1, label: 'SF11 125 kHz (440 bit/s)' },
-        { value: 2, label: 'SF10 125 kHz (980 bit/s)' },
-        { value: 3, label: 'SF9 125 kHz (1760 bit/s)' },
-        { value: 4, label: 'SF8 125 kHz (3125 bit/s)' },
-        { value: 5, label: 'SF7 125 kHz (5470 bit/s)' },
-        { value: 6, label: 'SF7 250 kHz (11000 bit/s)' }
+        { value: 0, label: 'SF12 125 kHz (250 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510'] },
+        { value: 1, label: 'SF11 125 kHz (440 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510'] },
+        { value: 2, label: 'SF10 125 kHz (980 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510'] },
+        { value: 3, label: 'SF9 125 kHz (1760 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510'] },
+        { value: 4, label: 'SF8 125 kHz (3125 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510'] },
+        { value: 5, label: 'SF7 125 kHz (5470 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510'] },
+        { value: 6, label: 'SF7 250 kHz (11000 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433'] },
+
+        { value: 0, label: 'SF10 125 kHz (980 bit/s)', regions: ['US902-928', 'AU915-928'] },
+        { value: 1, label: 'SF9 125 kHz (1760 bit/s)', regions: ['US902-928', 'AU915-928'] },
+        { value: 2, label: 'SF8 125 kHz (3125 bit/s)', regions: ['US902-928', 'AU915-928'] },
+        { value: 3, label: 'SF7 125 kHz (5470 bit/s)', regions: ['US902-928', 'AU915-928'] },
+        { value: 4, label: 'SF8 500 kHz (12500 bit/s)', regions: ['US902-928', 'AU915-928'] }
     ];
 
     power_choices = [
-        { value: 0, label: '20 dBm' },
-        { value: 1, label: '14 dBm' },
-        { value: 2, label: '11 dBm' },
-        { value: 3, label: '8 dBm' },
-        { value: 4, label: '5 dBm' },
-        { value: 5, label: '2 dBm' }
+        { value: 0, label: '20 dBm', regions: ['EU863-870'] },
+        { value: 1, label: '14 dBm', regions: ['EU863-870'] },
+        { value: 2, label: '11 dBm', regions: ['EU863-870'] },
+        { value: 3, label: '8 dBm', regions: ['EU863-870'] },
+        { value: 4, label: '5 dBm', regions: ['EU863-870'] },
+        { value: 5, label: '2 dBm', regions: ['EU863-870'] },
+
+        { value: 0, label: '30 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 1, label: '28 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 2, label: '26 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 3, label: '24 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 4, label: '22 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 5, label: '20 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 6, label: '18 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 7, label: '16 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 8, label: '14 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 9, label: '12 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 10, label: '10 dBm', regions: ['US902-928', 'AU915-928'] },
+
+        { value: 0, label: '10 dBm', regions: ['CN779-787', 'EU433'] },
+        { value: 1, label: '7 dBm', regions: ['CN779-787', 'EU433'] },
+        { value: 2, label: '4 dBm', regions: ['CN779-787', 'EU433'] },
+        { value: 3, label: '1 dBm', regions: ['CN779-787', 'EU433'] },
+        { value: 4, label: '-2 dBm', regions: ['CN779-787', 'EU433'] },
+        { value: 5, label: '-5 dBm', regions: ['CN779-787', 'EU433'] },
+
+        { value: 0, label: '17 dBm', regions: ['CN470-510'] },
+        { value: 1, label: '16 dBm', regions: ['CN470-510'] },
+        { value: 2, label: '14 dBm', regions: ['CN470-510'] },
+        { value: 3, label: '12 dBm', regions: ['CN470-510'] },
+        { value: 4, label: '10 dBm', regions: ['CN470-510'] },
+        { value: 5, label: '7 dBm', regions: ['CN470-510'] },
+        { value: 6, label: '5 dBm', regions: ['CN470-510'] },
+        { value: 7, label: '2 dBm', regions: ['CN470-510'] }
     ];
 
     // ---- users
@@ -82,6 +123,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 return value.replace(/[-:]/g, '')
             })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
+        nga.field('tx_rfch').label('TX Channel')
+            .attributes({ placeholder: 'e.g. 0' })
+            .validation({ required: true })
+            .defaultValue(0),
         nga.field('netid').label('NetID')
             .attributes({ placeholder: 'e.g. 0123AB' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
@@ -98,6 +143,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- devices
     devices.listView().fields([
         nga.field('deveui').label('DevEUI').isDetailLink(true),
+        nga.field('region'),
         nga.field('app').label('Application'),
         nga.field('appid').label('AppID'),
         nga.field('last_join', 'datetime').label('Last Join'),
@@ -109,6 +155,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('deveui').label('DevEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{16}' }),
+        nga.field('region', 'choice')
+            .choices(region_choices)
+            .validation({ required: true }),
         nga.field('app', 'reference').label('Application')
             .targetEntity(applications)
             .targetField(nga.field('name'))
@@ -131,24 +180,31 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(on_off_choices)
-            .defaultValue(1), // ON
+            .defaultValue(1),
         nga.field('adr_set.power', 'choice').label('Set power')
-            .choices(power_choices)
-            .defaultValue(1), // 14 dBm
+            .choices(function(entry) {
+                return power_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            }),
         nga.field('adr_set.datr', 'choice').label('Set data rate')
-            .choices(data_rate_choices) // DR0
-            .defaultValue(0),
-        nga.field('adr_set.chans', 'template').label('Set channels')
-            .template('<channels field="field" count="16" value="value"></channels>')
+            .choices(function(entry) {
+                return data_rate_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            }),
+        nga.field('adr_set.chans').label('Set channels')
+            .attributes({ placeholder: 'e.g. 0-2' })
+            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' })
     ]);
     devices.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:9},
-        {name:"ADR", min:9, max:13}
+        {name:"General", min:0, max:10},
+        {name:"ADR", min:10, max:14}
     ]));
     devices.editionView().fields(devices.creationView().fields());
     devices.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:9},
-        {name:"ADR", min:9, max:13}
+        {name:"General", min:0, max:10},
+        {name:"ADR", min:10, max:14}
     ]));
     // add to the admin application
     admin.addEntity(devices);
@@ -156,6 +212,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- links
     links.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
+        nga.field('region'),
         nga.field('app').label('Application'),
         nga.field('appid').label('AppID'),
         nga.field('fcntup', 'number').label('FCnt Up'),
@@ -167,6 +224,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
+        nga.field('region', 'choice')
+            .choices(region_choices)
+            .validation({ required: true }),
         nga.field('app', 'reference').label('Application')
             .targetEntity(applications)
             .targetField(nga.field('name'))
@@ -192,18 +252,25 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(on_off_choices)
             .defaultValue(1), // ON
         nga.field('adr_set.power', 'choice').label('Set power')
-            .choices(power_choices)
-            .defaultValue(1), // 14 dBm
+            .choices(function(entry) {
+                return power_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            }),
         nga.field('adr_set.datr', 'choice').label('Set data rate')
-            .choices(data_rate_choices) // DR0
-            .defaultValue(0),
-        nga.field('adr_set.chans', 'template').label('Set channels')
-            .template('<channels field="field" count="16" value="value"></channels>')
+            .choices(function(entry) {
+                return data_rate_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            }),
+        nga.field('adr_set.chans').label('Set channels')
+            .attributes({ placeholder: 'e.g. 0-2' })
+            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' })
     ];
     links.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
     links.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:9},
-        {name:"ADR", min:9, max:13}
+        {name:"General", min:0, max:10},
+        {name:"ADR", min:10, max:14}
     ]));
     links.editionView().fields(linkFieldsGeneral.concat([
         nga.field('downlinks', 'referenced_list')
@@ -220,13 +287,20 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(on_off_choices)
             .editable(false),
         nga.field('adr_use.power', 'choice').label('Used power')
-            .choices(power_choices)
+            .choices(function(entry) {
+                return power_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            })
             .editable(false),
         nga.field('adr_use.datr', 'choice').label('Used data rate')
-            .choices(data_rate_choices)
+            .choices(function(entry) {
+                return data_rate_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            })
             .editable(false),
-        nga.field('adr_use.chans', 'template').label('Used channels')
-            .template('<channels field="field" count="16" value="value"></channels>')
+        nga.field('adr_use.chans').label('Used channels')
             .editable(false),
         nga.field('devaddr', 'template').label('RX')
             .template('<rgraph value="value"></rgraph>'),
@@ -241,9 +315,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<dgraph value="value"></dgraph>')
     ]));
     links.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"ADR", min:10, max:20},
-        {name:"Status", min:20, max:25}
+        {name:"General", min:0, max:11},
+        {name:"ADR", min:11, max:21},
+        {name:"Status", min:21, max:26}
     ]));
     // add to the admin application
     admin.addEntity(links);
@@ -376,42 +450,6 @@ function editWithTabsTemplate(list) {
     `;
     return R;
 }
-
-myApp.directive('channels', [function () {
-return {
-    restrict: 'E',
-    scope: {
-        field: '&',
-        count: '=',
-        value: '=',
-    },
-    link: function($scope) {
-        const field = $scope.field();
-        if ($scope.value == undefined) {
-            $scope.value = '111';
-        }
-        $scope.name = field.name();
-        $scope.readonly = !field.editable();
-        $scope.bits = [];
-        for (var i = 0; i < $scope.count; i++) {
-            $scope.bits.push({id:i, val:(i < $scope.value.length ? $scope.value[$scope.value.length-1-i] == '1' : false)});
-        }
-        $scope.bits = $scope.bits.reverse();
-        $scope.change = function() {
-            $scope.value = '';
-            for (var i = 0; i < $scope.count; i++) {
-                $scope.value += $scope.bits[i].val ? '1' : '0';
-            }
-        }
-    },
-    template:
-    `
-    <p ng-repeat="bit in bits" class="channel_check">
-      <input type="checkbox" id="{{name}}bit{{bit.id}}" ng-model="bit.val" ng-disabled="readonly" ng-change="change()"/>
-      <label for="{{name}}bit{{bit.id}}">{{bit.id}}</label>
-    </p>
-    `
-};}]);
 
 // http://stackoverflow.com/questions/35895411/ng-admin-and-google-maps
 myApp.directive('map', [function () {

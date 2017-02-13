@@ -10,20 +10,50 @@
     {registered, []},
     {mod, {lorawan_app, []}},
     {env, [
-        {join_delay1, 5000000}, % milliseconds
-        {rx_delay2, 2000000}, % milliseconds
-        % default RX2 frequency, data rate and coding rate
-        {rx2_rf, {869.525, 3, <<"4/5">>}},
-        % {rx2_rf, {434.665, 3, <<"4/5">>}},
-        % {sec, fcnt} after which the device status should be request
-        {devstat_gap, {86400, 100}},
         {plugins, [
             {<<"semtech-mote">>, lorawan_application_semtech_mote},
             {<<"microchip-mote">>, lorawan_application_microchip_mote},
-            {<<"websocket">>, lorawan_application_websocket}]},
+            {<<"websocket">>, lorawan_application_websocket}
+        ]},
         {forwarder_port, 1680},
         {http_admin_port, 8080},
-        {http_admin_credentials, {<<"admin">>, <<"admin">>}}
+        {http_admin_credentials, {<<"admin">>, <<"admin">>}},
+        % regional parameters
+        {regions, [
+            {<<"EU863-870">>, [
+                {join1_delay, 5000000}, % ms
+                {rx2_delay, 2000000}, % ms
+                % default RX2 frequency (MHz) and data rate (DRx)
+                {rx2_rf, {869.525, <<"SF12BW125">>}}
+            ]},
+            {<<"US902-928">>, [
+                {join1_delay, 5000000},
+                {rx2_delay, 2000000},
+                {rx2_rf, {923.3, <<"SF12BW500">>}}
+            ]},
+            {<<"CN779-787">>, [
+                {join1_delay, 5000000},
+                {rx2_delay, 2000000},
+                {rx2_rf, {786, <<"SF12BW125">>}}
+            ]},
+            {<<"EU433">>, [
+                {join1_delay, 5000000},
+                {rx2_delay2, 2000000},
+                {rx2_rf, {434.665, <<"SF12BW125">>}}
+            ]},
+            {<<"AU915-928">>, [
+                {join1_delay, 5000000},
+                {rx2_delay2, 2000000},
+                {rx2_rf, {923.3, <<"SF12BW500">>}}
+            ]},
+            {<<"CN470-510">>, [
+                {join1_delay, 5000000},
+                {rx2_delay2, 2000000},
+                {rx2_rf, {505.3, <<"SF12BW125">>}}
+            ]}
+        ]},
+        % {sec, fcnt} after which the device status should be request
+        {devstat_gap, {86400, 100}}
     ]},
     {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, iso8601,
         lorawan_server_api]}]}.

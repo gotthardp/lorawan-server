@@ -4,9 +4,8 @@
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 
--record(rxq, {time, tmst, chan, rfch, stat, rssi, lsnr}).
--record(txq, {tmst, rfch, powe}).
--record(rflora, {freq, datr, codr}).
+-record(rxq, {freq, datr, codr, time, tmst, chan, rfch, stat, rssi, lsnr}).
+-record(txq, {freq, datr, codr, tmst, rfch, powe}).
 -record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
 
 -record(ignored_link, {devaddr, mask}).
