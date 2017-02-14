@@ -11,11 +11,21 @@
 
 handle(Link, FOpts) ->
     % process incoming commands
-    Link2 = lists:foldl(fun(FOpt, L) -> handle_fopt(FOpt, L) end,
-        Link, parse_fopts(FOpts)),
+    FOptsIn = parse_fopts(FOpts),
+    case FOptsIn of
+        [] -> ok;
+        List1 -> lager:debug("~w -> ~w", [Link#link.devaddr, List1])
+    end,
+    Link2 = lists:foldl(
+        fun(FOpt, L) -> handle_fopt(FOpt, L) end,
+        Link, FOptsIn),
     % check for new commands
     ResA = send_adr({Link2, []}),
     {Link3, FOptsOut} = request_status(ResA),
+    case FOptsOut of
+        [] -> ok;
+        List2 -> lager:debug("~w <- ~w", [Link#link.devaddr, List2])
+    end,
     {ok, Link3, encode_fopts(FOptsOut)}.
 
 
@@ -120,15 +130,14 @@ set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
             append_mask(5, {TXPower, DataRate, Chans}, FOptsOut)
     end.
 
+append_mask(Idx, _, FOptsOut) when Idx < 0 ->
+    FOptsOut;
 append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
     append_mask(Idx-1, {TXPower, DataRate, Chans},
-        [{link_adr_req, DataRate, TXPower, build_bin(Chans, {16*Idx, 16*(Idx+1)-1}), Idx, 0} | FOptsOut]);
-append_mask(-1, _, FOptsOut) ->
-    FOptsOut.
+        [{link_adr_req, DataRate, TXPower, build_bin(Chans, {16*Idx, 16*(Idx+1)-1}), Idx, 0} | FOptsOut]).
 
 request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut})
         when LastDate == undefined; LastFCnt == undefined ->
-    lager:debug("DevStatusReq"),
     {Link, [dev_status_req | FOptsOut]};
 request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut}) ->
     {ok, {MaxTime, MaxFCnt}} = application:get_env(devstat_gap),
@@ -137,7 +146,6 @@ request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsO
     if
         TimeDiff > MaxTime;
         Link#link.fcntup - LastFCnt > MaxFCnt ->
-            lager:debug("DevStatusReq"),
             {Link, [dev_status_req | FOptsOut]};
         true ->
             {Link, FOptsOut}

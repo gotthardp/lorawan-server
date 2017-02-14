@@ -73,7 +73,7 @@ dr_to_down(Region, DR)
 % data rate conversions
 
 rx2_dr(Region) ->
-    {_F, DataRate} = regional_config(rx2_delay, Region),
+    {_F, DataRate} = regional_config(rx2_rf, Region),
     datar_to_dr(Region, DataRate).
 
 datars(Region)
