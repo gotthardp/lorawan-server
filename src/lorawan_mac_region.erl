@@ -120,12 +120,12 @@ regional_config(Param, Region) ->
     proplists:get_value(Param, Config).
 
 % {TXPower, DataRate, Chans}
-default_adr(<<"EU863-870">>) -> {1, 0, {0,2}};
-default_adr(<<"US902-928">>) -> {5, 0, {0,71}};
-default_adr(<<"CN779-787">>) -> {1, 0, {0,2}};
-default_adr(<<"EU433">>) -> {0, 0, {0,2}};
-default_adr(<<"AU915-928">>) -> {5, 0, {0,71}};
-default_adr(<<"CN470-510">>) -> {2, 0, {0, 95}}.
+default_adr(<<"EU863-870">>) -> {1, 0, [{0,2}]};
+default_adr(<<"US902-928">>) -> {5, 0, [{0,71}]};
+default_adr(<<"CN779-787">>) -> {1, 0, [{0,2}]};
+default_adr(<<"EU433">>) -> {0, 0, [{0,2}]};
+default_adr(<<"AU915-928">>) -> {5, 0, [{0,71}]};
+default_adr(<<"CN470-510">>) -> {2, 0, [{0, 95}]}.
 
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};

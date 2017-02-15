@@ -5,7 +5,7 @@
 %
 -module(lorawan_application_handler).
 
--export([init/0, handle_join/3, handle_rx/4]).
+-export([init/0, handle_join/3, handle_reset/1, handle_rx/4]).
 -export([store_frame/2, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
@@ -31,11 +31,13 @@ invoke_init({AppID, Module}) when is_atom(Module) ->
     apply(Module, init, [AppID]).
 
 handle_join(DevAddr, App, AppID) ->
+    handle_reset(DevAddr),
+    invoke_handler(handle_join, App, [DevAddr, App, AppID]).
+
+handle_reset(DevAddr) ->
     % delete previously stored RX and TX frames
     lorawan_db:purge_rxframes(DevAddr),
-    lorawan_db:purge_txframes(DevAddr),
-    % callback
-    invoke_handler(handle_join, App, [DevAddr, App, AppID]).
+    lorawan_db:purge_txframes(DevAddr).
 
 handle_rx(DevAddr, App, AppID, RxData) ->
     invoke_handler(handle_rx, App, [DevAddr, App, AppID, RxData]).
