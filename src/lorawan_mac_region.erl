@@ -120,12 +120,12 @@ regional_config(Param, Region) ->
     proplists:get_value(Param, Config).
 
 % {TXPower, DataRate, Chans}
-default_adr(<<"EU863-870">>) -> {1, 0, <<2#111>>};
-default_adr(<<"US902-928">>) -> {5, 0, <<-1:72>>};
-default_adr(<<"CN779-787">>) -> {1, 0, <<2#111>>};
-default_adr(<<"EU433">>) -> {0, 0, <<2#111>>};
-default_adr(<<"AU915-928">>) -> {5, 0, <<-1:72>>};
-default_adr(<<"CN470-510">>) -> {2, 0, <<-1:96>>}.
+default_adr(<<"EU863-870">>) -> {1, 0, {0,2}};
+default_adr(<<"US902-928">>) -> {5, 0, {0,71}};
+default_adr(<<"CN779-787">>) -> {1, 0, {0,2}};
+default_adr(<<"EU433">>) -> {0, 0, {0,2}};
+default_adr(<<"AU915-928">>) -> {5, 0, {0,71}};
+default_adr(<<"CN470-510">>) -> {2, 0, {0, 95}}.
 
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};
@@ -141,6 +141,7 @@ region_test_()-> [
     ?_assertEqual(dr_to_datar(<<"EU863-870">>, 0), <<"SF12BW125">>),
     ?_assertEqual(dr_to_datar(<<"US902-928">>, 8), <<"SF12BW500">>),
     ?_assertEqual(datar_to_dr(<<"EU863-870">>, <<"SF9BW125">>), 3),
-    ?_assertEqual(datar_to_dr(<<"US902-928">>, <<"SF7BW500">>), 13)].
+    ?_assertEqual(datar_to_dr(<<"US902-928">>, <<"SF7BW500">>), 13),
+    ?_assertEqual(<<"SF10BW500">>, datar_to_down(<<"US902-928">>, <<"SF10BW125">>, 0))].
 
 % end of file
