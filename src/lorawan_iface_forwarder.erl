@@ -46,6 +46,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
     case jsx:is_json(Data) of
         true ->
             Data2 = jsx:decode(Data, [{labels, atom}]),
+            % lager:debug("---> ~w", [Data2]),
             lists:foreach(
                 fun ({rxpk, Pk}) -> rxpk(MAC, Pk);
                     ({stat, Pk}) -> status(MAC, Pk)
@@ -138,8 +139,9 @@ status(MAC, Pk) ->
 
 txsend(Pid, Gateway, TxQ, PHYPayload) ->
     % TX only supported on radio A
-    Pk = jsx:encode([{txpk, build_txpk(TxQ#txq{rfch=Gateway#gateway.tx_rfch, powe=14}, PHYPayload)}]),
-    gen_server:cast(Pid, {send, Gateway#gateway.mac, Pk}).
+    Pk = [{txpk, build_txpk(TxQ#txq{rfch=Gateway#gateway.tx_rfch, powe=14}, PHYPayload)}],
+    % lager:debug("<--- ~w", [Pk]),
+    gen_server:cast(Pid, {send, Gateway#gateway.mac, jsx:encode(Pk)}).
 
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),

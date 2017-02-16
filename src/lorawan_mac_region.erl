@@ -16,6 +16,9 @@ join1_rf(Region, RxQ)
 join1_rf(<<"US902-928">> = Region, RxQ) ->
     RxCh = pick_integer((RxQ#rxq.freq-902.3)/0.2, 64+(RxQ#rxq.freq-903.0)/1.6),
     rf_same(Region, RxQ, 923.3 + (RxCh rem 8)*0.6, join1_delay);
+join1_rf(<<"US902-928-PR">> = Region, RxQ) ->
+    RxCh = (RxQ#rxq.freq-902.3)/0.2,
+    rf_same(Region, RxQ, 923.3 + (RxCh div 8)*0.6, join1_delay);
 join1_rf(<<"AU915-928">> = Region, RxQ) ->
     RxCh = pick_integer((RxQ#rxq.freq-915.2)/0.2, 64+(RxQ#rxq.freq-915.9)/1.6),
     rf_same(Region, RxQ, 923.3 + (RxCh rem 8)*0.6, join1_delay);
@@ -23,6 +26,9 @@ join1_rf(<<"CN470-510">> = Region, RxQ) ->
     RxCh = (RxQ#rxq.freq-470.3)/0.2,
     rf_same(Region, RxQ, 500.3 + (RxCh rem 48)*0.2, join1_delay).
 
+rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
+    RxCh = (RxQ#rxq.freq-902.3)/0.2,
+    rf_same(Region, RxQ, 923.3 + (RxCh div 8)*0.6, rx2_delay);
 rx2_rf(Region, RxQ) ->
     rf_fixed(Region, RxQ, rx2_delay).
 
@@ -61,7 +67,7 @@ dr_to_down(Region, DR)
         7 -> [7, 6, 5, 4, 3, 2]
     end;
 dr_to_down(Region, DR)
-        when Region == <<"US902-928">>; Region == <<"AU915-928">> ->
+        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
     case DR of
         0 -> [10, 9,  8,  8];
         1 -> [11, 10, 9,  8];
@@ -86,7 +92,7 @@ datars(Region)
     {5, {7, 125}},
     {6, {7, 250}}];
 datars(Region)
-        when Region == <<"US902-928">>; Region == <<"AU915-928">> -> [
+        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>, Region == <<"AU915-928">> -> [
     {0,  {10, 125}},
     {1,  {9, 125}},
     {2,  {8, 125}},
@@ -122,6 +128,7 @@ regional_config(Param, Region) ->
 % {TXPower, DataRate, Chans}
 default_adr(<<"EU863-870">>) -> {1, 0, [{0,2}]};
 default_adr(<<"US902-928">>) -> {5, 0, [{0,71}]};
+default_adr(<<"US902-928-PR">>) -> {5, 0, [{0,7}]};
 default_adr(<<"CN779-787">>) -> {1, 0, [{0,2}]};
 default_adr(<<"EU433">>) -> {0, 0, [{0,2}]};
 default_adr(<<"AU915-928">>) -> {5, 0, [{0,71}]};
@@ -130,6 +137,7 @@ default_adr(<<"CN470-510">>) -> {2, 0, [{0, 95}]}.
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};
 freq_range(<<"US902-928">>) -> {902, 928};
+freq_range(<<"US902-928-PR">>) -> {902, 928};
 freq_range(<<"CN779-787">>) -> {779, 787};
 freq_range(<<"EU433">>) -> {433, 435};
 freq_range(<<"AU915-928">>) -> {915, 928};

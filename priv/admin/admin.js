@@ -40,6 +40,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     region_choices = [
         { value: 'EU863-870', label: 'EU 863-870MHz' },
         { value: 'US902-928', label: 'US 902-928MHz' },
+        { value: 'US902-928-PR', label: 'US 902-928MHz (Private)' },
         { value: 'CN779-787', label: 'China 779-787MHz' },
         { value: 'EU433', label: 'EU 433MHz' },
         { value: 'AU915-928', label: 'Australia 915-928MHz' },
@@ -55,11 +56,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 5, label: 'SF7 125 kHz (5470 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510'] },
         { value: 6, label: 'SF7 250 kHz (11000 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433'] },
 
-        { value: 0, label: 'SF10 125 kHz (980 bit/s)', regions: ['US902-928', 'AU915-928'] },
-        { value: 1, label: 'SF9 125 kHz (1760 bit/s)', regions: ['US902-928', 'AU915-928'] },
-        { value: 2, label: 'SF8 125 kHz (3125 bit/s)', regions: ['US902-928', 'AU915-928'] },
-        { value: 3, label: 'SF7 125 kHz (5470 bit/s)', regions: ['US902-928', 'AU915-928'] },
-        { value: 4, label: 'SF8 500 kHz (12500 bit/s)', regions: ['US902-928', 'AU915-928'] }
+        { value: 0, label: 'SF10 125 kHz (980 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 1, label: 'SF9 125 kHz (1760 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 2, label: 'SF8 125 kHz (3125 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 3, label: 'SF7 125 kHz (5470 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 4, label: 'SF8 500 kHz (12500 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] }
     ];
 
     power_choices = [
@@ -70,17 +71,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 4, label: '5 dBm', regions: ['EU863-870'] },
         { value: 5, label: '2 dBm', regions: ['EU863-870'] },
 
-        { value: 0, label: '30 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 1, label: '28 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 2, label: '26 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 3, label: '24 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 4, label: '22 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 5, label: '20 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 6, label: '18 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 7, label: '16 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 8, label: '14 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 9, label: '12 dBm', regions: ['US902-928', 'AU915-928'] },
-        { value: 10, label: '10 dBm', regions: ['US902-928', 'AU915-928'] },
+        { value: 0, label: '30 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 1, label: '28 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 2, label: '26 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 3, label: '24 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 4, label: '22 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 5, label: '20 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 6, label: '18 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 7, label: '16 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 8, label: '14 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 9, label: '12 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
+        { value: 10, label: '10 dBm', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
 
         { value: 0, label: '10 dBm', regions: ['CN779-787', 'EU433'] },
         { value: 1, label: '7 dBm', regions: ['CN779-787', 'EU433'] },

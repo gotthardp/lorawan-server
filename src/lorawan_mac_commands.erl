@@ -109,7 +109,7 @@ set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
     append_mask(0, {TXPower, DataRate, Chans}, FOptsOut);
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
-        when Region == <<"US902-928">>; Region == <<"AU915-928">> ->
+        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
     case none_bit({0,63}, Chans) of
         true ->
             [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 7, 0} | FOptsOut];
