@@ -64,17 +64,12 @@ The service is managed using `bin/lorawan-service.bat` *command*, where:
 ## Server Configuration
 
 Review the `lorawan-server/releases/<VERSION>/sys.config` with the server configuration:
- * By default the EU868 band is enabled. If you want to use another band,
-   uncomment the respective `rx2_rf` field.
  * To enable/disable applications, modify the `plugins` section. For more details
    see the [Handler Development Guide](Handlers.md).
 
 For example:
 ```erlang
 [{lorawan_server, [
-    % default RX2 frequency, data rate and coding rate
-    {rx2_rf, {869.525, 3, <<"4/5">>}},
-    % {rx2_rf, {434.665, 3, <<"4/5">>}},
     % update this list to add/remove applications
     {plugins, [
         {<<"semtech-mote">>, lorawan_application_semtech_mote},
