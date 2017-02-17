@@ -107,19 +107,15 @@ send_adr({Link, FOptsOut}) ->
 
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
-    append_mask(0, {TXPower, DataRate, Chans}, FOptsOut);
+    [{link_adr_req, DataRate, TXPower, build_bin(Chans, {0, 15}), 0, 0} | FOptsOut];
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
-    case none_bit({0,63}, Chans) of
+    case all_bit({0,63}, Chans) of
         true ->
-            [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 7, 0} | FOptsOut];
+            [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 6, 0} | FOptsOut];
         false ->
-            case all_bit({0,63}, Chans) of
-                true ->
-                    [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 6, 0} | FOptsOut];
-                false ->
-                    append_mask(4, {TXPower, DataRate, Chans}, FOptsOut)
-            end
+            [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 7, 0} |
+                append_mask(4, {TXPower, DataRate, Chans}, FOptsOut)]
     end;
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"CN470-510">> ->
@@ -134,7 +130,10 @@ append_mask(Idx, _, FOptsOut) when Idx < 0 ->
     FOptsOut;
 append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
     append_mask(Idx-1, {TXPower, DataRate, Chans},
-        [{link_adr_req, DataRate, TXPower, build_bin(Chans, {16*Idx, 16*(Idx+1)-1}), Idx, 0} | FOptsOut]).
+        case build_bin(Chans, {16*Idx, 16*(Idx+1)-1}) of
+            0 -> FOptsOut;
+            ChMask -> [{link_adr_req, DataRate, TXPower, ChMask, Idx, 0} | FOptsOut]
+        end).
 
 request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut})
         when LastDate == undefined; LastFCnt == undefined ->
@@ -215,7 +214,10 @@ bits_test_()-> [
     ?_assertEqual(false, none_bit({0, 71}, [{0,71}])),
     ?_assertEqual(true, some_bit({0, 15}, [{0,2}])),
     ?_assertEqual(false, all_bit({0, 15}, [{0,2}])),
-    ?_assertEqual(false, none_bit({0, 15}, [{0,2}]))
+    ?_assertEqual(false, none_bit({0, 15}, [{0,2}])),
+    ?_assertEqual([{link_adr_req,<<"SF12BW250">>,14,7,0,0}], set_channels(<<"EU863-870">>, {14, <<"SF12BW250">>, [{0, 2}]}, [])),
+    ?_assertEqual([{link_adr_req,<<"SF12BW500">>,20,0,7,0},
+        {link_adr_req,<<"SF12BW500">>,20,255,0,0}], set_channels(<<"US902-928">>, {20, <<"SF12BW500">>, [{0, 7}]}, []))
 ].
 
 % end of file
