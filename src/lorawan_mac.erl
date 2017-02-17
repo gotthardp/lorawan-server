@@ -290,6 +290,9 @@ encode_txpk(MType, DevAddr, ACK, FOpts, #txdata{port=FPort, data=Data, pending=F
     MACPayload = case FPort of
         undefined ->
             <<FHDR/binary>>;
+        0 ->
+            FRMPayload = cipher(Data, L#link.nwkskey, 1, DevAddr, L#link.fcntdown),
+            <<FHDR/binary, 0:8, (reverse(FRMPayload))/binary>>;
         Num when Num > 0 ->
             FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
             <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>
