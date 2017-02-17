@@ -74,9 +74,13 @@ process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
     DevAddr = reverse(DevAddr0),
 
     case check_link(DevAddr, FCnt) of
-        {ok, L} ->
+        {ok, L, Clean} ->
             case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
+                    case Clean of
+                        true -> reset_link(L#link.devaddr);
+                        false -> ok
+                    end,
                     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(store_adr(L, ADR), FOpts),
                     mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
                     Data = cipher(FRMPayload, L2#link.appskey, MType band 1, DevAddr, FCnt),
@@ -118,7 +122,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         ok = mnesia:write(links, NewLink, write),
         NewLink
     end),
-    mnesia:dirty_delete(pending, Link#link.devaddr),
+    reset_link(Link#link.devaddr),
     case lorawan_application_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid) of
         ok ->
             % transmitting after join accept delay 1
@@ -170,18 +174,18 @@ check_link_fcnt(DevAddr, FCnt) ->
             {error, {unknown_devaddr, DevAddr}};
         [L] when L#link.fcnt_check == 3 ->
             % checks disabled
-            {ok, L#link{fcntup = FCnt}};
+            {ok, L#link{fcntup = FCnt}, false};
         [L] when L#link.fcnt_check == 2, FCnt < ?MAX_LOST_AFTER_RESET ->
             % reset at 0
             % works for 16b only since we cannot distinguish between reset and 32b rollover
-            {ok, L#link{fcntup = FCnt}};
+            {ok, L#link{fcntup = FCnt, fcntdown=0, devstat_fcnt=undefined}, true};
         [L] when L#link.fcnt_check == 1 ->
             % strict 32-bit
             case fcnt_gap32(L#link.fcntup, FCnt) of
                 N when N < ?MAX_FCNT_GAP ->
                     % L#link.fcntup is 32b, but the received FCnt may be 16b only
                     LastFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
-                    {ok, L#link{fcntup = LastFCnt}};
+                    {ok, L#link{fcntup = LastFCnt}, false};
                 _BigN ->
                     {error, {fcnt_gap_too_large, DevAddr, FCnt}}
             end;
@@ -189,7 +193,7 @@ check_link_fcnt(DevAddr, FCnt) ->
             % strict 16-bit (default)
             case fcnt_gap16(L#link.fcntup, FCnt) of
                 N when N < ?MAX_FCNT_GAP ->
-                    {ok, L#link{fcntup = FCnt}};
+                    {ok, L#link{fcntup = FCnt}, false};
                 _BigN ->
                     {error, {fcnt_gap_too_large, DevAddr, FCnt}}
             end
@@ -207,6 +211,12 @@ fcnt_gap32(A, B) ->
         A16 > B -> 16#10000 - A16 + B;
         true  -> B - A16
     end.
+
+reset_link(DevAddr) ->
+    mnesia:dirty_delete(pending, DevAddr),
+    % delete previously stored RX and TX frames
+    lorawan_db:purge_rxframes(DevAddr),
+    lorawan_db:purge_txframes(DevAddr).
 
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
