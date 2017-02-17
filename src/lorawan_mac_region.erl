@@ -10,34 +10,39 @@
 
 -include("lorawan.hrl").
 
+% we calculate in fixed-point numbers
 join1_rf(Region, RxQ)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
     rf_same(Region, RxQ, RxQ#rxq.freq, join1_delay);
 join1_rf(<<"US902-928">> = Region, RxQ) ->
-    RxCh = pick_integer((RxQ#rxq.freq-902.3)/0.2, 64+(RxQ#rxq.freq-903.0)/1.6),
-    rf_same(Region, RxQ, 923.3 + (RxCh rem 8)*0.6, join1_delay);
+    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), join1_delay);
 join1_rf(<<"US902-928-PR">> = Region, RxQ) ->
-    RxCh = (RxQ#rxq.freq-902.3)/0.2,
-    rf_same(Region, RxQ, 923.3 + (RxCh div 8)*0.6, join1_delay);
+    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), join1_delay);
 join1_rf(<<"AU915-928">> = Region, RxQ) ->
-    RxCh = pick_integer((RxQ#rxq.freq-915.2)/0.2, 64+(RxQ#rxq.freq-915.9)/1.6),
-    rf_same(Region, RxQ, 923.3 + (RxCh rem 8)*0.6, join1_delay);
+    RxCh = f2ch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), join1_delay);
 join1_rf(<<"CN470-510">> = Region, RxQ) ->
-    RxCh = (RxQ#rxq.freq-470.3)/0.2,
-    rf_same(Region, RxQ, 500.3 + (RxCh rem 48)*0.2, join1_delay).
+    RxCh = f2ch(RxQ#rxq.freq, {4703, 2}),
+    rf_same(Region, RxQ, ch2f(RxCh rem 48, {5003, 2}), join1_delay).
 
 rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
-    RxCh = (RxQ#rxq.freq-902.3)/0.2,
-    rf_same(Region, RxQ, 923.3 + (RxCh div 8)*0.6, rx2_delay);
+    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), rx2_delay);
 rx2_rf(Region, RxQ) ->
     rf_fixed(Region, RxQ, rx2_delay).
 
+f2ch(Freq, {Start, Inc}) -> (10*Freq-Start) div Inc.
+
 % the channels are overlapping, return the integer value
-pick_integer(Ch1, Ch2) ->
+f2ch(Freq, {Start1, Inc1}, {Start2, Inc2}) ->
     if
-        Ch1 - trunc(Ch1) < 0.01 -> trunc(Ch1);
-        Ch2 - trunc(Ch2) < 0.01 -> trunc(Ch2)
+        (10*Freq-Start1) rem Inc1 == 0 -> (10*Freq-Start1) div Inc1;
+        (10*Freq-Start2) rem Inc2 == 0 -> 64 + (10*Freq-Start2) div Inc2
     end.
+
+ch2f(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
 
 rf_fixed(Region, RxQ, Window) ->
     {Freq, DataRate} = regional_config(rx2_rf, Region),
@@ -92,7 +97,7 @@ datars(Region)
     {5, {7, 125}},
     {6, {7, 250}}];
 datars(Region)
-        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>, Region == <<"AU915-928">> -> [
+        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> -> [
     {0,  {10, 125}},
     {1,  {9, 125}},
     {2,  {8, 125}},
