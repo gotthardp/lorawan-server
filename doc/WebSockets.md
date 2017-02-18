@@ -3,10 +3,10 @@
 To enable the WebSocket interface for a specific device you need to set the Device
 or Link Application to `websocket`.
 
-To connect to the WebSocket, open URL `ws://server:8080/ws/<type>/<name>/<format>`. The
-URL is used to select the target device(s) as well as the desired format.
+To connect to the WebSocket, open URL `ws://server:8080/ws/<Type>/<Name>/<Format>`. The
+URL is used to select both the target device(s) as well as the desired format.
 
-  <type>/<name>      | Behaviour
+  Type / Name        | Behaviour
  --------------------|--------------------------------------------------------------------
   /devices/*123*/... | Connects to a device with a DevEUI=*123*.
   /links/*456*/...   | Connects to a link (active node) with a DevAddr=*456*.
@@ -18,7 +18,7 @@ Any of the clients may then send a response back. If multiple clients send data 
 the device the frames will be enqueued and sent one by one. The enqueued *Downlinks*
 can be viewed via the [Administration interface](Administration.md).
 
-  <format>           | Behaviour
+  Format             | Behaviour
  --------------------|--------------------------------------------------------------------
   .../raw            | Transmits the application data only, no port numbers nor flags.
   .../json           | Transmits JSON structures.
