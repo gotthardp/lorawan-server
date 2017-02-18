@@ -60,17 +60,17 @@ websocket_handle(Data, State) ->
 store_frame(Msg, #state{format=raw} = State) ->
     store_frame0(undefined, undefined, Msg, State);
 store_frame(Msg, #state{format=json} = State) ->
-    Data = jsx:decode(Msg, [{labels, atom}]),
-    DevAddr = case proplists:get_value(devaddr, Data) of
+    Struct = jsx:decode(Msg, [{labels, atom}]),
+    DevAddr = case proplists:get_value(devaddr, Struct) of
         undefined -> undefined;
-        Hex -> lorawan_mac:hex_to_binary(Hex)
+        Hex1 -> lorawan_mac:hex_to_binary(Hex1)
     end,
-    Port = proplists:get_value(port, Data),
-    Payload = case proplists:get_value(payload_raw, Data) of
+    Port = proplists:get_value(port, Struct),
+    Data = case proplists:get_value(data, Struct) of
         undefined -> <<>>;
-        Base64 -> base64:decode(Base64)
+        Hex2 -> lorawan_mac:hex_to_binary(Hex2)
     end,
-    store_frame0(DevAddr, Port, Payload, State).
+    store_frame0(DevAddr, Port, Data, State).
 
 store_frame0(undefined, Port, Data, #state{devaddr=DevAddr, gname=undefined} = State) ->
     lorawan_application_handler:store_frame(DevAddr, #txdata{port=Port, data=Data}),
@@ -86,7 +86,7 @@ store_frame0(DevAddr, Port, Data, State) ->
 websocket_info({send, _DevAddr, _AppID, #rxdata{data=Data}}, #state{format=raw} = State) ->
     {reply, {binary, Data}, State};
 websocket_info({send, DevAddr, _AppID, #rxdata{port=Port, data=Data}}, #state{format=json} = State) ->
-    Msg = [{devaddr, lorawan_mac:binary_to_hex(DevAddr)}, {port, Port}, {payload_raw, base64:encode(Data)}],
+    Msg = [{devaddr, lorawan_mac:binary_to_hex(DevAddr)}, {port, Port}, {data, lorawan_mac:binary_to_hex(Data)}],
     {reply, {text, jsx:encode(Msg)}, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~w", [Info]),

@@ -230,18 +230,19 @@ reset_link(DevAddr) ->
 
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
-store_rxpk(Gateway, Link, RxQ) ->
+store_rxpk(Gateway, Link, RxQ, Frame) ->
     % store #rxframe{frid, mac, rssi, lsnr, region, freq, datr, codr, devaddr, fcnt, devstat}
     mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
         mac=Gateway#gateway.mac, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr,
         region=Link#link.region, freq=RxQ#rxq.freq, datr=RxQ#rxq.datr, codr=RxQ#rxq.codr,
-        devaddr=Link#link.devaddr, fcnt=Link#link.fcntup, devstat=Link#link.devstat}),
+        devaddr=Link#link.devaddr, fcnt=Link#link.fcntup, devstat=Link#link.devstat,
+        port=Frame#frame.fport, data=Frame#frame.data}),
     ok.
 
 handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
-    store_rxpk(Gateway, Link, RxQ),
+    store_rxpk(Gateway, Link, RxQ, Frame),
     case Fresh of
         new ->
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);

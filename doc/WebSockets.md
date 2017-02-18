@@ -32,11 +32,11 @@ The JSON structure contains the following fields:
  --------------------|--------------------------------------------------------------------
   devaddr            | DevAddr of the link (active node).
   port               | LoRaWAN port number.
-  payload_raw        | Base64 encoded application data.
+  data               | Raw application payload, encoded as a hexadecimal string.
 
 For example:
 ```json
-    {"devaddr":"11223344", "port":2, "payload_raw":"ACbSCr4DNjYAAAAAAAD//w=="}
+    {"devaddr":"11223344","port":2,"data":"0026BF08BD03CD35000000000000FFFF"}
 ```
 
 ## Demo page
