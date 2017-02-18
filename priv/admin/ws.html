@@ -4,7 +4,7 @@
     <title>WebSocket client</title>
     <script src="/admin/jquery.min.js"></script>
     <script type="text/javascript">
-    var websocket;
+    var websocket, wsformat;
     $(document).ready(init);
 
     function init() {
@@ -47,7 +47,8 @@
 
     function connect()
     {
-        wsHost = "ws://" + window.location.host + "/ws/" + $("#server").val() + "/raw";
+        wsHost = "ws://" + window.location.host + "/ws/" + $("#type").val() + "/" + $("#server").val() + "/" + $("#format").val();
+        wsformat = $("#format").val();
         websocket = new WebSocket(wsHost);
         showScreen('Connecting to: ' +  wsHost);
         websocket.binaryType = 'arraybuffer';
@@ -70,9 +71,13 @@
     };
 
     function sendTxt() {
-        if(websocket.readyState == websocket.OPEN){
+        if(websocket.readyState == websocket.OPEN) {
             txt = $("#send_txt").val();
-            websocket.send(hexa_to_binary(txt).buffer);
+            if(wsformat == "raw") {
+                websocket.send(hexa_to_binary(txt).buffer);
+            } else {
+                websocket.send(txt);
+            }
             showScreen('<span style="color: green;">SEND: ' + txt + '</span>'); 
         } else {
             showScreen('websocket is not connected'); 
@@ -90,7 +95,12 @@
     };
 
     function onMessage(evt) {
-        showScreen('<span style="color: blue;">RECEIVED: ' + ascii_to_hexa(evt.data) +'</span>'); 
+        if(wsformat == "raw") {
+            showScreen('<span style="color: blue;">RECEIVED: ' + ascii_to_hexa(evt.data) +'</span>');
+        } else {
+            var msg = JSON.parse(evt.data);
+            showScreen('<span style="color: blue;">RECEIVED: ' + JSON.stringify(msg) +'</span>');
+        }
     };
 
     function onError(evt) {
@@ -119,8 +129,16 @@
 
     <div id="navigation">
       <p id="connecting">
-        DevEUI
+        <select id="type">
+          <option value="devices" selected="true">DevEUI</option>
+          <option value="links">DevAddr</option>
+          <option value="groups">Group</option>
+        </select>
         <input type='text' id="server" value=""></input>
+        <select id="format">
+          <option value="raw" selected="true">Raw</option>
+          <option value="json">JSON</option>
+        </select>
         <button type="button" onclick="toggle_connection()">connection</button>
       </p>
       <p id="connected">
