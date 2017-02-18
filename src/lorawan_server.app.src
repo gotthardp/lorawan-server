@@ -21,13 +21,15 @@
         % regional parameters
         {regions, [
             {<<"EU863-870">>, [
-                {join1_delay, 5000000}, % ms
-                {rx2_delay, 2000000}, % ms
+                {join1_delay, 5000000}, % us
+                {rx1_delay, 1000000}, % us
+                {rx2_delay, 2000000}, % us
                 % default RX2 frequency (MHz) and data rate (DRx)
                 {rx2_rf, {869.525, <<"SF12BW125">>}}
             ]},
             {<<"US902-928">>, [
                 {join1_delay, 5000000},
+                {rx1_delay, 1000000},
                 {rx2_delay, 2000000},
                 {rx2_rf, {923.3, <<"SF12BW500">>}}
             ]},
@@ -35,32 +37,39 @@
             % http://www.multitech.net/developer/software/lora/introduction-to-lora
             {<<"US902-928-PR">>, [
                 {join1_delay, 1000000},
+                {rx1_delay, 1000000},
                 {rx2_delay, 2000000},
                 {rx2_rf, {undefined, <<"SF12BW500">>}}
             ]},
             {<<"CN779-787">>, [
                 {join1_delay, 5000000},
+                {rx1_delay, 1000000},
                 {rx2_delay, 2000000},
                 {rx2_rf, {786, <<"SF12BW125">>}}
             ]},
             {<<"EU433">>, [
                 {join1_delay, 5000000},
-                {rx2_delay2, 2000000},
+                {rx1_delay, 1000000},
+                {rx2_delay, 2000000},
                 {rx2_rf, {434.665, <<"SF12BW125">>}}
             ]},
             {<<"AU915-928">>, [
                 {join1_delay, 5000000},
-                {rx2_delay2, 2000000},
+                {rx1_delay, 1000000},
+                {rx2_delay, 2000000},
                 {rx2_rf, {923.3, <<"SF12BW500">>}}
             ]},
             {<<"CN470-510">>, [
                 {join1_delay, 5000000},
-                {rx2_delay2, 2000000},
+                {rx1_delay, 1000000},
+                {rx2_delay, 2000000},
                 {rx2_rf, {505.3, <<"SF12BW125">>}}
             ]}
         ]},
         % {sec, fcnt} after which the device status should be request
-        {devstat_gap, {86400, 100}}
+        {devstat_gap, {86400, 100}},
+        % packet_forwarder push_timeout_ms + transmission delay
+        {gateway_delay, 200}
     ]},
     {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, iso8601,
         lorawan_server_api]}]}.

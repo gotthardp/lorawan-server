@@ -131,7 +131,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     case lorawan_application_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid) of
         ok ->
             % transmitting after join accept delay 1
-            TxQ = lorawan_mac_region:join1_rf(Link#link.region, RxQ),
+            TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, join1_delay),
             RxRate = lorawan_mac_region:rx2_dr(Link#link.region),
             txaccept(Gateway, TxQ, RxRate, AppKey, AppNonce, NetID, Link#link.devaddr);
         {error, Error} -> {error, Error}
@@ -242,25 +242,23 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
     store_rxpk(Gateway, Link, RxQ),
-    % will transmit in the RX2 window
-    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, RxQ),
     case Fresh of
         new ->
-            handle_uplink(Gateway, TxQ, Confirm, Link, Frame);
+            handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
         reset ->
             reset_link(Link#link.devaddr),
-            handle_uplink(Gateway, TxQ, Confirm, Link, Frame);
+            handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
         retransmit ->
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
-                    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, RxQ),
+                    TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, rx1_delay),
                     {send, Gateway, TxQ, LostFrame};
                 {false, _} ->
                     ok
             end
     end.
 
-handle_uplink(Gateway, TxQ, Confirm, Link, #frame{devaddr=DevAddr,
+handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
         adr_ack_req=ADRACKReq, ack=ACK, fport=FPort, fopts=FOpts, data=RxData}) ->
     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, FOpts),
     mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
@@ -286,14 +284,25 @@ handle_uplink(Gateway, TxQ, Confirm, Link, #frame{devaddr=DevAddr,
     case lorawan_application_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
             #rxdata{port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}) of
         retransmit ->
-            {send, Gateway, TxQ, LostFrame};
+            {send, Gateway, choose_tx(Link#link.region, RxQ), LostFrame};
         {send, TxData} ->
-            txpk(Gateway, TxQ, Link#link.devaddr, Confirm, FOptsOut, TxData);
+            txpk(Gateway, choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            txpk(Gateway, TxQ, Link#link.devaddr, Confirm, FOptsOut, #txdata{});
+            txpk(Gateway, choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
         ok -> ok;
         {error, Error} -> {error, Error}
+    end.
+
+choose_tx(Region, RxQ) ->
+    Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Region) / 1000,
+    {ok, GwDelay} = application:get_env(gateway_delay),
+    % transmit as soon as possible
+    case erlang:monotonic_time(milli_seconds) - RxQ#rxq.erlst of
+        Small when Small < Rx1Delay - GwDelay ->
+            lorawan_mac_region:rx1_rf(Region, RxQ, rx1_delay);
+        _Big ->
+            lorawan_mac_region:rx2_rf(Region, RxQ, rx2_delay)
     end.
 
 retransmit_downlink(DevAddr) ->

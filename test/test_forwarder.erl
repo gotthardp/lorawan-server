@@ -24,7 +24,7 @@ push_and_pull(MAC, Data) ->
     end.
 
 rxpk(Base64Data) ->
-    Pk = [{modu, <<"LORA">>}, {tmst, 0}, {data, Base64Data}],
+    Pk = [{modu, <<"LORA">>}, {tmst, 0}, {freq, 868.10}, {datr, <<"SF12BW125">>}, {data, Base64Data}],
     [{rxpk, [Pk]}].
 
 

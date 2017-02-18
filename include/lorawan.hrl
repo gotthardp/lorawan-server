@@ -4,7 +4,7 @@
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 
--record(rxq, {freq, datr, codr, time, tmst, chan, rfch, stat, rssi, lsnr}).
+-record(rxq, {freq, datr, codr, time, tmst, erlst, chan, rfch, stat, rssi, lsnr}).
 -record(txq, {freq, datr, codr, tmst, rfch, powe}).
 -record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
 

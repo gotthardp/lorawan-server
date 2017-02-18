@@ -146,7 +146,9 @@ txsend(Pid, Gateway, TxQ, PHYPayload) ->
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),
     case proplists:get_value(modu, Pk) of
-        <<"LORA">> -> {?to_record(rxq, Pk), Data}
+        <<"LORA">> ->
+            RxQ = ?to_record(rxq, Pk),
+            {RxQ#rxq{erlst=erlang:monotonic_time(milli_seconds)}, Data}
     end.
 
 build_txpk(TxQ, Data) ->

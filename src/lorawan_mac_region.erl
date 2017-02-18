@@ -5,33 +5,33 @@
 %
 -module(lorawan_mac_region).
 
--export([join1_rf/2, rx2_rf/2, rx2_dr/1, default_adr/1]).
--export([datar_to_dr/2, freq_range/1]).
+-export([rx1_rf/3, rx2_rf/3, rx2_dr/1, default_adr/1]).
+-export([datar_to_dr/2, freq_range/1, regional_config/2]).
 
 -include("lorawan.hrl").
 
 % we calculate in fixed-point numbers
-join1_rf(Region, RxQ)
+rx1_rf(Region, RxQ, Window)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
-    rf_same(Region, RxQ, RxQ#rxq.freq, join1_delay);
-join1_rf(<<"US902-928">> = Region, RxQ) ->
+    rf_same(Region, RxQ, RxQ#rxq.freq, Window);
+rx1_rf(<<"US902-928">> = Region, RxQ, Window) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), join1_delay);
-join1_rf(<<"US902-928-PR">> = Region, RxQ) ->
+    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), Window);
+rx1_rf(<<"US902-928-PR">> = Region, RxQ, Window) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), join1_delay);
-join1_rf(<<"AU915-928">> = Region, RxQ) ->
+    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), Window);
+rx1_rf(<<"AU915-928">> = Region, RxQ, Window) ->
     RxCh = f2ch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), join1_delay);
-join1_rf(<<"CN470-510">> = Region, RxQ) ->
+    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), Window);
+rx1_rf(<<"CN470-510">> = Region, RxQ, Window) ->
     RxCh = f2ch(RxQ#rxq.freq, {4703, 2}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 48, {5003, 2}), join1_delay).
+    rf_same(Region, RxQ, ch2f(RxCh rem 48, {5003, 2}), Window).
 
-rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
+rx2_rf(<<"US902-928-PR">> = Region, RxQ, Window) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), rx2_delay);
-rx2_rf(Region, RxQ) ->
-    rf_fixed(Region, RxQ, rx2_delay).
+    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), Window);
+rx2_rf(Region, RxQ, Window) ->
+    rf_fixed(Region, RxQ, Window).
 
 f2ch(Freq, {Start, Inc}) -> trunc(10*Freq-Start) div Inc.
 
