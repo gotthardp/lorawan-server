@@ -9,7 +9,10 @@ deploy:
   api_key:
     secure: GNnAtu+WQU8GPq5kegx9TnC4vQ1QnM3tQg+ws3QoZYAwLqpsixls2ryrGmFILWvmAPoppm1wzMWjb/akvRwTd0Anbki0dZPWxFZ6zunEyMgoZFp5UB4Qthbys4mf5X1+gLCjF9gPXY70Wda+APBamuNxI26K/+vMbOxl5+XVnRuVny8RShDUhNaUXGYQCBbdV9+jogpM/rpcS84eb4E6gutlrDJsXCAIAWIdNPreU3sHz6OYn+JLAVB0yfT1AsuKKwMQh1CBUxC59AIJqrx2VmX3sqBSOO09qm4qetz6j5fkeDE4Dfy2jRtipogVr+UoBFBd9KRHzsrqR6AOPaBv4zGaPcmJEtsV4bhns/0jsg34AOBi1/pC9wakv2+OCaA469SLh83nJQ8/9gU4wqg4pAlafrZ4C4R7+8ZL5xgXfOszaI0rX8+xMquilTzXmffaNYyAXVd44B/ye9/WRtYgQD4SHp+sIKPLSm/+lYerQBatdp12uVeKPJq+k3z8+IA7vV0BleNhohnMA1hoinAXI9KtS7YYb4Ws7eIPKT7aFqH5V8ivZEvJG43GIqJiGHMP/+EMzQmQlPjbKpSgzrKznIbOlecO1q3nU0BkhVK4+YqDnSCfO2jUtlxcDX9ipbm2OA6NRWpcty7QzzYK+T3RRL2a53KoaYgRgroa5/JSJ7o=
   file_glob: true
+  skip_cleanup: true
   file:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
   on:
+    otp_release: 18.3
+    tags: true
     repo: gotthardp/lorawan-server
