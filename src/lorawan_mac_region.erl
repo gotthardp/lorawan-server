@@ -33,13 +33,13 @@ rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
 rx2_rf(Region, RxQ) ->
     rf_fixed(Region, RxQ, rx2_delay).
 
-f2ch(Freq, {Start, Inc}) -> (10*Freq-Start) div Inc.
+f2ch(Freq, {Start, Inc}) -> trunc(10*Freq-Start) div Inc.
 
 % the channels are overlapping, return the integer value
 f2ch(Freq, {Start1, Inc1}, {Start2, Inc2}) ->
     if
-        (10*Freq-Start1) rem Inc1 == 0 -> (10*Freq-Start1) div Inc1;
-        (10*Freq-Start2) rem Inc2 == 0 -> 64 + (10*Freq-Start2) div Inc2
+        trunc(10*Freq-Start1) rem Inc1 == 0 -> trunc(10*Freq-Start1) div Inc1;
+        trunc(10*Freq-Start2) rem Inc2 == 0 -> 64 + trunc(10*Freq-Start2) div Inc2
     end.
 
 ch2f(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
