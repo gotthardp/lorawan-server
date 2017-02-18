@@ -13,6 +13,6 @@ deploy:
   file:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
   on:
-    otp_release: 18.3
+    condition: $TRAVIS_OTP_RELEASE = 18.3
     tags: true
     repo: gotthardp/lorawan-server
