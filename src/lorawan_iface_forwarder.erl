@@ -114,7 +114,7 @@ rxpk(MAC, PkList) ->
 
 remove_duplicates([{RxQ, PHYPayload} | Tail], Unique) ->
     % check if the first element is duplicate
-    case lists:keytake(PHYPayload, 3, Tail) of
+    case lists:keytake(PHYPayload, 2, Tail) of
         {value, {RxQ2, PHYPayload}, Tail2} ->
             % select element of a better quality and re-check for other duplicates
             if
