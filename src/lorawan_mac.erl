@@ -17,6 +17,8 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
+-record(frame, {devaddr, adr, adr_ack_req, ack, fcnt, fopts, fport, data}).
+
 process_frame(MAC, RxQ, PHYPayload) ->
     Size = byte_size(PHYPayload)-4,
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
@@ -72,20 +74,23 @@ process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
     <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
         FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
     DevAddr = reverse(DevAddr0),
-
+    Frame = #frame{devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort},
     case check_link(DevAddr, FCnt) of
-        {ok, L, Clean} ->
-            case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
+        {ok, Fresh, L} ->
+            case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, L#link.fcntup, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
-                    case Clean of
-                        true -> reset_link(L#link.devaddr);
-                        false -> ok
-                    end,
-                    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(store_adr(L, ADR), FOpts),
-                    mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
-                    Data = cipher(FRMPayload, L2#link.appskey, MType band 1, DevAddr, FCnt),
-                    store_rxpk(Gateway, L2, RxQ, FCnt, reverse(Data)),
-                    handle_rxpk(Gateway, RxQ, MType, L2, ADRACKReq, ACK, FOptsOut, FPort, reverse(Data));
+                    case FPort of
+                        0 when FOptsLen == 0 ->
+                            Data = cipher(FRMPayload, L#link.nwkskey, MType band 1, DevAddr, L#link.fcntup),
+                            handle_rxpk(Gateway, RxQ, MType, store_adr(L, ADR), Fresh,
+                                Frame#frame{fopts=reverse(Data), data= <<>>});
+                        0 ->
+                            {error, double_fopts};
+                        _N ->
+                            Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, L#link.fcntup),
+                            handle_rxpk(Gateway, RxQ, MType, store_adr(L, ADR), Fresh,
+                                Frame#frame{fopts=FOpts, data=reverse(Data)})
+                    end;
                 _MIC2 ->
                     {error, bad_mic}
             end;
@@ -164,6 +169,8 @@ is_ignored(DevAddr, [Key|Rest]) ->
         false -> is_ignored(DevAddr, Rest)
     end.
 
+match(<<DevAddr:32>>, <<MatchAddr:32>>, undefined) ->
+    DevAddr == MatchAddr;
 match(<<DevAddr:32>>, <<MatchAddr:32>>, <<MatchMask:32>>) ->
     (DevAddr band MatchMask) == MatchAddr.
 
@@ -172,20 +179,23 @@ check_link_fcnt(DevAddr, FCnt) ->
         [] ->
             lager:warning("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
             {error, {unknown_devaddr, DevAddr}};
+        [L] when FCnt == L#link.fcntup ->
+            % retransmission
+            {ok, retransmit, L};
         [L] when L#link.fcnt_check == 3 ->
             % checks disabled
-            {ok, L#link{fcntup = FCnt}, false};
-        [L] when L#link.fcnt_check == 2, FCnt < ?MAX_LOST_AFTER_RESET ->
-            % reset at 0
+            {ok, new, L#link{fcntup = FCnt}};
+        [L] when L#link.fcnt_check == 2, FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
+            lager:debug("~w fcnt reset", [DevAddr]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
-            {ok, L#link{fcntup = FCnt, fcntdown=0, devstat_fcnt=undefined}, true};
+            {ok, reset, L#link{fcntup = FCnt, fcntdown=0, devstat_fcnt=undefined}};
         [L] when L#link.fcnt_check == 1 ->
             % strict 32-bit
             case fcnt_gap32(L#link.fcntup, FCnt) of
                 N when N < ?MAX_FCNT_GAP ->
                     % L#link.fcntup is 32b, but the received FCnt may be 16b only
                     LastFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
-                    {ok, L#link{fcntup = LastFCnt}, false};
+                    {ok, new, L#link{fcntup = LastFCnt}};
                 _BigN ->
                     {error, {fcnt_gap_too_large, DevAddr, FCnt}}
             end;
@@ -193,7 +203,7 @@ check_link_fcnt(DevAddr, FCnt) ->
             % strict 16-bit (default)
             case fcnt_gap16(L#link.fcntup, FCnt) of
                 N when N < ?MAX_FCNT_GAP ->
-                    {ok, L#link{fcntup = FCnt}, false};
+                    {ok, new, L#link{fcntup = FCnt}};
                 _BigN ->
                     {error, {fcnt_gap_too_large, DevAddr, FCnt}}
             end
@@ -220,24 +230,42 @@ reset_link(DevAddr) ->
 
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
-store_rxpk(Gateway, Link, RxQ, FCnt, _Data) ->
+store_rxpk(Gateway, Link, RxQ) ->
     % store #rxframe{frid, mac, rssi, lsnr, region, freq, datr, codr, devaddr, fcnt, devstat}
     mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
         mac=Gateway#gateway.mac, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr,
         region=Link#link.region, freq=RxQ#rxq.freq, datr=RxQ#rxq.datr, codr=RxQ#rxq.codr,
-        devaddr=Link#link.devaddr, fcnt=FCnt, devstat=Link#link.devstat}),
+        devaddr=Link#link.devaddr, fcnt=Link#link.fcntup, devstat=Link#link.devstat}),
     ok.
 
-handle_rxpk(Gateway, RxQ, MType, Link, ADRACKReq, ACK, FOptsOut, Port, Data)
+handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
-    handle_uplink(Gateway, RxQ, Confirm, Link, ADRACKReq, ACK, FOptsOut, Port, Data).
-
-handle_uplink(Gateway, RxQ, Confirm, Link, ADRACKReq, ACK, FOptsOut, Port, Data) ->
+    store_rxpk(Gateway, Link, RxQ),
     % will transmit in the RX2 window
     TxQ = lorawan_mac_region:rx2_rf(Link#link.region, RxQ),
-    % check whether last transmission was lost
-    {LastLost, LostFrame} = check_lost(ACK, Link#link.devaddr),
+    case Fresh of
+        new ->
+            handle_uplink(Gateway, TxQ, Confirm, Link, Frame);
+        reset ->
+            reset_link(Link#link.devaddr),
+            handle_uplink(Gateway, TxQ, Confirm, Link, Frame);
+        retransmit ->
+            case retransmit_downlink(Link#link.devaddr) of
+                {true, LostFrame} ->
+                    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, RxQ),
+                    {send, Gateway, TxQ, LostFrame};
+                {false, _} ->
+                    ok
+            end
+    end.
+
+handle_uplink(Gateway, TxQ, Confirm, Link, #frame{devaddr=DevAddr,
+        adr_ack_req=ADRACKReq, ack=ACK, fport=FPort, fopts=FOpts, data=RxData}) ->
+    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, FOpts),
+    mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
+    % check whether last downlink transmission was lost
+    {LastLost, LostFrame} = repeat_downlink(DevAddr, ACK),
     % check whether the response is required
     ShallReply = if
         Confirm == 1 ->
@@ -256,7 +284,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, ADRACKReq, ACK, FOptsOut, Port, Data)
     end,
     % invoke applications
     case lorawan_application_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
-            #rxdata{port=Port, data=Data, last_lost=LastLost, shall_reply=ShallReply}) of
+            #rxdata{port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}) of
         retransmit ->
             {send, Gateway, TxQ, LostFrame};
         {send, TxData} ->
@@ -268,14 +296,24 @@ handle_uplink(Gateway, RxQ, Confirm, Link, ADRACKReq, ACK, FOptsOut, Port, Data)
         {error, Error} -> {error, Error}
     end.
 
-check_lost(0, DevAddr) ->
+retransmit_downlink(DevAddr) ->
     case mnesia:dirty_read(pending, DevAddr) of
-        [] -> {false, undefined};
-        [Msg] -> {true, Msg#pending.phypayload}
-    end;
-check_lost(1, DevAddr) ->
-    ok = mnesia:dirty_delete(pending, DevAddr),
-    {false, undefined}.
+        [] ->
+            {false, undefined};
+        [Msg] ->
+            {true, Msg#pending.phypayload}
+    end.
+
+repeat_downlink(DevAddr, ACK) ->
+    case mnesia:dirty_read(pending, DevAddr) of
+        [] ->
+            {false, undefined};
+        [#pending{confirmed=true} = Msg] when ACK == 0 ->
+            {true, Msg#pending.phypayload};
+        [_Msg] ->
+            ok = mnesia:dirty_delete(pending, DevAddr),
+            {false, undefined}
+    end.
 
 inc_fcntdown(DevAddr) ->
     mnesia:transaction(fun() ->
@@ -287,10 +325,12 @@ inc_fcntdown(DevAddr) ->
     end).
 
 txpk(Gateway, TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
-    {send, Gateway, TxQ, encode_txpk(2#011, DevAddr, ACK, FOpts, TxData)};
+    PHYPayload = encode_txpk(2#011, DevAddr, ACK, FOpts, TxData),
+    mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=false, phypayload=PHYPayload}),
+    {send, Gateway, TxQ, PHYPayload};
 txpk(Gateway, TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
     PHYPayload = encode_txpk(2#101, DevAddr, ACK, FOpts, TxData),
-    mnesia:dirty_write(pending, #pending{devaddr=DevAddr, phypayload=PHYPayload}),
+    mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=true, phypayload=PHYPayload}),
     {send, Gateway, TxQ, PHYPayload}.
 
 encode_txpk(MType, DevAddr, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
