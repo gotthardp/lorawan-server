@@ -5,7 +5,7 @@
 %
 -module(lorawan_admin).
 
--export([handle_authorization/2, get_filters/1, paginate/3]).
+-export([handle_authorization/2, get_filters/1, sort/3, paginate/3]).
 -export([parse_admin/1, build_admin/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -32,6 +32,24 @@ get_filters(Req) ->
     case cowboy_req:match_qs([{'_filters', [], <<"{}">>}], Req) of
         #{'_filters' := Filter} ->
             jsx:decode(Filter, [{labels, atom}])
+    end.
+
+sort(Req, State, List) ->
+    case cowboy_req:match_qs([{'_sortDir', [], <<"ASC">>}, {'_sortField', [], undefined}], Req) of
+        #{'_sortField' := undefined} ->
+            List;
+        #{'_sortDir' := <<"ASC">>, '_sortField' := Field} ->
+            Field2 = binary_to_existing_atom(Field, latin1),
+            lists:sort(
+                fun(A,B) ->
+                    proplists:get_value(Field2, A) =< proplists:get_value(Field2, B)
+                end, List);
+        #{'_sortDir' := <<"DESC">>, '_sortField' := Field} ->
+            Field2 = binary_to_existing_atom(Field, latin1),
+            lists:sort(
+                fun(A,B) ->
+                    proplists:get_value(Field2, A) >= proplists:get_value(Field2, B)
+                end, List)
     end.
 
 paginate(Req, State, List) ->

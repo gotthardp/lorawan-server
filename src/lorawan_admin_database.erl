@@ -45,7 +45,8 @@ content_types_provided(Req, State) ->
 
 handle_get(Req, #state{key=undefined}=State) ->
     lorawan_admin:paginate(Req, State,
-        read_records(lorawan_admin:get_filters(Req), State));
+        lorawan_admin:sort(Req, State,
+            read_records(lorawan_admin:get_filters(Req), State)));
 handle_get(Req, #state{table=Table, key=Key}=State) ->
     [Rec] = mnesia:dirty_read(Table, Key),
     {jsx:encode(build_record(Rec, State)), Req, State}.

@@ -3,7 +3,7 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_admin_rxq).
+-module(lorawan_admin_rxgraph).
 
 -export([init/2]).
 -export([is_authorized/2]).
@@ -15,9 +15,13 @@
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
+-record(state, {format}).
 
-init(Req, Opts) ->
-    {cowboy_rest, Req, Opts}.
+% range encompassing all possible LoRaWAN bands
+-define(DEFAULT_RANGE, {433, 928}).
+
+init(Req, [Format]) ->
+    {cowboy_rest, Req, #state{format=Format}}.
 
 is_authorized(Req, State) ->
     lorawan_admin:handle_authorization(Req, State).
@@ -30,7 +34,35 @@ content_types_provided(Req, State) ->
         {{<<"application">>, <<"json">>, []}, get_rxframe}
     ], Req, State}.
 
-get_rxframe(Req, State) ->
+get_rxframe(Req, #state{format=rgraph}=State) ->
+    DevAddr = cowboy_req:binding(devaddr, Req),
+    {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    % guess which frequency band the device is using
+    {Min, Max} = case ActRec of
+        [#rxframe{region=Region} | _] ->
+            lorawan_mac_region:freq_range(Region);
+        [] ->
+            ?DEFAULT_RANGE
+    end,
+    % construct Google Chart DataTable
+    % see https://developers.google.com/chart/interactive/docs/reference#dataparam
+    Array = [{cols, [
+                [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
+                [{id, <<"datr">>}, {label, <<"Data Rate">>}, {type, <<"number">>}],
+                [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
+                ]},
+            {rows, lists:map(fun(#rxframe{fcnt=FCnt, region=Region, datr=DatR, freq=Freq}) ->
+                    [{c, [
+                        [{v, FCnt}],
+                        [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
+                        [{v, Freq}]
+                    ]}]
+                end, ActRec)
+            }
+        ],
+    {jsx:encode([{devaddr, DevAddr}, {array, Array}, {'band', [{minValue, Min}, {maxValue, Max}]}]), Req, State};
+
+get_rxframe(Req, #state{format=qgraph}=State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
     {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable

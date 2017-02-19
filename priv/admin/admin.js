@@ -22,7 +22,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var txframes = nga.entity('txframes')
         .identifier(nga.field('frid'));
     var rxframes = nga.entity('rxframes')
-        .identifier(nga.field('devaddr'))
+        .identifier(nga.field('frid'))
         .readOnly();
 
     on_off_choices = [
@@ -116,7 +116,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
         nga.field('netid').label('NetID')
-    ]);
+    ])
+    .sortField('mac')
+    .sortDir('ASC');
+
     gateways.creationView().fields([
         nga.field('mac').label('MAC')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
@@ -151,7 +154,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('link', 'reference')
             .targetEntity(links)
             .targetField(nga.field('devaddr'))
-    ]);
+    ])
+    .sortField('deveui')
+    .sortDir('ASC');
+
     devices.creationView().fields([
         nga.field('deveui').label('DevEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
@@ -220,7 +226,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('devstat.battery', 'number').label('Battery'),
         nga.field('last_rx', 'datetime').label('Last RX')
-    ]);
+    ])
+    .sortField('devaddr')
+    .sortDir('ASC');
+
     var linkFieldsGeneral = [
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
@@ -329,7 +338,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ignored_links.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('mask')
-    ]);
+    ])
+    .sortField('devaddr')
+    .sortDir('ASC');
+
     ignored_links.creationView().fields([
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
@@ -341,6 +353,26 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ignored_links.editionView().fields(ignored_links.creationView().fields());
     // add to the admin application
     admin.addEntity(ignored_links);
+
+    // ---- rxframes
+    rxframes.listView().title('Received Frames');
+    rxframes.listView().fields([
+        nga.field('datetime', 'datetime').label('Received'),
+        nga.field('mac', 'reference').label('MAC')
+            .targetEntity(gateways)
+            .targetField(nga.field('mac')),
+        nga.field('devaddr', 'reference').label('DevAddr')
+            .targetEntity(links)
+            .targetField(nga.field('devaddr')),
+        nga.field('lsnr').label('SNR'),
+        nga.field('fcnt', 'number').label('FCnt'),
+        nga.field('port', 'number'),
+        nga.field('data')
+    ])
+    .sortField('datetime');
+
+    // add to the admin application
+    admin.addEntity(rxframes);
 
     // ---- menu
     admin.menu(nga.menu()
@@ -358,6 +390,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('deveui').label('DevEUI').isDetailLink(true),
                 nga.field('last_join', 'datetime').label('Last Join')
             ])
+            .sortField('deveui')
+            .sortDir('ASC')
+            .perPage(7)
         )
         .addCollection(nga.collection(links)
             .fields([
@@ -365,6 +400,23 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('devstat.battery', 'number').label('Battery'),
                 nga.field('last_rx', 'datetime').label('Last RX')
             ])
+            .sortField('devaddr')
+            .sortDir('ASC')
+            .perPage(7)
+        )
+        .addCollection(nga.collection(rxframes).title('Received Frames')
+            .fields([
+                nga.field('datetime', 'datetime').label('Received'),
+                nga.field('mac', 'reference').label('MAC')
+                    .targetEntity(gateways)
+                    .targetField(nga.field('mac')),
+                nga.field('devaddr', 'reference').label('DevAddr')
+                    .targetEntity(links)
+                    .targetField(nga.field('devaddr')),
+                nga.field('lsnr').label('SNR')
+            ])
+            .sortField('datetime')
+            .perPage(7)
         )
     );
 
@@ -506,7 +558,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/rx/'.concat($scope.value)})
+                $http({method: 'GET', url: '/rgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxChartObject.data = response.data.array;
                         $scope.rxChartObject.options.vAxes[1] = response.data.band;
@@ -557,7 +609,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/rxq/'.concat($scope.value)})
+                $http({method: 'GET', url: '/qgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxqChartObject.data = response.data.array;
                     });

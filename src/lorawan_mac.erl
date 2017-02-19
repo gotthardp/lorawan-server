@@ -223,7 +223,7 @@ fcnt_gap32(A, B) ->
     end.
 
 reset_link(DevAddr) ->
-    mnesia:dirty_delete(pending, DevAddr),
+    ok = mnesia:dirty_delete(pending, DevAddr),
     % delete previously stored RX and TX frames
     lorawan_db:purge_rxframes(DevAddr),
     lorawan_db:purge_txframes(DevAddr).
@@ -231,18 +231,17 @@ reset_link(DevAddr) ->
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
 store_rxpk(Gateway, Link, RxQ, Frame) ->
-    % store #rxframe{frid, mac, rssi, lsnr, region, freq, datr, codr, devaddr, fcnt, devstat}
+    % store #rxframe{frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt, port, data, region, datetime, devstat}
     mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
-        mac=Gateway#gateway.mac, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr,
-        region=Link#link.region, freq=RxQ#rxq.freq, datr=RxQ#rxq.datr, codr=RxQ#rxq.codr,
-        devaddr=Link#link.devaddr, fcnt=Link#link.fcntup, devstat=Link#link.devstat,
-        port=Frame#frame.fport, data=Frame#frame.data}),
-    ok.
+        mac=Gateway#gateway.mac, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr, freq=RxQ#rxq.freq,
+        datr=RxQ#rxq.datr, codr=RxQ#rxq.codr, devaddr=Link#link.devaddr,
+        fcnt=Link#link.fcntup, port=Frame#frame.fport, data=Frame#frame.data,
+        region=Link#link.region, datetime=calendar:universal_time(), devstat=Link#link.devstat}).
 
 handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
-    store_rxpk(Gateway, Link, RxQ, Frame),
+    ok = store_rxpk(Gateway, Link, RxQ, Frame),
     case Fresh of
         new ->
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
@@ -262,7 +261,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
 handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
         adr_ack_req=ADRACKReq, ack=ACK, fport=FPort, fopts=FOpts, data=RxData}) ->
     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, FOpts),
-    mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
+    ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
     % check whether last downlink transmission was lost
     {LastLost, LostFrame} = repeat_downlink(DevAddr, ACK),
     % check whether the response is required

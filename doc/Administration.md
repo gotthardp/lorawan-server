@@ -24,6 +24,7 @@ The following REST resources are made available:
   /links/*123*    | GET, PUT, DELETE | Active device with DevAddr=*123*
   /txframes       | GET              | Frames scheduled for transmission
   /txframes/*123* | GET, DELETE      | Frame with ID=*123*
+  /rxframes       | GET              | Recent received frames
 
 ## Web Admin
 
