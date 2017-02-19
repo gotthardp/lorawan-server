@@ -5,7 +5,7 @@
 %
 -module(lorawan_admin).
 
--export([handle_authorization/2, get_filters/1, sort/3, paginate/3]).
+-export([handle_authorization/2, get_filters/1, sort/2, paginate/3]).
 -export([parse_admin/1, build_admin/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -34,7 +34,7 @@ get_filters(Req) ->
             jsx:decode(Filter, [{labels, atom}])
     end.
 
-sort(Req, State, List) ->
+sort(Req, List) ->
     case cowboy_req:match_qs([{'_sortDir', [], <<"ASC">>}, {'_sortField', [], undefined}], Req) of
         #{'_sortField' := undefined} ->
             List;

@@ -380,11 +380,21 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(links).icon('<span class="fa fa-rss fa-fw"></span>'))
+        .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
         .addChild(nga.menu(ignored_links).icon('<span class="fa fa-ban fa-fw"></span>'))
     );
 
     // ---- dashboard
     admin.dashboard(nga.dashboard()
+        .addCollection(nga.collection(gateways)
+            .fields([
+                nga.field('mac').label('MAC').isDetailLink(true),
+                nga.field('netid').label('NetID')
+            ])
+            .sortField('mac')
+            .sortDir('ASC')
+            .perPage(7)
+        )
         .addCollection(nga.collection(devices)
             .fields([
                 nga.field('deveui').label('DevEUI').isDetailLink(true),
