@@ -11,7 +11,7 @@ The server:
 <li>Supports (any number of) Class A devices.</li>
 <li>Supports both the activation by personalization and the over-the-air activation.</li>
 <li>Supports both unconfirmed and confirmed data uplink and downlink.</li>
-<li>Supports the EU868 and EU433 bands.</li>
+<li>Supports the EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928 and CN 470-510 band.</li>
 <li>Supports per-node configuration of TX power and data rate (manual ADR).</li>
 <li>Runs on all major operating systems, including Windows, Linux, OS X and Solaris, even in a Docker container.</li>
 <li>Is free, distributed under the MIT license.</li>
