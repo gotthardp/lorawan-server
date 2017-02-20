@@ -241,7 +241,6 @@ store_rxpk(Gateway, Link, RxQ, Frame) ->
 handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
-    ok = store_rxpk(Gateway, Link, RxQ, Frame),
     case Fresh of
         new ->
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
@@ -249,6 +248,8 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             reset_link(Link#link.devaddr),
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
         retransmit ->
+            % we want to see retransmissions too
+            ok = store_rxpk(Gateway, Link, RxQ, Frame),
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
                     TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, rx1_delay),
@@ -259,9 +260,10 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
     end.
 
 handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
-        adr_ack_req=ADRACKReq, ack=ACK, fport=FPort, fopts=FOpts, data=RxData}) ->
+        adr_ack_req=ADRACKReq, ack=ACK, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, FOpts),
     ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
+    ok = store_rxpk(Gateway, L2, RxQ, Frame),
     % check whether last downlink transmission was lost
     {LastLost, LostFrame} = repeat_downlink(DevAddr, ACK),
     % check whether the response is required
