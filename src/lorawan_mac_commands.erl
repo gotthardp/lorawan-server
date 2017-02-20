@@ -29,49 +29,42 @@ handle(Link, FOpts) ->
     {ok, Link3, encode_fopts(FOptsOut)}.
 
 
-parse_fopts(FOpts) ->
-    parse_fopt(FOpts, []).
-
-parse_fopt(<<16#02, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [link_check_req | Acc]);
-parse_fopt(<<16#03, _RFU:5, PowerACK:1, DataRateACK:1, ChannelMaskACK:1, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | Acc]);
-parse_fopt(<<16#04, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [duty_cycle_ans | Acc]);
-parse_fopt(<<16#05, _RFU:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{rx_param_setup_ans, RX1DROffsetACK, RX2DataRateACK, ChannelACK} | Acc]);
-parse_fopt(<<16#06, Battery:8, _RFU:2, Margin:6, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{dev_status_ans, Battery, Margin} | Acc]);
-parse_fopt(<<16#07, _RFU:6, DataRateRangeOK:1, ChannelFreqOK:1, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | Acc]);
-parse_fopt(<<16#08, Rest/binary>>, Acc) ->
-    parse_fopt(Rest, [rx_timing_setup_ans | Acc]);
-parse_fopt(<<>>, Acc) ->
-    Acc;
-parse_fopt(Unknown, Acc) ->
+parse_fopts(<<16#02, Rest/binary>>) ->
+    [link_check_req | parse_fopts(Rest)];
+parse_fopts(<<16#03, _RFU:5, PowerACK:1, DataRateACK:1, ChannelMaskACK:1, Rest/binary>>) ->
+    [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | parse_fopts(Rest)];
+parse_fopts(<<16#04, Rest/binary>>) ->
+    [duty_cycle_ans | parse_fopts(Rest)];
+parse_fopts(<<16#05, _RFU:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, Rest/binary>>) ->
+    [{rx_param_setup_ans, RX1DROffsetACK, RX2DataRateACK, ChannelACK} | parse_fopts(Rest)];
+parse_fopts(<<16#06, Battery:8, _RFU:2, Margin:6, Rest/binary>>) ->
+    [{dev_status_ans, Battery, Margin} | parse_fopts(Rest)];
+parse_fopts(<<16#07, _RFU:6, DataRateRangeOK:1, ChannelFreqOK:1, Rest/binary>>) ->
+    [{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | parse_fopts(Rest)];
+parse_fopts(<<16#08, Rest/binary>>) ->
+    [rx_timing_setup_ans | parse_fopts(Rest)];
+parse_fopts(<<>>) ->
+    [];
+parse_fopts(Unknown) ->
     lager:warning("Unknown command ~w", [Unknown]),
-    Acc.
+    [].
 
-
-encode_fopts(FOpts) ->
-    encode_fopt(FOpts, <<>>).
-
-encode_fopt([{link_check_ans, Margin, GwCnt} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#02, Margin, GwCnt, Acc/binary>>);
-encode_fopt([{link_adr_req, DataRate, TXPower, ChMask, ChMaskCntl, NbRep} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#03, DataRate:4, TXPower:4, ChMask:16/little-unsigned-integer, 0:1, ChMaskCntl:3, NbRep:4, Acc/binary>>);
-encode_fopt([{duty_cycle_req, MaxDCycle} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#04, MaxDCycle, Acc/binary>>);
-encode_fopt([{rx_param_setup_req, RX1DROffset, RX2DataRate, Frequency} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#05, 0:1, RX1DROffset:3, RX2DataRate:4, Frequency:24/little-unsigned-integer, Acc/binary>>);
-encode_fopt([dev_status_req | Rest], Acc) ->
-    encode_fopt(Rest, <<16#06, Acc/binary>>);
-encode_fopt([{new_channel_req, ChIndex, Freq, MaxDR, MinDR} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#07, ChIndex, Freq:24/little-unsigned-integer, MaxDR:4, MinDR:4, Acc/binary>>);
-encode_fopt([{rx_timing_setup_req, Delay} | Rest], Acc) ->
-    encode_fopt(Rest, <<16#08, 0:4, Delay:4, Acc/binary>>);
-encode_fopt([], Acc) ->
-    Acc.
+encode_fopts([{link_check_ans, Margin, GwCnt} | Rest]) ->
+    <<16#02, Margin, GwCnt, (encode_fopts(Rest))/binary>>;
+encode_fopts([{link_adr_req, DataRate, TXPower, ChMask, ChMaskCntl, NbRep} | Rest]) ->
+    <<16#03, DataRate:4, TXPower:4, ChMask:16/little-unsigned-integer, 0:1, ChMaskCntl:3, NbRep:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{duty_cycle_req, MaxDCycle} | Rest]) ->
+    <<16#04, MaxDCycle, (encode_fopts(Rest))/binary>>;
+encode_fopts([{rx_param_setup_req, RX1DROffset, RX2DataRate, Frequency} | Rest]) ->
+    <<16#05, 0:1, RX1DROffset:3, RX2DataRate:4, Frequency:24/little-unsigned-integer, (encode_fopts(Rest))/binary>>;
+encode_fopts([dev_status_req | Rest]) ->
+    <<16#06, (encode_fopts(Rest))/binary>>;
+encode_fopts([{new_channel_req, ChIndex, Freq, MaxDR, MinDR} | Rest]) ->
+    <<16#07, ChIndex, Freq:24/little-unsigned-integer, MaxDR:4, MinDR:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{rx_timing_setup_req, Delay} | Rest]) ->
+    <<16#08, 0:4, Delay:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([]) ->
+    <<>>.
 
 
 handle_fopt({link_adr_ans,1,1,1}, Link) ->
