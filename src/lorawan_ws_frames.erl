@@ -53,6 +53,9 @@ websocket_handle({text, Msg}, State) ->
     store_frame(Msg, State);
 websocket_handle({binary, Msg}, State) ->
     store_frame(Msg, State);
+websocket_handle({ping, _}, State) ->
+    % no action needed as server handles pings automatically
+    {ok, State};
 websocket_handle(Data, State) ->
     lager:warning("Unknown handle ~w", [Data]),
     {ok, State}.

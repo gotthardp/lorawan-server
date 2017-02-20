@@ -39,6 +39,14 @@ For example:
     {"devaddr":"11223344","port":2,"data":"0026BF08BD03CD35000000000000FFFF"}
 ```
 
+## Keep-alive
+
+The WebSocket connection will be closed if the client sends no data for 60 seconds.
+To keep the connection open the client (browser) needs to keep sending **ping** frames.
+
+This may not be enabled by default. To enable **ping** frames in Firefox, go to
+**about:config** and set **network.websocket.timeout.ping.request** to (for example) 15.
+
 ## Demo page
 
 Demo client is available at [`admin/ws.html`](../priv/admin/ws.html). Select the
