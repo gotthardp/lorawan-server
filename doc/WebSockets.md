@@ -41,11 +41,17 @@ For example:
 
 ## Keep-alive
 
-The WebSocket connection will be closed if the client sends no data for 60 seconds.
-To keep the connection open the client (browser) needs to keep sending **ping** frames.
+By default, the WebSocket connection will be closed if the client sends no data for 1 hour.
+This is to avoid stale connections.
 
-This may not be enabled by default. To enable **ping** frames in Firefox, go to
-**about:config** and set **network.websocket.timeout.ping.request** to (for example) 15.
+To keep the connection open for a longer time:
+ * You can adjust the `{websocket_timeout, 360000}` configuration parameter to a higher
+   value (in milliseconds), or even to `infinity`.
+ * Or the client (browser) needs to keep sending **ping** frames.
+
+The **ping** frames may not be enabled by default. To enable **ping** frames in Firefox,
+go to **about:config** and set **network.websocket.timeout.ping.request** to (for example)
+120 (seconds).
 
 ## Demo page
 

@@ -15,9 +15,10 @@
 
 init(Req, [Format]) ->
     Type = cowboy_req:binding(type, Req),
-    init0(Req, Type, Format).
+    {ok, Timeout} = application:get_env(lorawan_server, websocket_timeout),
+    init0(Req, Type, Format, #{idle_timeout => Timeout}).
 
-init0(Req, <<"devices">>, Format) ->
+init0(Req, <<"devices">>, Format, Opts) ->
     DevEUI = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
@@ -25,15 +26,15 @@ init0(Req, <<"devices">>, Format) ->
             Req2 = cowboy_req:reply(404, Req),
             {ok, Req2, undefined};
         [Dev] ->
-            {cowboy_websocket, Req, #state{devaddr=Dev#device.link, format=Format}}
+            {cowboy_websocket, Req, #state{devaddr=Dev#device.link, format=Format}, Opts}
     end;
-init0(Req, <<"links">>, Format) ->
+init0(Req, <<"links">>, Format, Opts) ->
     DevAddr = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
-    {cowboy_websocket, Req, #state{devaddr=DevAddr, format=Format}};
-init0(Req, <<"groups">>, Format) ->
+    {cowboy_websocket, Req, #state{devaddr=DevAddr, format=Format}, Opts};
+init0(Req, <<"groups">>, Format, Opts) ->
     GName = cowboy_req:binding(name, Req),
-    {cowboy_websocket, Req, #state{gname=GName, format=Format}};
-init0(Req, Unknown, _Format) ->
+    {cowboy_websocket, Req, #state{gname=GName, format=Format}, Opts};
+init0(Req, Unknown, _Format, _Opts) ->
     lager:warning("Unknown WebSocket type: ~s", [Unknown]),
     Req2 = cowboy_req:reply(404, Req),
     {ok, Req2, undefined}.
