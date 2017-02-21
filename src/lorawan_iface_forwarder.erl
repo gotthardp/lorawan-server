@@ -139,7 +139,7 @@ status(MAC, Pk) ->
 
 txsend(Pid, Gateway, TxQ, PHYPayload) ->
     % TX only supported on radio A
-    Pk = [{txpk, build_txpk(TxQ#txq{rfch=Gateway#gateway.tx_rfch, powe=14}, PHYPayload)}],
+    Pk = [{txpk, build_txpk(TxQ#txq{rfch=Gateway#gateway.tx_rfch}, PHYPayload)}],
     % lager:debug("<--- ~w", [Pk]),
     gen_server:cast(Pid, {send, Gateway#gateway.mac, jsx:encode(Pk)}).
 

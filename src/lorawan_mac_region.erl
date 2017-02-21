@@ -47,13 +47,15 @@ ch2f(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
 rf_fixed(Region, RxQ, Window) ->
     {Freq, DataRate} = regional_config(rx2_rf, Region),
     Delay = regional_config(Window, Region),
-    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay}.
+    Power = default_erp(Region),
+    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay, powe=Power}.
 
 rf_same(Region, RxQ, Freq, Window) ->
     % TODO: implement RX1DROffset
     DataRate = datar_to_down(Region, RxQ#rxq.datr, 0),
     Delay = regional_config(Window, Region),
-    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay}.
+    Power = default_erp(Region),
+    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay, powe=Power}.
 
 datar_to_down(Region, DataRate, Offset) ->
     Down = dr_to_down(Region, datar_to_dr(Region, DataRate)),
@@ -138,6 +140,15 @@ default_adr(<<"CN779-787">>) -> {1, 0, [{0,2}]};
 default_adr(<<"EU433">>) -> {0, 0, [{0,2}]};
 default_adr(<<"AU915-928">>) -> {5, 0, [{0,71}]};
 default_adr(<<"CN470-510">>) -> {2, 0, [{0, 95}]}.
+
+% default power for downlinks (dBm)
+default_erp(<<"EU863-870">>) -> 14;
+default_erp(<<"US902-928">>) -> 20;
+default_erp(<<"US902-928-PR">>) -> 20;
+default_erp(<<"CN779-787">>) -> 10;
+default_erp(<<"EU433">>) -> 10;
+default_erp(<<"AU915-928">>) -> 20;
+default_erp(<<"CN470-510">>) -> 14.
 
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};
