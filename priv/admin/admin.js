@@ -554,7 +554,7 @@ return {
 
 myApp.config(function (uiGmapGoogleMapApiProvider) {
     uiGmapGoogleMapApiProvider.configure({
-        key: '',
+        key: GoogleMapsKey,
         v: '3',
         libraries: 'visualization'
     });

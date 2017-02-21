@@ -84,6 +84,12 @@ For example:
 ]}].
 ```
 
+Review the `lorawan-server/lib/lorawan_server-<VERSION>/priv/admin/admin.js` with the
+admin configuration:
+ * You may need to obtain a [Google API](https://console.developers.google.com) key for
+   the Google Maps and enter it in `GoogleMapsKey`. For deployments on a local network
+   this is not needed.
+
 You may need to enable communication channels from LoRaWAN gateways in your firewall.
 If you use the `firewalld` (Fedora, RHEL, CentOS) do:
 ```bash
