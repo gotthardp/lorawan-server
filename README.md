@@ -7,7 +7,10 @@ or for device and application developers.
 The server:
  * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
    * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
-     such as the Semtech LoRa demo kit and [LORANK-8](http://webshop.ideetron.nl/LORANK-8) gateways.
+     such as the Semtech LoRa demo kit,
+     [LoRa Lite Gateway](https://wireless-solutions.de/products/long-range-radio/lora_lite_gateway.html),
+     [LORANK-8](http://webshop.ideetron.nl/LORANK-8),
+     or [MultiConnect Conduit](http://www.multitech.com/brands/multiconnect-conduit).
  * Performs all required encryption and integrity checks.
  * Invokes internal modules with application logic. It provides examples for:
    * [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
@@ -20,7 +23,9 @@ The server:
  * Supports the EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928 and CN 470-510 band.
  * Supports per-node configuration of TX power and data rate (manual ADR).
  * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,
-   even in a Docker container.
+   even on embedded systems like OpenWrt or in a Docker container.
+ * Does not crash as it's implemented in [Erlang](https://www.erlang.org/), which is
+   designed for building fault-tolerant systems.
  * Is free, distributed under the MIT license.
 
 The server aims to be an all-in-one software package for small private LoRa networks.
