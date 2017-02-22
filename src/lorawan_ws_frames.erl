@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -62,29 +62,26 @@ websocket_handle(Data, State) ->
     {ok, State}.
 
 store_frame(Msg, #state{format=raw} = State) ->
-    store_frame0(undefined, undefined, Msg, State);
+    store_frame0(undefined, #txdata{data=Msg}, State);
 store_frame(Msg, #state{format=json} = State) ->
     Struct = jsx:decode(Msg, [{labels, atom}]),
-    DevAddr = case proplists:get_value(devaddr, Struct) of
-        undefined -> undefined;
-        Hex1 -> lorawan_mac:hex_to_binary(Hex1)
-    end,
-    Port = proplists:get_value(port, Struct),
-    Data = case proplists:get_value(data, Struct) of
-        undefined -> <<>>;
-        Hex2 -> lorawan_mac:hex_to_binary(Hex2)
-    end,
-    store_frame0(DevAddr, Port, Data, State).
+    store_frame0(extract_bin(devaddr, Struct, undefined),
+        #txdata{
+            confirmed = proplists:get_value(confirmed, Struct, false),
+            port = proplists:get_value(port, Struct),
+            data = extract_bin(data, Struct, <<>>),
+            pending = proplists:get_value(pending, Struct, false)
+        }, State).
 
-store_frame0(undefined, Port, Data, #state{devaddr=DevAddr, gname=undefined} = State) ->
-    lorawan_application_handler:store_frame(DevAddr, #txdata{port=Port, data=Data}),
+store_frame0(undefined, TxData, #state{devaddr=DevAddr, gname=undefined} = State) ->
+    lorawan_application_handler:store_frame(DevAddr, TxData),
     {ok, State};
-store_frame0(undefined, Port, Data, #state{gname=GName} = State) ->
-    [lorawan_application_handler:store_frame(DevAddr, #txdata{port=Port, data=Data})
+store_frame0(undefined, TxData, #state{gname=GName} = State) ->
+    [lorawan_application_handler:store_frame(DevAddr, TxData)
         || DevAddr <- mnesia:dirty_select(links, [{#link{devaddr='$1', app= <<"websocket">>, appid=GName, _='_'}, [], ['$1']}])],
     {ok, State};
-store_frame0(DevAddr, Port, Data, State) ->
-    lorawan_application_handler:store_frame(DevAddr, #txdata{port=Port, data=Data}),
+store_frame0(DevAddr, TxData, State) ->
+    lorawan_application_handler:store_frame(DevAddr, TxData),
     {ok, State}.
 
 websocket_info({send, _DevAddr, _AppID, #rxdata{data=Data}}, #state{format=raw} = State) ->
@@ -103,6 +100,12 @@ get_processes0(Group) ->
     case pg2:get_members(Group) of
         List when is_list(List) -> List;
         {error, _} -> []
+    end.
+
+extract_bin(Key, Struct, Default) ->
+    case proplists:get_value(Key, Struct) of
+        undefined -> Default;
+        Hex -> lorawan_mac:hex_to_binary(Hex)
     end.
 
 % end of file

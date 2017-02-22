@@ -28,15 +28,17 @@ using the JSON format.
 
 The JSON structure contains the following fields:
 
-  Field              | Explanation
- --------------------|--------------------------------------------------------------------
-  devaddr            | DevAddr of the link (active node).
-  port               | LoRaWAN port number.
-  data               | Raw application payload, encoded as a hexadecimal string.
+  Field       | Type        | Explanation
+ -------------|-------------|-------------------------------------------------------------
+  devaddr     | Hex String  | DevAddr of the link (active node).
+  port        | Integer     | LoRaWAN port number.
+  data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
+  confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
+  pending     | Boolean     | Whether the application has more to send (false by default).
 
 For example:
 ```json
-    {"devaddr":"11223344","port":2,"data":"0026BF08BD03CD35000000000000FFFF"}
+    {"devaddr":"11223344","port":2,"data":"0026BF08BD03CD35000000000000FFFF","confirmed":true}
 ```
 
 ## Keep-alive

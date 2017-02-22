@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -20,9 +20,15 @@ handle_join(_DevAddr, _App, _AppID) ->
     % accept any device
     ok.
 
+handle_rx(DevAddr, _App, AppID, #rxdata{last_lost=true} = RxData) ->
+    send_to_sockets(DevAddr, AppID, RxData),
+    retransmit;
 handle_rx(DevAddr, _App, AppID, #rxdata{port=Port} = RxData) ->
-    Sockets = lorawan_ws_frames:get_processes(DevAddr, AppID),
-    [Pid ! {send, DevAddr, AppID, RxData} || Pid <- Sockets],
+    send_to_sockets(DevAddr, AppID, RxData),
     lorawan_application_handler:send_stored_frames(DevAddr, Port).
+
+send_to_sockets(DevAddr, AppID, RxData) ->
+    Sockets = lorawan_ws_frames:get_processes(DevAddr, AppID),
+    [Pid ! {send, DevAddr, AppID, RxData} || Pid <- Sockets].
 
 % end of file
