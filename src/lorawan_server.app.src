@@ -18,7 +18,7 @@
         {forwarder_port, 1680},
         {http_admin_port, 8080},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},
-        {websocket_timeout, 360000}, % ms
+        {websocket_timeout, 3600000}, % ms
         % regional parameters
         {regions, [
             {<<"EU863-870">>, [
