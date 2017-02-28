@@ -37,15 +37,17 @@ get_rxframe(Req, State) ->
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
-                [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}]
+                [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
+                [{id, <<"margin">>}, {label, <<"Margin (dB)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:filtermap(
                 fun (#rxframe{devstat=undefined}) ->
                     false;
-                (#rxframe{fcnt=FCnt, devstat={Batt, _}}) ->
+                (#rxframe{fcnt=FCnt, devstat={Batt, Margin}}) ->
                     {true,  [{c, [
                                 [{v, FCnt}],
-                                [{v, Batt}]
+                                [{v, Batt}],
+                                [{v, Margin}]
                             ]}]}
                 end, ActRec)
             }

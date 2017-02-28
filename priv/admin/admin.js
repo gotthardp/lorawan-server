@@ -678,10 +678,12 @@ return {
             $scope.rxdChartObject.type = "LineChart";
             $scope.rxdChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Battery'}
+                    0: {"title": 'Battery'},
+                    1: {"title": 'Margin (dB)'}
                 },
                 "series": {
-                    0: {"targetAxisIndex": 0}
+                    0: {"targetAxisIndex": 0},
+                    1: {"targetAxisIndex": 1}
                 },
                 "chartArea": {
                     "top": 0, "bottom": "10%",
