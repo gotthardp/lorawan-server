@@ -24,17 +24,17 @@ do_init([Application|Rest], Acc) ->
         Else -> Else
     end.
 
-invoke_init({AppID, {App, Module}}) ->
-    {ok, _Started} = application:ensure_all_started(App),
-    apply(Module, init, [AppID]);
-invoke_init({AppID, Module}) when is_atom(Module) ->
-    apply(Module, init, [AppID]).
+invoke_init({App, {AppName, Module}}) ->
+    {ok, _Started} = application:ensure_all_started(AppName),
+    apply(Module, init, [App]);
+invoke_init({App, Module}) when is_atom(Module) ->
+    apply(Module, init, [App]).
 
-handle_join(DevAddr, App, AppID) ->
-    invoke_handler(handle_join, App, [DevAddr, App, AppID]).
+handle_join(DevAddr, App, AppArgs) ->
+    invoke_handler(handle_join, App, [DevAddr, App, AppArgs]).
 
-handle_rx(DevAddr, App, AppID, RxData) ->
-    invoke_handler(handle_rx, App, [DevAddr, App, AppID, RxData]).
+handle_rx(DevAddr, App, AppArgs, RxData) ->
+    invoke_handler(handle_rx, App, [DevAddr, App, AppArgs, RxData]).
 
 invoke_handler(Fun, App, Params) ->
     {ok, Modules} = application:get_env(plugins),

@@ -149,7 +149,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Arguments'),
         nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('link', 'reference')
             .targetEntity(links)
@@ -169,7 +169,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Arguments'),
         nga.field('appeui').label('AppEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{16}' }),
@@ -221,7 +221,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Arguments'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('devstat.battery', 'number').label('Battery'),
@@ -241,7 +241,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Arguments'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),

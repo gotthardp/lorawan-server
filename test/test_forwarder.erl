@@ -30,7 +30,7 @@ rxpk(Base64Data) ->
 
 push_data(MAC, Data) ->
     {ok, Socket} = gen_udp:open(0, [binary]),
-    Token = crypto:rand_bytes(2),
+    Token = crypto:strong_rand_bytes(2),
     % PUSH_DATA
     ok = gen_udp:send(Socket, "localhost", 1680, <<1, Token:2/binary, 0, MAC/binary, (jsx:encode(Data))/binary>>),
     R = receive
@@ -45,7 +45,7 @@ push_data(MAC, Data) ->
 
 pull_data(MAC) ->
     {ok, Socket} = gen_udp:open(0, [binary]),
-    Token = crypto:rand_bytes(2),
+    Token = crypto:strong_rand_bytes(2),
     % PULL_DATA
     ok = gen_udp:send(Socket, "localhost", 1680, <<1, Token:2/binary, 2, MAC/binary>>),
     receive

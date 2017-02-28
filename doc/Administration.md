@@ -58,7 +58,7 @@ For each device, which may connect to your network, you can set:
  * *DevEUI* of the device
  * *Region* that determines the LoRaWAN regional parameters
  * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
- * *AppID*, which is a string with application-specific configuration.
+ * *Arguments*, which is an opaque string with application-specific settings.
  * *AppEUI* and *AppKey*
  * *FCnt Check* to be used for this device
    * *Strict 16-bit* (default) or *Strict 32-bit* indicate a standard compliant counter.
@@ -81,7 +81,7 @@ For each device, which is connected (has a link) to the network, you can set:
  * *DevEUI* of the device
  * *Region* that determines the LoRaWAN regional parameters
  * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
- * *AppID*, which is a string with application-specific configuration.
+ * *Arguments*, which is an opaque string with application-specific settings.
  * *NwkSKey* and *AppSKey*
  * *FCnt Check* to be used for this device (see the Devices section for more explanation).
 

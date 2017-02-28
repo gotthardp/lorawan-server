@@ -10,7 +10,7 @@ URL is used to select both the target device(s) as well as the desired format.
  --------------------|--------------------------------------------------------------------
   /devices/*123*/... | Connects to a device with a DevEUI=*123*.
   /links/*456*/...   | Connects to a link (active node) with a DevAddr=*456*.
-  /groups/*ABC*/...  | Connects to all websocket devices whose **AppID** is set to *ABC*.
+  /groups/*ABC*/...  | Connects to all websocket devices whose **AppArgs** is set to *ABC*.
 
 Multiple parallel connections may be established to one URL.
 When the device sends a frame, all connected clients will receive the application data.

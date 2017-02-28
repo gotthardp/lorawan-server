@@ -84,17 +84,17 @@ store_frame0(DevAddr, TxData, State) ->
     lorawan_application_handler:store_frame(DevAddr, TxData),
     {ok, State}.
 
-websocket_info({send, _DevAddr, _AppID, #rxdata{data=Data}}, #state{format=raw} = State) ->
+websocket_info({send, _DevAddr, _AppArgs, #rxdata{data=Data}}, #state{format=raw} = State) ->
     {reply, {binary, Data}, State};
-websocket_info({send, DevAddr, _AppID, #rxdata{port=Port, data=Data}}, #state{format=json} = State) ->
+websocket_info({send, DevAddr, _AppArgs, #rxdata{port=Port, data=Data}}, #state{format=json} = State) ->
     Msg = [{devaddr, lorawan_mac:binary_to_hex(DevAddr)}, {port, Port}, {data, lorawan_mac:binary_to_hex(Data)}],
     {reply, {text, jsx:encode(Msg)}, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~w", [Info]),
     {ok, State}.
 
-get_processes(DevAddr, AppID) ->
-    get_processes0({?MODULE, links, DevAddr}) ++ get_processes0({?MODULE, groups, AppID}).
+get_processes(DevAddr, AppArgs) ->
+    get_processes0({?MODULE, links, DevAddr}) ++ get_processes0({?MODULE, groups, AppArgs}).
 
 get_processes0(Group) ->
     case pg2:get_members(Group) of

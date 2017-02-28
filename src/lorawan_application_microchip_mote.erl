@@ -16,20 +16,20 @@
 init(_App) ->
     ok.
 
-handle_join(_DevAddr, _App, _AppID) ->
+handle_join(_DevAddr, _App, _AppArgs) ->
     % accept any device
     ok.
 
 % the data structure is explained in
 % Lora_Legacy_Mote_Firmware/Includes/Board/MOTEapp.c:520
-handle_rx(DevAddr, _App, _AppID, #rxdata{data= <<Light:5/binary, Temp:3/binary>>}) ->
+handle_rx(DevAddr, _App, _AppArgs, #rxdata{data= <<Light:5/binary, Temp:3/binary>>}) ->
     lager:debug("PUSH_DATA ~s ~s",[DevAddr, Light, Temp]),
     % display actual time
     {H, M, S} = time(),
     Time = lists:flatten(io_lib:format('~2..0b:~2..0b:~2..0b', [H, M, S])),
     {send, #txdata{port=2, data=list_to_binary(Time)}};
 
-handle_rx(_DevAddr, _App, _AppID, RxData) ->
+handle_rx(_DevAddr, _App, _AppArgs, RxData) ->
     {error, {unexpected_data, RxData}}.
 
 % end of file
