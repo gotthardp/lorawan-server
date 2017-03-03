@@ -74,7 +74,8 @@ parse_admin(List) ->
             ({Key, Value}) when Key == rxq -> {Key, ?to_record(rxq, parse_admin(Value))};
             ({Key, Value}) when Key == txdata -> {Key, ?to_record(txdata, parse_admin(Value))};
             ({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
-                                Key == time; Key == datetime -> {Key, iso8601:parse_exact(Value)};
+                                Key == datetime -> {Key, iso8601:parse(Value)};
+            ({Key, Value}) when Key == time -> {Key, iso8601:parse_exact(Value)};
             ({Key, Value}) when Key == devstat -> {Key, parse_devstat(Value)};
             (Else) -> Else
         end,
