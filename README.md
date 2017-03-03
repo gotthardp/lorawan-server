@@ -71,15 +71,6 @@ After the installation you have to:
  * Configure each device you want to use, either as a personalized device (ABP) or
    as an over-the-air activated (OTAA) device.
 
-Use the `dbexport` script to backup your list of users, gateways, devices and links.
-This will create several `db*.json` files. Use the `dbimport` script to write these
-files back to the server database.
-
-The database is stored in the `Mnesia.lorawan@localhost` directory. To upgrade
-the database structure or recover from database errors you should do `dbexport`,
-then shutdown the server, update the server binaries, delete the Mnesia directory,
-start the server and do `dbimport`.
-
 ### Integration
 
 You can integrate lorawan-server with external applications using the WebSocket
@@ -101,24 +92,13 @@ To implement a new application you need to create a new module implementing the
 
 ## Copyright and Licensing
 
-The MIT License (MIT)
+The lorawan-server is distributed under the MIT License.
+See the [LICENSE](LICENSE).
 
 Copyright (c) 2016-2017 Petr Gotthard
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+### Sponsors
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+<a href="http://www.iotini.com"><img align="left" src="http://www.iotini.com/images/logo.png"></a>
+[I2OT](http://www.iotini.com/#product) is the first industrial wireless sensor
+system that provides a total solution for industrial sensing needs.

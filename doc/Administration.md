@@ -26,6 +26,7 @@ The following REST resources are made available:
   /txframes/*123* | GET, DELETE      | Frame with ID=*123*
   /rxframes       | GET              | Recent received frames
 
+
 ## Web Admin
 
 The management web-pages are available under `/admin`. It is just a wrapper around
@@ -97,3 +98,15 @@ transmission. Class A devices listen for downlinks only for 2 seconds after an u
 transmission, so it may take a while until all messages are transmitted.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-link-status.png)
+
+
+## Backup and Restore
+
+Use the `dbexport` script to backup your list of users, gateways, devices and links.
+This will create several `db*.json` files. Use the `dbimport` script to write these
+files back to the server database.
+
+The database is stored in the `Mnesia.lorawan@localhost` directory. To upgrade
+the database structure or recover from database errors you should do `dbexport`,
+then shutdown the server, update the server binaries, delete the Mnesia directory,
+start the server and do `dbimport`.
