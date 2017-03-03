@@ -318,7 +318,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<qgraph value="value"></qgraph>')
     ]).concat([
         nga.field('devstat.battery', 'number').label('Battery'),
-        nga.field('devstat.margin', 'number').label('Margin'),
+        nga.field('devstat.margin', 'number').label('SNR (dB)'),
         nga.field('devstat_time', 'datetime').label('Status Time'),
         nga.field('devstat_fcnt', 'number').label('Status FCnt'),
         nga.field('devaddr', 'template').label('Device Status')
@@ -364,7 +364,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr', 'reference').label('DevAddr')
             .targetEntity(links)
             .targetField(nga.field('devaddr')),
-        nga.field('lsnr').label('SNR'),
+        nga.field('rxq.lsnr').label('SNR'),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('port', 'number'),
         nga.field('data')
@@ -423,7 +423,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('devaddr', 'reference').label('DevAddr')
                     .targetEntity(links)
                     .targetField(nga.field('devaddr')),
-                nga.field('lsnr').label('SNR')
+                nga.field('rxq.lsnr').label('SNR')
             ])
             .sortField('datetime')
             .perPage(7)
@@ -679,7 +679,7 @@ return {
             $scope.rxdChartObject.options = {
                 "vAxes": {
                     0: {"title": 'Battery'},
-                    1: {"title": 'Margin (dB)'}
+                    1: {"title": 'SNR (dB)'}
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},
@@ -698,7 +698,8 @@ return {
                     "gridlines": {"count": -1}
                 },
                 "vAxes": {
-                    0: {"minValue":0, "maxValue": 255}
+                    0: {"minValue":0, "maxValue": 255},
+                    1: {"minValue":-32, "maxValue": 31}
                 }
             };
             updateData();

@@ -38,7 +38,7 @@ get_rxframe(Req, State) ->
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
                 [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
-                [{id, <<"margin">>}, {label, <<"Margin (dB)">>}, {type, <<"number">>}]
+                [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:filtermap(
                 fun (#rxframe{devstat=undefined}) ->
@@ -47,6 +47,7 @@ get_rxframe(Req, State) ->
                     {true,  [{c, [
                                 [{v, FCnt}],
                                 [{v, Batt}],
+                                % what the standard calls "margin" is simply the SNR
                                 [{v, Margin}]
                             ]}]}
                 end, ActRec)

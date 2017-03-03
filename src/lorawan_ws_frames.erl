@@ -64,14 +64,20 @@ websocket_handle(Data, State) ->
 store_frame(Msg, #state{format=raw} = State) ->
     store_frame0(undefined, #txdata{data=Msg}, State);
 store_frame(Msg, #state{format=json} = State) ->
-    Struct = jsx:decode(Msg, [{labels, atom}]),
-    store_frame0(extract_bin(devaddr, Struct, undefined),
-        #txdata{
-            confirmed = proplists:get_value(confirmed, Struct, false),
-            port = proplists:get_value(port, Struct),
-            data = extract_bin(data, Struct, <<>>),
-            pending = proplists:get_value(pending, Struct, false)
-        }, State).
+    case jsx:is_json(Msg) of
+        true ->
+            Struct = jsx:decode(Msg, [{labels, atom}]),
+            store_frame0(extract_bin(devaddr, Struct, undefined),
+                #txdata{
+                    confirmed = proplists:get_value(confirmed, Struct, false),
+                    port = proplists:get_value(port, Struct),
+                    data = extract_bin(data, Struct, <<>>),
+                    pending = proplists:get_value(pending, Struct, false)
+                }, State);
+        false ->
+            lager:warning("JSON syntax error"),
+            {stop, State}
+    end.
 
 store_frame0(undefined, TxData, #state{devaddr=DevAddr, gname=undefined} = State) ->
     lorawan_application_handler:store_frame(DevAddr, TxData),
