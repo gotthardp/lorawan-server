@@ -231,10 +231,9 @@ reset_link(DevAddr) ->
 store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
 
 store_rxpk(Gateway, Link, RxQ, Frame) ->
-    % store #rxframe{frid, mac, rssi, lsnr, freq, datr, codr, devaddr, fcnt, port, data, region, datetime, devstat}
+    % store #rxframe{frid, mac, rxq, devaddr, fcnt, port, data, region, datetime, devstat}
     mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
-        mac=Gateway#gateway.mac, rssi=RxQ#rxq.rssi, lsnr=RxQ#rxq.lsnr, freq=RxQ#rxq.freq,
-        datr=RxQ#rxq.datr, codr=RxQ#rxq.codr, devaddr=Link#link.devaddr,
+        mac=Gateway#gateway.mac, rxq=RxQ, devaddr=Link#link.devaddr,
         fcnt=Link#link.fcntup, port=Frame#frame.fport, data=Frame#frame.data,
         region=Link#link.region, datetime=calendar:universal_time(), devstat=Link#link.devstat}).
 
@@ -260,7 +259,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
     end.
 
 handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
-        adr_ack_req=ADRACKReq, ack=ACK, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
+        adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, FOpts),
     ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
     ok = store_rxpk(Gateway, L2, RxQ, Frame),
@@ -284,7 +283,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
     end,
     % invoke applications
     case lorawan_application_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
-            #rxdata{port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}) of
+            #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
             {send, Gateway, choose_tx(Link#link.region, RxQ), LostFrame};
         {send, TxData} ->
@@ -300,7 +299,7 @@ choose_tx(Region, RxQ) ->
     Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Region) / 1000,
     {ok, GwDelay} = application:get_env(gateway_delay),
     % transmit as soon as possible
-    case erlang:monotonic_time(milli_seconds) - RxQ#rxq.erlst of
+    case erlang:monotonic_time(milli_seconds) - RxQ#rxq.srvtmst of
         Small when Small < Rx1Delay - GwDelay ->
             lorawan_mac_region:rx1_rf(Region, RxQ, rx1_delay);
         _Big ->

@@ -51,12 +51,16 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
                 [{id, <<"datr">>}, {label, <<"Data Rate">>}, {type, <<"number">>}],
                 [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
                 ]},
-            {rows, lists:map(fun(#rxframe{fcnt=FCnt, region=Region, datr=DatR, freq=Freq}) ->
+            {rows, lists:map(
+                fun(#rxframe{fcnt=FCnt, region=Region, rxq=#rxq{datr=DatR, freq=Freq}}) ->
                     [{c, [
                         [{v, FCnt}],
                         [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
                         [{v, Freq}]
-                    ]}]
+                    ]}];
+                % if there are some unexpected data, show nothing
+                (_Else) ->
+                    [{c, []}]
                 end, ActRec)
             }
         ],
@@ -72,12 +76,15 @@ get_rxframe(Req, #state{format=qgraph}=State) ->
                 [{id, <<"rssi">>}, {label, <<"RSSI (dBm)">>}, {type, <<"number">>}],
                 [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
                 ]},
-            {rows, lists:map(fun(#rxframe{fcnt=FCnt, rssi=RSSI, lsnr=SNR}) ->
+            {rows, lists:map(
+                fun(#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}}) ->
                     [{c, [
                         [{v, FCnt}],
                         [{v, RSSI}],
                         [{v, SNR}]
-                    ]}]
+                    ]}];
+                (_Else) ->
+                    [{c, []}]
                 end, ActRec)
             }
         ],

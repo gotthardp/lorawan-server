@@ -5,7 +5,7 @@
 %
 -module(lorawan_application_handler).
 
--export([init/0, handle_join/3, handle_rx/4]).
+-export([init/0, handle_join/3, handle_rx/5]).
 -export([store_frame/2, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
@@ -33,8 +33,8 @@ invoke_init({App, Module}) when is_atom(Module) ->
 handle_join(DevAddr, App, AppArgs) ->
     invoke_handler(handle_join, App, [DevAddr, App, AppArgs]).
 
-handle_rx(DevAddr, App, AppArgs, RxData) ->
-    invoke_handler(handle_rx, App, [DevAddr, App, AppArgs, RxData]).
+handle_rx(DevAddr, App, AppArgs, RxData, RxQ) ->
+    invoke_handler(handle_rx, App, [DevAddr, App, AppArgs, RxData, RxQ]).
 
 invoke_handler(Fun, App, Params) ->
     {ok, Modules} = application:get_env(plugins),

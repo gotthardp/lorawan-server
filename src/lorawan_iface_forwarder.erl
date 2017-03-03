@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -12,7 +12,7 @@
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([txsend/4]).
+-export([txsend/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -23,9 +23,14 @@ start_link(Port) ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [Port], []).
 
 init([Port]) ->
-    process_flag(trap_exit, true),
-    {ok, Socket} = gen_udp:open(Port, [binary]),
-    {ok, #state{sock=Socket, pulladdr=dict:new()}}.
+    case gen_udp:open(Port, [binary]) of
+        {ok, Socket} ->
+            process_flag(trap_exit, true),
+            {ok, #state{sock=Socket, pulladdr=dict:new()}};
+        {error, Reason} ->
+            lager:error("Failed to start the packet_forwarder interface: ~w", Reason),
+            {stop, Reason}
+    end.
 
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
@@ -137,22 +142,30 @@ status(MAC, Pk) ->
             lager:error("ERROR: ~w", [Error])
     end.
 
-txsend(Pid, Gateway, TxQ, PHYPayload) ->
+txsend(Gateway, TxQ, PHYPayload) ->
     % TX only supported on radio A
-    Pk = [{txpk, build_txpk(TxQ#txq{rfch=Gateway#gateway.tx_rfch}, PHYPayload)}],
+    Pk = [{txpk, build_txpk(TxQ, Gateway#gateway.tx_rfch, PHYPayload)}],
     % lager:debug("<--- ~w", [Pk]),
-    gen_server:cast(Pid, {send, Gateway#gateway.mac, jsx:encode(Pk)}).
+    gen_server:cast({global, ?MODULE}, {send, Gateway#gateway.mac, jsx:encode(Pk)}).
 
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),
     case proplists:get_value(modu, Pk) of
         <<"LORA">> ->
-            RxQ = ?to_record(rxq, Pk),
-            {RxQ#rxq{erlst=erlang:monotonic_time(milli_seconds)}, Data}
+            RxQ = list_to_tuple([rxq|[get_rxpk_field(X, Pk) || X <- record_info(fields, rxq)]]),
+            {RxQ#rxq{srvtmst=erlang:monotonic_time(milli_seconds)}, Data}
     end.
 
-build_txpk(TxQ, Data) ->
+get_rxpk_field(time, List) ->
+    case proplists:get_value(time, List) of
+        undefined -> undefined;
+        Value -> iso8601:parse_exact(Value)
+    end;
+get_rxpk_field(Field, List) ->
+    proplists:get_value(Field, List).
+
+build_txpk(TxQ, RFch, Data) ->
     ?to_proplist(txq, TxQ) ++
-        [{imme, false}, {modu, <<"LORA">>}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}].
+        [{imme, false}, {modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}].
 
 % end of file

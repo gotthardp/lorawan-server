@@ -44,7 +44,7 @@ release defined in the `rebar.config`:
 
 ## lorawan_application Behaviour
 
-Your module needs to export `init/1`, `handle_join/3` and `handle_rx/4` functions.
+Your module needs to export `init/1`, `handle_join/3` and `handle_rx/5` functions.
 
 ### init(App)
 
@@ -58,17 +58,20 @@ REST API or WebSockets). For more details see
 The `handle_join/3` will be called when a new node joins the network. The function
 shall return either `ok` or `{error, error_description}`.
 
-### handle_rx(DevAddr, App, AppArgs, RxData)
+### handle_rx(DevAddr, App, AppArgs, RxData, RxQ)
+
 The `handle_rx/4` will be called upon reception of a LoRaWAN frame:
   * *DevAddr* is the 4-byte device address
   * *App* is the application name defined in the `sys.config`
   * *AppArgs* is an opaque value assigned to the device
   * *RxData* is the #rxdata{} record with:
+    * *fcnt*
     * *port* number
     * *data* binary
     * *last_lost* flag indicating that the last confirmed response got lost
     * *shall_reply* flag indicating the MAC has to reply to the device even if
       the application sends no data
+  * *RxQ* contains the #rxq{} record with frame reception details
 
 The *last_lost* flag allows the application to decide to send new data instead of
 retransmitting the old data.

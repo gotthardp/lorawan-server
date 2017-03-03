@@ -9,7 +9,7 @@
 -module(lorawan_application_semtech_mote).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_rx/4]).
+-export([init/1, handle_join/3, handle_rx/5]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -22,12 +22,12 @@ handle_join(_DevAddr, _App, _AppArgs) ->
 
 % the data structure is explained in
 % https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207
-handle_rx(DevAddr, _App, _AppArgs, #rxdata{port=2, data= <<LED, Press:16, Temp:16, _AltBar:16, Batt, _Lat:24, _Lon:24, _AltGps:16>>}) ->
+handle_rx(DevAddr, _App, _AppArgs, #rxdata{port=2, data= <<LED, Press:16, Temp:16, _AltBar:16, Batt, _Lat:24, _Lon:24, _AltGps:16>>}, _RxQ) ->
     lager:debug("PUSH_DATA ~w ~w ~w ~w",[DevAddr, Press, Temp, Batt]),
     % blink with the LED indicator
     {send, #txdata{port=2, data= <<((LED+1) rem 2)>>}};
 
-handle_rx(_DevAddr, _App, _AppArgs, RxData) ->
+handle_rx(_DevAddr, _App, _AppArgs, RxData, _RxQ) ->
     {error, {unexpected_data, RxData}}.
 
 % end of file

@@ -8,7 +8,7 @@
 -export([rx1_rf/3, rx2_rf/3, rx2_dr/1, default_adr/1]).
 -export([datar_to_dr/2, freq_range/1, regional_config/2]).
 
--include("lorawan.hrl").
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 % we calculate in fixed-point numbers
 rx1_rf(Region, RxQ, Window)

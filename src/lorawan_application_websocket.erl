@@ -6,7 +6,7 @@
 -module(lorawan_application_websocket).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_rx/4]).
+-export([init/1, handle_join/3, handle_rx/5]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -20,15 +20,15 @@ handle_join(_DevAddr, _App, _AppArgs) ->
     % accept any device
     ok.
 
-handle_rx(DevAddr, _App, AppArgs, #rxdata{last_lost=true} = RxData) ->
-    send_to_sockets(DevAddr, AppArgs, RxData),
+handle_rx(DevAddr, _App, AppArgs, #rxdata{last_lost=true} = RxData, RxQ) ->
+    send_to_sockets(DevAddr, AppArgs, RxData, RxQ),
     retransmit;
-handle_rx(DevAddr, _App, AppArgs, #rxdata{port=Port} = RxData) ->
-    send_to_sockets(DevAddr, AppArgs, RxData),
+handle_rx(DevAddr, _App, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
+    send_to_sockets(DevAddr, AppArgs, RxData, RxQ),
     lorawan_application_handler:send_stored_frames(DevAddr, Port).
 
-send_to_sockets(DevAddr, AppArgs, RxData) ->
+send_to_sockets(DevAddr, AppArgs, RxData, RxQ) ->
     Sockets = lorawan_ws_frames:get_processes(DevAddr, AppArgs),
-    [Pid ! {send, DevAddr, AppArgs, RxData} || Pid <- Sockets].
+    [Pid ! {send, DevAddr, AppArgs, RxData, RxQ} || Pid <- Sockets].
 
 % end of file

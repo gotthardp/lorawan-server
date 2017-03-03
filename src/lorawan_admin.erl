@@ -71,9 +71,10 @@ parse_admin(List) ->
                                 Key == devaddr; Key == nwkskey; Key == appskey -> {Key, lorawan_mac:hex_to_binary(Value)};
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
             ({Key, Value}) when Key == adr_use; Key == adr_set -> {Key, parse_adr(Value)};
+            ({Key, Value}) when Key == rxq -> {Key, ?to_record(rxq, parse_admin(Value))};
             ({Key, Value}) when Key == txdata -> {Key, ?to_record(txdata, parse_admin(Value))};
             ({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
-                                Key == datetime -> {Key, iso8601:parse(Value)};
+                                Key == time; Key == datetime -> {Key, iso8601:parse_exact(Value)};
             ({Key, Value}) when Key == devstat -> {Key, parse_devstat(Value)};
             (Else) -> Else
         end,
@@ -90,10 +91,13 @@ build_admin(List) ->
                                 Key == frid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
             ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
             ({Key, Value}, A) when Key == adr_use; Key == adr_set -> [{Key, build_adr(Value)} | A];
+            ({Key, Value}, A) when Key == rxq -> [{Key, build_admin(?to_proplist(rxq, Value))} | A];
             ({Key, Value}, A) when Key == txdata -> [{Key, build_admin(?to_proplist(txdata, Value))} | A];
             ({Key, Value}, A) when Key == last_join; Key == last_rx; Key == devstat_time;
-                                Key == datetime -> [{Key, iso8601:format(Value)} | A];
+                                Key == time; Key == datetime -> [{Key, iso8601:format(Value)} | A];
             ({Key, Value}, A) when Key == devstat -> [{Key, build_devstat(Value)} | A];
+            % hide very internal fields
+            ({Key, _Value}, A) when Key == srvtmst -> A;
             (Else, A) -> [Else | A]
         end,
         [], List).
