@@ -52,6 +52,7 @@ start(_Type, _Args) ->
     lorawan_sup:start_link().
 
 stop(_State) ->
+    ok = cowboy:stop_listener(http),
     ok.
 
 % end of file

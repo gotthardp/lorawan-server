@@ -102,8 +102,9 @@ handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
 handle_info({'EXIT', _FromPid, _Reason}, State) ->
     {noreply, State}.
 
-terminate(_Reason, _State) ->
-  ok.
+terminate(Reason, _State) ->
+    lager:debug("packet_forwarder interface terminated: ~w", [Reason]),
+    ok.
 
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.

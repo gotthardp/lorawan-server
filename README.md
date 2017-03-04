@@ -56,20 +56,25 @@ The [Installation Instructions](doc/Installation.md) describe how to build,
 install and configure the server. You can use a Debian package, download the binary
 release and run it manually or build the server from source codes.
 
+After the installation you have to:
+ * Add LoRaWAN gateways you want to use.
+ * Configure each device you want to use, either as a personalized device (ABP) or
+   as an over-the-air activated (OTAA) device.
+
 Run the lorawan-server release by:
 ```bash
 cd lorawan-server
 bin/lorawan-server
 ```
 
+Terminate the lorawan-server by:
+```bash
+bin/lorawanctl stop
+```
+
 You can administrate and manage the server via a set of web-pages or via a REST API
 as described in the [Administration Guide](doc/Administration.md) and in the
 [Adaptive Data Rate (ADR) Guide](doc/ADR.md).
-
-After the installation you have to:
- * Add LoRaWAN gateways you want to use.
- * Configure each device you want to use, either as a personalized device (ABP) or
-   as an over-the-air activated (OTAA) device.
 
 ### Integration
 

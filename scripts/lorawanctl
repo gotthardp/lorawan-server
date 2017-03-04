@@ -1,0 +1,12 @@
+#!/bin/sh
+SCRIPT=$(readlink $0 || true)
+if [ -z $SCRIPT ]; then
+    SCRIPT=$0
+fi
+SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+if [ -z $LORAWAN_HOME ]; then
+    LORAWAN_HOME=$ROOT_DIR
+fi
+
+cd $LORAWAN_HOME && erl -noinput +Bd -sname loractl -pa $ROOT_DIR/lib/*/ebin -s lorawan_control $@ -s init stop
