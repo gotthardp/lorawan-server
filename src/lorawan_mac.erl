@@ -9,6 +9,7 @@
 -module(lorawan_mac).
 
 -export([process_frame/3, process_status/2]).
+-export([handle_downlink/3]).
 -export([binary_to_hex/1, hex_to_binary/1]).
 
 -define(MAX_FCNT_GAP, 16384).
@@ -122,7 +123,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
         NewLink = #link{devaddr=NewAddr, region=D#device.region, app=D#device.app, appid=D#device.appid,
             nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check,
-            adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
+            last_mac=Gateway#gateway.mac, last_rxq=RxQ, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
             adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set},
         ok = mnesia:write(links, NewLink, write),
         NewLink
@@ -133,7 +134,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
             % transmitting after join accept delay 1
             TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, join1_delay),
             RxRate = lorawan_mac_region:rx2_dr(Link#link.region),
-            txaccept(Gateway, TxQ, RxRate, AppKey, AppNonce, NetID, Link#link.devaddr);
+            txaccept(TxQ, RxRate, AppKey, AppNonce, NetID, Link#link.devaddr);
         {error, Error} -> {error, Error}
     end.
 
@@ -142,14 +143,14 @@ create_devaddr(NetID) ->
     %% FIXME: verify uniqueness
     <<NwkID:7, 0:1, (crypto:strong_rand_bytes(3))/binary>>.
 
-txaccept(Gateway, TxQ, Rx2Rate, AppKey, AppNonce, NetID, DevAddr) ->
+txaccept(TxQ, Rx2Rate, AppKey, AppNonce, NetID, DevAddr) ->
     MHDR = <<2#001:3, 0:3, 0:2>>,
     MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1, 0:3, Rx2Rate:4, 1>>,
     MIC = aes_cmac:aes_cmac(AppKey, <<MHDR/binary, MACPayload/binary>>, 4),
 
     % yes, decrypt; see LoRaWAN specification, Section 6.2.5
     PHYPayload = crypto:block_decrypt(aes_ecb, AppKey, padded(16, <<MACPayload/binary, MIC/binary>>)),
-    {send, Gateway, TxQ, <<MHDR/binary, PHYPayload/binary>>}.
+    {send, TxQ, <<MHDR/binary, PHYPayload/binary>>}.
 
 
 check_link(DevAddr, FCnt) ->
@@ -252,7 +253,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
                     TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, rx1_delay),
-                    {send, Gateway, TxQ, LostFrame};
+                    {send, TxQ, LostFrame};
                 {false, _} ->
                     ok
             end
@@ -261,7 +262,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
 handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
         adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
     {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, FOpts),
-    ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time()}),
+    ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time(), last_mac=Gateway#gateway.mac, last_rxq=RxQ}),
     ok = store_rxpk(Gateway, L2, RxQ, Frame),
     % check whether last downlink transmission was lost
     {LastLost, LostFrame} = repeat_downlink(DevAddr, ACK),
@@ -285,19 +286,26 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
     case lorawan_application_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
-            {send, Gateway, choose_tx(Link#link.region, RxQ), LostFrame};
+            {send, choose_tx(Link#link.region, RxQ), LostFrame};
         {send, TxData} ->
-            txpk(Gateway, choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
+            txpk(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            txpk(Gateway, choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
+            txpk(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
 
+handle_downlink(Link, Time, TxData) ->
+    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, <<>>),
+    ok = mnesia:dirty_write(links, L2),
+    TxQ = lorawan_mac_region:rx2_rf(L2#link.region, L2#link.last_rxq),
+    % will ACK immediately, so server-initated Class C downlinks have ACK=0
+    txpk(TxQ#txq{time=Time}, L2#link.devaddr, 0, FOptsOut, TxData).
+
 choose_tx(Region, RxQ) ->
     Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Region) / 1000,
-    {ok, GwDelay} = application:get_env(gateway_delay),
+    {ok, GwDelay} = application:get_env(lorawan_server, gateway_delay),
     % transmit as soon as possible
     case erlang:monotonic_time(milli_seconds) - RxQ#rxq.srvtmst of
         Small when Small < Rx1Delay - GwDelay ->
@@ -334,14 +342,14 @@ inc_fcntdown(DevAddr) ->
         NewD
     end).
 
-txpk(Gateway, TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
+txpk(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
     PHYPayload = encode_txpk(2#011, DevAddr, ACK, FOpts, TxData),
     mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=false, phypayload=PHYPayload}),
-    {send, Gateway, TxQ, PHYPayload};
-txpk(Gateway, TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
+    {send, TxQ, PHYPayload};
+txpk(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
     PHYPayload = encode_txpk(2#101, DevAddr, ACK, FOpts, TxData),
     mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=true, phypayload=PHYPayload}),
-    {send, Gateway, TxQ, PHYPayload}.
+    {send, TxQ, PHYPayload}.
 
 encode_txpk(MType, DevAddr, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
     {atomic, L} = inc_fcntdown(DevAddr),

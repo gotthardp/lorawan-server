@@ -17,7 +17,7 @@ The server:
    * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
  * Invokes external applications. It currently supports connections via:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
- * Supports (any number of) Class A devices.
+ * Supports (any number of) Class A or Class C devices.
  * Supports both the activation by personalization and the over-the-air activation.
  * Supports both unconfirmed and confirmed data uplink and downlink.
  * Supports the EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928 and CN 470-510 band.

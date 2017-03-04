@@ -62,33 +62,42 @@ websocket_handle(Data, State) ->
     {ok, State}.
 
 store_frame(Msg, #state{format=raw} = State) ->
-    store_frame0(undefined, #txdata{data=Msg}, State);
+    [lorawan_application_handler:store_frame(Link#link.devaddr, #txdata{data=Msg})
+        || Link <- links(undefined, State)],
+    {ok, State};
 store_frame(Msg, #state{format=json} = State) ->
     case jsx:is_json(Msg) of
         true ->
-            Struct = jsx:decode(Msg, [{labels, atom}]),
-            store_frame0(extract_bin(devaddr, Struct, undefined),
-                #txdata{
-                    confirmed = proplists:get_value(confirmed, Struct, false),
-                    port = proplists:get_value(port, Struct),
-                    data = extract_bin(data, Struct, <<>>),
-                    pending = proplists:get_value(pending, Struct, false)
-                }, State);
+            Struct = lorawan_admin:parse_admin(jsx:decode(Msg, [{labels, atom}])),
+            DevAddr = proplists:get_value(devaddr, Struct),
+            case proplists:get_value(time, Struct) of
+                undefined ->
+                    [lorawan_application_handler:store_frame(Link#link.devaddr, build_txdata(Struct))
+                        || Link <- links(DevAddr, State)];
+                Time ->
+                    [lorawan_handler:downlink(Link, Time, build_txdata(Struct))
+                        || Link <- links(DevAddr, State)]
+            end,
+            {ok, State};
         false ->
             lager:warning("JSON syntax error"),
             {stop, State}
     end.
 
-store_frame0(undefined, TxData, #state{devaddr=DevAddr, gname=undefined} = State) ->
-    lorawan_application_handler:store_frame(DevAddr, TxData),
-    {ok, State};
-store_frame0(undefined, TxData, #state{gname=GName} = State) ->
-    [lorawan_application_handler:store_frame(DevAddr, TxData)
-        || DevAddr <- mnesia:dirty_select(links, [{#link{devaddr='$1', app= <<"websocket">>, appid=GName, _='_'}, [], ['$1']}])],
-    {ok, State};
-store_frame0(DevAddr, TxData, State) ->
-    lorawan_application_handler:store_frame(DevAddr, TxData),
-    {ok, State}.
+build_txdata(Struct) ->
+    #txdata{
+        confirmed = proplists:get_value(confirmed, Struct, false),
+        port = proplists:get_value(port, Struct),
+        data = proplists:get_value(data, Struct, <<>>),
+        pending = proplists:get_value(pending, Struct, false)
+    }.
+
+links(undefined, #state{devaddr=DevAddr, gname=undefined}) ->
+    mnesia:dirty_read(links, DevAddr);
+links(undefined, #state{gname=GName}) ->
+    mnesia:dirty_select(links, [{#link{app= <<"websocket">>, appid=GName, _='_'}, [], ['$_']}]);
+links(DevAddr, _State) ->
+    mnesia:dirty_read(links, DevAddr).
 
 websocket_info({send, _DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ}, #state{format=raw} = State) ->
     {reply, {binary, Data}, State};
@@ -106,12 +115,6 @@ get_processes0(Group) ->
     case pg2:get_members(Group) of
         List when is_list(List) -> List;
         {error, _} -> []
-    end.
-
-extract_bin(Key, Struct, Default) ->
-    case proplists:get_value(Key, Struct) of
-        undefined -> Default;
-        Hex -> lorawan_mac:hex_to_binary(Hex)
     end.
 
 % end of file

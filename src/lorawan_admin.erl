@@ -66,15 +66,17 @@ parse_admin(List) ->
     lists:map(
         fun ({Key, null}) -> {Key, undefined};
             ({Key, Value}) when Key == netid -> {Key, lorawan_mac:hex_to_binary(Value)};
-            ({Key, Value}) when Key == mac; Key == netid; Key == mask;
+            ({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                                 Key == deveui; Key == appeui; Key == appkey; Key == link;
-                                Key == devaddr; Key == nwkskey; Key == appskey -> {Key, lorawan_mac:hex_to_binary(Value)};
+                                Key == devaddr; Key == nwkskey; Key == appskey;
+                                Key == data; Key == frid -> {Key, lorawan_mac:hex_to_binary(Value)};
             ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
             ({Key, Value}) when Key == adr_use; Key == adr_set -> {Key, parse_adr(Value)};
-            ({Key, Value}) when Key == rxq -> {Key, ?to_record(rxq, parse_admin(Value))};
+            ({Key, Value}) when Key == rxq; Key == last_rxq -> {Key, ?to_record(rxq, parse_admin(Value))};
             ({Key, Value}) when Key == txdata -> {Key, ?to_record(txdata, parse_admin(Value))};
             ({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
                                 Key == datetime -> {Key, iso8601:parse(Value)};
+            ({Key, <<"immediately">>}) when Key == time -> {Key, immediately};
             ({Key, Value}) when Key == time -> {Key, iso8601:parse_exact(Value)};
             ({Key, Value}) when Key == devstat -> {Key, parse_devstat(Value)};
             (Else) -> Else
@@ -85,15 +87,15 @@ build_admin(List) ->
     lists:foldl(
         fun ({Key, undefined}, A) -> [{Key, null} | A];
             ({Key, Value}, A) when Key == netid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
-            ({Key, Value}, A) when Key == mac; Key == netid; Key == mask;
+            ({Key, Value}, A) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                                 Key == deveui; Key == appeui; Key == appkey; Key == link;
                                 Key == devaddr; Key == nwkskey; Key == appskey;
-                                Key == data;
-                                Key == frid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
+                                Key == data; Key == frid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
             ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
             ({Key, Value}, A) when Key == adr_use; Key == adr_set -> [{Key, build_adr(Value)} | A];
-            ({Key, Value}, A) when Key == rxq -> [{Key, build_admin(?to_proplist(rxq, Value))} | A];
+            ({Key, Value}, A) when Key == rxq; Key == last_rxq -> [{Key, build_admin(?to_proplist(rxq, Value))} | A];
             ({Key, Value}, A) when Key == txdata -> [{Key, build_admin(?to_proplist(txdata, Value))} | A];
+            ({Key, immediately}, A) when Key == time -> [{Key, <<"immediately">>} | A];
             ({Key, Value}, A) when Key == last_join; Key == last_rx; Key == devstat_time;
                                 Key == time; Key == datetime -> [{Key, iso8601:format(Value)} | A];
             ({Key, Value}, A) when Key == devstat -> [{Key, build_devstat(Value)} | A];

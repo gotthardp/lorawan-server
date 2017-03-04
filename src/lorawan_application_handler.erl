@@ -13,7 +13,7 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 init() ->
-    {ok, Modules} = application:get_env(plugins),
+    {ok, Modules} = application:get_env(lorawan_server, plugins),
     do_init(Modules, []).
 
 do_init([], Acc) -> {ok, Acc};
@@ -37,7 +37,7 @@ handle_rx(DevAddr, App, AppArgs, RxData, RxQ) ->
     invoke_handler(handle_rx, App, [DevAddr, App, AppArgs, RxData, RxQ]).
 
 invoke_handler(Fun, App, Params) ->
-    {ok, Modules} = application:get_env(plugins),
+    {ok, Modules} = application:get_env(lorawan_server, plugins),
     case proplists:get_value(App, Modules) of
         undefined ->
             {error, {unknown_app, App}};

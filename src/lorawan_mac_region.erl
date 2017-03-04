@@ -5,33 +5,39 @@
 %
 -module(lorawan_mac_region).
 
--export([rx1_rf/3, rx2_rf/3, rx2_dr/1, default_adr/1]).
+-export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, default_adr/1]).
 -export([datar_to_dr/2, freq_range/1, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
-% we calculate in fixed-point numbers
-rx1_rf(Region, RxQ, Window)
-        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
-    rf_same(Region, RxQ, RxQ#rxq.freq, Window);
-rx1_rf(<<"US902-928">> = Region, RxQ, Window) ->
-    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), Window);
-rx1_rf(<<"US902-928-PR">> = Region, RxQ, Window) ->
-    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), Window);
-rx1_rf(<<"AU915-928">> = Region, RxQ, Window) ->
-    RxCh = f2ch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}), Window);
-rx1_rf(<<"CN470-510">> = Region, RxQ, Window) ->
-    RxCh = f2ch(RxQ#rxq.freq, {4703, 2}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 48, {5003, 2}), Window).
+rx1_rf(Region, RxQ, Window) ->
+    tx_time(Region, Window, RxQ#rxq.tmst, rx1_rf(Region, RxQ)).
 
-rx2_rf(<<"US902-928-PR">> = Region, RxQ, Window) ->
-    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}), Window);
 rx2_rf(Region, RxQ, Window) ->
-    rf_fixed(Region, RxQ, Window).
+    tx_time(Region, Window, RxQ#rxq.tmst, rx2_rf(Region, RxQ)).
+
+% we calculate in fixed-point numbers
+rx1_rf(Region, RxQ)
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
+    rf_same(Region, RxQ, RxQ#rxq.freq);
+rx1_rf(<<"US902-928">> = Region, RxQ) ->
+    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}));
+rx1_rf(<<"US902-928-PR">> = Region, RxQ) ->
+    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}));
+rx1_rf(<<"AU915-928">> = Region, RxQ) ->
+    RxCh = f2ch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}));
+rx1_rf(<<"CN470-510">> = Region, RxQ) ->
+    RxCh = f2ch(RxQ#rxq.freq, {4703, 2}),
+    rf_same(Region, RxQ, ch2f(RxCh rem 48, {5003, 2})).
+
+rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
+    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}));
+rx2_rf(Region, RxQ) ->
+    rf_fixed(Region, RxQ).
 
 f2ch(Freq, {Start, Inc}) -> trunc(10*Freq-Start) div Inc.
 
@@ -44,18 +50,20 @@ f2ch(Freq, {Start1, Inc1}, {Start2, Inc2}) ->
 
 ch2f(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
 
-rf_fixed(Region, RxQ, Window) ->
+rf_fixed(Region, RxQ) ->
     {Freq, DataRate} = regional_config(rx2_rf, Region),
-    Delay = regional_config(Window, Region),
     Power = default_erp(Region),
-    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay, powe=Power}.
+    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, powe=Power}.
 
-rf_same(Region, RxQ, Freq, Window) ->
+rf_same(Region, RxQ, Freq) ->
     % TODO: implement RX1DROffset
     DataRate = datar_to_down(Region, RxQ#rxq.datr, 0),
-    Delay = regional_config(Window, Region),
     Power = default_erp(Region),
-    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, tmst=RxQ#rxq.tmst+Delay, powe=Power}.
+    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, powe=Power}.
+
+tx_time(Region, Window, Stamp, TxQ) ->
+    Delay = regional_config(Window, Region),
+    TxQ#txq{tmst=Stamp+Delay}.
 
 datar_to_down(Region, DataRate, Offset) ->
     Down = dr_to_down(Region, datar_to_dr(Region, DataRate)),
@@ -128,7 +136,7 @@ datar_to_tuple(DataRate) ->
     {binary_to_integer(SF), binary_to_integer(BW)}.
 
 regional_config(Param, Region) ->
-    {ok, Regions} = application:get_env(regions),
+    {ok, Regions} = application:get_env(lorawan_server, regions),
     Config = proplists:get_value(Region, Regions, []),
     proplists:get_value(Param, Config).
 

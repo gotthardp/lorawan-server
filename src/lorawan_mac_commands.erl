@@ -132,7 +132,7 @@ request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsO
         when LastDate == undefined; LastFCnt == undefined ->
     {Link, [dev_status_req | FOptsOut]};
 request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut}) ->
-    {ok, {MaxTime, MaxFCnt}} = application:get_env(devstat_gap),
+    {ok, {MaxTime, MaxFCnt}} = application:get_env(lorawan_server, devstat_gap),
     TimeDiff = calendar:datetime_to_gregorian_seconds(calendar:universal_time())
                 - calendar:datetime_to_gregorian_seconds(LastDate),
     if

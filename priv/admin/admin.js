@@ -255,7 +255,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
-        nga.field('last_rx', 'datetime').label('Last RX')
+        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('last_mac').label('Gateway')
+            .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
+            .transform(function strip(value, entry) {
+                return value.replace(/[-:]/g, '')
+            })
+            .validation({ pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' })
     ];
     var linkFieldsADR = [
         nga.field('adr_flag_set', 'choice').label('Set ADR')
@@ -279,8 +285,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ];
     links.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
     links.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"ADR", min:10, max:14}
+        {name:"General", min:0, max:11},
+        {name:"ADR", min:11, max:15}
     ]));
     links.editionView().fields(linkFieldsGeneral.concat([
         nga.field('downlinks', 'referenced_list')
@@ -325,9 +331,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<dgraph value="value"></dgraph>')
     ]));
     links.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:11},
-        {name:"ADR", min:11, max:21},
-        {name:"Status", min:21, max:26}
+        {name:"General", min:0, max:12},
+        {name:"ADR", min:12, max:22},
+        {name:"Status", min:22, max:27}
     ]));
     // add to the admin application
     admin.addEntity(links);

@@ -143,11 +143,11 @@ status(MAC, Pk) ->
             lager:error("ERROR: ~w", [Error])
     end.
 
-txsend(Gateway, TxQ, PHYPayload) ->
-    % TX only supported on radio A
+txsend(MAC, TxQ, PHYPayload) ->
+    [Gateway] = mnesia:dirty_read(gateways, MAC),
     Pk = [{txpk, build_txpk(TxQ, Gateway#gateway.tx_rfch, PHYPayload)}],
     % lager:debug("<--- ~w", [Pk]),
-    gen_server:cast({global, ?MODULE}, {send, Gateway#gateway.mac, jsx:encode(Pk)}).
+    gen_server:cast({global, ?MODULE}, {send, MAC, jsx:encode(Pk)}).
 
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),
@@ -166,7 +166,19 @@ get_rxpk_field(Field, List) ->
     proplists:get_value(Field, List).
 
 build_txpk(TxQ, RFch, Data) ->
-    ?to_proplist(txq, TxQ) ++
-        [{imme, false}, {modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}].
+    [{modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)} |
+        lists:foldl(
+            fun ({_, undefined}, Acc) ->
+                    Acc;
+                ({tmst, Time}, Acc) ->
+                    [{imme, false}, {tmst, Time} | Acc];
+                ({time, immediately}, Acc) ->
+                    [{imme, true} | Acc];
+                ({time, Time}, Acc) ->
+                    [{imme, false}, {time, iso8601:format(Time)} | Acc];
+                (Elem, Acc) -> [Elem | Acc]
+            end,
+            [], lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
+        )].
 
 % end of file

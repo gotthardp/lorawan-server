@@ -26,20 +26,43 @@ can be viewed via the [Administration interface](Administration.md).
 For example, `ws://127.0.0.1:8080/ws/links/11223344/json` connects to the DevAddr *11223344*
 using the JSON format.
 
-The JSON structure contains the following fields:
+The JSON structure the server sends to clients contains the following fields:
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
   devaddr     | Hex String  | DevAddr of the link (active node).
   port        | Integer     | LoRaWAN port number.
+  fcnt        | Integer     | Frame number
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
-  confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
-  pending     | Boolean     | Whether the application has more to send (false by default).
+  shall_reply | Boolean     | Whether the server has to send a downlink message.
+  last_lost   | Boolean     | Whether the previous confirmed downlink was lost.
+  rxq         | Record      | Reception quality
 
 For example:
 ```json
-    {"devaddr":"11223344","port":2,"data":"0026BF08BD03CD35000000000000FFFF","confirmed":true}
+    {"devaddr":"11223344", "port":2, "fcnt":58, "data":"0125D50B020BA23645F1A90BDDEE0004",
+        "shall_reply":false, "last_lost":false,
+        "rxq":{"lsnr":9.2,"rssi":-53,"tmst":3127868932,"codr":"4/5","datr":"SF12BW125","freq":868.3}}
 ```
+
+The client may send back to the server a JSON structure with the following fields:
+
+  Field       | Type        | Explanation
+ -------------|-------------|-------------------------------------------------------------
+  devaddr     | Hex String  | DevAddr of the link (active node).
+  port        | Integer     | LoRaWAN port number. If not specified, the port number of last uplink will be used.
+  data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
+  confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
+  pending     | Boolean     | Whether the application has more to send (false by default).
+  time        | ISO 8601    | Requested downlink time or `immediately` (for class C devices only).
+
+For example:
+```json
+    {"devaddr":"11223344", "port":2, "data":"0026BF08BD03CD35000000000000FFFF", "confirmed":true}
+    {"data":"00", "time":"2017-03-04T21:05:30.2000"}
+    {"data":"00", "time":"immediately"}
+```
+
 
 ## Keep-alive
 
