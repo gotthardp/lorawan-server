@@ -25,7 +25,7 @@ handle_rx(DevAddr, _App, AppArgs, #rxdata{last_lost=true} = RxData, RxQ) ->
     retransmit;
 handle_rx(DevAddr, _App, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
     send_to_sockets(DevAddr, AppArgs, RxData, RxQ),
-    lorawan_application_handler:send_stored_frames(DevAddr, Port).
+    lorawan_handler:send_stored_frames(DevAddr, Port).
 
 send_to_sockets(DevAddr, AppArgs, RxData, RxQ) ->
     Sockets = lorawan_ws_frames:get_processes(DevAddr, AppArgs),

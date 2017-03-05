@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_region).
 
--export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, default_adr/1]).
+-export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, rf_group/1, default_adr/1]).
 -export([datar_to_dr/2, freq_range/1, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -22,20 +22,20 @@ rx1_rf(Region, RxQ)
     rf_same(Region, RxQ, RxQ#rxq.freq);
 rx1_rf(<<"US902-928">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}));
+    rf_same(Region, RxQ, ch2f(Region, RxCh rem 8));
 rx1_rf(<<"US902-928-PR">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}));
+    rf_same(Region, RxQ, ch2f(Region, RxCh div 8));
 rx1_rf(<<"AU915-928">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 8, {9233, 6}));
+    rf_same(Region, RxQ, ch2f(Region, RxCh rem 8));
 rx1_rf(<<"CN470-510">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {4703, 2}),
-    rf_same(Region, RxQ, ch2f(RxCh rem 48, {5003, 2})).
+    rf_same(Region, RxQ, ch2f(Region, RxCh rem 48)).
 
 rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(RxCh div 8, {9233, 6}));
+    rf_same(Region, RxQ, ch2f(Region, RxCh div 8));
 rx2_rf(Region, RxQ) ->
     rf_fixed(Region, RxQ).
 
@@ -48,7 +48,26 @@ f2ch(Freq, {Start1, Inc1}, {Start2, Inc2}) ->
         trunc(10*Freq-Start2) rem Inc2 == 0 -> 64 + trunc(10*Freq-Start2) div Inc2
     end.
 
-ch2f(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
+ch2f(<<"EU863-870">>, Ch) ->
+    if
+        Ch >= 0, Ch =< 2 ->
+            ch2fi(Ch, {8681, 2});
+        Ch >= 3, Ch =< 7 ->
+            ch2fi(Ch, {8671, 2});
+        Ch == 8 ->
+            868.8
+    end;
+ch2f(<<"CN779-787">>, Ch) ->
+    ch2fi(Ch, {7795, 2});
+ch2f(<<"EU433">>, Ch) ->
+    ch2fi(Ch, {4331.75, 2});
+ch2f(Region, Ch)
+        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
+    ch2fi(Ch, {9233, 6});
+ch2f(<<"CN470-510">>, Ch) ->
+    ch2fi(Ch, {5003, 2}).
+
+ch2fi(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
 
 rf_fixed(Region, RxQ) ->
     {Freq, DataRate} = regional_config(rx2_rf, Region),
@@ -60,6 +79,12 @@ rf_same(Region, RxQ, Freq) ->
     DataRate = datar_to_down(Region, RxQ#rxq.datr, 0),
     Power = default_erp(Region),
     #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, powe=Power}.
+
+rf_group(Group) ->
+    #txq{freq = ch2f(Group#multicast_group.region, Group#multicast_group.chan),
+        datr = dr_to_datar(Group#multicast_group.region, Group#multicast_group.datr),
+        codr = Group#multicast_group.datr,
+        powe = default_erp(Group#multicast_group.region)}.
 
 tx_time(Region, Window, Stamp, TxQ) ->
     Delay = regional_config(Window, Region),

@@ -51,9 +51,9 @@ websocket_init(#state{gname=GName} = State) ->
     {ok, State}.
 
 websocket_handle({text, Msg}, State) ->
-    store_frame(Msg, State);
+    handle_data(Msg, State);
 websocket_handle({binary, Msg}, State) ->
-    store_frame(Msg, State);
+    handle_data(Msg, State);
 websocket_handle({ping, _}, State) ->
     % no action needed as server handles pings automatically
     {ok, State};
@@ -61,28 +61,66 @@ websocket_handle(Data, State) ->
     lager:warning("Unknown handle ~w", [Data]),
     {ok, State}.
 
-store_frame(Msg, #state{format=raw} = State) ->
-    [lorawan_application_handler:store_frame(Link#link.devaddr, #txdata{data=Msg})
-        || Link <- links(undefined, State)],
+handle_data(Msg, #state{format=raw} = State) ->
+    [lorawan_handler:store_frame(DevAddr, #txdata{data=Msg})
+        || DevAddr <- devaddrs(State)],
     {ok, State};
-store_frame(Msg, #state{format=json} = State) ->
+handle_data(Msg, #state{format=json} = State) ->
     case jsx:is_json(Msg) of
         true ->
             Struct = lorawan_admin:parse_admin(jsx:decode(Msg, [{labels, atom}])),
-            DevAddr = proplists:get_value(devaddr, Struct),
-            case proplists:get_value(time, Struct) of
-                undefined ->
-                    [lorawan_application_handler:store_frame(Link#link.devaddr, build_txdata(Struct))
-                        || Link <- links(DevAddr, State)];
-                Time ->
-                    [lorawan_handler:downlink(Link, Time, build_txdata(Struct))
-                        || Link <- links(DevAddr, State)]
-            end,
-            {ok, State};
+            handle_json(proplists:get_value(devaddr, Struct), build_txdata(Struct), Struct, State);
         false ->
             lager:warning("JSON syntax error"),
             {stop, State}
     end.
+
+handle_json(undefined, TxData, Struct, State) ->
+    case proplists:get_value(time, Struct) of
+        undefined ->
+            [lorawan_handler:store_frame(DevAddr, TxData)
+                || DevAddr <- devaddrs(State)],
+            {ok, State};
+        Time ->
+            % user cannot connect to a multicast address
+            [lorawan_handler:downlink(Link, Time, TxData)
+                || Link <- links(State)],
+            {ok, State}
+    end;
+handle_json(DevAddr, TxData, Struct, State) ->
+    case proplists:get_value(time, Struct) of
+        undefined ->
+            % standard downlink to an explicit node
+            lorawan_handler:store_frame(DevAddr, TxData),
+            {ok, State};
+        Time ->
+            case mnesia:dirty_read(links, DevAddr) of
+                [] ->
+                    case mnesia:dirty_read(multicast_groups, DevAddr) of
+                        [] ->
+                            lager:error("Unknown DevAddr ~w", [DevAddr]),
+                            {stop, State};
+                        [Group] ->
+                            % scheduled multicast
+                            lorawan_handler:multicast(Group, Time, TxData),
+                            {ok, State}
+                    end;
+                [Link] ->
+                    % scheduled downlink to an explicit node
+                    lorawan_handler:downlink(Link, Time, TxData),
+                    {ok, State}
+            end
+    end.
+
+devaddrs(#state{devaddr=DevAddr, gname=undefined}) ->
+    [DevAddr];
+devaddrs(#state{gname=GName}) ->
+    mnesia:dirty_select(links, [{#link{devaddr='$1', app= <<"websocket">>, appid=GName, _='_'}, [], ['$1']}]).
+
+links(#state{devaddr=DevAddr, gname=undefined}) ->
+    mnesia:dirty_read(links, DevAddr);
+links(#state{gname=GName}) ->
+    mnesia:dirty_select(links, [{#link{app= <<"websocket">>, appid=GName, _='_'}, [], ['$_']}]).
 
 build_txdata(Struct) ->
     #txdata{
@@ -91,13 +129,6 @@ build_txdata(Struct) ->
         data = proplists:get_value(data, Struct, <<>>),
         pending = proplists:get_value(pending, Struct, false)
     }.
-
-links(undefined, #state{devaddr=DevAddr, gname=undefined}) ->
-    mnesia:dirty_read(links, DevAddr);
-links(undefined, #state{gname=GName}) ->
-    mnesia:dirty_select(links, [{#link{app= <<"websocket">>, appid=GName, _='_'}, [], ['$_']}]);
-links(DevAddr, _State) ->
-    mnesia:dirty_read(links, DevAddr).
 
 websocket_info({send, _DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ}, #state{format=raw} = State) ->
     {reply, {binary, Data}, State};

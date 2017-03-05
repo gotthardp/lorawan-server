@@ -19,7 +19,7 @@ start(_Type, _Args) ->
     lorawan_db:ensure_tables(),
     {ok, _} = timer:apply_interval(3600*1000, lorawan_db, trim_tables, []),
 
-    {ok, Handlers} = lorawan_application_handler:init(),
+    {ok, Handlers} = lorawan_handler:init(),
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/applications/[:name]", lorawan_admin_applications, []},
@@ -27,6 +27,8 @@ start(_Type, _Args) ->
                 [users, user, record_info(fields, user), text]},
             {"/gateways/[:mac]", lorawan_admin_database,
                 [gateways, gateway, record_info(fields, gateway), binary]},
+            {"/multicast_groups/[:devaddr]", lorawan_admin_database,
+                [multicast_groups, multicast_group, record_info(fields, multicast_group), binary]},
             {"/devices/[:deveui]", lorawan_admin_database,
                 [devices, device, record_info(fields, device), binary]},
             {"/links/[:devaddr]", lorawan_admin_database,

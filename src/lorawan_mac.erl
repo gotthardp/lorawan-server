@@ -9,7 +9,7 @@
 -module(lorawan_mac).
 
 -export([process_frame/3, process_status/2]).
--export([handle_downlink/3]).
+-export([handle_downlink/3, handle_multicast/3]).
 -export([binary_to_hex/1, hex_to_binary/1]).
 
 -define(MAX_FCNT_GAP, 16384).
@@ -129,7 +129,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewLink
     end),
     reset_link(Link#link.devaddr),
-    case lorawan_application_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid) of
+    case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid) of
         ok ->
             % transmitting after join accept delay 1
             TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, join1_delay),
@@ -283,15 +283,15 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
             false
     end,
     % invoke applications
-    case lorawan_application_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
+    case lorawan_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
             {send, choose_tx(Link#link.region, RxQ), LostFrame};
         {send, TxData} ->
-            txpk(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
+            send_unicast(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            txpk(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
+            send_unicast(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
@@ -301,7 +301,11 @@ handle_downlink(Link, Time, TxData) ->
     ok = mnesia:dirty_write(links, L2),
     TxQ = lorawan_mac_region:rx2_rf(L2#link.region, L2#link.last_rxq),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
-    txpk(TxQ#txq{time=Time}, L2#link.devaddr, 0, FOptsOut, TxData).
+    send_unicast(TxQ#txq{time=Time}, L2#link.devaddr, 0, FOptsOut, TxData).
+
+handle_multicast(Group, Time, TxData) ->
+    TxQ = lorawan_mac_region:rf_group(Group),
+    send_multicast(TxQ#txq{time=Time}, Group#multicast_group.devaddr, TxData).
 
 choose_tx(Region, RxQ) ->
     Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Region) / 1000,
@@ -333,40 +337,61 @@ repeat_downlink(DevAddr, ACK) ->
             {false, undefined}
     end.
 
-inc_fcntdown(DevAddr) ->
-    mnesia:transaction(fun() ->
-        [D] = mnesia:read(links, DevAddr, write),
-        FCnt =  (D#link.fcntdown + 1) band 16#FFFFFFFF,
-        NewD = D#link{fcntdown=FCnt},
-        mnesia:write(links, NewD, write),
-        NewD
-    end).
-
-txpk(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
-    PHYPayload = encode_txpk(2#011, DevAddr, ACK, FOpts, TxData),
+send_unicast(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
+    PHYPayload = encode_unicast(2#011, DevAddr, ACK, FOpts, TxData),
     mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=false, phypayload=PHYPayload}),
     {send, TxQ, PHYPayload};
-txpk(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
-    PHYPayload = encode_txpk(2#101, DevAddr, ACK, FOpts, TxData),
+send_unicast(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
+    PHYPayload = encode_unicast(2#101, DevAddr, ACK, FOpts, TxData),
     mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=true, phypayload=PHYPayload}),
     {send, TxQ, PHYPayload}.
 
-encode_txpk(MType, DevAddr, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
-    {atomic, L} = inc_fcntdown(DevAddr),
-    FHDR = <<(reverse(DevAddr)):4/binary, (get_adr_flag(L)):1, 0:1, ACK:1, (bool_to_bit(FPending)):1, (byte_size(FOpts)):4,
-        (L#link.fcntdown):16/little-unsigned-integer, FOpts/binary>>,
+send_multicast(TxQ, DevAddr, #txdata{confirmed=false} = TxData) ->
+    % must be unconfirmed, ACK=0, no MAC commands allowed
+    PHYPayload = encode_multicast(2#011, DevAddr, TxData),
+    {send, TxQ, PHYPayload};
+send_multicast(_TxQ, _DevAddr, #txdata{confirmed=true}) ->
+    {error, not_allowed}.
+
+encode_unicast(MType, DevAddr, ACK, FOpts, TxData) ->
+    {atomic, L} = mnesia:transaction(
+        fun() ->
+            [D] = mnesia:read(links, DevAddr, write),
+            FCnt = (D#link.fcntdown + 1) band 16#FFFFFFFF,
+            NewD = D#link{fcntdown=FCnt},
+            mnesia:write(links, NewD, write),
+            NewD
+        end),
+    encode_frame(MType, DevAddr, L#link.nwkskey, L#link.appskey,
+        L#link.fcntdown, get_adr_flag(L), ACK, FOpts, TxData).
+
+encode_multicast(MType, DevAddr, TxData) ->
+    {atomic, G} = mnesia:transaction(
+        fun() ->
+            [D] = mnesia:read(multicast_groups, DevAddr, write),
+            FCnt = (D#multicast_group.fcntdown + 1) band 16#FFFFFFFF,
+            NewD = D#multicast_group{fcntdown=FCnt},
+            mnesia:write(multicast_groups, NewD, write),
+            NewD
+        end),
+    encode_frame(MType, DevAddr, G#multicast_group.nwkskey, G#multicast_group.appskey,
+        G#multicast_group.fcntdown, 0, 0, <<>>, TxData).
+
+encode_frame(MType, DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
+    FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_bit(FPending)):1, (byte_size(FOpts)):4,
+        FCnt:16/little-unsigned-integer, FOpts/binary>>,
     MACPayload = case FPort of
         undefined ->
             <<FHDR/binary>>;
         0 ->
-            FRMPayload = cipher(Data, L#link.nwkskey, 1, DevAddr, L#link.fcntdown),
+            FRMPayload = cipher(Data, NwkSKey, 1, DevAddr, FCnt),
             <<FHDR/binary, 0:8, (reverse(FRMPayload))/binary>>;
         Num when Num > 0 ->
-            FRMPayload = cipher(Data, L#link.appskey, 1, DevAddr, L#link.fcntdown),
+            FRMPayload = cipher(Data, AppSKey, 1, DevAddr, FCnt),
             <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>
     end,
     Msg = <<MType:3, 0:3, 0:2, MACPayload/binary>>,
-    MIC = aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(1, DevAddr, L#link.fcntdown, byte_size(Msg)))/binary, Msg/binary>>, 4),
+    MIC = aes_cmac:aes_cmac(NwkSKey, <<(b0(1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4),
     <<Msg/binary, MIC/binary>>.
 
 bool_to_bit(true) -> 1;

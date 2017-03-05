@@ -12,7 +12,7 @@
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([txsend/3]).
+-export([process_frame/3, txsend/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -115,8 +115,10 @@ rxpk(MAC, PkList) ->
     % due to reflections the gateways may have received the same frame twice
     Unique = remove_duplicates(PkList2, []),
     % handle the frames sequentially
-    lists:foreach(fun({RxQ, PHYPayload}) ->
-        lorawan_handler:handle_rxpk(MAC, RxQ, PHYPayload) end, Unique).
+    lists:foreach(
+        fun({RxQ, PHYPayload}) ->
+            spawn_link(?MODULE, process_frame, [MAC, RxQ, PHYPayload])
+        end, Unique).
 
 remove_duplicates([{RxQ, PHYPayload} | Tail], Unique) ->
     % check if the first element is duplicate
@@ -134,6 +136,15 @@ remove_duplicates([{RxQ, PHYPayload} | Tail], Unique) ->
     end;
 remove_duplicates([], Unique) ->
     Unique.
+
+process_frame(MAC, RxQ, PHYPayload) ->
+    case lorawan_mac:process_frame(MAC, RxQ, PHYPayload) of
+        ok -> ok;
+        {send, TxQ, PHYPayload2} ->
+            txsend(MAC, TxQ, PHYPayload2);
+        {error, Error} ->
+            lager:error("ERROR: ~w", [Error])
+    end.
 
 status(MAC, Pk) ->
     S = ?to_record(stat, Pk),

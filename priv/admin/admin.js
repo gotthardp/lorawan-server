@@ -13,6 +13,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('name'));
     var gateways = nga.entity('gateways')
         .identifier(nga.field('mac'));
+    var multicast_groups = nga.entity('multicast_groups')
+        .identifier(nga.field('devaddr'));
     var devices = nga.entity('devices')
         .identifier(nga.field('deveui'));
     var links = nga.entity('links')
@@ -61,6 +63,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 2, label: 'SF8 125 kHz (3125 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
         { value: 3, label: 'SF7 125 kHz (5470 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] },
         { value: 4, label: 'SF8 500 kHz (12500 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] }
+    ];
+
+    coding_rate_choices = [
+        { value: '4/5', label: '4/5 (1.25)' },
+        { value: '4/6', label: '4/6 (1.5)' },
+        { value: '4/7', label: '4/7 (1.75)' },
+        { value: '4/8', label: '4/8 (2.0)' }
     ];
 
     power_choices = [
@@ -143,6 +152,61 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.editionView().fields(gateways.creationView().fields());
     // add to the admin application
     admin.addEntity(gateways);
+
+    // ---- multicast_groups
+    multicast_groups.listView().title('Multicast Groups');
+    multicast_groups.listView().fields([
+        nga.field('devaddr').label('DevAddr').isDetailLink(true),
+        nga.field('region'),
+        nga.field('chan', 'number').label('Channel'),
+        nga.field('datr', 'choice').label('Data rate')
+            .choices(function(entry) {
+                return data_rate_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            }),
+        nga.field('codr', 'choice').label('Coding rate')
+            .choices(coding_rate_choices),
+        nga.field('fcntdown', 'number').label('FCnt Down')
+    ])
+    .sortField('devaddr')
+    .sortDir('ASC');
+
+    multicast_groups.creationView().fields([
+        nga.field('devaddr').label('DevAddr')
+            .attributes({ placeholder: 'e.g. ABC12345' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
+        nga.field('region', 'choice')
+            .choices(region_choices)
+            .validation({ required: true }),
+        nga.field('chan', 'number').label('Channel')
+            .validation({ required: true }),
+        nga.field('datr', 'choice').label('Data rate')
+            .validation({ required: true })
+            .choices(function(entry) {
+                return data_rate_choices.filter(function(item) {
+                    return item.regions.indexOf(entry.values.region) >= 0
+                });
+            }),
+        nga.field('codr', 'choice').label('Coding rate')
+            .choices(coding_rate_choices)
+            .validation({ required: true }),
+        nga.field('nwkskey').label('NwkSKey')
+            .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('appskey').label('AppSKey')
+            .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('mac', 'reference').label('Gateway')
+            .targetEntity(gateways)
+            .targetField(nga.field('mac'))
+            .validation({ required: true }),
+        nga.field('fcntdown', 'number').label('FCnt Down')
+            .defaultValue(0)
+    ]);
+    multicast_groups.editionView().fields(multicast_groups.creationView().fields());
+    // add to the admin application
+    admin.addEntity(multicast_groups);
 
     // ---- devices
     devices.listView().fields([
@@ -256,12 +320,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
         nga.field('last_rx', 'datetime').label('Last RX'),
-        nga.field('last_mac').label('Gateway')
-            .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
-            .transform(function strip(value, entry) {
-                return value.replace(/[-:]/g, '')
-            })
-            .validation({ pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' })
+        nga.field('last_mac', 'reference').label('Gateway')
+            .targetEntity(gateways)
+            .targetField(nga.field('mac'))
     ];
     var linkFieldsADR = [
         nga.field('adr_flag_set', 'choice').label('Set ADR')
@@ -383,11 +444,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- menu
     admin.menu(nga.menu()
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
-        .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
+        .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
+            .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
+            .addChild(nga.menu(multicast_groups).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
+            .addChild(nga.menu(ignored_links).icon('<span class="fa fa-ban fa-fw"></span>'))
+        )
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(links).icon('<span class="fa fa-rss fa-fw"></span>'))
         .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
-        .addChild(nga.menu(ignored_links).icon('<span class="fa fa-ban fa-fw"></span>'))
+        .autoClose(false)
     );
 
     // ---- dashboard
