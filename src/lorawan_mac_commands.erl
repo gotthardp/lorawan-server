@@ -5,11 +5,11 @@
 %
 -module(lorawan_mac_commands).
 
--export([handle/2]).
+-export([handle/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
-handle(Link, FOpts) ->
+handle(RxQ, Link, FOpts) ->
     % process incoming commands
     FOptsIn = parse_fopts(FOpts),
     case FOptsIn of
@@ -20,7 +20,7 @@ handle(Link, FOpts) ->
         fun(FOpt, L) -> handle_fopt(FOpt, L) end,
         Link, FOptsIn),
     % check for new commands
-    ResA = send_adr({Link2, []}),
+    ResA = send_adr(RxQ, {Link2, []}),
     {Link3, FOptsOut} = request_status(ResA),
     case FOptsOut of
         [] -> ok;
@@ -84,19 +84,27 @@ handle_fopt(Unknown, Link) ->
     Link.
 
 
-send_adr({Link, FOptsOut}) ->
+send_adr(RxQ, {Link, FOptsOut}) ->
+    % maintain quality statistics
+    LastSNRs = append_snr(RxQ#rxq.lsnr, Link#link.last_snrs),
+    % issue ADR command
     IsIncomplete = case Link#link.adr_set of
         undefined -> true;
         Tuple -> lists:member(undefined, tuple_to_list(Tuple))
     end,
     if
-        Link#link.adr_flag_use == 1, Link#link.adr_flag_set == 1,
+        Link#link.adr_flag_use > 0, Link#link.adr_flag_set > 0,
         not IsIncomplete, Link#link.adr_use /= Link#link.adr_set ->
             lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
             {Link, set_channels(Link#link.region, Link#link.adr_set, FOptsOut)};
         true ->
             {Link, FOptsOut}
     end.
+
+append_snr(SNR, List) when is_list(List) ->
+    lists:sublist([SNR | List], 20);
+append_snr(SNR, _List) ->
+    [SNR].
 
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->

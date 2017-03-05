@@ -261,7 +261,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
 
 handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
         adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
-    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, FOpts),
+    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(RxQ, Link, FOpts),
     ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time(), last_mac=Gateway#gateway.mac, last_rxq=RxQ}),
     ok = store_rxpk(Gateway, L2, RxQ, Frame),
     % check whether last downlink transmission was lost
@@ -397,8 +397,8 @@ encode_frame(MType, DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts, #txdata{po
 bool_to_bit(true) -> 1;
 bool_to_bit(false) -> 0.
 
-get_adr_flag(#link{adr_flag_set=undefined}) -> 0;
-get_adr_flag(#link{adr_flag_set=ADR}) -> ADR.
+get_adr_flag(#link{adr_flag_set=ADR}) when ADR == undefined; ADR == 0 -> 0;
+get_adr_flag(#link{adr_flag_set=ADR}) when ADR > 0 -> 1.
 
 
 cipher(Bin, Key, Dir, DevAddr, FCnt) ->

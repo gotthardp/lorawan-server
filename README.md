@@ -19,7 +19,7 @@ The server:
  * Invokes external applications. It currently supports connections via:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
  * Handles (any number of) Class A or Class C devices.
-   * Supports both the node activation by personalization and the over-the-air activation.
+   * Supports both the node activation by personalization (ABP) and the over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
    * Supports multicast to user-defined groups.
    * Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928 and CN 470-510 band.

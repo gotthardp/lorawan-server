@@ -27,9 +27,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('frid'))
         .readOnly();
 
-    on_off_choices = [
+    adr_choices = [
         { value: 0, label: 'OFF' },
         { value: 1, label: 'ON' },
+        { value: 2, label: 'Manual' },
     ];
 
     fcnt_choices = [
@@ -250,7 +251,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('adr_flag_set', 'choice').label('Set ADR')
-            .choices(on_off_choices)
+            .choices(adr_choices)
             .defaultValue(1),
         nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
@@ -326,7 +327,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ];
     var linkFieldsADR = [
         nga.field('adr_flag_set', 'choice').label('Set ADR')
-            .choices(on_off_choices)
+            .choices(adr_choices)
             .defaultValue(1), // ON
         nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
@@ -361,7 +362,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .listActions(['delete'])
     ]).concat(linkFieldsADR).concat([
         nga.field('adr_flag_use', 'choice').label('Used ADR')
-            .choices(on_off_choices)
+            .choices(adr_choices)
             .editable(false),
         nga.field('adr_use.power', 'choice').label('Used power')
             .choices(function(entry) {

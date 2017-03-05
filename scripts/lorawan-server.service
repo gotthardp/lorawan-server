@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Type=forking
 ExecStart=/usr/lib/lorawan-server/bin/lorawan-daemon
+ExecStop=/usr/lib/lorawan-server/bin/lorawanctl stop
 
 [Install]
 WantedBy=multi-user.target
