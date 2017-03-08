@@ -73,7 +73,11 @@ process_frame1(Gateway, RxQ, 2#000, Msg, MIC) ->
 process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
     <<_, MACPayload/binary>> = Msg,
     <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
-        FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, FPort:8, FRMPayload/binary>> = MACPayload,
+        FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, Body/binary>> = MACPayload,
+    {FPort, FRMPayload} = case Body of
+        <<>> -> {undefined, <<>>};
+        <<Port:8, Payload/binary>> -> {Port, Payload}
+    end,
     DevAddr = reverse(DevAddr0),
     Frame = #frame{devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort},
     case check_link(DevAddr, FCnt) of
