@@ -5,8 +5,8 @@
 %
 -module(lorawan_admin).
 
--export([handle_authorization/2, get_filters/1, sort/2, paginate/3]).
--export([parse_admin/1, build_admin/1]).
+-export([handle_authorization/2]).
+-export([parse/1, build/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -28,82 +28,72 @@ user_password(User) ->
         [U] -> U#user.pass
     end.
 
-get_filters(Req) ->
-    case cowboy_req:match_qs([{'_filters', [], <<"{}">>}], Req) of
-        #{'_filters' := Filter} ->
-            jsx:decode(Filter, [{labels, atom}])
-    end.
+parse(List) when is_list(List) ->
+    lists:map(fun(Item) -> parse(Item) end,
+        List);
 
-sort(Req, List) ->
-    case cowboy_req:match_qs([{'_sortDir', [], <<"ASC">>}, {'_sortField', [], undefined}], Req) of
-        #{'_sortField' := undefined} ->
-            List;
-        #{'_sortDir' := <<"ASC">>, '_sortField' := Field} ->
-            Field2 = binary_to_existing_atom(Field, latin1),
-            lists:sort(
-                fun(A,B) ->
-                    proplists:get_value(Field2, A) =< proplists:get_value(Field2, B)
-                end, List);
-        #{'_sortDir' := <<"DESC">>, '_sortField' := Field} ->
-            Field2 = binary_to_existing_atom(Field, latin1),
-            lists:sort(
-                fun(A,B) ->
-                    proplists:get_value(Field2, A) >= proplists:get_value(Field2, B)
-                end, List)
-    end.
+parse({Key, Value}) when Value == null; Value == undefined ->
+    {Key, undefined};
+parse({Key, Value}) when Key == netid -> {Key, lorawan_mac:hex_to_binary(Value)};
+parse({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
+                        Key == deveui; Key == appeui; Key == appkey; Key == link;
+                        Key == devaddr; Key == nwkskey; Key == appskey;
+                        Key == data; Key == frid ->
+    {Key, lorawan_mac:hex_to_binary(Value)};
+parse({Key, Value}) when Key == gpspos ->
+    {Key, parse_latlon(Value)};
+parse({Key, Value}) when Key == adr_use; Key == adr_set ->
+    {Key, parse_adr(Value)};
+parse({Key, Value}) when Key == rxq; Key == last_rxq ->
+    {Key, ?to_record(rxq, parse(Value))};
+parse({Key, Value}) when Key == txdata ->
+    {Key, ?to_record(txdata, parse(Value))};
+parse({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
+                        Key == datetime ->
+    {Key, iso8601:parse(Value)};
+parse({Key, <<"immediately">>}) when Key == time ->
+    {Key, immediately};
+parse({Key, Value}) when Key == time ->
+    {Key, iso8601:parse_exact(Value)};
+parse({Key, Value}) when Key == devstat ->
+    {Key, parse_devstat(Value)};
+parse(Else) ->
+    Else.
 
-paginate(Req, State, List) ->
-    case cowboy_req:match_qs([{'_page', [], <<"1">>}, {'_perPage', [], undefined}], Req) of
-        #{'_perPage' := undefined} ->
-            {jsx:encode(List), Req, State};
-        #{'_page' := Page0, '_perPage' := PerPage0} ->
-            {Page, PerPage} = {binary_to_integer(Page0), binary_to_integer(PerPage0)},
-            Req2 = cowboy_req:set_resp_header(<<"X-Total-Count">>, integer_to_binary(length(List)), Req),
-            {jsx:encode(lists:sublist(List, 1+(Page-1)*PerPage, PerPage)), Req2, State}
-    end.
-
-parse_admin(List) ->
-    lists:map(
-        fun ({Key, null}) -> {Key, undefined};
-            ({Key, Value}) when Key == netid -> {Key, lorawan_mac:hex_to_binary(Value)};
-            ({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
-                                Key == deveui; Key == appeui; Key == appkey; Key == link;
-                                Key == devaddr; Key == nwkskey; Key == appskey;
-                                Key == data; Key == frid -> {Key, lorawan_mac:hex_to_binary(Value)};
-            ({Key, Value}) when Key == gpspos -> {Key, parse_latlon(Value)};
-            ({Key, Value}) when Key == adr_use; Key == adr_set -> {Key, parse_adr(Value)};
-            ({Key, Value}) when Key == rxq; Key == last_rxq -> {Key, ?to_record(rxq, parse_admin(Value))};
-            ({Key, Value}) when Key == txdata -> {Key, ?to_record(txdata, parse_admin(Value))};
-            ({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
-                                Key == datetime -> {Key, iso8601:parse(Value)};
-            ({Key, <<"immediately">>}) when Key == time -> {Key, immediately};
-            ({Key, Value}) when Key == time -> {Key, iso8601:parse_exact(Value)};
-            ({Key, Value}) when Key == devstat -> {Key, parse_devstat(Value)};
-            (Else) -> Else
-        end,
-        List).
-
-build_admin(List) ->
+build(List) when is_list(List) ->
     lists:foldl(
-        fun ({Key, undefined}, A) -> [{Key, null} | A];
-            ({Key, Value}, A) when Key == netid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
-            ({Key, Value}, A) when Key == mac; Key == last_mac; Key == netid; Key == mask;
-                                Key == deveui; Key == appeui; Key == appkey; Key == link;
-                                Key == devaddr; Key == nwkskey; Key == appskey;
-                                Key == data; Key == frid -> [{Key, lorawan_mac:binary_to_hex(Value)} | A];
-            ({Key, Value}, A) when Key == gpspos -> [{Key, build_latlon(Value)} | A];
-            ({Key, Value}, A) when Key == adr_use; Key == adr_set -> [{Key, build_adr(Value)} | A];
-            ({Key, Value}, A) when Key == rxq; Key == last_rxq -> [{Key, build_admin(?to_proplist(rxq, Value))} | A];
-            ({Key, Value}, A) when Key == txdata -> [{Key, build_admin(?to_proplist(txdata, Value))} | A];
-            ({Key, immediately}, A) when Key == time -> [{Key, <<"immediately">>} | A];
-            ({Key, Value}, A) when Key == last_join; Key == last_rx; Key == devstat_time;
-                                Key == time; Key == datetime -> [{Key, iso8601:format(Value)} | A];
-            ({Key, Value}, A) when Key == devstat -> [{Key, build_devstat(Value)} | A];
+        fun
             % hide very internal fields
             ({Key, _Value}, A) when Key == srvtmst -> A;
-            (Else, A) -> [Else | A]
-        end,
-        [], List).
+            (Item, A) -> [build(Item) | A]
+        end, [], List);
+
+build({Key, undefined}) ->
+    {Key, null};
+build({Key, Value}) when Key == netid ->
+    {Key, lorawan_mac:binary_to_hex(Value)};
+build({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
+                            Key == deveui; Key == appeui; Key == appkey; Key == link;
+                            Key == devaddr; Key == nwkskey; Key == appskey;
+                            Key == data; Key == frid ->
+    {Key, lorawan_mac:binary_to_hex(Value)};
+build({Key, Value}) when Key == gpspos ->
+    {Key, build_latlon(Value)};
+build({Key, Value}) when Key == adr_use; Key == adr_set ->
+    {Key, build_adr(Value)};
+build({Key, Value}) when Key == rxq; Key == last_rxq ->
+    {Key, build(?to_proplist(rxq, Value))};
+build({Key, Value}) when Key == txdata ->
+    {Key, build(?to_proplist(txdata, Value))};
+build({Key, immediately}) when Key == time ->
+    {Key, <<"immediately">>};
+build({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
+                            Key == time; Key == datetime ->
+    {Key, iso8601:format(Value)};
+build({Key, Value}) when Key == devstat ->
+    {Key, build_devstat(Value)};
+build(Else) ->
+    Else.
 
 parse_latlon(List) ->
     {proplists:get_value(lat, List), proplists:get_value(lon, List)}.

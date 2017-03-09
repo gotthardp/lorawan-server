@@ -18,17 +18,16 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
--record(state, {table, record, fields, key}).
+-record(state, {table, record, fields, key, module}).
 
-init(Req, [Table, Record, Fields, text]) ->
-    Key = cowboy_req:binding(hd(Fields), Req),
-    {cowboy_rest, Req, #state{table=Table, record=Record, fields=Fields, key=Key}};
-init(Req, [Table, Record, Fields, binary]) ->
-    Key = case cowboy_req:binding(hd(Fields), Req) of
-        undefined -> undefined;
-        K -> lorawan_mac:hex_to_binary(K)
-    end,
-    {cowboy_rest, Req, #state{table=Table, record=Record, fields=Fields, key=Key}}.
+init(Req, [Table, Record, Fields]) ->
+    init0(Req, Table, Record, Fields, lorawan_admin);
+init(Req, [Table, Record, Fields, Module]) ->
+    init0(Req, Table, Record, Fields, Module).
+
+init0(Req, Table, Record, Fields, Module) ->
+    {_, Key} = lorawan_admin:parse({hd(Fields), cowboy_req:binding(hd(Fields), Req)}),
+    {cowboy_rest, Req, #state{table=Table, record=Record, fields=Fields, key=Key, module=Module}}.
 
 is_authorized(Req, State) ->
     lorawan_admin:handle_authorization(Req, State).
@@ -44,25 +43,59 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 handle_get(Req, #state{key=undefined}=State) ->
-    lorawan_admin:paginate(Req, State,
-        lorawan_admin:sort(Req,
-            read_records(lorawan_admin:get_filters(Req), State)));
+    paginate(Req, State,
+        sort(Req, read_records(Req, State)));
 handle_get(Req, #state{table=Table, key=Key}=State) ->
     [Rec] = mnesia:dirty_read(Table, Key),
     {jsx:encode(build_record(Rec, State)), Req, State}.
 
-read_records(Filter, #state{table=Table, record=Record, fields=Fields}=State) ->
-    Match = list_to_tuple([Record|[proplists:get_value(X, lorawan_admin:parse_admin(Filter), '_') || X <- Fields]]),
+paginate(Req, State, List) ->
+    case cowboy_req:match_qs([{'_page', [], <<"1">>}, {'_perPage', [], undefined}], Req) of
+        #{'_perPage' := undefined} ->
+            {jsx:encode(List), Req, State};
+        #{'_page' := Page0, '_perPage' := PerPage0} ->
+            {Page, PerPage} = {binary_to_integer(Page0), binary_to_integer(PerPage0)},
+            Req2 = cowboy_req:set_resp_header(<<"X-Total-Count">>, integer_to_binary(length(List)), Req),
+            {jsx:encode(lists:sublist(List, 1+(Page-1)*PerPage, PerPage)), Req2, State}
+    end.
+
+sort(Req, List) ->
+    case cowboy_req:match_qs([{'_sortDir', [], <<"ASC">>}, {'_sortField', [], undefined}], Req) of
+        #{'_sortField' := undefined} ->
+            List;
+        #{'_sortDir' := <<"ASC">>, '_sortField' := Field} ->
+            Field2 = binary_to_existing_atom(Field, latin1),
+            lists:sort(
+                fun(A,B) ->
+                    proplists:get_value(Field2, A) =< proplists:get_value(Field2, B)
+                end, List);
+        #{'_sortDir' := <<"DESC">>, '_sortField' := Field} ->
+            Field2 = binary_to_existing_atom(Field, latin1),
+            lists:sort(
+                fun(A,B) ->
+                    proplists:get_value(Field2, A) >= proplists:get_value(Field2, B)
+                end, List)
+    end.
+
+read_records(Req, #state{table=Table, record=Record, fields=Fields, module=Module}=State) ->
+    Filter = apply(Module, parse, [get_filters(Req)]),
+    Match = list_to_tuple([Record|[proplists:get_value(X, Filter, '_') || X <- Fields]]),
     lists:map(
         fun(Rec)-> build_record(Rec, State) end,
         mnesia:dirty_select(Table, [{Match, [], ['$_']}])).
 
-build_record(Rec, #state{fields=Fields}) ->
-    lorawan_admin:build_admin(
+get_filters(Req) ->
+    case cowboy_req:match_qs([{'_filters', [], <<"{}">>}], Req) of
+        #{'_filters' := Filter} ->
+            jsx:decode(Filter, [{labels, atom}])
+    end.
+
+build_record(Rec, #state{fields=Fields, module=Module}) ->
+    apply(Module, build, [
         lists:filter(fun({_, undefined}) -> false;
                         (_) -> true
                      end,
-            lists:zip(Fields, tl(tuple_to_list(Rec))))).
+            lists:zip(Fields, tl(tuple_to_list(Rec))))]).
 
 content_types_accepted(Req, State) ->
     {[
@@ -86,8 +119,8 @@ import_records([First|Rest], State) when is_list(First) ->
 import_records([First|_Rest] = List, State) when is_tuple(First) ->
     write_record(List, State).
 
-write_record(List, #state{table=Table, record=Record, fields=Fields}) ->
-    Rec = list_to_tuple([Record|[proplists:get_value(X, lorawan_admin:parse_admin(List)) || X <- Fields]]),
+write_record(List, #state{table=Table, record=Record, fields=Fields, module=Module}) ->
+    Rec = list_to_tuple([Record|[proplists:get_value(X, apply(Module, parse, [List])) || X <- Fields]]),
     mnesia:transaction(fun() ->
         ok = mnesia:write(Table, Rec, write) end).
 

@@ -68,7 +68,7 @@ handle_data(Msg, #state{format=raw} = State) ->
 handle_data(Msg, #state{format=json} = State) ->
     case jsx:is_json(Msg) of
         true ->
-            Struct = lorawan_admin:parse_admin(jsx:decode(Msg, [{labels, atom}])),
+            Struct = lorawan_admin:parse(jsx:decode(Msg, [{labels, atom}])),
             handle_json(proplists:get_value(devaddr, Struct), build_txdata(Struct), Struct, State);
         false ->
             lager:warning("JSON syntax error"),
@@ -133,7 +133,7 @@ build_txdata(Struct) ->
 websocket_info({send, _DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ}, #state{format=raw} = State) ->
     {reply, {binary, Data}, State};
 websocket_info({send, DevAddr, _AppArgs, RxData, RxQ}, #state{format=json} = State) ->
-    Msg = lorawan_admin:build_admin([{devaddr, DevAddr}, {rxq, RxQ} | ?to_proplist(rxdata, RxData)]),
+    Msg = lorawan_admin:build([{devaddr, DevAddr}, {rxq, RxQ} | ?to_proplist(rxdata, RxData)]),
     {reply, {text, jsx:encode(Msg)}, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~w", [Info]),
