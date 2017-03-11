@@ -125,7 +125,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- gateways
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
-        nga.field('netid').label('NetID')
+        nga.field('netid').label('NetID'),
+        nga.field('last_rx', 'datetime').label('Last RX')
     ])
     .sortField('mac')
     .sortDir('ASC');
@@ -144,6 +145,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('netid').label('NetID')
             .attributes({ placeholder: 'e.g. 0123AB' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
+        nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('gpspos', 'template')
             .validation({required: true })
             .label('Location')
@@ -461,7 +463,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(gateways)
             .fields([
                 nga.field('mac').label('MAC').isDetailLink(true),
-                nga.field('netid').label('NetID')
+                nga.field('netid').label('NetID'),
+                nga.field('last_rx', 'datetime').label('Last RX')
             ])
             .sortField('mac')
             .sortDir('ASC')

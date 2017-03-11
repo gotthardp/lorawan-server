@@ -72,6 +72,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #
             lager:info("Gateway ~w at ~w:~w", [MAC, Host, Port]),
             dict:store(MAC, {Host, Port, Version}, Dict)
     end,
+    process_status(MAC, undefined),
     % PULL ACK
     gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
     {noreply, State#state{pulladdr=Dict2}};
@@ -150,7 +151,9 @@ process_frame(MAC, RxQ, PHYPayload) ->
     end.
 
 status(MAC, Pk) ->
-    S = ?to_record(stat, Pk),
+    process_status(MAC, ?to_record(stat, Pk)).
+
+process_status(MAC, S) ->
     case lorawan_mac:process_status(MAC, S) of
         ok -> ok;
         {error, Error} ->

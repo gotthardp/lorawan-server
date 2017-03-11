@@ -40,16 +40,21 @@ process_status(MAC, S) ->
             lager:warning("Unknown MAC ~s", [binary_to_hex(MAC)]),
             {error, {unknown_mac, MAC}};
         [G] ->
-            G2 = if
-                % store gateway GPS position
-                is_number(S#stat.lati), is_number(S#stat.long), is_number(S#stat.alti),
-                S#stat.lati /= 0, S#stat.long /= 0, S#stat.alti /= 0 ->
-                    G#gateway{ gpspos={S#stat.lati, S#stat.long}, gpsalt=S#stat.alti };
-                % position not received
-                true -> G
-            end,
-            mnesia:dirty_write(gateways, G2),
+            mnesia:dirty_write(gateways,
+                store_status(G#gateway{last_rx=calendar:universal_time()}, S)),
             ok
+    end.
+
+store_status(G, undefined) ->
+    G;
+store_status(G, S) ->
+    if
+        % store gateway GPS position
+        is_number(S#stat.lati), is_number(S#stat.long), is_number(S#stat.alti),
+        S#stat.lati /= 0, S#stat.long /= 0, S#stat.alti /= 0 ->
+            G#gateway{ gpspos={S#stat.lati, S#stat.long}, gpsalt=S#stat.alti };
+        % position not received
+        true -> G
     end.
 
 process_frame1(Gateway, RxQ, 2#000, Msg, MIC) ->
