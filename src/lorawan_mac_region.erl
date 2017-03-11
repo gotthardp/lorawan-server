@@ -5,8 +5,8 @@
 %
 -module(lorawan_mac_region).
 
--export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, rf_group/1, default_adr/1]).
--export([datar_to_dr/2, freq_range/1, regional_config/2]).
+-export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, rf_group/1, default_adr/1, max_uplink_dr/1]).
+-export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -145,9 +145,12 @@ datars(Region)
     {12, {8, 500}},
     {13, {7, 500}}].
 
-dr_to_datar(Region, DR) ->
+dr_to_tuple(Region, DR) ->
     {_, DataRate} = lists:keyfind(DR, 1, datars(Region)),
-    tuple_to_datar(DataRate).
+    DataRate.
+
+dr_to_datar(Region, DR) ->
+    tuple_to_datar(dr_to_tuple(Region, DR)).
 
 datar_to_dr(Region, DataRate) ->
     {DR, _} = lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)),
@@ -173,6 +176,14 @@ default_adr(<<"CN779-787">>) -> {1, 0, [{0,2}]};
 default_adr(<<"EU433">>) -> {0, 0, [{0,2}]};
 default_adr(<<"AU915-928">>) -> {5, 0, [{0,71}]};
 default_adr(<<"CN470-510">>) -> {2, 0, [{0, 95}]}.
+
+max_uplink_dr(<<"EU863-870">>) -> 6;
+max_uplink_dr(<<"US902-928">>) -> 4;
+max_uplink_dr(<<"US902-928-PR">>) -> 4;
+max_uplink_dr(<<"CN779-787">>) -> 6;
+max_uplink_dr(<<"EU433">>) -> 6;
+max_uplink_dr(<<"AU915-928">>) -> 4;
+max_uplink_dr(<<"CN470-510">>) -> 6.
 
 % default power for downlinks (dBm)
 default_erp(<<"EU863-870">>) -> 14;

@@ -99,7 +99,10 @@ handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
     {noreply, State};
 
 % handler termination
-handle_info({'EXIT', _FromPid, _Reason}, State) ->
+handle_info({'EXIT', _FromPid, normal}, State) ->
+    {noreply, State};
+handle_info({'EXIT', _FromPid, Reason}, State) ->
+    lager:error("Hanler terminated: ~w", [Reason]),
     {noreply, State}.
 
 terminate(Reason, _State) ->

@@ -74,13 +74,18 @@ get_rxframe(Req, #state{format=qgraph}=State) ->
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
                 [{id, <<"rssi">>}, {label, <<"RSSI (dBm)">>}, {type, <<"number">>}],
+                [{id, <<"average">>}, {label, <<"Average SNR (dB)">>}, {type, <<"number">>}],
                 [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
-                fun(#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}}) ->
+                fun(#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}, average_snr=AvgSNR}) ->
                     [{c, [
                         [{v, FCnt}],
                         [{v, RSSI}],
+                        case AvgSNR of
+                            undefined -> [];
+                            _ -> [{v, AvgSNR}]
+                        end,
                         [{v, SNR}]
                     ]}];
                 (_Else) ->

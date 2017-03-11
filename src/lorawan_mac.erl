@@ -87,13 +87,13 @@ process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
                     case FPort of
                         0 when FOptsLen == 0 ->
                             Data = cipher(FRMPayload, L#link.nwkskey, MType band 1, DevAddr, L#link.fcntup),
-                            handle_rxpk(Gateway, RxQ, MType, store_adr(L, ADR), Fresh,
+                            handle_rxpk(Gateway, RxQ, MType, L, Fresh,
                                 Frame#frame{fopts=reverse(Data), data= <<>>});
                         0 ->
                             {error, double_fopts};
                         _N ->
                             Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, L#link.fcntup),
-                            handle_rxpk(Gateway, RxQ, MType, store_adr(L, ADR), Fresh,
+                            handle_rxpk(Gateway, RxQ, MType, L, Fresh,
                                 Frame#frame{fopts=FOpts, data=reverse(Data)})
                     end;
                 _MIC2 ->
@@ -128,7 +128,8 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewLink = #link{devaddr=NewAddr, region=D#device.region, app=D#device.app, appid=D#device.appid,
             nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check,
             last_mac=Gateway#gateway.mac, last_rxq=RxQ, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
-            adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set},
+            adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set,
+            last_snrs=[]},
         ok = mnesia:write(links, NewLink, write),
         NewLink
     end),
@@ -193,7 +194,8 @@ check_link_fcnt(DevAddr, FCnt) ->
         [L] when L#link.fcnt_check == 2, FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
             lager:debug("~w fcnt reset", [DevAddr]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
-            {ok, reset, L#link{fcntup = FCnt, fcntdown=0, devstat_fcnt=undefined}};
+            {ok, reset, L#link{fcntup = FCnt, fcntdown=0, adr_use=lorawan_mac_region:default_adr(L#link.region),
+                devstat_fcnt=undefined, last_snrs=[]}};
         [L] when L#link.fcnt_check == 1 ->
             % strict 32-bit
             case fcnt_gap32(L#link.fcntup, FCnt) of
@@ -233,14 +235,12 @@ reset_link(DevAddr) ->
     lorawan_db:purge_rxframes(DevAddr),
     lorawan_db:purge_txframes(DevAddr).
 
-store_adr(Link, ADR) -> Link#link{adr_flag_use=ADR}.
-
-store_rxpk(Gateway, Link, RxQ, Frame) ->
-    % store #rxframe{frid, mac, rxq, devaddr, fcnt, port, data, region, datetime, devstat}
-    mnesia:dirty_write(rxframes, #rxframe{frid= <<(erlang:system_time()):64>>,
+build_rxframe(Gateway, Link, RxQ, Frame) ->
+    % #rxframe{frid, mac, rxq, devaddr, fcnt, port, data, region, datetime, devstat}
+    #rxframe{frid= <<(erlang:system_time()):64>>,
         mac=Gateway#gateway.mac, rxq=RxQ, devaddr=Link#link.devaddr,
         fcnt=Link#link.fcntup, port=Frame#frame.fport, data=Frame#frame.data,
-        region=Link#link.region, datetime=calendar:universal_time(), devstat=Link#link.devstat}).
+        region=Link#link.region, datetime=calendar:universal_time(), devstat=Link#link.devstat}.
 
 handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->
@@ -253,7 +253,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
         retransmit ->
             % we want to see retransmissions too
-            ok = store_rxpk(Gateway, Link, RxQ, Frame),
+            ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Frame)),
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
                     TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, rx1_delay),
@@ -263,11 +263,21 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             end
     end.
 
-handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr,
+handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
         adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
-    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(RxQ, Link, FOpts),
+    % store parameters
+    DataRate = lorawan_mac_region:datar_to_dr(Link#link.region, RxQ#rxq.datr),
+    {TXPower, _, Chans} =
+        case Link#link.adr_use of
+            undefined -> {undefined, undefined, undefined};
+            Else -> Else
+        end,
+    ULink = Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans}},
+    % process commands
+    RxFrame = build_rxframe(Gateway, ULink, RxQ, Frame),
+    {ok, L2, FOptsOut, RxFrame2} = lorawan_mac_commands:handle(RxQ, ULink, FOpts, RxFrame),
     ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time(), last_mac=Gateway#gateway.mac, last_rxq=RxQ}),
-    ok = store_rxpk(Gateway, L2, RxQ, Frame),
+    ok = mnesia:dirty_write(rxframes, RxFrame2),
     % check whether last downlink transmission was lost
     {LastLost, LostFrame} = repeat_downlink(DevAddr, ACK),
     % check whether the response is required

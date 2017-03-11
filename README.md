@@ -25,7 +25,7 @@ The server:
    * Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928 and CN 470-510 band.
  * Provides a network management interface.
    * Displays device battery and connectivity status.
-   * Supports per-node configuration of TX power and data rate (manual ADR).
+   * Supports both manual and automatic configuration of TX power and data rate (ADR).
  * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,
    even on embedded systems like OpenWrt or in a Docker container.
  * Does not crash as it's implemented in [Erlang](https://www.erlang.org/), which is
