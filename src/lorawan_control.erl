@@ -11,7 +11,9 @@ stop() ->
     invoke(init, stop, []).
 
 invoke(Module, Fun, Params) ->
-    Node = list_to_atom(string:join(["lorawan", net_adm:localhost()], "@")),
+    % use short names, so only the first part of the hostname
+    [Host | _] = string:tokens(net_adm:localhost(), "."),
+    Node = list_to_atom(string:join(["lorawan", Host], "@")),
     case rpc:call(Node, Module, Fun, Params) of
         ok -> ok;
         {badrpc, Reason} ->
