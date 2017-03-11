@@ -16,7 +16,8 @@ loramote_test_() ->
             test_admin:add_link(<<"11223344">>, <<"EU863-870">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>)
         end,
         fun(_State) ->
-            application:stop(lorawan_server)
+            application:stop(lorawan_server),
+            application:stop(mnesia)
         end,
         fun loramote_test/1}.
 
