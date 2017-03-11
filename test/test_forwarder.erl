@@ -1,5 +1,5 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
@@ -63,7 +63,7 @@ await_pull(Socket) ->
         {udp, Socket, _, _, <<1, _:16, 3, Data/binary>>} ->
             Pk = jsx:decode(Data, [{labels, atom}]),
             TxPk = proplists:get_value(txpk, Pk),
-            {ok, {proplists:get_value(data, TxPk)}}
+            {ok, proplists:get_value(data, TxPk)}
         after 100 ->
             {error, timeout}
     end.

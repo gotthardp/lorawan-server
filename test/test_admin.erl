@@ -1,19 +1,19 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 -module(test_admin).
 
--export([add_device/1, add_link/4]).
+-export([add_device/1, add_link/1]).
 
 add_device(MAC) ->
     post_json("gateways", [{mac, MAC}, {tx_rfch, 0}, {netid, <<"000000">>},
         {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
-add_link(DevAddr, Region, NwkSKey, AppSKey) ->
+add_link({DevAddr, NwkSKey, AppSKey}) ->
     % set devstat_fcnt so we can test MAC
-    post_json("links", [{devaddr, DevAddr}, {region, Region},
+    post_json("links", [{devaddr, DevAddr}, {region, <<"EU863-870">>},
         {app, <<"semtech-mote">>}, {nwkskey, NwkSKey}, {appskey, AppSKey},
         {fcntup, 0}, {fcntdown, 0}, {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).
 

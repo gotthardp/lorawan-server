@@ -11,6 +11,8 @@
 -export([process_frame/3, process_status/2]).
 -export([handle_downlink/3, handle_multicast/3]).
 -export([binary_to_hex/1, hex_to_binary/1]).
+% for unit testing
+-export([reverse/1, cipher/5, b0/4]).
 
 -define(MAX_FCNT_GAP, 16384).
 -define(MAX_LOST_AFTER_RESET, 10).
