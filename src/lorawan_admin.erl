@@ -57,6 +57,10 @@ parse({Key, Value}) when Key == time ->
     {Key, iso8601:parse_exact(Value)};
 parse({Key, Value}) when Key == devstat ->
     {Key, parse_devstat(Value)};
+parse({Key, Value}) when Key == last_qs ->
+    {Key, lists:map(fun(Item) -> parse_qs(Item) end, Value)};
+parse({Key, Value}) when Key == average_qs ->
+    {Key, parse_qs(Value)};
 parse(Else) ->
     Else.
 
@@ -92,6 +96,10 @@ build({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
     {Key, iso8601:format(Value)};
 build({Key, Value}) when Key == devstat ->
     {Key, build_devstat(Value)};
+build({Key, Value}) when Key == last_qs ->
+    {Key, lists:map(fun(Item) -> build_qs(Item) end, Value)};
+build({Key, Value}) when Key == average_qs ->
+    {Key, build_qs(Value)};
 build(Else) ->
     Else.
 
@@ -120,6 +128,12 @@ parse_devstat(List) ->
 
 build_devstat({Battery, Margin}) ->
     [{battery, Battery}, {margin, Margin}].
+
+parse_qs(List) ->
+    {proplists:get_value(rssi, List), proplists:get_value(snr, List)}.
+
+build_qs({RSSI, SNR}) ->
+    [{rssi, RSSI}, {snr, SNR}].
 
 intervals_to_text(List) when is_list(List) ->
     lists:flatten(string:join(

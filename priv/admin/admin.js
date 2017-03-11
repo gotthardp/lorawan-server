@@ -701,13 +701,13 @@ return {
             $scope.rxqChartObject.options = {
                 "vAxes": {
                     0: {"title": 'RSSI (dBm)'},
-                    1: {"title": 'Average SNR (dB)'},
-                    2: {"title": 'SNR (dB)'}
+                    1: {"title": 'SNR (dB)'}
                 },
                 "series": {
-                    0: {"targetAxisIndex": 0},
-                    1: {"targetAxisIndex": 1},
-                    2: {"targetAxisIndex": 1}
+                    0: {"targetAxisIndex": 0, "pointsVisible": false},
+                    1: {"targetAxisIndex": 0, "pointSize": 3},
+                    2: {"targetAxisIndex": 1, "pointsVisible": false},
+                    3: {"targetAxisIndex": 1, "pointSize": 3}
                 },
                 "chartArea": {
                     "top": 0, "bottom": "10%",
@@ -716,7 +716,6 @@ return {
                 "legend": {
                     "position": "none"
                 },
-                "pointSize": 3,
                 "vAxis": {
                     "textPosition": "in",
                     "gridlines": {"count": -1}

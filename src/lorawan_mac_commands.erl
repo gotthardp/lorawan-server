@@ -70,7 +70,7 @@ encode_fopts([]) ->
 handle_fopt({link_adr_ans,1,1,1}, Link) ->
     lager:debug("LinkADRReq succeeded"),
     % after a successful ADR restart the statistics
-    Link#link{adr_use=Link#link.adr_set, last_snrs=[]};
+    Link#link{adr_use=Link#link.adr_set, last_qs=[]};
 handle_fopt({link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK}, Link) ->
     lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
     {TXPower, DataRate, Chans} = Link#link.adr_set,
@@ -90,32 +90,38 @@ send_adr(_RxQ, {#link{adr_flag_set=2}=Link, FOptsOut, RxFrame}) ->
     send_adr0({Link, FOptsOut, RxFrame});
 send_adr(RxQ, {#link{adr_flag_set=1}=Link, FOptsOut, RxFrame}) ->
     % ADR is ON, so maintain quality statistics
-    LastSNRs = append_snr(RxQ#rxq.lsnr, Link#link.last_snrs),
-    auto_adr({Link#link{last_snrs=LastSNRs}, FOptsOut, RxFrame});
+    LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Link#link.last_qs),
+    auto_adr({Link#link{last_qs=LastQs}, FOptsOut, RxFrame});
 send_adr(_RxQ, {Link, FOptsOut, RxFrame}) ->
     % ADR is OFF
     {Link, FOptsOut, RxFrame}.
 
-append_snr(SNR, undefined) ->
+appendq(SNR, undefined) ->
     [SNR];
-append_snr(SNR, LastSNRs) ->
+appendq(SNR, LastSNRs) ->
     lists:sublist([SNR | LastSNRs], 20).
 
-auto_adr({#link{last_snrs=LastSNRs}=Link, FOptsOut, RxFrame}) when length(LastSNRs) < 20 ->
-    send_adr0({Link, FOptsOut, RxFrame#rxframe{average_snr=undefined}});
-auto_adr({#link{last_snrs=LastSNRs}=Link, FOptsOut, RxFrame}) ->
-    Avg = lists:sum(LastSNRs)/length(LastSNRs),
-    Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- LastSNRs])/length(LastSNRs)),
-    AvgSNR = Avg-Sigma,
+auto_adr({#link{last_qs=LastQs}=Link, FOptsOut, RxFrame}) when length(LastQs) >= 20 ->
+    {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     case trunc((AvgSNR-max_snr(Link#link.region, Link#link.adr_use)-10)/2.5) of
         Steps when Steps > 0 ->
             {TxPower, DataRate, Chans} = Link#link.adr_use,
             DataRate2 = min(DataRate+Steps, lorawan_mac_region:max_uplink_dr(Link#link.region)),
-            send_adr0({Link#link{adr_set={TxPower, DataRate2, Chans}}, FOptsOut, RxFrame#rxframe{average_snr=AvgSNR}});
+            send_adr0({Link#link{adr_set={TxPower, DataRate2, Chans}}, FOptsOut, RxFrame#rxframe{average_qs=AverageQs}});
         _ ->
-            send_adr0({Link, FOptsOut, RxFrame#rxframe{average_snr=AvgSNR}})
-    end.
+            send_adr0({Link, FOptsOut, RxFrame#rxframe{average_qs=AverageQs}})
+    end;
+auto_adr({Link, FOptsOut, RxFrame}) ->
+    send_adr0({Link, FOptsOut, RxFrame#rxframe{average_qs=undefined}}).
+
+average({List1, List2}) ->
+    {average0(List1), average0(List2)}.
+
+average0(List) ->
+    Avg = lists:sum(List)/length(List),
+    Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- List])/length(List)),
+    Avg-Sigma.
 
 % from SX1272 DataSheet, Table 13
 max_snr(Region, {_, DataRate, _}) ->

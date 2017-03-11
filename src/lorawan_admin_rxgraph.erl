@@ -73,19 +73,26 @@ get_rxframe(Req, #state{format=qgraph}=State) ->
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
+                [{id, <<"average_rssi">>}, {label, <<"Average RSSI (dBm)">>}, {type, <<"number">>}],
                 [{id, <<"rssi">>}, {label, <<"RSSI (dBm)">>}, {type, <<"number">>}],
-                [{id, <<"average">>}, {label, <<"Average SNR (dB)">>}, {type, <<"number">>}],
+                [{id, <<"average_snr">>}, {label, <<"Average SNR (dB)">>}, {type, <<"number">>}],
                 [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
-                fun(#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}, average_snr=AvgSNR}) ->
+                fun(#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}, average_qs={AvgRSSI, AvgSNR}}) ->
                     [{c, [
                         [{v, FCnt}],
+                        [{v, AvgRSSI}],
                         [{v, RSSI}],
-                        case AvgSNR of
-                            undefined -> [];
-                            _ -> [{v, AvgSNR}]
-                        end,
+                        [{v, AvgSNR}],
+                        [{v, SNR}]
+                    ]}];
+                (#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}}) ->
+                    [{c, [
+                        [{v, FCnt}],
+                        [{v, null}],
+                        [{v, RSSI}],
+                        [{v, null}],
                         [{v, SNR}]
                     ]}];
                 (_Else) ->
