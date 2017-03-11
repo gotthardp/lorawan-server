@@ -60,18 +60,16 @@ The [Installation Instructions](doc/Installation.md) describe how to build,
 install and configure the server. You can use a Debian package, download the binary
 release and run it manually or build the server from source codes.
 
-After the installation you have to:
- * Add LoRaWAN gateways you want to use.
- * Configure each device you want to use, either as a personalized device (ABP) or
-   as an over-the-air activated (OTAA) device.
-
 Run the lorawan-server release by:
 ```bash
 cd lorawan-server
 bin/lorawan-server
 ```
 
-Terminate the lorawan-server by:
+Don't forget to set the server address and port (by default 1680) in the LoRaWAN
+gateways you want to use with the server.
+
+You can terminate the lorawan-server by:
 ```bash
 bin/lorawanctl stop
 ```
@@ -80,23 +78,50 @@ You can administrate and manage the server via a set of web-pages or via a REST 
 as described in the [Administration Guide](doc/Administration.md) and in the
 [Adaptive Data Rate (ADR) Guide](doc/ADR.md).
 
+By default you can access the administration at http://*server*:8080, using
+"admin" as both username and password. After the installation you have to:
+ * Add LoRaWAN gateways you want to use.
+ * Configure each device you want to use, either as a personalized device (ABP) or
+   as an over-the-air activated (OTAA) device.
+
 ### Integration
 
 You can integrate lorawan-server with external applications using the WebSocket
 interface as described in the [WebSocket Guide](doc/WebSockets.md).
 
-You can also use the internal web server and develop application modules, which
-may offer custom REST APIs. See the [Handler Development Guide](doc/Handlers.md).
+You can also use the internal web server and develop internal applications, which
+may offer custom REST APIs. The lorawan-server is designed to be highly extensible.
+I encourage you to [Learn You Some Erlang](http://learnyousomeerlang.com/introduction)
+and develop your own modules.
 
-### Development
+To implement an internal application you need to create a new module implementing the
+`lorawan_application` behaviour as described in the [Handler Development Guide](doc/Handlers.md).
+
+### Troubleshooting
 [![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)
 
-The lorawan-server is designed to be highly extensible. I encourage you to
-[Learn You Some Erlang](http://learnyousomeerlang.com/introduction) and develop
-your own applications.
+If the server doesn't do what you expect, please review the server logs and consult the
+[Troubleshooting Instructions](doc/Troubleshooting.md) for the most common problems.
 
-To implement a new application you need to create a new module implementing the
-`lorawan_application` behaviour as described in the [Handler Development Guide](doc/Handlers.md).
+If the problem persists, please verify you have the latest version. I recommend
+to always use the [latest release](https://github.com/gotthardp/lorawan-server/releases).
+If you use the [latest sources](https://github.com/gotthardp/lorawan-server/commits/master),
+please verify the "build" icon above is green and then try upgrading by running:
+
+```bash
+cd lorawan-server
+git pull
+make upgrade
+make release
+```
+
+If the "build" icon above is red, please wait few minutes (or hours) until it
+gets green again.
+
+If nothing helps, please review the existing
+[issues](https://github.com/gotthardp/lorawan-server/issues) to verify the
+problem was not already reported and then
+[create new issue](https://github.com/gotthardp/lorawan-server/issues/new).
 
 
 ## Copyright and Licensing

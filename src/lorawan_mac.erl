@@ -69,7 +69,7 @@ process_frame1(Gateway, RxQ, 2#000, Msg, MIC) ->
                 MIC ->
                     handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, D#device.appkey);
                 _MIC2 ->
-                    {error, bad_mic}
+                    {error, {bad_mic, DevEUI}}
             end
     end;
 process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
@@ -99,7 +99,7 @@ process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
                                 Frame#frame{fopts=FOpts, data=reverse(Data)})
                     end;
                 _MIC2 ->
-                    {error, bad_mic}
+                    {error, {bad_mic, DevAddr}}
             end;
         ignore ->
             ok;
