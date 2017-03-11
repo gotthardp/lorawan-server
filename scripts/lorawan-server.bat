@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-for /D %%A in ("%PROGRAMFILES%\erl*") do (
+for /D %%A in ("%PROGRAMFILES%\erl*" "%PROGRAMFILES(x86)%\erl*") do (
     for /D %%B in ("%%A\erts*") do (
-        for /D %%C in ("%%B\bin\erl") do (
+        for /D %%C in ("%%B\bin\erl.exe") do (
             set "ERLDIR=%%C"
         )
     )
