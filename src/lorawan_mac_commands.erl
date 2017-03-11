@@ -90,11 +90,16 @@ send_adr(_RxQ, {#link{adr_flag_set=2}=Link, FOptsOut, RxFrame}) ->
     send_adr0({Link, FOptsOut, RxFrame});
 send_adr(RxQ, {#link{adr_flag_set=1}=Link, FOptsOut, RxFrame}) ->
     % ADR is ON, so maintain quality statistics
-    LastSNRs = lists:sublist([RxQ#rxq.lsnr | Link#link.last_snrs], 20),
+    LastSNRs = append_snr(RxQ#rxq.lsnr, Link#link.last_snrs),
     auto_adr({Link#link{last_snrs=LastSNRs}, FOptsOut, RxFrame});
 send_adr(_RxQ, {Link, FOptsOut, RxFrame}) ->
     % ADR is OFF
     {Link, FOptsOut, RxFrame}.
+
+append_snr(SNR, undefined) ->
+    [SNR];
+append_snr(SNR, LastSNRs) ->
+    lists:sublist([SNR | LastSNRs], 20).
 
 auto_adr({#link{last_snrs=LastSNRs}=Link, FOptsOut, RxFrame}) when length(LastSNRs) < 20 ->
     send_adr0({Link, FOptsOut, RxFrame#rxframe{average_snr=undefined}});
