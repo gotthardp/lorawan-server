@@ -1,12 +1,24 @@
 # Adaptive Data Rate (ADR)
 
-For each node you can set the desired power, data rate and channels (frequencies)
-to be used for uplink transmissions.
+Transmissions (uplinks) of each node can use different transmission power, data
+rate and channels (frequencies). Depending on the *Set ADR* parameter this can
+be manually defined by the administrator or automatically determined by the server.
 
-Please note that this functionality must be enabled in the device and requested
-by the server.
+Note this functionality must be also enabled in the device, which is indicated
+by the *Use ADR* parameter.
 
-## Device Configuration
+## Automatic ADR
+
+The server calculates an average RSSI and SNR for the last 20 frames received.
+ * The *Data Rate* (Spreading Factor) is defined so that the LoRa demodulator SNR
+   for the target *Data Rate* matches the observed average SNR.
+ * When the highest *Data Rate* is reached, the *Power* is decreased, so the
+   RSSI stays above -110 dbB, which is an expected sensitivity for the highest rate.
+
+
+## Manual ADR
+
+### Device Configuration
 
 For each OTAA device you can define which ADR parameters shall be requested when
 the device joins the network:
@@ -21,7 +33,7 @@ server administration.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
 
-## Link Configuration
+### Link Configuration
 
 For each connected node (link) you can define ADR paramaters to be requested by
 the server. Initally, this is the Device Configuration.

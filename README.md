@@ -48,6 +48,8 @@ if you find a bug or miss a feature.
 ## Documentation
 
 The lorawan-server includes all functions required to run a private LoRa network.
+The server is provided as a comprehensive package with a single configuration file
+and a single administration tool.
 You only need to install the [Erlang/OTP](http://www.erlang.org) 18 or later.
 
 The main components of the lorawan-server are shown in the following figure:
@@ -126,7 +128,7 @@ problem was not already reported and then
 
 ## Copyright and Licensing
 
-The lorawan-server is distributed under the MIT License.
+The lorawan-server is distributed under the terms of the MIT License.
 See the [LICENSE](LICENSE).
 
 Copyright (c) 2016-2017 Petr Gotthard

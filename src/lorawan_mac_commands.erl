@@ -103,15 +103,32 @@ appendq(SNR, LastSNRs) ->
 
 auto_adr({#link{last_qs=LastQs}=Link, FOptsOut, RxFrame}) when length(LastQs) >= 20 ->
     {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
+    {TxPower, DataRate, Chans} = Link#link.adr_use,
+    {MaxPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
-    case trunc((AvgSNR-max_snr(Link#link.region, Link#link.adr_use)-10)/2.5) of
-        Steps when Steps > 0 ->
-            {TxPower, DataRate, Chans} = Link#link.adr_use,
-            DataRate2 = min(DataRate+Steps, lorawan_mac_region:max_uplink_dr(Link#link.region)),
-            send_adr0({Link#link{adr_set={TxPower, DataRate2, Chans}}, FOptsOut, RxFrame#rxframe{average_qs=AverageQs}});
-        _ ->
-            send_adr0({Link, FOptsOut, RxFrame#rxframe{average_qs=AverageQs}})
-    end;
+    % there is 2.5 dB between the DR, so divide by 3 to get more margin
+    MaxSNR = max_snr(Link#link.region, Link#link.adr_use)-10,
+    StepsDR = trunc((AvgSNR-MaxSNR)/3),
+    DataRate2 = if
+            StepsDR > 0, DataRate < MaxDR ->
+                lager:debug("DataRate ~w: average snr ~w ~w = ~w, adr ~w -> step ~w",
+                    [Link#link.devaddr, round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
+                min(DataRate+StepsDR, MaxDR);
+            true ->
+                DataRate
+        end,
+    % receiver sensitivity for maximal DR in all regions is -120 dBm, -10 dB margin
+    % there is 2-3dB between power levels, divide by 4
+    StepsPwr = trunc((AvgRSSI+110)/4),
+    TxPower2 = if
+            DataRate2 == MaxDR, StepsPwr > 0, TxPower < MaxPower ->
+                lager:debug("Power ~w: average rssi ~w -110 = ~w, power ~w -> step ~w",
+                    [Link#link.devaddr, round(AvgRSSI), round(AvgRSSI+110), TxPower, StepsPwr]),
+                min(TxPower+StepsPwr, MaxPower);
+            true ->
+                TxPower
+        end,
+    send_adr0({Link#link{adr_set={TxPower2, DataRate2, Chans}}, FOptsOut, RxFrame#rxframe{average_qs=AverageQs}});
 auto_adr({Link, FOptsOut, RxFrame}) ->
     send_adr0({Link, FOptsOut, RxFrame#rxframe{average_qs=undefined}}).
 
