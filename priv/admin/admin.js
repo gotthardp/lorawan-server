@@ -126,7 +126,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
         nga.field('netid').label('NetID'),
-        nga.field('last_rx', 'datetime').label('Last RX')
+        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('alive', 'boolean').label('Alive')
+            .map(function timediff(value, entry) {
+                return timeyoung(entry.last_rx, 60);
+            })
     ])
     .sortField('mac')
     .sortDir('ASC');
@@ -464,7 +468,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .fields([
                 nga.field('mac').label('MAC').isDetailLink(true),
                 nga.field('netid').label('NetID'),
-                nga.field('last_rx', 'datetime').label('Last RX')
+                nga.field('last_rx', 'datetime').label('Last RX'),
+                nga.field('alive', 'boolean').label('Alive')
+                    .map(function timediff(value, entry) {
+                        return timeyoung(entry.last_rx, 60);
+                    })
             ])
             .sortField('mac')
             .sortDir('ASC')
@@ -508,6 +516,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // attach the admin application to the DOM and execute it
     nga.configure(admin);
 }]);
+
+function timeyoung(value, deltas) {
+    var x1 = new Date();
+    var x2 = new Date(value);
+    return x1.getTime() - x2.getTime() < deltas*1000;
+}
 
 function createWithTabsTemplate(list) {
     var R = `
