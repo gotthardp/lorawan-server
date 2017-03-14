@@ -12,6 +12,11 @@ Binary identifiers are often shown in the Erlang binary notation, enclosed in `<
 is simply a list of bytes in decimal notation.
 For example, `<<1,39,235,255,255,176,23,196>>` means `01-27-EB-FF-FF-B0-17-C4`.
 
+By default the `debug` messages are not logged. To see the debug messages you need to
+open the server configuration in `lorawan-server/releases/<VERSION>/sys.config`,
+uncomment (remove the `%` character) from the `{lager_console_backend, debug}` line
+and restart the server.
+
 ## Common Errors
 
 ### No message in log file
