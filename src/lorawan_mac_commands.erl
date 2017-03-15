@@ -107,7 +107,7 @@ auto_adr({#link{last_qs=LastQs}=Link, FOptsOut, RxFrame}) when length(LastQs) >=
     {MaxPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
-    MaxSNR = max_snr(Link#link.region, Link#link.adr_use)-10,
+    MaxSNR = max_snr(Link#link.region, Link#link.adr_use)+10,
     StepsDR = trunc((AvgSNR-MaxSNR)/3),
     DataRate2 = if
             StepsDR > 0, DataRate < MaxDR ->
