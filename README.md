@@ -39,10 +39,11 @@ However:
  * It will probably never support the sophisticated management features of the
    commercial-grade network-servers.
 
-Let me know if you (intend to) use the lorawan-server. The API may change and some
-functions may not be implemented. I will gladly assist you. Please
-[add an Issue](https://github.com/gotthardp/lorawan-server/issues/new)
-if you find a bug or miss a feature.
+The API may change and some functions may not be implemented.
+To ask questions or request features please join the
+[lorawan-server mailing list](mailto:lorawan-server@googlegroups.com).
+We will gladly assist you. If you find a bug, you may also
+[add an Issue](https://github.com/gotthardp/lorawan-server/issues/new).
 
 
 ## Documentation
@@ -120,7 +121,9 @@ make release
 If the "build" icon above is red, please wait few minutes (or hours) until it
 gets green again.
 
-If nothing helps, please review the existing
+If nothing helps, please contact the
+[lorawan-server mailing list](mailto:lorawan-server@googlegroups.com)
+or review the existing
 [issues](https://github.com/gotthardp/lorawan-server/issues) to verify the
 problem was not already reported and then
 [create new issue](https://github.com/gotthardp/lorawan-server/issues/new).
