@@ -138,6 +138,13 @@ Copyright (c) 2016-2017 Petr Gotthard
 
 ### Sponsors
 
+<a href="https://www.konicaminolta.eu/en/business-solutions/home.html"><img align="left" src="https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/logo-konica-minolta.png"></a>
+[KMLE](http://research.konicaminolta.eu) is working on the challenge of
+helping customers optimize the way they work by digitizing the workplace
+and their workflows.
+
+<br/>
+
 <a href="http://www.iotini.com"><img align="left" src="http://www.iotini.com/images/logo.png"></a>
 [I2OT](http://www.iotini.com/#product) is the first industrial wireless sensor
 system that provides a total solution for industrial sensing needs.
