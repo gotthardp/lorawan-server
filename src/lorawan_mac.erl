@@ -132,7 +132,8 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         ok = mnesia:write(devices, D#device{link=NewAddr, last_join=calendar:universal_time()}, write),
 
         lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
-        NewLink = #link{devaddr=NewAddr, region=D#device.region, app=D#device.app, appid=D#device.appid,
+        NewLink = #link{devaddr=NewAddr, region=D#device.region,
+            app=D#device.app, appid=D#device.appid, appargs=D#device.appargs,
             nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check,
             last_mac=Gateway#gateway.mac, last_rxq=RxQ, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
             adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set,

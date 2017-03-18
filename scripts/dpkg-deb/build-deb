@@ -1,5 +1,5 @@
 REL=../../_build/default/rel/lorawan-server
-VERSION=`find ${REL} -type d -name "*.*.*" -printf "%f"`
+VERSION=`find ${REL}/releases -type d -name "*.*.*" -printf "%f"`
 REVISION=1
 
 ROOT=/tmp/lorawan-server_${VERSION}-${REVISION}_all
