@@ -220,7 +220,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('Arguments'),
+        nga.field('appid').label('AppID'),
+        nga.field('appargs').label('Arguments'),
         nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('link', 'reference')
             .targetEntity(links)
@@ -240,7 +241,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('Arguments'),
+        nga.field('appid').label('AppID'),
+        nga.field('appargs').label('Arguments'),
         nga.field('appeui').label('AppEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{16}' }),
@@ -276,13 +278,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' })
     ]);
     devices.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"ADR", min:10, max:14}
+        {name:"General", min:0, max:11},
+        {name:"ADR", min:11, max:15}
     ]));
     devices.editionView().fields(devices.creationView().fields());
     devices.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"ADR", min:10, max:14}
+        {name:"General", min:0, max:11},
+        {name:"ADR", min:11, max:15}
     ]));
     // add to the admin application
     admin.addEntity(devices);
@@ -292,7 +294,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('Arguments'),
+        nga.field('appid').label('AppID'),
+        nga.field('appargs').label('Arguments'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('devstat.battery', 'number').label('Battery'),
@@ -312,7 +315,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('Arguments'),
+        nga.field('appid').label('AppID'),
+        nga.field('appargs').label('Arguments'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
@@ -353,8 +357,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ];
     links.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
     links.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:11},
-        {name:"ADR", min:11, max:15}
+        {name:"General", min:0, max:12},
+        {name:"ADR", min:12, max:16}
     ]));
     links.editionView().fields(linkFieldsGeneral.concat([
         nga.field('downlinks', 'referenced_list')
@@ -399,9 +403,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<dgraph value="value"></dgraph>')
     ]));
     links.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:12},
-        {name:"ADR", min:12, max:22},
-        {name:"Status", min:22, max:27}
+        {name:"General", min:0, max:13},
+        {name:"ADR", min:13, max:23},
+        {name:"Status", min:23, max:28}
     ]));
     // add to the admin application
     admin.addEntity(links);

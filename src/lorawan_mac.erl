@@ -141,7 +141,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewLink
     end),
     reset_link(Link#link.devaddr),
-    case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid) of
+    case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs) of
         ok ->
             % transmitting after join accept delay 1
             TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, join1_delay),
@@ -304,7 +304,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
             false
     end,
     % invoke applications
-    case lorawan_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid,
+    case lorawan_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
             {send, choose_tx(Link#link.region, RxQ), LostFrame};

@@ -16,19 +16,19 @@ init(_App) ->
         {"/ws/:type/:name/json", lorawan_ws_frames, [json]}
     ]}.
 
-handle_join(_DevAddr, _App, _AppArgs) ->
+handle_join(_DevAddr, _AppID, _AppArgs) ->
     % accept any device
     ok.
 
-handle_rx(DevAddr, _App, AppArgs, #rxdata{last_lost=true} = RxData, RxQ) ->
-    send_to_sockets(DevAddr, AppArgs, RxData, RxQ),
+handle_rx(DevAddr, AppID, AppArgs, #rxdata{last_lost=true} = RxData, RxQ) ->
+    send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ),
     retransmit;
-handle_rx(DevAddr, _App, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
-    send_to_sockets(DevAddr, AppArgs, RxData, RxQ),
+handle_rx(DevAddr, AppID, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
+    send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ),
     lorawan_handler:send_stored_frames(DevAddr, Port).
 
-send_to_sockets(DevAddr, AppArgs, RxData, RxQ) ->
-    Sockets = lorawan_ws_frames:get_processes(DevAddr, AppArgs),
+send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ) ->
+    Sockets = lorawan_ws_frames:get_processes(DevAddr, AppID),
     [Pid ! {send, DevAddr, AppArgs, RxData, RxQ} || Pid <- Sockets].
 
 % end of file
