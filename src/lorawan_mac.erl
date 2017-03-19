@@ -244,11 +244,12 @@ reset_link(DevAddr) ->
     lorawan_db:purge_txframes(DevAddr).
 
 build_rxframe(Gateway, Link, RxQ, Frame) ->
-    % #rxframe{frid, mac, rxq, devaddr, fcnt, port, data, region, datetime, devstat}
+    % #rxframe{frid, mac, rxq, average_qs, app, appid, region, devaddr, fcnt, port, data, datetime, devstat}
     #rxframe{frid= <<(erlang:system_time()):64>>,
-        mac=Gateway#gateway.mac, rxq=RxQ, devaddr=Link#link.devaddr,
+        mac=Gateway#gateway.mac, rxq=RxQ, app=Link#link.app, appid=Link#link.appid,
+        region=Link#link.region, devaddr=Link#link.devaddr,
         fcnt=Link#link.fcntup, port=Frame#frame.fport, data=Frame#frame.data,
-        region=Link#link.region, datetime=calendar:universal_time(), devstat=Link#link.devstat}.
+        datetime=calendar:universal_time(), devstat=Link#link.devstat}.
 
 handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->

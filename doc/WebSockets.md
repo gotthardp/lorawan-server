@@ -82,7 +82,8 @@ go to **about:config** and set **network.websocket.timeout.ping.request** to (fo
 ## Demo page
 
 Demo client is available at [`admin/ws.html`](../priv/admin/ws.html). Select the
-target device or a group and a desired format and establish a WebSocket connection.
+target device or a group (DevEUI, DevAddr or AppID) and the desired format (Raw or JSON)
+and establish a WebSocket connection.
 The page will display data received from the device and allow you to send data back.
 
 In the **Raw** mode all information must be entered as a string of hexadecimal digits,

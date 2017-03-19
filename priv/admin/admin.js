@@ -229,6 +229,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ])
     .sortField('deveui')
     .sortDir('ASC');
+    devices.listView().filters([
+        nga.field('app').label('Application'),
+        nga.field('appid').label('AppID')
+    ]);
 
     devices.creationView().fields([
         nga.field('deveui').label('DevEUI')
@@ -303,6 +307,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ])
     .sortField('devaddr')
     .sortDir('ASC');
+    links.listView().filters([
+        nga.field('app').label('Application'),
+        nga.field('appid').label('AppID')
+    ]);
 
     var linkFieldsGeneral = [
         nga.field('devaddr').label('DevAddr')
@@ -442,13 +450,22 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr', 'reference').label('DevAddr')
             .targetEntity(links)
             .targetField(nga.field('devaddr')),
+        nga.field('app').label('Application'),
+        nga.field('appid').label('AppID'),
         nga.field('rxq.lsnr').label('SNR'),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('port', 'number'),
         nga.field('data')
     ])
     .sortField('datetime');
-
+    rxframes.listView().filters([
+        nga.field('mac', 'reference').label('MAC')
+            .targetEntity(gateways)
+            .targetField(nga.field('mac')),
+        nga.field('devaddr').label('DevAddr'),
+        nga.field('app').label('Application'),
+        nga.field('appid').label('AppID')
+    ]);
     // add to the admin application
     admin.addEntity(rxframes);
 
