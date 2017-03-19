@@ -7,17 +7,16 @@
 % Supports protocol v2.2.0
 % See https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT
 %
--module(lorawan_iface_forwarder).
+-module(lorawan_gw_forwarder).
 -behaviour(gen_server).
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([process_frame/3, txsend/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
--record(state, {sock, pulladdr}).
+-record(state, {sock}).
 
 start_link(Port) ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [Port], []).
@@ -25,8 +24,7 @@ start_link(Port) ->
 init([Port]) ->
     case gen_udp:open(Port, [binary]) of
         {ok, Socket} ->
-            process_flag(trap_exit, true),
-            {ok, #state{sock=Socket, pulladdr=dict:new()}};
+            {ok, #state{sock=Socket}};
         {error, Reason} ->
             lager:error("Failed to start the packet_forwarder interface: ~w", Reason),
             {stop, Reason}
@@ -35,15 +33,12 @@ init([Port]) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({send, MAC, Packet}, #state{sock=Socket, pulladdr=Dict}=State) ->
-    case dict:find(MAC, Dict) of
-        {ok, {Host, Port, Version}} ->
-            ID = crypto:strong_rand_bytes(2),
-            % PULL RESP
-            gen_udp:send(Socket, Host, Port, <<Version, ID/binary, 3, Packet/binary>>);
-        error ->
-            lager:info("Downlink request ignored. Gateway ~w not connected.", [MAC])
-    end,
+handle_cast({send, {Host, Port, Version}, TxQ, RFCh, PHYPayload}, #state{sock=Socket}=State) ->
+    Pk = [{txpk, build_txpk(TxQ, RFCh, PHYPayload)}],
+    % lager:debug("<--- ~w", [Pk]),
+    ID = crypto:strong_rand_bytes(2),
+    % PULL RESP
+    gen_udp:send(Socket, Host, Port, <<Version, ID/binary, 3, (jsx:encode(Pk))/binary>>),
     {noreply, State}.
 
 % PUSH DATA
@@ -64,18 +59,12 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
     {noreply, State};
 
 % PULL DATA
-handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket, pulladdr=Dict}=State) ->
-    Dict2 = case dict:find(MAC, Dict) of
-        {ok, {Host, Port, Version}} ->
-            Dict;
-        _Else ->
-            lager:info("Gateway ~w at ~w:~w", [MAC, Host, Port]),
-            dict:store(MAC, {Host, Port, Version}, Dict)
-    end,
-    process_status(MAC, undefined),
+handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket}=State) ->
+    lorawan_gw_router:register(MAC, {global, ?MODULE}, {Host, Port, Version}),
+    lorawan_gw_router:status(MAC, undefined),
     % PULL ACK
     gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
-    {noreply, State#state{pulladdr=Dict2}};
+    {noreply, State};
 
 % TX ACK
 handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, _MAC:8/binary>>}, #state{sock=Socket}=State) ->
@@ -97,13 +86,6 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, MAC:8/binary, 
 
 % something strange
 handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
-    {noreply, State};
-
-% handler termination
-handle_info({'EXIT', _FromPid, normal}, State) ->
-    {noreply, State};
-handle_info({'EXIT', _FromPid, Reason}, State) ->
-    lager:error("Hanler terminated: ~w", [Reason]),
     {noreply, State}.
 
 terminate(Reason, _State) ->
@@ -114,57 +96,13 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 
-rxpk(MAC, PkList) ->
-    PkList2 = lists:map(fun(Pk) -> parse_rxpk(Pk) end, PkList),
-    % due to reflections the gateways may have received the same frame twice
-    Unique = remove_duplicates(PkList2, []),
-    % handle the frames sequentially
-    lists:foreach(
-        fun({RxQ, PHYPayload}) ->
-            spawn_link(?MODULE, process_frame, [MAC, RxQ, PHYPayload])
-        end, Unique).
-
-remove_duplicates([{RxQ, PHYPayload} | Tail], Unique) ->
-    % check if the first element is duplicate
-    case lists:keytake(PHYPayload, 2, Tail) of
-        {value, {RxQ2, PHYPayload}, Tail2} ->
-            % select element of a better quality and re-check for other duplicates
-            if
-                RxQ#rxq.rssi >= RxQ2#rxq.rssi ->
-                    remove_duplicates([{RxQ, PHYPayload} | Tail2], Unique);
-                true -> % else
-                    remove_duplicates([{RxQ2, PHYPayload} | Tail2], Unique)
-            end;
-        false ->
-            remove_duplicates(Tail, [{RxQ, PHYPayload} | Unique])
-    end;
-remove_duplicates([], Unique) ->
-    Unique.
-
-process_frame(MAC, RxQ, PHYPayload) ->
-    case lorawan_mac:process_frame(MAC, RxQ, PHYPayload) of
-        ok -> ok;
-        {send, TxQ, PHYPayload2} ->
-            txsend(MAC, TxQ, PHYPayload2);
-        {error, Error} ->
-            lager:error("ERROR: ~w", [Error])
-    end.
-
 status(MAC, Pk) ->
-    process_status(MAC, ?to_record(stat, Pk)).
+    lorawan_gw_router:status(MAC, ?to_record(stat, Pk)).
 
-process_status(MAC, S) ->
-    case lorawan_mac:process_status(MAC, S) of
-        ok -> ok;
-        {error, Error} ->
-            lager:error("ERROR: ~w", [Error])
-    end.
 
-txsend(MAC, TxQ, PHYPayload) ->
-    [Gateway] = mnesia:dirty_read(gateways, MAC),
-    Pk = [{txpk, build_txpk(TxQ, Gateway#gateway.tx_rfch, PHYPayload)}],
-    % lager:debug("<--- ~w", [Pk]),
-    gen_server:cast({global, ?MODULE}, {send, MAC, jsx:encode(Pk)}).
+rxpk(MAC, PkList) ->
+    lorawan_gw_router:uplinks(MAC,
+        lists:map(fun(Pk) -> parse_rxpk(Pk) end, PkList)).
 
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),
@@ -181,6 +119,7 @@ get_rxpk_field(time, List) ->
     end;
 get_rxpk_field(Field, List) ->
     proplists:get_value(Field, List).
+
 
 build_txpk(TxQ, RFch, Data) ->
     [{modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)} |

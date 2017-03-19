@@ -15,10 +15,13 @@ start_link() ->
 
 init([]) ->
     {ok, Port} = application:get_env(forwarder_port),
-    {ok, {{one_for_all, 10, 10}, [
+    {ok, {{one_for_one, 10, 10}, [
+        {gateway_router,
+            {lorawan_gw_router, start_link, []},
+            permanent, 5000, worker, [lorawan_gw_router]},
         {packet_forwarder,
-            {lorawan_iface_forwarder, start_link, [Port]},
-            permanent, 5000, worker, [lorawan_iface_forwarder]}
+            {lorawan_gw_forwarder, start_link, [Port]},
+            permanent, 5000, worker, [lorawan_gw_forwarder]}
     ]}}.
 
 % end of file
