@@ -47,7 +47,7 @@ List of user identities that can manage the server. All have the same access rig
 
 For each LoRaWAN gateway you can set:
  * *MAC* address of the gateway
- * *TX Channel* used for downlinks; usually 0
+ * *TX Chain* identifies the gateway "RF chain" used for downlinks; usually 0
  * *NetID* of the network
  * *Location* and *Altitude* of the gateway
 
