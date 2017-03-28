@@ -320,11 +320,9 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
     end.
 
 handle_downlink(Link, Time, TxData) ->
-    {ok, L2, FOptsOut} = lorawan_mac_commands:handle(Link, <<>>),
-    ok = mnesia:dirty_write(links, L2),
-    TxQ = lorawan_mac_region:rx2_rf(L2#link.region, L2#link.last_rxq),
+    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, Link#link.last_rxq),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
-    send_unicast(TxQ#txq{time=Time}, L2#link.devaddr, 0, FOptsOut, TxData).
+    send_unicast(TxQ#txq{time=Time}, Link#link.devaddr, 0, lorawan_mac_commands:build_fopts(Link), TxData).
 
 handle_multicast(Group, Time, TxData) ->
     TxQ = lorawan_mac_region:rf_group(Group),

@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_commands).
 
--export([handle/4]).
+-export([handle/4, build_fopts/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -19,14 +19,18 @@ handle(RxQ, Link, FOpts, RxFrame) ->
     Link2 = lists:foldl(
         fun(FOpt, L) -> handle_fopt(FOpt, L) end,
         Link, FOptsIn),
+    {Link3, RxFrame2} = auto_adr(RxQ, Link2, RxFrame),
     % check for new commands
-    ResA = send_adr(RxQ, {Link2, [], RxFrame}),
-    {Link3, FOptsOut, RxFrame2} = request_status(ResA),
+    {ok, Link3, build_fopts(Link3), RxFrame2}.
+
+build_fopts(Link) ->
+    FOptsOut = send_adr(Link,
+        request_status(Link, [])),
     case FOptsOut of
         [] -> ok;
         List2 -> lager:debug("~w <- ~w", [Link#link.devaddr, List2])
     end,
-    {ok, Link3, encode_fopts(FOptsOut), RxFrame2}.
+    encode_fopts(FOptsOut).
 
 
 parse_fopts(<<16#02, Rest/binary>>) ->
@@ -85,23 +89,20 @@ handle_fopt(Unknown, Link) ->
     Link.
 
 
-send_adr(_RxQ, {#link{adr_flag_set=2}=Link, FOptsOut, RxFrame}) ->
-    % manual ADR
-    send_adr0({Link, FOptsOut, RxFrame});
-send_adr(RxQ, {#link{adr_flag_set=1}=Link, FOptsOut, RxFrame}) ->
+auto_adr(RxQ, #link{adr_flag_set=1}=Link, RxFrame) ->
     % ADR is ON, so maintain quality statistics
     LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Link#link.last_qs),
-    auto_adr({Link#link{last_qs=LastQs}, FOptsOut, RxFrame});
-send_adr(_RxQ, {Link, FOptsOut, RxFrame}) ->
-    % ADR is OFF
-    {Link, FOptsOut, RxFrame}.
+    auto_adr0(Link#link{last_qs=LastQs}, RxFrame);
+auto_adr(_RxQ, Link, RxFrame) ->
+    % ADR is Manual or OFF
+    {Link, RxFrame}.
 
 appendq(SNR, undefined) ->
     [SNR];
 appendq(SNR, LastSNRs) ->
     lists:sublist([SNR | LastSNRs], 20).
 
-auto_adr({#link{last_qs=LastQs}=Link, FOptsOut, RxFrame}) when length(LastQs) >= 20 ->
+auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
     {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
     {TxPower, DataRate, Chans} = Link#link.adr_use,
     {MaxPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
@@ -128,9 +129,9 @@ auto_adr({#link{last_qs=LastQs}=Link, FOptsOut, RxFrame}) when length(LastQs) >=
             true ->
                 TxPower
         end,
-    send_adr0({Link#link{adr_set={TxPower2, DataRate2, Chans}}, FOptsOut, RxFrame#rxframe{average_qs=AverageQs}});
-auto_adr({Link, FOptsOut, RxFrame}) ->
-    send_adr0({Link, FOptsOut, RxFrame#rxframe{average_qs=undefined}}).
+    {Link#link{adr_set={TxPower2, DataRate2, Chans}}, RxFrame#rxframe{average_qs=AverageQs}};
+auto_adr0(Link, RxFrame) ->
+    {Link, RxFrame#rxframe{average_qs=undefined}}.
 
 average({List1, List2}) ->
     {average0(List1), average0(List2)}.
@@ -145,7 +146,7 @@ max_snr(Region, {_, DataRate, _}) ->
     {SF, _} = lorawan_mac_region:dr_to_tuple(Region, DataRate),
     -5-2.5*(SF-6). % dB
 
-send_adr0({Link, FOptsOut, RxFrame}) ->
+send_adr(Link, FOptsOut) ->
     % issue ADR command
     IsIncomplete = case Link#link.adr_set of
         undefined -> true;
@@ -155,9 +156,9 @@ send_adr0({Link, FOptsOut, RxFrame}) ->
         Link#link.adr_flag_use > 0, Link#link.adr_flag_set > 0,
         not IsIncomplete, Link#link.adr_use /= Link#link.adr_set ->
             lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
-            {Link, set_channels(Link#link.region, Link#link.adr_set, FOptsOut), RxFrame};
+            set_channels(Link#link.region, Link#link.adr_set, FOptsOut);
         true ->
-            {Link, FOptsOut, RxFrame}
+            FOptsOut
     end.
 
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
@@ -190,19 +191,19 @@ append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
             ChMask -> [{link_adr_req, DataRate, TXPower, ChMask, Idx, 0} | FOptsOut]
         end).
 
-request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut, RxFrame})
+request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}, FOptsOut)
         when LastDate == undefined; LastFCnt == undefined ->
-    {Link, [dev_status_req | FOptsOut], RxFrame};
-request_status({#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut, RxFrame}) ->
+    [dev_status_req | FOptsOut];
+request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut) ->
     {ok, {MaxTime, MaxFCnt}} = application:get_env(lorawan_server, devstat_gap),
     TimeDiff = calendar:datetime_to_gregorian_seconds(calendar:universal_time())
                 - calendar:datetime_to_gregorian_seconds(LastDate),
     if
         TimeDiff > MaxTime;
         Link#link.fcntup - LastFCnt > MaxFCnt ->
-            {Link, [dev_status_req | FOptsOut], RxFrame};
+            [dev_status_req | FOptsOut];
         true ->
-            {Link, FOptsOut, RxFrame}
+            FOptsOut
     end.
 
 % bits handling
