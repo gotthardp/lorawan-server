@@ -36,7 +36,15 @@ build_fopts(Link) ->
 parse_fopts(<<16#02, Rest/binary>>) ->
     [link_check_req | parse_fopts(Rest)];
 parse_fopts(<<16#03, _RFU:5, PowerACK:1, DataRateACK:1, ChannelMaskACK:1, Rest/binary>>) ->
-    [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | parse_fopts(Rest)];
+    NextOpts = parse_fopts(Rest),
+    % the device processes the DataRate, TXPower and NbTrans from the last message only
+    % make sure the answer is consistent
+    case lists:keyfind(link_adr_ans, 1, NextOpts) of
+        false ->
+            [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | NextOpts];
+        {link_adr_ans, LastPowerACK, LastDataRateACK, _} ->
+            [{link_adr_ans, LastPowerACK, LastDataRateACK, ChannelMaskACK} | NextOpts]
+    end;
 parse_fopts(<<16#04, Rest/binary>>) ->
     [duty_cycle_ans | parse_fopts(Rest)];
 parse_fopts(<<16#05, _RFU:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, Rest/binary>>) ->

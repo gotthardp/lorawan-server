@@ -53,16 +53,16 @@ The `init/1` will be called upon server initialization. It shall return either
 REST API or WebSockets). For more details see
 [Cowboy Routing](https://github.com/ninenines/cowboy/blob/master/doc/src/guide/routing.asciidoc).
 
-### handle_join(DevAddr, App, AppArgs)
+### handle_join(DevAddr, AppID, AppArgs)
 
 The `handle_join/3` will be called when a new node joins the network. The function
 shall return either `ok` or `{error, error_description}`.
 
-### handle_rx(DevAddr, App, AppArgs, RxData, RxQ)
+### handle_rx(DevAddr, AppID, AppArgs, RxData, RxQ)
 
-The `handle_rx/4` will be called upon reception of a LoRaWAN frame:
+The `handle_rx/5` will be called upon reception of a LoRaWAN frame:
   * *DevAddr* is the 4-byte device address
-  * *App* is the application name defined in the `sys.config`
+  * *AppID* is an application-specific identifier
   * *AppArgs* is an opaque value assigned to the device
   * *RxData* is the #rxdata{} record with:
     * *fcnt*
