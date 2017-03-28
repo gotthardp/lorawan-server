@@ -16,9 +16,8 @@ handle(RxQ, Link, FOpts, RxFrame) ->
         [] -> ok;
         List1 -> lager:debug("~w -> ~w", [Link#link.devaddr, List1])
     end,
-    Link2 = lists:foldl(
-        fun(FOpt, L) -> handle_fopt(FOpt, L) end,
-        Link, FOptsIn),
+    Link2 = handle_adr(FOptsIn,
+        handle_status(FOptsIn, Link)),
     {Link3, RxFrame2} = auto_adr(RxQ, Link2, RxFrame),
     % check for new commands
     {ok, Link3, build_fopts(Link3), RxFrame2}.
@@ -36,15 +35,7 @@ build_fopts(Link) ->
 parse_fopts(<<16#02, Rest/binary>>) ->
     [link_check_req | parse_fopts(Rest)];
 parse_fopts(<<16#03, _RFU:5, PowerACK:1, DataRateACK:1, ChannelMaskACK:1, Rest/binary>>) ->
-    NextOpts = parse_fopts(Rest),
-    % the device processes the DataRate, TXPower and NbTrans from the last message only
-    % make sure the answer is consistent
-    case lists:keyfind(link_adr_ans, 1, NextOpts) of
-        false ->
-            [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | NextOpts];
-        {link_adr_ans, LastPowerACK, LastDataRateACK, _} ->
-            [{link_adr_ans, LastPowerACK, LastDataRateACK, ChannelMaskACK} | NextOpts]
-    end;
+    [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | parse_fopts(Rest)];
 parse_fopts(<<16#04, Rest/binary>>) ->
     [duty_cycle_ans | parse_fopts(Rest)];
 parse_fopts(<<16#05, _RFU:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, Rest/binary>>) ->
@@ -79,22 +70,49 @@ encode_fopts([]) ->
     <<>>.
 
 
-handle_fopt({link_adr_ans,1,1,1}, Link) ->
-    lager:debug("LinkADRReq succeeded"),
-    % after a successful ADR restart the statistics
-    Link#link{adr_use=Link#link.adr_set, last_qs=[]};
-handle_fopt({link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK}, Link) ->
-    lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
-    {TXPower, DataRate, Chans} = Link#link.adr_set,
-    % clear the settings that failed
-    Link#link{adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
-        clear_when_zero(ChannelMaskACK, Chans)}};
-handle_fopt({dev_status_ans, Battery, Margin}, Link) ->
-    lager:debug("DevStatus: battery ~B, margin: ~B", [Battery, Margin-32]),
-    Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup, devstat={Battery, Margin-32}};
-handle_fopt(Unknown, Link) ->
-    lager:debug("Unknown FOpt ~w", [Unknown]),
-    Link.
+handle_adr(FOptsIn, Link) ->
+    case find_adr(FOptsIn) of
+        {undefined, undefined, undefined} ->
+            Link;
+        {1, 1, 1} ->
+            lager:debug("LinkADRReq succeeded"),
+            % after a successful ADR restart the statistics
+            Link#link{adr_use=Link#link.adr_set, last_qs=[]};
+        {PowerACK, DataRateACK, ChannelMaskACK} ->
+            lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
+            {TXPower, DataRate, Chans} = Link#link.adr_set,
+            % clear the settings that failed
+            Link#link{adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
+                clear_when_zero(ChannelMaskACK, Chans)}}
+    end.
+
+find_adr(FOptsIn) ->
+    lists:foldr(
+        fun ({link_adr_ans, Power, DataRate, ChannelMask}, {undefined, undefined, undefined}) ->
+                {Power, DataRate, ChannelMask};
+            ({link_adr_ans, _Power, _DataRate, ChannelMask}, {LastPower, LastDataRate, LastChannelMask}) ->
+                % all ChannelMasks must be accepted
+                % the device processes the DataRate, TXPower and NbTrans from the last message only
+                {LastPower, LastDataRate, ChannelMask band LastChannelMask};
+            (_Else, Last) -> Last
+        end,
+        {undefined, undefined, undefined}, FOptsIn).
+
+handle_status(FOptsIn, Link) ->
+    case find_status(FOptsIn) of
+        {undefined, undefined} ->
+            Link;
+        {Battery, Margin} ->
+            lager:debug("DevStatus: battery ~B, margin: ~B", [Battery, Margin-32]),
+            Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup, devstat={Battery, Margin-32}}
+    end.
+
+find_status(FOptsIn) ->
+    lists:foldl(
+        fun ({dev_status_ans, Battery, Margin}, _Prev) -> {Battery, Margin};
+            (_Else, Last) -> Last
+        end,
+        {undefined, undefined}, FOptsIn).
 
 
 auto_adr(RxQ, #link{adr_flag_set=1}=Link, RxFrame) ->
