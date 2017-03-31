@@ -26,6 +26,27 @@ The following REST resources are made available:
   /txframes/*123* | GET, DELETE      | Frame with ID=*123*
   /rxframes       | GET              | Recent received frames
 
+### Filtering
+
+To list only some items the REST API accepts the `_filters` query parameter, which
+shall contain URL encoded JSON. For instance:
+
+http://server:8080/rxframes?_filters={"devaddr":"22222222"}
+
+### Sorting
+The REST API accepts `_sortField` and `_sortDir` query parameters to sort the list. The
+`_sortDir` can be either `ASC` or `DESC`. For instance:
+
+http://server:8080/rxframes?_sortField=datetime&_sortDir=ASC
+
+### Pagination
+The REST API accepts `_page` and `_perPage` query parameters to paginate lists,
+for instance:
+
+http://server:8080/rxframes?_page=2&_perPage=20
+
+The server also inserts the HTTP header `X-Total-Count` indicating the total item count.
+
 
 ## Web Admin
 
