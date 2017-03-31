@@ -76,8 +76,8 @@ handle_adr(FOptsIn, Link) ->
             Link;
         {1, 1, 1} ->
             lager:debug("LinkADRReq succeeded"),
-            % after a successful ADR restart the statistics
-            Link#link{adr_use=Link#link.adr_set, last_qs=[]};
+            % the last_qs statistics will be reset only when the data rate changes
+            Link#link{adr_use=Link#link.adr_set};
         {PowerACK, DataRateACK, ChannelMaskACK} ->
             lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
             {TXPower, DataRate, Chans} = Link#link.adr_set,
@@ -179,7 +179,8 @@ send_adr(Link, FOptsOut) ->
         Tuple -> lists:member(undefined, tuple_to_list(Tuple))
     end,
     if
-        Link#link.adr_flag_use > 0, Link#link.adr_flag_set > 0,
+        Link#link.adr_flag_use == 1,
+        ((Link#link.adr_flag_set == 1 andalso length(Link#link.last_qs) >= 20) orelse Link#link.adr_flag_set == 2),
         not IsIncomplete, Link#link.adr_use /= Link#link.adr_set ->
             lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
             set_channels(Link#link.region, Link#link.adr_set, FOptsOut);

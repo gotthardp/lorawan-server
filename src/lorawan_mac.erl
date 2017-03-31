@@ -276,12 +276,18 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
         adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
     % store parameters
     DataRate = lorawan_mac_region:datar_to_dr(Link#link.region, RxQ#rxq.datr),
-    {TXPower, _, Chans} =
+    ULink =
         case Link#link.adr_use of
-            undefined -> {undefined, undefined, undefined};
-            Else -> Else
+            {_TXPower, DataRate, _Chans} when Link#link.adr_flag_use == ADR ->
+                % device didn't change any settings
+                Link;
+            {_TXPower, DataRate, _Chans} ->
+                Link#link{adr_flag_use=ADR, last_qs=[]};
+            {TXPower, _OldDataRate, Chans} ->
+                Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans}, last_qs=[]};
+            undefined ->
+                Link#link{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined}, last_qs=[]}
         end,
-    ULink = Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans}},
     % process commands
     RxFrame = build_rxframe(Gateway, ULink, RxQ, Frame),
     {ok, L2, FOptsOut, RxFrame2} = lorawan_mac_commands:handle(RxQ, ULink, FOpts, RxFrame),
