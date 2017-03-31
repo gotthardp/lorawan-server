@@ -138,7 +138,7 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
     StepsDR = trunc((AvgSNR-MaxSNR)/3),
     DataRate2 = if
             StepsDR > 0, DataRate < MaxDR ->
-                lager:debug("DataRate ~w: average snr ~w ~w = ~w, adr ~w -> step ~w",
+                lager:debug("DataRate ~w: average snr ~w ~w = ~w, dr ~w -> step ~w",
                     [Link#link.devaddr, round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
                 min(DataRate+StepsDR, MaxDR);
             true ->

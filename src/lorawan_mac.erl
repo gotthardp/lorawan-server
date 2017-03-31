@@ -284,8 +284,10 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
             {_TXPower, DataRate, _Chans} ->
                 Link#link{adr_flag_use=ADR, last_qs=[]};
             {TXPower, _OldDataRate, Chans} ->
+                lager:debug("DataRate ~w switched to dr ~w", [Link#link.devaddr, DataRate]),
                 Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans}, last_qs=[]};
             undefined ->
+                lager:debug("DataRate ~w switched to dr ~w", [Link#link.devaddr, DataRate]),
                 Link#link{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined}, last_qs=[]}
         end,
     % process commands
