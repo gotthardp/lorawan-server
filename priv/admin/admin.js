@@ -697,12 +697,13 @@ return {
             $scope.rxChartObject.type = "LineChart";
             $scope.rxChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Data Rate'},
+                    0: {"title": 'Data Rate / Power'},
                     1: {"title": 'Frequency (MHz)'}
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},
-                    1: {"targetAxisIndex": 1}
+                    1: {"targetAxisIndex": 0},
+                    2: {"targetAxisIndex": 1}
                 },
                 "chartArea": {
                     "top": 0, "bottom": "10%",
@@ -717,7 +718,7 @@ return {
                     "gridlines": {"count": -1}
                 },
                 "vAxes": {
-                    0: {"minValue": 0, "maxValue": 7},
+                    0: {"minValue": 0, "maxValue": 10},
                     1: {"minValue": 433, "maxValue": 928}
                 }
             };
