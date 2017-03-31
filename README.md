@@ -22,7 +22,7 @@ The server:
    * Supports both the node activation by personalization (ABP) and the over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
    * Supports multicast to user-defined groups.
-   * Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928 and CN 470-510 band.
+   * Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928, CN 470-510 and KR 920-923 band.
  * Provides a network management interface.
    * Displays device battery and connectivity status.
    * Supports both manual and automatic configuration of TX power and data rate (ADR).

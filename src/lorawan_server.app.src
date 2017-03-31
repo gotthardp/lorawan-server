@@ -65,6 +65,12 @@
                 {rx1_delay, 1000000},
                 {rx2_delay, 2000000},
                 {rx2_rf, {505.3, <<"SF12BW125">>}}
+            ]},
+            {<<"KR920-923">>, [
+                {join1_delay, 5000000},
+                {rx1_delay, 1000000},
+                {rx2_delay, 2000000},
+                {rx2_rf, {921.9, <<"SF12BW125">>}}
             ]}
         ]},
         % {sec, fcnt} after which the device status should be request

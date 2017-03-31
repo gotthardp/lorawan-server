@@ -18,7 +18,7 @@ rx2_rf(Region, RxQ, Window) ->
 
 % we calculate in fixed-point numbers
 rx1_rf(Region, RxQ)
-        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">> ->
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"KR920-923">> ->
     rf_same(Region, RxQ, RxQ#rxq.freq);
 rx1_rf(<<"US902-928">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
@@ -95,7 +95,8 @@ datar_to_down(Region, DataRate, Offset) ->
     dr_to_datar(Region, lists:nth(Offset+1, Down)).
 
 dr_to_down(Region, DR)
-        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"CN470-510">> ->
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>;
+             Region == <<"CN470-510">>; Region == <<"KR920-923">> ->
     case DR of
         0 -> [0, 0, 0, 0, 0, 0];
         1 -> [1, 0, 0, 0, 0, 0];
@@ -123,7 +124,8 @@ rx2_dr(Region) ->
     datar_to_dr(Region, DataRate).
 
 datars(Region)
-        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"CN470-510">> -> [
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>;
+             Region == <<"CN470-510">>; Region == <<"KR920-923">> -> [
     {0, {12, 125}},
     {1, {11, 125}},
     {2, {10, 125}},
@@ -175,7 +177,8 @@ default_adr(<<"US902-928-PR">>) -> {5, 0, [{0,7}]};
 default_adr(<<"CN779-787">>) -> {1, 0, [{0,2}]};
 default_adr(<<"EU433">>) -> {0, 0, [{0,2}]};
 default_adr(<<"AU915-928">>) -> {5, 0, [{0,71}]};
-default_adr(<<"CN470-510">>) -> {2, 0, [{0, 95}]}.
+default_adr(<<"CN470-510">>) -> {2, 0, [{0, 95}]};
+default_adr(<<"KR920-923">>) -> {1, 0, [{0, 2}]}.
 
 % {TXPower, DataRate}
 max_adr(<<"EU863-870">>) -> {5, 6};
@@ -184,7 +187,8 @@ max_adr(<<"US902-928-PR">>) -> {10, 4};
 max_adr(<<"CN779-787">>) -> {5, 6};
 max_adr(<<"EU433">>) -> {5, 6};
 max_adr(<<"AU915-928">>) -> {10, 4};
-max_adr(<<"CN470-510">>) -> {7, 6}.
+max_adr(<<"CN470-510">>) -> {7, 6};
+max_adr(<<"KR920-923">>) -> {6, 5}.
 
 % default power for downlinks (dBm)
 default_erp(<<"EU863-870">>) -> 14;
@@ -193,7 +197,8 @@ default_erp(<<"US902-928-PR">>) -> 20;
 default_erp(<<"CN779-787">>) -> 10;
 default_erp(<<"EU433">>) -> 10;
 default_erp(<<"AU915-928">>) -> 20;
-default_erp(<<"CN470-510">>) -> 14.
+default_erp(<<"CN470-510">>) -> 14;
+default_erp(<<"KR920-923">>) -> 14.
 
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};
@@ -202,7 +207,8 @@ freq_range(<<"US902-928-PR">>) -> {902, 928};
 freq_range(<<"CN779-787">>) -> {779, 787};
 freq_range(<<"EU433">>) -> {433, 435};
 freq_range(<<"AU915-928">>) -> {915, 928};
-freq_range(<<"CN470-510">>) -> {470, 510}.
+freq_range(<<"CN470-510">>) -> {470, 510};
+freq_range(<<"KR920-923">>) -> {920, 923}.
 
 -include_lib("eunit/include/eunit.hrl").
 
