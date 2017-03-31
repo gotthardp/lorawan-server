@@ -51,7 +51,7 @@ The client may send back to the server a JSON structure with the following field
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
   devaddr     | Hex String  | DevAddr of the link (active node).
-  port        | Integer     | LoRaWAN port number. If not specified, the port number of last uplink will be used.
+  port        | Integer     | LoRaWAN port number. If not specified for Class A, the port number of last uplink will be used. Mandatory for Class C.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
   confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
   pending     | Boolean     | Whether the application has more to send (false by default).
@@ -59,9 +59,9 @@ The client may send back to the server a JSON structure with the following field
 
 For example:
 ```json
-    {"devaddr":"11223344", "port":2, "data":"0026BF08BD03CD35000000000000FFFF", "confirmed":true}
-    {"data":"00", "time":"2017-03-04T21:05:30.2000"}
-    {"data":"00", "time":"immediately"}
+    {"devaddr":"11223344", "data":"0026BF08BD03CD35000000000000FFFF", "confirmed":true}
+    {"data":"00", "port":2, "time":"2017-03-04T21:05:30.2000"}
+    {"data":"00", "port":2, "time":"immediately"}
 ```
 
 

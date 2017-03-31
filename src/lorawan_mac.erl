@@ -402,7 +402,10 @@ encode_frame(MType, DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts, #txdata{po
     FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_bit(FPending)):1, (byte_size(FOpts)):4,
         FCnt:16/little-unsigned-integer, FOpts/binary>>,
     MACPayload = case FPort of
+        undefined when Data == undefined; Data == <<>> ->
+            <<FHDR/binary>>;
         undefined ->
+            lager:warning("Ignored application data without a Port number"),
             <<FHDR/binary>>;
         0 ->
             FRMPayload = cipher(Data, NwkSKey, 1, DevAddr, FCnt),
