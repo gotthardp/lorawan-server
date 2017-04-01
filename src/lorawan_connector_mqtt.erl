@@ -41,16 +41,25 @@ auth_args({_Scheme, _UserInfo, HostName, _Port, _Path, _Query},
     {password, list_to_binary(shared_access_token(HostName, DeviceID, KeyName, SharedKey))}];
 % normal (and default)
 auth_args(_ConnUri, #connector{client_id=ClientId, name=UserName, pass=Password}) ->
-    [{client_id, ClientId},
-    {username, UserName},
-    {password, Password}].
+    [{client_id, empty_undefined(ClientId)},
+    {username, empty_undefined(UserName)},
+    {password, empty_undefined(Password)}].
+
+empty_undefined(<<"">>) -> undefined;
+empty_undefined(Else) -> Else.
 
 ssl_args({mqtt, _UserInfo, _Host, _Port, _Path, _Query}, _Conn) ->
     [];
-ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{certfile=CertFile, keyfile=KeyFile}) ->
+ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{certfile=CertFile, keyfile=KeyFile})
+        when is_binary(CertFile), size(CertFile) > 0, is_binary(KeyFile), size(KeyFile) > 0 ->
     [{ssl, [
         {versions, ['tlsv1.2']},
-        {certfile, CertFile}, {keyfile, KeyFile}
+        {certfile, filename:absname(binary_to_list(CertFile))},
+        {keyfile, filename:absname(binary_to_list(KeyFile))}
+    ]}];
+ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{}) ->
+    [{ssl, [
+        {versions, ['tlsv1.2']}
     ]}].
 
 handle_call(_Request, _From, State) ->
