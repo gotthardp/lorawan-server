@@ -7,14 +7,14 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([register/3, status/2, uplinks/2, downlink/3]).
+-export([register/3, status/2, uplinks/1, downlink/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([process_frame/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
--record(state, {pulladdr}).
+-record(state, {pulladdr, recent}).
 
 start_link() ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
@@ -25,8 +25,8 @@ register(MAC, Process, Target) ->
 status(MAC, S) ->
     gen_server:cast({global, ?MODULE}, {status, MAC, S}).
 
-uplinks(MAC, PkList) ->
-    gen_server:cast({global, ?MODULE}, {uplinks, MAC, PkList}).
+uplinks(PkList) ->
+    gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
 downlink(MAC, TxQ, PHYPayload) ->
     [Gateway] = mnesia:dirty_read(gateways, MAC),
@@ -35,7 +35,7 @@ downlink(MAC, TxQ, PHYPayload) ->
 
 init([]) ->
     process_flag(trap_exit, true),
-    {ok, #state{pulladdr=dict:new()}}.
+    {ok, #state{pulladdr=dict:new(), recent=dict:new()}}.
 
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
@@ -58,15 +58,16 @@ handle_cast({status, MAC, S}, State) ->
     end,
     {noreply, State};
 
-handle_cast({uplinks, MAC, PkList}, State) ->
+handle_cast({uplinks, PkList}, #state{recent=Recent}=State) ->
     % due to reflections the gateways may have received the same frame twice
+    % reflected frames received by the same gateway are ignored
     Unique = remove_duplicates(PkList, []),
-    % handle the frames sequentially
-    lists:foreach(
-        fun({RxQ, PHYPayload}) ->
-            spawn_link(?MODULE, process_frame, [MAC, RxQ, PHYPayload])
-        end, Unique),
-    {noreply, State};
+    % wait for packet receptions from other gateways
+    Recent2 =
+        lists:foldl(
+            fun(Frame, Dict) -> store_frame(Frame, Dict) end,
+            Recent, Unique),
+    {noreply, State#state{recent=Recent2}};
 
 handle_cast({downlink, MAC, TxQ, RFCh, PHYPayload}, #state{pulladdr=Dict}=State) ->
     case dict:find(MAC, Dict) of
@@ -79,6 +80,16 @@ handle_cast({downlink, MAC, TxQ, RFCh, PHYPayload}, #state{pulladdr=Dict}=State)
     {noreply, State}.
 
 
+handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
+    % find the best (for now)
+    [{MAC, RxQ}|_Rest] = lists:sort(
+        fun({_M1, Q1}, {_M2, Q2}) ->
+            Q1#rxq.rssi >= Q2#rxq.rssi
+        end,
+        dict:fetch(PHYPayload, Recent)),
+    spawn_link(?MODULE, process_frame, [MAC, RxQ, PHYPayload]),
+    Recent2 = dict:erase(PHYPayload, Recent),
+    {noreply, State#state{recent=Recent2}};
 % handler termination
 handle_info({'EXIT', _FromPid, normal}, State) ->
     {noreply, State};
@@ -94,22 +105,32 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 
-remove_duplicates([{RxQ, PHYPayload} | Tail], Unique) ->
+remove_duplicates([{MAC, RxQ, PHYPayload} | Tail], Unique) ->
     % check if the first element is duplicate
-    case lists:keytake(PHYPayload, 2, Tail) of
-        {value, {RxQ2, PHYPayload}, Tail2} ->
+    case lists:keytake(PHYPayload, 3, Tail) of
+        {value, {MAC2, RxQ2, PHYPayload}, Tail2} ->
             % select element of a better quality and re-check for other duplicates
             if
                 RxQ#rxq.rssi >= RxQ2#rxq.rssi ->
-                    remove_duplicates([{RxQ, PHYPayload} | Tail2], Unique);
+                    remove_duplicates([{MAC, RxQ, PHYPayload} | Tail2], Unique);
                 true -> % else
-                    remove_duplicates([{RxQ2, PHYPayload} | Tail2], Unique)
+                    remove_duplicates([{MAC2, RxQ2, PHYPayload} | Tail2], Unique)
             end;
         false ->
-            remove_duplicates(Tail, [{RxQ, PHYPayload} | Unique])
+            remove_duplicates(Tail, [{MAC, RxQ, PHYPayload} | Unique])
     end;
 remove_duplicates([], Unique) ->
     Unique.
+
+store_frame({MAC, RxQ, PHYPayload}, Dict) ->
+    case dict:find(PHYPayload, Dict) of
+        {ok, Frames} ->
+            dict:store(PHYPayload, [{MAC, RxQ}|Frames], Dict);
+        _Else ->
+            {ok, Delay} = application:get_env(lorawan_server, deduplication_delay),
+            timer:send_after(Delay, {process, PHYPayload}),
+            dict:store(PHYPayload, [{MAC, RxQ}], Dict)
+    end.
 
 process_frame(MAC, RxQ, PHYPayload) ->
     case lorawan_mac:process_frame(MAC, RxQ, PHYPayload) of

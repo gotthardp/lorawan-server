@@ -64,7 +64,7 @@ await_pull(Socket) ->
             Pk = jsx:decode(Data, [{labels, atom}]),
             TxPk = proplists:get_value(txpk, Pk),
             {ok, proplists:get_value(data, TxPk)}
-        after 100 ->
+        after 500 ->
             {error, timeout}
     end.
 

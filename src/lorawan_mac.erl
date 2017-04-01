@@ -347,7 +347,7 @@ handle_multicast(Group, Time, TxData) ->
 
 choose_tx(Region, RxQ) ->
     Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Region) / 1000,
-    {ok, GwDelay} = application:get_env(lorawan_server, gateway_delay),
+    {ok, GwDelay} = application:get_env(lorawan_server, preprocessing_delay),
     % transmit as soon as possible
     case erlang:monotonic_time(milli_seconds) - RxQ#rxq.srvtmst of
         Small when Small < Rx1Delay - GwDelay ->

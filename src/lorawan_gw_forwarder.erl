@@ -101,15 +101,20 @@ status(MAC, Pk) ->
 
 
 rxpk(MAC, PkList) ->
-    lorawan_gw_router:uplinks(MAC,
-        lists:map(fun(Pk) -> parse_rxpk(Pk) end, PkList)).
+    Stamp = erlang:monotonic_time(milli_seconds),
+    lorawan_gw_router:uplinks(
+        lists:map(
+            fun(Pk) ->
+                {RxQ, Data} = parse_rxpk(Pk),
+                {MAC, RxQ#rxq{srvtmst=Stamp}, Data}
+            end, PkList)).
 
 parse_rxpk(Pk) ->
     Data = base64:decode(proplists:get_value(data, Pk)),
     case proplists:get_value(modu, Pk) of
         <<"LORA">> ->
             RxQ = list_to_tuple([rxq|[get_rxpk_field(X, Pk) || X <- record_info(fields, rxq)]]),
-            {RxQ#rxq{srvtmst=erlang:monotonic_time(milli_seconds)}, Data}
+            {RxQ, Data}
     end.
 
 get_rxpk_field(time, List) ->

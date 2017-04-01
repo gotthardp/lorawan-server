@@ -75,8 +75,9 @@
         ]},
         % {sec, fcnt} after which the device status should be request
         {devstat_gap, {86400, 100}},
-        % packet_forwarder push_timeout_ms + transmission delay
-        {gateway_delay, 200}
+        % packet_forwarder's push_timeout_ms + transport + deduplication_delay
+        {preprocessing_delay, 300},
+        {deduplication_delay, 150}
     ]},
     {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, iso8601,
         emqttc, lorawan_server_api]}]}.
