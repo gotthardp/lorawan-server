@@ -131,7 +131,8 @@ appendq(SNR, LastSNRs) ->
 auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
     {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
     {TxPower, DataRate, Chans} = Link#link.adr_use,
-    {MaxPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
+    {DefPower, _DefDR, _Chans} = lorawan_mac_region:default_adr(Link#link.region),
+    {MinPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
     MaxSNR = max_snr(Link#link.region, Link#link.adr_use)+10,
@@ -144,14 +145,18 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
             true ->
                 DataRate
         end,
-    % receiver sensitivity for maximal DR in all regions is -120 dBm, -10 dB margin
-    % there is 2-3dB between power levels, divide by 4
-    StepsPwr = trunc((AvgRSSI+110)/4),
+    % receiver sensitivity for maximal DR in all regions is -120 dBm, we try to stay at -100 dBm
     TxPower2 = if
-            DataRate2 == MaxDR, StepsPwr > 0, TxPower < MaxPower ->
-                lager:debug("Power ~w: average rssi ~w -110 = ~w, power ~w -> step ~w",
-                    [Link#link.devaddr, round(AvgRSSI), round(AvgRSSI+110), TxPower, StepsPwr]),
-                min(TxPower+StepsPwr, MaxPower);
+            AvgRSSI > -96, TxPower < MinPower ->
+                PwrStepUp = trunc((AvgRSSI+100)/4), % 2-3dB between levels, go slower
+                lager:debug("Power ~w: average rssi ~w, power ~w -> up by ~w",
+                    [Link#link.devaddr, round(AvgRSSI), TxPower, PwrStepUp]),
+                min(MinPower, TxPower+PwrStepUp);
+            AvgRSSI < -102, TxPower > DefPower ->
+                PwrStepDown = trunc((AvgRSSI+100)/2), % go faster
+                lager:debug("Power ~w: average rssi ~w, power ~w -> down by ~w",
+                    [Link#link.devaddr, round(AvgRSSI), TxPower, PwrStepDown]),
+                max(DefPower, TxPower-PwrStepDown);
             true ->
                 TxPower
         end,

@@ -85,7 +85,8 @@ For each device, which may connect to your network, you can set:
  * *AppEUI* and *AppKey*
  * *FCnt Check* to be used for this device
    * *Strict 16-bit* (default) or *Strict 32-bit* indicate a standard compliant counter.
-   * *Reset on zero* allows personalized (ABP) devices to reset the counter.
+   * *Reset on zero* behaves like a "less strict 16-bit", which allows personalised (ABP)
+     devices to reset the counter.
      This weakens device security a bit as more reply attacks are possible.
    * *Disabled* disables the check for faulty devices.
      This destroys the device security.
