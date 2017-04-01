@@ -17,13 +17,13 @@ First, follow the AWS IoT guidelines to configure your IoT device:
    (`xxx-certificate.pem.crt`) as well as the private key (`xxx-private.pem.key`).
  * Create a policy and link it to the certificate. For example, to allow
    all actions you can set:
-```
-"Statement": [{
-    "Action": "iot:*",
-    "Resource": "*",
-    "Effect": "Allow"
-}]
-```
+   ```
+   "Statement": [{
+     "Action": "iot:*",
+     "Resource": "*",
+     "Effect": "Allow"
+   }]
+   ```
  * Create a device and link it to the same certificate.
 
 Then, open the lorawan-server web-administration and create an Application Connector:
