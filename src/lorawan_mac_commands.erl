@@ -156,7 +156,7 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
                 PwrStepDown = trunc((AvgRSSI+100)/2), % go faster
                 lager:debug("Power ~w: average rssi ~w, power ~w -> down by ~w",
                     [Link#link.devaddr, round(AvgRSSI), TxPower, PwrStepDown]),
-                max(DefPower, TxPower-PwrStepDown);
+                max(DefPower, TxPower+PwrStepDown); % steps are negative
             true ->
                 TxPower
         end,
