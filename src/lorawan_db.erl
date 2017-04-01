@@ -140,7 +140,7 @@ get_rxframes(DevAddr) ->
             lists:filter(
                 fun(Frame) -> occured_rxframe_after(Reset, Frame) end,
                 Frames);
-        [] ->
+        _Else ->
             Frames
     end.
 
