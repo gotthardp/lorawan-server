@@ -6,7 +6,7 @@
 -module(lorawan_db).
 
 -export([ensure_tables/0, ensure_table/2, trim_tables/0]).
--export([get_rxframes/1, purge_rxframes/1, purge_txframes/1]).
+-export([get_rxframes/1, purge_txframes/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -133,16 +133,31 @@ trim_tables() ->
         mnesia:dirty_all_keys(links)).
 
 get_rxframes(DevAddr) ->
+    {_, Frames} = get_last_rxframes(DevAddr, 50),
+    % return frames received since the last device restart
+    case mnesia:dirty_read(links, DevAddr) of
+        [#link{last_reset=Reset}] when is_tuple(Reset) ->
+            lists:filter(
+                fun(Frame) -> occured_rxframe_after(Reset, Frame) end,
+                Frames);
+        [] ->
+            Frames
+    end.
+
+get_last_rxframes(DevAddr, Count) ->
     Rec = mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr),
     SRec = lists:sort(fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A < B end, Rec),
     % split the list into expired and actual records
     if
-        length(SRec) > 50 -> lists:split(length(SRec)-50, SRec);
+        length(SRec) > Count -> lists:split(length(SRec)-Count, SRec);
         true -> {[], SRec}
     end.
 
+occured_rxframe_after(StartDate, #rxframe{datetime = FrameDate}) ->
+    StartDate =< FrameDate.
+
 trim_rxframes(DevAddr) ->
-    case get_rxframes(DevAddr) of
+    case get_last_rxframes(DevAddr, 50) of
         {[], _} ->
             ok;
         {ExpRec, _} ->
@@ -150,10 +165,6 @@ trim_rxframes(DevAddr) ->
             lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
                 ExpRec)
     end.
-
-purge_rxframes(DevAddr) ->
-    [mnesia:dirty_delete_object(rxframes, Rec) ||
-        Rec <- mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr)].
 
 purge_txframes(DevAddr) ->
     [mnesia:dirty_delete_object(txframes, Obj) ||

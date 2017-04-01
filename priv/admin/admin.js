@@ -353,6 +353,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
+        nga.field('last_reset', 'datetime').label('Last Reset'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('last_mac', 'reference').label('Gateway')
             .targetEntity(gateways)
@@ -380,8 +381,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ];
     nodes.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
     nodes.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:12},
-        {name:"ADR", min:12, max:16}
+        {name:"General", min:0, max:13},
+        {name:"ADR", min:13, max:17}
     ]));
     nodes.editionView().fields(linkFieldsGeneral.concat([
         nga.field('downlinks', 'referenced_list')
@@ -426,9 +427,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<dgraph value="value"></dgraph>')
     ]));
     nodes.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:13},
-        {name:"ADR", min:13, max:23},
-        {name:"Status", min:23, max:28}
+        {name:"General", min:0, max:14},
+        {name:"ADR", min:14, max:24},
+        {name:"Status", min:24, max:29}
     ]));
     // add to the admin application
     admin.addEntity(nodes);

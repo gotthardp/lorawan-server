@@ -75,9 +75,8 @@ handle_adr(FOptsIn, Link) ->
         {undefined, undefined, undefined} ->
             Link;
         {1, 1, 1} ->
-            lager:debug("LinkADRReq succeeded"),
-            % the last_qs statistics will be reset only when the data rate changes
-            Link#link{adr_use=Link#link.adr_set};
+            lager:debug("LinkADRReq ~w succeeded", [Link#link.devaddr]),
+            Link#link{adr_use=Link#link.adr_set, last_qs=[]};
         {PowerACK, DataRateACK, ChannelMaskACK} ->
             lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
             {TXPower, DataRate, Chans} = Link#link.adr_set,

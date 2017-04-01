@@ -36,7 +36,7 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, #state{format=rgraph}=State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % guess which frequency band the device is using
     {Min, Max} = case ActRec of
         [#rxframe{region=Region} | _] ->
@@ -71,7 +71,7 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
 
 get_rxframe(Req, #state{format=qgraph}=State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [

@@ -142,7 +142,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
             nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check,
             last_mac=Gateway#gateway.mac, last_rxq=RxQ, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
             adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set,
-            last_qs=[]},
+            last_reset=calendar:universal_time(), last_qs=[]},
         ok = mnesia:write(links, NewLink, write),
         NewLink
     end),
@@ -208,7 +208,7 @@ check_link_fcnt(DevAddr, FCnt) ->
             lager:debug("~w fcnt reset", [DevAddr]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, reset, L#link{fcntup = FCnt, fcntdown=0, adr_use=lorawan_mac_region:default_adr(L#link.region),
-                devstat_fcnt=undefined, last_qs=[]}};
+                last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
         [L] when L#link.fcnt_check == 1 ->
             % strict 32-bit
             case fcnt_gap32(L#link.fcntup, FCnt) of
@@ -244,8 +244,7 @@ fcnt_gap32(A, B) ->
 
 reset_link(DevAddr) ->
     ok = mnesia:dirty_delete(pending, DevAddr),
-    % delete previously stored RX and TX frames
-    lorawan_db:purge_rxframes(DevAddr),
+    % delete previously stored TX frames
     lorawan_db:purge_txframes(DevAddr).
 
 build_rxframe(Gateway, Link, RxQ, Frame) ->
