@@ -130,12 +130,12 @@ appendq(SNR, LastSNRs) ->
 
 auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
     {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
-    {TxPower, DataRate, Chans} = Link#link.adr_use,
-    {DefPower, _DefDR, _Chans} = lorawan_mac_region:default_adr(Link#link.region),
+    {DefPower, _, _} = lorawan_mac_region:default_adr(Link#link.region),
     {MinPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
+    {TxPower, DataRate, _} = Link#link.adr_use,
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
-    MaxSNR = max_snr(Link#link.region, Link#link.adr_use)+10,
+    MaxSNR = max_snr(Link#link.region, DataRate)+10,
     StepsDR = trunc((AvgSNR-MaxSNR)/3),
     DataRate2 = if
             StepsDR > 0, DataRate < MaxDR ->
@@ -160,6 +160,7 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
             true ->
                 TxPower
         end,
+    {_, _, Chans} = Link#link.adr_set,
     {Link#link{adr_set={TxPower2, DataRate2, Chans}}, RxFrame#rxframe{average_qs=AverageQs}};
 auto_adr0(Link, RxFrame) ->
     {Link, RxFrame#rxframe{average_qs=undefined}}.
@@ -173,7 +174,7 @@ average0(List) ->
     Avg-Sigma.
 
 % from SX1272 DataSheet, Table 13
-max_snr(Region, {_, DataRate, _}) ->
+max_snr(Region, DataRate) ->
     {SF, _} = lorawan_mac_region:dr_to_tuple(Region, DataRate),
     -5-2.5*(SF-6). % dB
 
