@@ -5,7 +5,8 @@
 You can integrate with generic MQTT server, e.g. the
 [RabbitMQ](https://www.rabbitmq.com/mqtt.html):
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
- * *Auth* shall be set to *Username+Password*
+ * *Auth* shall be set to *Username+Password*, even when the *Name* and
+   *Password/Key* are empty.
 
 ## AWS IoT
 
@@ -41,6 +42,7 @@ needed for each Node.
 First, follow the Azure guidelines to configure your IoT device:
  * Create a new Device, use *Symmetric Key* authentication and let the system to
    *Auto Generate Keys*.
+ * Optionally you may also define a *Shared access policy*.
 
 Then, open the lorawan-server web-administration and create an Application Connector:
  * *URI* is the IoT Hub *Hostname* with the `mqtts://` prefix
@@ -48,7 +50,7 @@ Then, open the lorawan-server web-administration and create an Application Conne
  * *Auth* shall be set to *Shared Access Signature*
  * When authenticating using the device key:
    * *Name* shall be empty
-   * Password/Key* is the device *Primary key* (encoded using Base64)
+   * *Password/Key* is the device *Primary key* (encoded using Base64)
  * When authenticating using a *Shared access policy*:
    * *Name* is the *Access policy name*
-   * Password/Key* is the policy *Primary key* (encoded using Base64)
+   * *Password/Key* is the access policy *Primary key* (encoded using Base64)

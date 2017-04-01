@@ -6,7 +6,7 @@
 -module(lorawan_mac_region).
 
 -export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, rf_group/1, default_adr/1, max_adr/1]).
--export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, regional_config/2]).
+-export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -164,6 +164,60 @@ tuple_to_datar({SF, BW}) ->
 datar_to_tuple(DataRate) ->
     [SF, BW] = binary:split(DataRate, [<<"SF">>, <<"BW">>], [global, trim_all]),
     {binary_to_integer(SF), binary_to_integer(BW)}.
+
+powers(Region)
+        when Region == <<"EU863-870">> -> [
+    {0, 20},
+    {1, 14},
+    {2, 11},
+    {3, 8},
+    {4, 5},
+    {5, 2}];
+powers(Region)
+        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>;
+             Region == <<"AU915-928">> -> [
+    {0, 30},
+    {1, 28},
+    {2, 26},
+    {3, 24},
+    {4, 22},
+    {5, 20},
+    {6, 18},
+    {7, 16},
+    {8, 14},
+    {9, 12},
+    {10, 10}];
+powers(Region)
+        when Region == <<"CN779-787">>; Region == <<"EU433">> -> [
+    {0, 10},
+    {1, 7},
+    {2, 4},
+    {3, 1},
+    {4, -2},
+    {5, -5}];
+powers(Region)
+        when Region == <<"CN470-510">> -> [
+    {0, 17},
+    {1, 16},
+    {2, 14},
+    {3, 12},
+    {4, 10},
+    {5, 7},
+    {6, 5},
+    {7, 2}];
+powers(Region)
+        when Region == <<"KR920-923">> -> [
+    {0, 20},
+    {1, 14},
+    {2, 10},
+    {3, 8},
+    {4, 5},
+    {5, 2},
+    {6, 0}].
+
+powe_to_num(Region, Pow) ->
+    {_, Power} = lists:keyfind(Pow, 1, powers(Region)),
+    Power.
 
 regional_config(Param, Region) ->
     {ok, Regions} = application:get_env(lorawan_server, regions),

@@ -49,7 +49,7 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
                 [{id, <<"datr">>}, {label, <<"Data Rate">>}, {type, <<"number">>}],
-                [{id, <<"powe">>}, {label, <<"Power">>}, {type, <<"number">>}],
+                [{id, <<"powe">>}, {label, <<"Power (dBm)">>}, {type, <<"number">>}],
                 [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
@@ -57,7 +57,8 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
                     [{c, [
                         [{v, FCnt}],
                         [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
-                        [{v, TXPower}],
+                        [{v, TXPower},
+                         {f, integer_to_binary(lorawan_mac_region:powe_to_num(Region, TXPower))}],
                         [{v, Freq}]
                     ]}];
                 % if there are some unexpected data, show nothing
