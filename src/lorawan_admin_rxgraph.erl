@@ -57,8 +57,7 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
                     [{c, [
                         [{v, FCnt}],
                         [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
-                        [{v, TXPower},
-                         {f, integer_to_binary(lorawan_mac_region:powe_to_num(Region, TXPower))}],
+                        format_power(TXPower, lorawan_mac_region:powe_to_num(Region, TXPower)),
                         [{v, Freq}]
                     ]}];
                 % if there are some unexpected data, show nothing
@@ -104,6 +103,11 @@ get_rxframe(Req, #state{format=qgraph}=State) ->
             }
         ],
     {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.
+
+format_power(Index, Power) when is_integer(Power) ->
+    [{v, Index}, {f, integer_to_binary(Power)}];
+format_power(Index, _Power) ->
+    [{v, Index}].
 
 resource_exists(Req, State) ->
     case mnesia:dirty_index_read(rxframes,
