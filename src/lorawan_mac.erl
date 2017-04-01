@@ -50,9 +50,14 @@ store_status(G, undefined) ->
 store_status(G, S) ->
     if
         % store gateway GPS position
-        is_number(S#stat.lati), is_number(S#stat.long), is_number(S#stat.alti),
-        S#stat.lati /= 0, S#stat.long /= 0, S#stat.alti /= 0 ->
-            G#gateway{ gpspos={S#stat.lati, S#stat.long}, gpsalt=S#stat.alti };
+        is_number(S#stat.lati), is_number(S#stat.long), S#stat.lati /= 0, S#stat.long /= 0 ->
+            if
+                is_number(S#stat.alti), S#stat.alti /= 0 ->
+                    G#gateway{ gpspos={S#stat.lati, S#stat.long}, gpsalt=S#stat.alti };
+                true ->
+                    % some cheap GPS receivers give proper coordinates, but a zero altitude
+                    G#gateway{ gpspos={S#stat.lati, S#stat.long} }
+            end;
         % position not received
         true -> G
     end.
