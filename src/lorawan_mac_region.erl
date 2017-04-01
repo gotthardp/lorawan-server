@@ -148,15 +148,19 @@ datars(Region)
     {13, {7, 500}}].
 
 dr_to_tuple(Region, DR) ->
-    {_, DataRate} = lists:keyfind(DR, 1, datars(Region)),
-    DataRate.
+    case lists:keyfind(DR, 1, datars(Region)) of
+        {_, DataRate} -> DataRate;
+        false -> undefined
+    end.
 
 dr_to_datar(Region, DR) ->
     tuple_to_datar(dr_to_tuple(Region, DR)).
 
 datar_to_dr(Region, DataRate) ->
-    {DR, _} = lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)),
-    DR.
+    case lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)) of
+        {DR, _} -> DR;
+        false -> undefined
+    end.
 
 tuple_to_datar({SF, BW}) ->
     <<"SF", (integer_to_binary(SF))/binary, "BW", (integer_to_binary(BW))/binary>>.
@@ -216,8 +220,10 @@ powers(Region)
     {6, 0}].
 
 powe_to_num(Region, Pow) ->
-    {_, Power} = lists:keyfind(Pow, 1, powers(Region)),
-    Power.
+    case lists:keyfind(Pow, 1, powers(Region)) of
+        {_, Power} -> Power;
+        false -> undefined
+    end.
 
 regional_config(Param, Region) ->
     {ok, Regions} = application:get_env(lorawan_server, regions),
