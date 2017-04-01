@@ -7,6 +7,8 @@
 -record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
 
 -record(ignored_link, {devaddr, mask}).
+-record(connector, {connid, uri, client_id, auth, name, pass, certfile, keyfile}).
+-record(handler, {appid, connid, outbound, inbound}).
 
 -define(to_record(Record, List, Default),
     list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).

@@ -79,6 +79,6 @@
         {gateway_delay, 200}
     ]},
     {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, iso8601,
-        lorawan_server_api]}]}.
+        emqttc, lorawan_server_api]}]}.
 
 % end of file

@@ -5,15 +5,15 @@
 %
 -module(test_admin).
 
--export([add_device/1, add_link/1]).
+-export([add_device/1, add_node/1]).
 
 add_device(MAC) ->
     post_json("gateways", [{mac, MAC}, {tx_rfch, 0}, {netid, <<"000000">>},
         {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
-add_link({DevAddr, NwkSKey, AppSKey}) ->
+add_node({DevAddr, NwkSKey, AppSKey}) ->
     % set devstat_fcnt so we can test MAC
-    post_json("links", [{devaddr, DevAddr}, {region, <<"EU863-870">>},
+    post_json("nodes", [{devaddr, DevAddr}, {region, <<"EU863-870">>},
         {app, <<"semtech-mote">>}, {nwkskey, NwkSKey}, {appskey, AppSKey},
         {fcntup, 0}, {fcntdown, 0}, {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).
 

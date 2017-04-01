@@ -109,6 +109,7 @@ handle_write(Req, State) ->
             import_records(jsx:decode(Data, [{labels, atom}]), State),
             {true, Req2, State};
         false ->
+            lager:debug("Bad JSON in HTTP request"),
             {stop, cowboy_req:reply(400, Req2), State}
     end.
 

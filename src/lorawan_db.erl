@@ -37,6 +37,7 @@ ensure_tables() ->
         {devices, [
             {record_name, device},
             {attributes, record_info(fields, device)},
+            {index, [link]},
             {disc_copies, [node()]}]},
         {links, [
             {record_name, link},
@@ -59,6 +60,14 @@ ensure_tables() ->
             {record_name, rxframe},
             {attributes, record_info(fields, rxframe)},
             {index, [mac, devaddr]},
+            {disc_copies, [node()]}]},
+        {connectors, [
+            {record_name, connector},
+            {attributes, record_info(fields, connector)},
+            {disc_copies, [node()]}]},
+        {handlers, [
+            {record_name, handler},
+            {attributes, record_info(fields, handler)},
             {disc_copies, [node()]}]}
     ]).
 
@@ -66,12 +75,33 @@ ensure_table(Name, TabDef) ->
     case lists:member(Name, mnesia:system_info(tables)) of
         true ->
             mnesia:wait_for_tables([Name], 2000),
-            ensure_fields(Name, TabDef);
+            ensure_indexes(Name, TabDef);
         false ->
             lager:info("Database create ~w", [Name]),
             mnesia:create_table(Name, TabDef),
             mnesia:wait_for_tables([Name], 2000),
             set_defaults(Name)
+    end.
+
+ensure_indexes(Name, TabDef) ->
+    OldAttrs = mnesia:table_info(Name, attributes),
+    OldIndexes = lists:sort(mnesia:table_info(Name, index)),
+    NewAttrs = proplists:get_value(attributes, TabDef),
+    NewIndexes =
+        lists:sort(
+            lists:map(fun(Key) ->
+                index_of(Key, NewAttrs)+1
+            end, proplists:get_value(index, TabDef, []))),
+    if
+        OldIndexes == NewIndexes ->
+            ensure_fields(Name, TabDef);
+        true ->
+            lager:info("Database index update ~w: ~w to ~w", [Name, OldIndexes, NewIndexes]),
+            [mnesia:del_table_index(Name, lists:nth(Idx-1, OldAttrs))
+                || Idx <- lists:subtract(OldIndexes, NewIndexes), Idx =< length(OldAttrs)+1],
+            ensure_fields(Name, TabDef),
+            [mnesia:add_table_index(Name, lists:nth(Idx-1, NewAttrs))
+                || Idx <- lists:subtract(NewIndexes, OldIndexes), Idx =< length(NewAttrs)+1]
     end.
 
 ensure_fields(Name, TabDef) ->
@@ -81,7 +111,7 @@ ensure_fields(Name, TabDef) ->
         OldAttrs == NewAttrs ->
             ok;
         true ->
-            lager:info("Database update ~w: ~w to ~w", [Name, OldAttrs, NewAttrs]),
+            lager:info("Database fields update ~w: ~w to ~w", [Name, OldAttrs, NewAttrs]),
             {atomic, ok} = mnesia:transform_table(Name,
                 fun(OldRec) ->
                     [Rec|Values] = tuple_to_list(OldRec),
@@ -128,5 +158,11 @@ purge_rxframes(DevAddr) ->
 purge_txframes(DevAddr) ->
     [mnesia:dirty_delete_object(txframes, Obj) ||
         Obj <- mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})].
+
+index_of(Item, List) -> index_of(Item, List, 1).
+
+index_of(_, [], _)  -> not_found;
+index_of(Item, [Item|_], Index) -> Index;
+index_of(Item, [_|Tl], Index) -> index_of(Item, Tl, Index+1).
 
 % end of file

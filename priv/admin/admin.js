@@ -17,15 +17,19 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('devaddr'));
     var devices = nga.entity('devices')
         .identifier(nga.field('deveui'));
-    var links = nga.entity('links')
+    var nodes = nga.entity('nodes')
         .identifier(nga.field('devaddr'));
-    var ignored_links = nga.entity('ignored_links')
+    var ignored_nodes = nga.entity('ignored_nodes')
         .identifier(nga.field('devaddr'));
     var txframes = nga.entity('txframes')
         .identifier(nga.field('frid'));
     var rxframes = nga.entity('rxframes')
         .identifier(nga.field('frid'))
         .readOnly();
+    var connectors = nga.entity('connectors')
+        .identifier(nga.field('connid'));
+    var handlers = nga.entity('handlers')
+        .identifier(nga.field('appid'));
 
     adr_choices = [
         { value: 0, label: 'OFF' },
@@ -135,6 +139,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
         nga.field('netid').label('NetID'),
+        nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('alive', 'boolean').label('Alive')
             .map(function timediff(value, entry) {
@@ -158,6 +163,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('netid').label('NetID')
             .attributes({ placeholder: 'e.g. 0123AB' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
+        nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('gpspos', 'template')
             .validation({required: true })
@@ -233,7 +239,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appargs').label('Arguments'),
         nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('link', 'reference')
-            .targetEntity(links)
+            .targetEntity(nodes)
             .targetField(nga.field('devaddr'))
     ])
     .sortField('deveui')
@@ -302,8 +308,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(devices);
 
-    // ---- links
-    links.listView().fields([
+    // ---- nodes
+    nodes.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
@@ -316,7 +322,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ])
     .sortField('devaddr')
     .sortDir('ASC');
-    links.listView().filters([
+    nodes.listView().filters([
         nga.field('app').label('Application'),
         nga.field('appid').label('AppID')
     ]);
@@ -372,12 +378,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' })
     ];
-    links.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
-    links.creationView().template(createWithTabsTemplate([
+    nodes.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
+    nodes.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:12},
         {name:"ADR", min:12, max:16}
     ]));
-    links.editionView().fields(linkFieldsGeneral.concat([
+    nodes.editionView().fields(linkFieldsGeneral.concat([
         nga.field('downlinks', 'referenced_list')
             .targetEntity(txframes)
             .targetReferenceField('devaddr')
@@ -419,25 +425,24 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr', 'template').label('Device Status')
             .template('<dgraph value="value"></dgraph>')
     ]));
-    links.editionView().template(editWithTabsTemplate([
+    nodes.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:13},
         {name:"ADR", min:13, max:23},
         {name:"Status", min:23, max:28}
     ]));
     // add to the admin application
-    admin.addEntity(links);
+    admin.addEntity(nodes);
     admin.addEntity(txframes);
 
-    // ---- ignored links
-    ignored_links.listView().title('Ignored Links');
-    ignored_links.listView().fields([
+    // ---- ignored nodes
+    ignored_nodes.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('mask')
     ])
     .sortField('devaddr')
     .sortDir('ASC');
 
-    ignored_links.creationView().fields([
+    ignored_nodes.creationView().fields([
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
@@ -445,9 +450,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. FFFFFFFF' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' })
     ]);
-    ignored_links.editionView().fields(ignored_links.creationView().fields());
+    ignored_nodes.editionView().fields(ignored_nodes.creationView().fields());
     // add to the admin application
-    admin.addEntity(ignored_links);
+    admin.addEntity(ignored_nodes);
 
     // ---- rxframes
     rxframes.listView().title('Received Frames');
@@ -457,7 +462,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(gateways)
             .targetField(nga.field('mac')),
         nga.field('devaddr', 'reference').label('DevAddr')
-            .targetEntity(links)
+            .targetEntity(nodes)
             .targetField(nga.field('devaddr')),
         nga.field('app').label('Application'),
         nga.field('appid').label('AppID'),
@@ -478,16 +483,72 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(rxframes);
 
+    // ---- connectors
+    connectors.listView().fields([
+        nga.field('connid').label('Connector ID').isDetailLink(true),
+        nga.field('uri').label('URI'),
+        nga.field('client_id').label('Client ID'),
+        nga.field('auth'),
+        nga.field('name')
+    ]);
+    connectors.creationView().fields([
+        nga.field('connid').label('Connector ID')
+            .validation({ required: true }),
+        nga.field('uri').label('URI')
+            .attributes({ placeholder: 'e.g. mqtt://server:8883' })
+            .validation({ required: true }),
+        nga.field('client_id').label('Client ID'),
+        nga.field('auth', 'choice')
+            .choices([
+                { value: 'normal', label: 'Username+Password' },
+                { value: 'sas', label: 'Shared Access Signature' }
+            ]),
+        nga.field('name'),
+        nga.field('pass').label('Password/Key'),
+        nga.field('certfile', 'file').label('User Certificate')
+            .uploadInformation({'url': 'upload'}),
+        nga.field('keyfile', 'file').label('Private Key')
+            .uploadInformation({'url': 'upload'})
+    ]);
+    connectors.editionView().fields(connectors.creationView().fields());
+    // add to the admin application
+    admin.addEntity(connectors);
+
+    // ---- handlers
+    handlers.listView().fields([
+        nga.field('appid').label('AppID').isDetailLink(true),
+        nga.field('connid').label('Connector ID'),
+        nga.field('outbound'),
+        nga.field('inbound')
+    ]);
+    handlers.creationView().fields([
+        nga.field('appid').label('AppID')
+            .validation({ required: true }),
+        nga.field('connid', 'reference').label('Connector ID')
+            .targetEntity(connectors)
+            .targetField(nga.field('connid'))
+            .validation({ required: true }),
+        nga.field('outbound'),
+        nga.field('inbound')
+    ]);
+    handlers.editionView().fields(handlers.creationView().fields());
+    // add to the admin application
+    admin.addEntity(handlers);
+
     // ---- menu
     admin.menu(nga.menu()
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
         .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
             .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
             .addChild(nga.menu(multicast_groups).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
-            .addChild(nga.menu(ignored_links).icon('<span class="fa fa-ban fa-fw"></span>'))
+            .addChild(nga.menu(ignored_nodes).icon('<span class="fa fa-ban fa-fw"></span>'))
         )
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
-        .addChild(nga.menu(links).icon('<span class="fa fa-rss fa-fw"></span>'))
+        .addChild(nga.menu(nodes).icon('<span class="fa fa-rss fa-fw"></span>'))
+        .addChild(nga.menu().title('Applications').icon('<span class="fa fa-database fa-fw"></span>')
+          .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
+          .addChild(nga.menu(connectors).icon('<span class="fa fa-bolt fa-fw"></span>'))
+        )
         .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
         .autoClose(false)
     );
@@ -517,7 +578,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .sortDir('ASC')
             .perPage(7)
         )
-        .addCollection(nga.collection(links)
+        .addCollection(nga.collection(nodes)
             .fields([
                 nga.field('devaddr').label('DevAddr').isDetailLink(true),
                 nga.field('devstat.battery', 'number').label('Battery'),
@@ -534,7 +595,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                     .targetEntity(gateways)
                     .targetField(nga.field('mac')),
                 nga.field('devaddr', 'reference').label('DevAddr')
-                    .targetEntity(links)
+                    .targetEntity(nodes)
                     .targetField(nga.field('devaddr')),
                 nga.field('rxq.lsnr').label('SNR')
             ])
@@ -718,7 +779,7 @@ return {
                     "gridlines": {"count": -1}
                 },
                 "vAxes": {
-                    0: {"minValue": 0, "maxValue": 10},
+                    0: {"minValue": 0, "maxValue": 11},
                     1: {"minValue": 433, "maxValue": 928}
                 }
             };
