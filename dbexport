@@ -1,4 +1,4 @@
 wget --user=admin --password=admin --output-document=dbusers.json http://localhost:8080/users
 wget --user=admin --password=admin --output-document=dbgateways.json http://localhost:8080/gateways
 wget --user=admin --password=admin --output-document=dbdevices.json http://localhost:8080/devices
-wget --user=admin --password=admin --output-document=dblinks.json http://localhost:8080/links
+wget --user=admin --password=admin --output-document=dbnodes.json http://localhost:8080/nodes

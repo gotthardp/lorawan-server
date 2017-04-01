@@ -20,8 +20,8 @@ The following REST resources are made available:
   /gateways/*123* | GET, PUT, DELETE | Gateway with MAC=*123*
   /devices        | GET, POST        | Devices registered for over-the-air activation (OTAA)
   /devices/*123*  | GET, PUT, DELETE | Device with DevEUI=*123*
-  /links          | GET, POST        | Active devices, both ABP and activated OTAA
-  /links/*123*    | GET, PUT, DELETE | Active device with DevAddr=*123*
+  /nodes          | GET, POST        | Active network nodes, both ABP and activated OTAA
+  /nodes/*123*    | GET, PUT, DELETE | Active network node with DevAddr=*123*
   /txframes       | GET              | Frames scheduled for transmission
   /txframes/*123* | GET, DELETE      | Frame with ID=*123*
   /rxframes       | GET              | Recent received frames
@@ -56,8 +56,8 @@ the REST API.
 You (at least) have to:
  * Add LoRaWAN gateways you want to use to the *Gateways* list.
  * Configure each device you want to use:
-   * To add a device activated by personalization (ABP), create a new *Links* list entry.
-   * To add an OTAA device, create a new *Devices* list entry and start the device. The *Links*
+   * To add a device activated by personalization (ABP), create a new *Nodes* list entry.
+   * To add an OTAA device, create a new *Devices* list entry and start the device. The *Nodes*
      list will be updated automatically once the device joins the network.
 
 ### Users
@@ -92,16 +92,16 @@ For each device, which may connect to your network, you can set:
      This destroys the device security.
  * *Can Join?* flag that allows you to prevent the device from joining
 
-Once the device joins the network, the *Link* field will contain a reference to the *Links* list.
+Once the device joins the network, the *Link* field will contain a reference to the *Nodes* list.
 
 Optionally, you can also define a set of [ADR](ADR.md) parameters. Once the device
 joins the network, the server will attempt to configure the device accordingly.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
 
-### Links
+### Nodes
 
-For each device, which is connected (has a link) to the network, you can set:
+Nodes are active devices. For each network node you can set:
  * *DevEUI* of the device
  * *Region* that determines the LoRaWAN regional parameters
  * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
@@ -126,7 +126,7 @@ transmission, so it may take a while until all messages are transmitted.
 
 ## Backup and Restore
 
-Use the `dbexport` script to backup your list of users, gateways, devices and links.
+Use the `dbexport` script to backup your list of users, gateways, devices and nodes.
 This will create several `db*.json` files. Use the `dbimport` script to write these
 files back to the server database.
 
