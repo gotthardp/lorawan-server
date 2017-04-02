@@ -72,3 +72,34 @@ Finally, create a new Handler:
  * *Outbound* shall be "devices/*Device ID*/messages/events/".
    The trailing slash is mandatory.
  * *Inbound* shall be "devices/*Device ID*/messages/devicebound/#".
+
+## Adafruit IO
+
+AdafruitIO supports MQTT and MQTT/SSL. Before doing the integration, make sure
+you consult the following Adafruit articles:
+
+* [Adafruit IO](https://learn.adafruit.com/adafruit-io)
+* [Adafruit IO Basics: Feeds](https://learn.adafruit.com/adafruit-io-basics-feeds)
+* [Adafruit IO Basics: Dashboards](https://learn.adafruit.com/adafruit-io-basics-dashboards)
+* [MQTT, AdafruitIO & You!](https://learn.adafruit.com/mqtt-adafruit-io-and-you)
+
+Once your Adafruit account, dashboards and feeds are set up, go to the
+lorawan-server web-administration and create an Applications->Connector:
+* *Connector ID* - Your name for this connector, should be unique.
+* *URI* - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
+* *Client ID* - can be anything, but try to keep it unique among connectors.
+* *Auth* should be set to *Username+Password*:
+   * *Name* - Your Adafruit account name (see the last article in the list above).
+   * *Password/Key* - Your Adafruit Key, NOT your account password (see above).
+
+Finally, create a new Applications->Handler:
+* *AppID* - Name to identify your Handler in the *Devices* configuration.
+* *Connector ID* - Should point to the Connector you just created.
+* *Outbound* - Name of the topic you will be publishing to in the form
+`YourUserName/feeds/YourFeed`.
+* *Inbound* - Name of the topic you want to receive data from in the form
+`YourUserName/feeds/YourFeed`.
+
+After all of this is ready, you may select this Handler as an *AppID* in your
+*Devices* or *Nodes* configuration pages. And **don't forget** to set your *Application*
+field to **connector** there.

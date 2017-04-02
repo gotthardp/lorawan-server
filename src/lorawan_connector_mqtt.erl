@@ -14,7 +14,7 @@
 -record(state, {mqttc}).
 
 start_link(ConnUri, Conn) ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [ConnUri, Conn], []).
+    gen_server:start_link(?MODULE, [ConnUri, Conn], []).
 
 publish(Server, Topic, Payload) ->
     gen_server:cast(Server, {publish, Topic, Payload}).
