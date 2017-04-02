@@ -44,12 +44,14 @@ parse({Key, Value}) when Key == gpspos ->
     {Key, parse_latlon(Value)};
 parse({Key, Value}) when Key == adr_use; Key == adr_set ->
     {Key, parse_adr(Value)};
+parse({Key, Value}) when Key == rxwin_use; Key == rxwin_set ->
+    {Key, parse_rxwin(Value)};
 parse({Key, Value}) when Key == rxq; Key == last_rxq ->
     {Key, ?to_record(rxq, parse(Value))};
 parse({Key, Value}) when Key == txdata ->
     {Key, ?to_record(txdata, parse(Value))};
-parse({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
-                        Key == datetime ->
+parse({Key, Value}) when Key == last_join; Key == last_reset; Key == last_rx;
+                        Key == devstat_time; Key == datetime ->
     {Key, iso8601:parse(Value)};
 parse({Key, <<"immediately">>}) when Key == time ->
     {Key, immediately};
@@ -85,14 +87,16 @@ build({Key, Value}) when Key == gpspos ->
     {Key, build_latlon(Value)};
 build({Key, Value}) when Key == adr_use; Key == adr_set ->
     {Key, build_adr(Value)};
+build({Key, Value}) when Key == rxwin_use; Key == rxwin_set ->
+    {Key, build_rxwin(Value)};
 build({Key, Value}) when Key == rxq; Key == last_rxq ->
     {Key, build(?to_proplist(rxq, Value))};
 build({Key, Value}) when Key == txdata ->
     {Key, build(?to_proplist(txdata, Value))};
 build({Key, immediately}) when Key == time ->
     {Key, <<"immediately">>};
-build({Key, Value}) when Key == last_join; Key == last_rx; Key == devstat_time;
-                            Key == time; Key == datetime ->
+build({Key, Value}) when Key == last_join; Key == last_reset; Key == last_rx;
+                            Key == devstat_time; Key == time; Key == datetime ->
     {Key, iso8601:format(Value)};
 build({Key, Value}) when Key == devstat ->
     {Key, build_devstat(Value)};
@@ -122,6 +126,12 @@ build_adr({TXPower, DataRate, Chans}) ->
             undefined -> null;
             Val -> list_to_binary(intervals_to_text(Val))
         end}].
+
+parse_rxwin(List) ->
+    {proplists:get_value(rx1_dr_offset, List), proplists:get_value(rx2_dr, List), proplists:get_value(rx2_freq, List)}.
+
+build_rxwin({RX1DROffset, RX2DataRate, Frequency}) ->
+    [{rx1_dr_offset, RX1DROffset}, {rx2_dr, RX2DataRate}, {rx2_freq, Frequency}].
 
 parse_devstat(List) ->
     {proplists:get_value(battery, List), proplists:get_value(margin, List)}.

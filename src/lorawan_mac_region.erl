@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_region).
 
--export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, rf_group/1, default_adr/1, max_adr/1]).
+-export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, rf_group/1, default_adr/1, default_rxwin/1, max_adr/1]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -239,6 +239,11 @@ default_adr(<<"EU433">>) -> {0, 0, [{0,2}]};
 default_adr(<<"AU915-928">>) -> {5, 0, [{0,71}]};
 default_adr(<<"CN470-510">>) -> {2, 0, [{0, 95}]};
 default_adr(<<"KR920-923">>) -> {1, 0, [{0, 2}]}.
+
+% {RX1DROffset, RX2DataRate, Frequency}
+default_rxwin(Region) ->
+    {Freq, DataRate} = regional_config(rx2_rf, Region),
+    {0, datar_to_dr(Region, DataRate), Freq}.
 
 % {TXPower, DataRate}
 max_adr(<<"EU863-870">>) -> {5, 6};

@@ -142,6 +142,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
             nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check,
             last_mac=Gateway#gateway.mac, last_rxq=RxQ, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
             adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set,
+            rxwin_use=lorawan_mac_region:default_rxwin(D#device.region), rxwin_set=D#device.rxwin_set,
             last_reset=calendar:universal_time(), last_qs=[]},
         ok = mnesia:write(links, NewLink, write),
         NewLink
@@ -207,7 +208,9 @@ check_link_fcnt(DevAddr, FCnt) ->
         [L] when L#link.fcnt_check == 2, FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
             lager:debug("~w fcnt reset", [DevAddr]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
-            {ok, reset, L#link{fcntup = FCnt, fcntdown=0, adr_use=lorawan_mac_region:default_adr(L#link.region),
+            {ok, reset, L#link{fcntup = FCnt, fcntdown=0,
+                adr_use=lorawan_mac_region:default_adr(L#link.region),
+                rxwin_use=lorawan_mac_region:default_rxwin(L#link.region),
                 last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
         [L] when L#link.fcnt_check == 1 ->
             % strict 32-bit

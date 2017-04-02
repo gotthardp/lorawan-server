@@ -294,16 +294,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             }),
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
-            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' })
+            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' }),
+        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
     ]);
     devices.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:11},
-        {name:"ADR", min:11, max:15}
+        {name:"ADR", min:11, max:16}
     ]));
     devices.editionView().fields(devices.creationView().fields());
     devices.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:11},
-        {name:"ADR", min:11, max:15}
+        {name:"ADR", min:11, max:16}
     ]));
     // add to the admin application
     admin.addEntity(devices);
@@ -377,12 +378,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             }),
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
-            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' })
+            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' }),
+        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
     ];
     nodes.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
     nodes.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:13},
-        {name:"ADR", min:13, max:17}
+        {name:"ADR", min:13, max:18}
     ]));
     nodes.editionView().fields(linkFieldsGeneral.concat([
         nga.field('downlinks', 'referenced_list')
@@ -414,6 +416,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false),
         nga.field('adr_use.chans').label('Used channels')
             .editable(false),
+        nga.field('rxwin_use.rx1_dr_offset', 'number').label('Used RX1 DR offset')
+            .editable(false),
         nga.field('devaddr', 'template').label('RX')
             .template('<rgraph value="value"></rgraph>'),
         nga.field('devaddr', 'template').label('RX Quality')
@@ -428,8 +432,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]));
     nodes.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:14},
-        {name:"ADR", min:14, max:24},
-        {name:"Status", min:24, max:29}
+        {name:"ADR", min:14, max:26},
+        {name:"Status", min:26, max:31}
     ]));
     // add to the admin application
     admin.addEntity(nodes);
