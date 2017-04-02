@@ -3,10 +3,17 @@
 ## Generic MQTT Server
 
 You can integrate with generic MQTT server, e.g. the
-[RabbitMQ](https://www.rabbitmq.com/mqtt.html):
+[RabbitMQ](https://www.rabbitmq.com/mqtt.html).
+
+Open the lorawan-server web-administration and create an Application Connector:
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
  * *Auth* shall be set to *Username+Password*, even when the *Name* and
    *Password/Key* are empty.
+
+Then create a new Handler:
+ * *Connector ID* shall point to the *Application Connector* you just created.
+ * *Outbound* is a publication topic.
+ * *Inbound* is a subscription topic.
 
 ## AWS IoT
 
@@ -34,6 +41,11 @@ Then, open the lorawan-server web-administration and create an Application Conne
  * *User Certificate* is the `xxx-certificate.pem.crt` file you downloaded
  * *Private Key* is the `xxx-private.pem.key` file
 
+Finally, create a new Handler:
+ * *Connector ID* shall point to the *Application Connector* you just created.
+ * *Outbound* is a publication topic.
+ * *Inbound* is a subscription topic.
+
 ## Azure IoT Hub
 
 Microsoft Azure IoT Hub can be integrated via MQTT. A separate connection is
@@ -54,3 +66,9 @@ Then, open the lorawan-server web-administration and create an Application Conne
  * When authenticating using a *Shared access policy*:
    * *Name* is the *Access policy name*
    * *Password/Key* is the access policy *Primary key* (encoded using Base64)
+
+Finally, create a new Handler:
+ * *Connector ID* shall point to the *Application Connector* you just created.
+ * *Outbound* shall be "devices/*Device ID*/messages/events/".
+   The trailing slash is mandatory.
+ * *Inbound* shall be "devices/*Device ID*/messages/devicebound/#".
