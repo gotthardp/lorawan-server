@@ -21,16 +21,23 @@ init(Req, [Format]) ->
 init0(Req, <<"devices">>, Format, Opts) ->
     DevEUI = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
     case mnesia:dirty_read(devices, DevEUI) of
-        [] ->
-            lager:warning("WebSocket for unknown DevEUI: ~w", [DevEUI]),
+        [Dev=#device{app= <<"websocket">>}] ->
+            {cowboy_websocket, Req, #state{devaddr=Dev#device.link, format=Format}, Opts};
+        _Else ->
+            lager:warning("No WebSocket for DevEUI: ~w", [DevEUI]),
             Req2 = cowboy_req:reply(404, Req),
-            {ok, Req2, undefined};
-        [Dev] ->
-            {cowboy_websocket, Req, #state{devaddr=Dev#device.link, format=Format}, Opts}
+            {ok, Req2, undefined}
     end;
 init0(Req, <<"links">>, Format, Opts) ->
     DevAddr = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
-    {cowboy_websocket, Req, #state{devaddr=DevAddr, format=Format}, Opts};
+    case mnesia:dirty_read(links, DevAddr) of
+        [#link{app= <<"websocket">>}] ->
+            {cowboy_websocket, Req, #state{devaddr=DevAddr, format=Format}, Opts};
+        _Else ->
+            lager:warning("No WebSocket for DevAddr: ~w", [DevAddr]),
+            Req2 = cowboy_req:reply(404, Req),
+            {ok, Req2, undefined}
+    end;
 init0(Req, <<"groups">>, Format, Opts) ->
     GName = cowboy_req:binding(name, Req),
     {cowboy_websocket, Req, #state{gname=GName, format=Format}, Opts};
