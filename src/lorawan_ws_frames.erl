@@ -6,7 +6,7 @@
 -module(lorawan_ws_frames).
 
 -export([init/2]).
--export([websocket_init/1, websocket_handle/2, websocket_info/2]).
+-export([websocket_init/1, websocket_handle/2, websocket_info/2, terminate/3]).
 -export([get_processes/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -145,6 +145,10 @@ websocket_info({send, DevAddr, AppArgs, RxData, RxQ}, #state{format=json} = Stat
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~w", [Info]),
     {ok, State}.
+
+terminate(Reason, _Req, _State) ->
+    lager:debug("WebSocket terminated: ~w", [Reason]),
+    ok.
 
 get_processes(DevAddr, AppID) ->
     get_processes0({?MODULE, links, DevAddr}) ++ get_processes0({?MODULE, groups, AppID}).
