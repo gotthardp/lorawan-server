@@ -199,19 +199,19 @@ check_link_fcnt(DevAddr, FCnt) ->
         [] ->
             lager:warning("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
             {error, {unknown_devaddr, DevAddr}};
-        [L] when FCnt == L#link.fcntup ->
-            % retransmission
-            {ok, retransmit, L};
-        [L] when L#link.fcnt_check == 3 ->
-            % checks disabled
-            {ok, new, L#link{fcntup = FCnt}};
-        [L] when L#link.fcnt_check == 2, FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
+        [L] when L#link.fcnt_check >= 2, FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
             lager:debug("~w fcnt reset", [DevAddr]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, reset, L#link{fcntup = FCnt, fcntdown=0,
                 adr_use=lorawan_mac_region:default_adr(L#link.region),
                 rxwin_use=lorawan_mac_region:default_rxwin(L#link.region),
                 last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
+        [L] when L#link.fcnt_check == 3 ->
+            % checks disabled
+            {ok, new, L#link{fcntup = FCnt}};
+        [L] when FCnt == L#link.fcntup ->
+            % retransmission
+            {ok, retransmit, L};
         [L] when L#link.fcnt_check == 1 ->
             % strict 32-bit
             case fcnt_gap32(L#link.fcntup, FCnt) of
