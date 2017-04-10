@@ -171,9 +171,12 @@ bits_test_()-> [
     ?_assertEqual("0", intervals_to_text([{0,0}])),
     ?_assertEqual("0-2", intervals_to_text([{0,2}])),
     ?_assertEqual("0-2, 5-7", intervals_to_text([{0,2},{5,7}])),
+    ?_assertEqual("0-7, 64", intervals_to_text([{0,7},{64,64}])),
     ?_assertEqual("0-71", intervals_to_text([{0,71}])),
     ?_assertEqual([{0,0}], text_to_intervals("0")),
     ?_assertEqual([{0,2},{5,7}], text_to_intervals("0-2, 5-7")),
+    ?_assertEqual([{0,7},{64,64}], text_to_intervals("0-7,64")), % without space after comma
+    ?_assertEqual([{0,7},{64,64}], text_to_intervals("0-7,  64")), % two spaces after comma
     ?_assertEqual([{0,71}], text_to_intervals("0-71"))
 ].
 
