@@ -25,13 +25,12 @@
 process_frame(MAC, RxQ, PHYPayload) ->
     Size = byte_size(PHYPayload)-4,
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
-    <<MType:3, _:5, _/binary>> = Msg,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
             lager:warning("Unknown MAC ~s", [binary_to_hex(MAC)]),
             {error, {unknown_mac, MAC}};
         [Gateway] ->
-            process_frame1(Gateway, RxQ, MType, Msg, MIC)
+            process_frame1(Gateway, RxQ, Msg, MIC)
     end.
 
 process_status(MAC, S) ->
@@ -62,9 +61,8 @@ store_status(G, S) ->
         true -> G
     end.
 
-process_frame1(Gateway, RxQ, 2#000, Msg, MIC) ->
-    <<_, MACPayload/binary>> = Msg,
-    <<AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = MACPayload,
+process_frame1(Gateway, RxQ, <<2#000:3, _:5,
+        AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = Msg, MIC) ->
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
 
     case mnesia:dirty_read(devices, DevEUI) of
@@ -82,10 +80,9 @@ process_frame1(Gateway, RxQ, 2#000, Msg, MIC) ->
                     {error, {bad_mic, DevEUI}}
             end
     end;
-process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
-    <<_, MACPayload/binary>> = Msg,
-    <<DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
-        FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, Body/binary>> = MACPayload,
+process_frame1(Gateway, RxQ, <<MType:3, _:5,
+        DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
+        FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, Body/binary>> = Msg, MIC) ->
     {FPort, FRMPayload} = case Body of
         <<>> -> {undefined, <<>>};
         <<Port:8, Payload/binary>> -> {Port, Payload}
@@ -115,7 +112,9 @@ process_frame1(Gateway, RxQ, MType, Msg, MIC) ->
             ok;
         {error, Error} ->
             {error, Error}
-    end.
+    end;
+process_frame1(_Gateway, _RxQ, Msg, _MIC) ->
+    {error, {bad_frame, Msg}}.
 
 handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     AppNonce = crypto:strong_rand_bytes(3),
