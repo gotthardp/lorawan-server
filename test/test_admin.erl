@@ -15,7 +15,8 @@ add_node({DevAddr, NwkSKey, AppSKey}) ->
     % set devstat_fcnt so we can test MAC
     post_json("nodes", [{devaddr, DevAddr}, {region, <<"EU863-870">>},
         {app, <<"semtech-mote">>}, {nwkskey, NwkSKey}, {appskey, AppSKey},
-        {fcntup, 0}, {fcntdown, 0}, {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).
+        {fcntup, 0}, {fcntdown, 0}, {fcnt_check, undefined},
+        {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).
 
 post_json(Uri, Body) ->
     {ok, {{_Version, 204, _ReasonPhrase}, _Headers, _Body}} =

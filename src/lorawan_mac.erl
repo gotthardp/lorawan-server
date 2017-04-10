@@ -199,7 +199,7 @@ check_link_fcnt(DevAddr, FCnt) ->
         [] ->
             lager:warning("Unknown DevAddr ~s", [binary_to_hex(DevAddr)]),
             {error, {unknown_devaddr, DevAddr}};
-        [L] when L#link.fcnt_check >= 2, FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
+        [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
             lager:debug("~w fcnt reset", [DevAddr]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, reset, L#link{fcntup = FCnt, fcntdown=0,
