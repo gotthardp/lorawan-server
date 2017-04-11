@@ -5,7 +5,7 @@ RUN apt-get update
 RUN apt-get install -y git npm
 RUN git clone https://github.com/gotthardp/lorawan-server.git && cd lorawan-server && rebar3 release
 
-% volume for the mnesia database and logs
+# volume for the mnesia database and logs
 RUN mkdir /storage
 VOLUME /storage
 
