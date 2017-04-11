@@ -67,12 +67,13 @@ For example:
 
 ## Keep-alive
 
-By default, the WebSocket connection will be closed if the client sends no data for 1 hour.
-This is to avoid stale connections.
+By default, the WebSocket connection will be closed if the client (e.g. your web browser)
+sends for 1 hour no data back to the server. This is to avoid stale connections.
 
 To keep the connection open for a longer time:
  * You can adjust the `{websocket_timeout, 360000}` configuration parameter to a higher
-   value (in milliseconds), or even to `infinity`.
+   value (in milliseconds).
+ * You can even set `{websocket_timeout, infinity}` to disable the session expiration.
  * Or the client (browser) needs to keep sending **ping** frames.
 
 The **ping** frames may not be enabled by default. To enable **ping** frames in Firefox,
