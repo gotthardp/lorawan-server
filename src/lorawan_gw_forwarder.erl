@@ -77,8 +77,12 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, MAC:8/binary, 
         true ->
             Data2 = jsx:decode(Data, [{labels, atom}]),
             Ack = proplists:get_value(txpk_ack, Data2),
-            Error = proplists:get_value(error, Ack),
-            lager:error("Transmission via ~w failed: ~s", [MAC, Error]);
+            case proplists:get_value(error, Ack) of
+                undefined -> ok;
+                <<"NONE">> -> ok;
+                Error ->
+                    lager:error("Transmission via ~w failed: ~s", [MAC, Error])
+            end;
         false ->
             lager:error("Ignored PUSH_DATA: JSON syntax error")
     end,
