@@ -245,10 +245,13 @@ append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
 
 set_rxwin(Link, FOptsOut) ->
     OffSet = case Link#link.rxwin_set of
-        {Number, _, _} when is_number(Number) -> Number;
-        true -> undefined
+        {Num1, _, _} when is_number(Num1) -> Num1;
+        _Else1 -> undefined
     end,
-    {OffUse, _, _} = Link#link.rxwin_use,
+    OffUse = case Link#link.rxwin_use of
+        {Num2, _, _} when is_number(Num2) -> Num2;
+        _Else2 -> undefined
+    end,
     if
          OffSet /= undefined, OffSet /= OffUse ->
             {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
