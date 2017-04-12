@@ -150,7 +150,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs) of
         ok ->
             % transmitting after join accept delay 1
-            TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, join1_delay),
+            TxQ = lorawan_mac_region:rx1_window(Link, RxQ, join1_delay),
             RxRate = lorawan_mac_region:rx2_dr(Link#link.region),
             txaccept(TxQ, RxRate, AppKey, AppNonce, NetID, Link#link.devaddr);
         {error, Error} -> {error, Error}
@@ -275,7 +275,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Frame)),
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
-                    TxQ = lorawan_mac_region:rx1_rf(Link#link.region, RxQ, rx1_delay),
+                    TxQ = lorawan_mac_region:rx1_window(Link, RxQ, rx1_delay),
                     {send, TxQ, LostFrame};
                 {false, _} ->
                     ok
@@ -327,18 +327,18 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
     case lorawan_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
-            {send, choose_tx(Link#link.region, RxQ), LostFrame};
+            {send, choose_tx(Link, RxQ), LostFrame};
         {send, TxData} ->
-            send_unicast(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
+            send_unicast(choose_tx(Link, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            send_unicast(choose_tx(Link#link.region, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
+            send_unicast(choose_tx(Link, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
         ok -> ok;
         {error, Error} -> {error, Error}
     end.
 
 handle_downlink(Link, Time, TxData) ->
-    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, Link#link.last_rxq),
+    TxQ = lorawan_mac_region:rx2_rf(Link, Link#link.last_rxq),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
     send_unicast(TxQ#txq{time=Time}, Link#link.devaddr, 0, lorawan_mac_commands:build_fopts(Link), TxData).
 
@@ -346,15 +346,15 @@ handle_multicast(Group, Time, TxData) ->
     TxQ = lorawan_mac_region:rf_group(Group),
     send_multicast(TxQ#txq{time=Time}, Group#multicast_group.devaddr, TxData).
 
-choose_tx(Region, RxQ) ->
-    Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Region) / 1000,
+choose_tx(Link, RxQ) ->
+    Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Link#link.region) / 1000,
     {ok, GwDelay} = application:get_env(lorawan_server, preprocessing_delay),
     % transmit as soon as possible
     case erlang:monotonic_time(milli_seconds) - RxQ#rxq.srvtmst of
         Small when Small < Rx1Delay - GwDelay ->
-            lorawan_mac_region:rx1_rf(Region, RxQ, rx1_delay);
+            lorawan_mac_region:rx1_window(Link, RxQ, rx1_delay);
         _Big ->
-            lorawan_mac_region:rx2_rf(Region, RxQ, rx2_delay)
+            lorawan_mac_region:rx2_window(Link, RxQ, rx2_delay)
     end.
 
 retransmit_downlink(DevAddr) ->

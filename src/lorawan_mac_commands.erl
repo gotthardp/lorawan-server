@@ -17,14 +17,16 @@ handle(RxQ, Link, FOpts, RxFrame) ->
         List1 -> lager:debug("~w -> ~w", [Link#link.devaddr, List1])
     end,
     Link2 = handle_adr(FOptsIn,
-        handle_status(FOptsIn, Link)),
+        handle_rxwin(FOptsIn,
+        handle_status(FOptsIn, Link))),
     {Link3, RxFrame2} = auto_adr(RxQ, Link2, RxFrame),
     % check for new commands
     {ok, Link3, build_fopts(Link3), RxFrame2}.
 
 build_fopts(Link) ->
     FOptsOut = send_adr(Link,
-        request_status(Link, [])),
+        set_rxwin(Link,
+        request_status(Link, []))),
     case FOptsOut of
         [] -> ok;
         List2 -> lager:debug("~w <- ~w", [Link#link.devaddr, List2])
@@ -72,8 +74,6 @@ encode_fopts([]) ->
 
 handle_adr(FOptsIn, Link) ->
     case find_adr(FOptsIn) of
-        {undefined, undefined, undefined} ->
-            Link;
         {1, 1, 1} ->
             lager:debug("LinkADRReq ~w succeeded", [Link#link.devaddr]),
             Link#link{adr_use=Link#link.adr_set, last_qs=[]};
@@ -82,12 +82,14 @@ handle_adr(FOptsIn, Link) ->
             {TXPower, DataRate, Chans} = Link#link.adr_set,
             % clear the settings that failed
             Link#link{adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
-                clear_when_zero(ChannelMaskACK, Chans)}}
+                clear_when_zero(ChannelMaskACK, Chans)}};
+        undefined ->
+            Link
     end.
 
 find_adr(FOptsIn) ->
     lists:foldr(
-        fun ({link_adr_ans, Power, DataRate, ChannelMask}, {undefined, undefined, undefined}) ->
+        fun ({link_adr_ans, Power, DataRate, ChannelMask}, undefined) ->
                 {Power, DataRate, ChannelMask};
             ({link_adr_ans, _Power, _DataRate, ChannelMask}, {LastPower, LastDataRate, LastChannelMask}) ->
                 % all ChannelMasks must be accepted
@@ -95,15 +97,37 @@ find_adr(FOptsIn) ->
                 {LastPower, LastDataRate, ChannelMask band LastChannelMask};
             (_Else, Last) -> Last
         end,
-        {undefined, undefined, undefined}, FOptsIn).
+        undefined, FOptsIn).
+
+handle_rxwin(FOptsIn, Link) ->
+    case find_rxwin(FOptsIn) of
+        {1, 1, 1} ->
+            lager:debug("RXParamSetupAns ~w succeeded", [Link#link.devaddr]),
+            Link#link{rxwin_use=Link#link.rxwin_set};
+        {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
+            lager:warning("RXParamSetupAns failed: offset ~B, datr ~B, chan ~B", [RX1DROffsetACK, RX2DataRateACK, ChannelACK]),
+            {RX1DROffset, RX2DataRate, Frequency} = Link#link.rxwin_set,
+            % clear the settings that failed
+            Link#link{rxwin_set = {clear_when_zero(RX1DROffset, RX1DROffsetACK), clear_when_zero(RX2DataRate, RX2DataRateACK),
+                clear_when_zero(Frequency, ChannelACK)}};
+        undefined ->
+            Link
+    end.
+
+find_rxwin(FOptsIn) ->
+    lists:foldl(
+        fun ({rx_param_setup_ans, RX1DROffsetACK, RX2DataRateACK, ChannelACK}, _Prev) -> {RX1DROffsetACK, RX2DataRateACK, ChannelACK};
+            (_Else, Last) -> Last
+        end,
+        undefined, FOptsIn).
 
 handle_status(FOptsIn, Link) ->
     case find_status(FOptsIn) of
-        {undefined, undefined} ->
-            Link;
         {Battery, Margin} ->
             lager:debug("DevStatus: battery ~B, margin: ~B", [Battery, Margin-32]),
-            Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup, devstat={Battery, Margin-32}}
+            Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup, devstat={Battery, Margin-32}};
+        undefined ->
+            Link
     end.
 
 find_status(FOptsIn) ->
@@ -111,7 +135,7 @@ find_status(FOptsIn) ->
         fun ({dev_status_ans, Battery, Margin}, _Prev) -> {Battery, Margin};
             (_Else, Last) -> Last
         end,
-        {undefined, undefined}, FOptsIn).
+        undefined, FOptsIn).
 
 
 auto_adr(RxQ, #link{adr_flag_set=1}=Link, RxFrame) ->
@@ -178,11 +202,7 @@ max_snr(Region, DataRate) ->
     -5-2.5*(SF-6). % dB
 
 send_adr(Link, FOptsOut) ->
-    % issue ADR command
-    IsIncomplete = case Link#link.adr_set of
-        undefined -> true;
-        Tuple -> lists:member(undefined, tuple_to_list(Tuple))
-    end,
+    IsIncomplete = has_undefined_field(Link#link.adr_set),
     if
         Link#link.adr_flag_use == 1,
         ((Link#link.adr_flag_set == 1 andalso length(Link#link.last_qs) >= 20) orelse Link#link.adr_flag_set == 2),
@@ -223,6 +243,21 @@ append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
             ChMask -> [{link_adr_req, DataRate, TXPower, ChMask, Idx, 0} | FOptsOut]
         end).
 
+set_rxwin(Link, FOptsOut) ->
+    OffSet = case Link#link.rxwin_set of
+        {Number, _, _} when is_number(Number) -> Number;
+        true -> undefined
+    end,
+    {OffUse, _, _} = Link#link.rxwin_use,
+    if
+         OffSet /= undefined, OffSet /= OffUse ->
+            {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
+            lager:debug("RXParamSetupReq ~w", [OffSet]),
+            [{rx_param_setup_req, OffSet, RX2DataRate, trunc(10000*Frequency)} | FOptsOut];
+        true ->
+            FOptsOut
+    end.
+
 request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}, FOptsOut)
         when LastDate == undefined; LastFCnt == undefined ->
     [dev_status_req | FOptsOut];
@@ -237,6 +272,11 @@ request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOu
         true ->
             FOptsOut
     end.
+
+has_undefined_field(undefined) ->
+    true;
+has_undefined_field(Tuple) ->
+    lists:member(undefined, tuple_to_list(Tuple)).
 
 % bits handling
 

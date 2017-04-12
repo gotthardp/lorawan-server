@@ -5,37 +5,41 @@
 %
 -module(lorawan_mac_region).
 
--export([rx1_rf/3, rx2_rf/2, rx2_rf/3, rx2_dr/1, rf_group/1, default_adr/1, default_rxwin/1, max_adr/1]).
+-export([rx1_window/3, rx2_window/3, rx2_rf/2, rx2_dr/1, rf_group/1, default_adr/1, default_rxwin/1, max_adr/1]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
-rx1_rf(Region, RxQ, Window) ->
-    tx_time(Region, Window, RxQ#rxq.tmst, rx1_rf(Region, RxQ)).
+rx1_window(Link, RxQ, Window) ->
+    Offset = case Link#link.rxwin_use of
+        {Off, _, _} -> Off;
+        _Else -> 0
+    end,
+    tx_time(Link#link.region, Window, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, Offset)).
 
-rx2_rf(Region, RxQ, Window) ->
-    tx_time(Region, Window, RxQ#rxq.tmst, rx2_rf(Region, RxQ)).
+rx2_window(Link, RxQ, Window) ->
+    tx_time(Link#link.region, Window, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
 
 % we calculate in fixed-point numbers
-rx1_rf(Region, RxQ)
+rx1_rf(Region, RxQ, Offset)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"KR920-923">> ->
-    rf_same(Region, RxQ, RxQ#rxq.freq);
-rx1_rf(<<"US902-928">> = Region, RxQ) ->
+    rf_same(Region, RxQ, RxQ#rxq.freq, Offset);
+rx1_rf(<<"US902-928">> = Region, RxQ, Offset) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(Region, RxCh rem 8));
-rx1_rf(<<"US902-928-PR">> = Region, RxQ) ->
+    rf_same(Region, RxQ, ch2f(Region, RxCh rem 8), Offset);
+rx1_rf(<<"US902-928-PR">> = Region, RxQ, Offset) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(Region, RxCh div 8));
-rx1_rf(<<"AU915-928">> = Region, RxQ) ->
+    rf_same(Region, RxQ, ch2f(Region, RxCh div 8), Offset);
+rx1_rf(<<"AU915-928">> = Region, RxQ, Offset) ->
     RxCh = f2ch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
-    rf_same(Region, RxQ, ch2f(Region, RxCh rem 8));
-rx1_rf(<<"CN470-510">> = Region, RxQ) ->
+    rf_same(Region, RxQ, ch2f(Region, RxCh rem 8), Offset);
+rx1_rf(<<"CN470-510">> = Region, RxQ, Offset) ->
     RxCh = f2ch(RxQ#rxq.freq, {4703, 2}),
-    rf_same(Region, RxQ, ch2f(Region, RxCh rem 48)).
+    rf_same(Region, RxQ, ch2f(Region, RxCh rem 48), Offset).
 
 rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    rf_same(Region, RxQ, ch2f(Region, RxCh div 8));
+    rf_same(Region, RxQ, ch2f(Region, RxCh div 8), 0);
 rx2_rf(Region, RxQ) ->
     rf_fixed(Region, RxQ).
 
@@ -73,9 +77,8 @@ rf_fixed(Region, RxQ) ->
     Power = default_erp(Region),
     #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, powe=Power}.
 
-rf_same(Region, RxQ, Freq) ->
-    % TODO: implement RX1DROffset
-    DataRate = datar_to_down(Region, RxQ#rxq.datr, 0),
+rf_same(Region, RxQ, Freq, Offset) ->
+    DataRate = datar_to_down(Region, RxQ#rxq.datr, Offset),
     Power = default_erp(Region),
     #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, powe=Power}.
 
