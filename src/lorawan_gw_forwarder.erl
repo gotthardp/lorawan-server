@@ -89,7 +89,8 @@ handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
     {noreply, State}.
 
 terminate(Reason, _State) ->
-    lager:debug("packet_forwarder interface terminated: ~w", [Reason]),
+    % record graceful shutdown in the log
+    lager:info("packet_forwarder interface terminated: ~w", [Reason]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

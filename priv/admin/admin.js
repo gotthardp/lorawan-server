@@ -294,7 +294,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             }),
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
-            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' }),
+            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
     ]);
     devices.creationView().template(createWithTabsTemplate([
@@ -328,7 +328,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appid').label('AppID')
     ]);
 
-    var linkFieldsGeneral = [
+    nodes.creationView().fields([
+        // General
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
@@ -358,9 +359,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('last_mac', 'reference').label('Gateway')
             .targetEntity(gateways)
-            .targetField(nga.field('mac'))
-    ];
-    var linkFieldsADR = [
+            .targetField(nga.field('mac')),
+        // ADR
         nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(adr_choices)
             .defaultValue(1), // ON
@@ -378,15 +378,46 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             }),
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
-            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*' }),
+            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
-    ];
-    nodes.creationView().fields(linkFieldsGeneral.concat(linkFieldsADR));
+    ]);
     nodes.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:13},
         {name:"ADR", min:13, max:18}
     ]));
-    nodes.editionView().fields(linkFieldsGeneral.concat([
+
+    nodes.editionView().fields([
+        // General
+        nga.field('devaddr').label('DevAddr')
+            .attributes({ placeholder: 'e.g. ABC12345' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
+        nga.field('region', 'choice')
+            .choices(region_choices)
+            .validation({ required: true }),
+        nga.field('app', 'reference').label('Application')
+            .targetEntity(applications)
+            .targetField(nga.field('name'))
+            .validation({ required: true }),
+        nga.field('appid').label('AppID'),
+        nga.field('appargs').label('Arguments'),
+        nga.field('nwkskey').label('NwkSKey')
+            .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('appskey').label('AppSKey')
+            .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('fcntup', 'number').label('FCnt Up')
+            .defaultValue(0),
+        nga.field('fcntdown', 'number').label('FCnt Down')
+            .defaultValue(0),
+        nga.field('fcnt_check', 'choice').label('FCnt Check')
+            .choices(fcnt_choices)
+            .defaultValue(0), // Strict 16-bit
+        nga.field('last_reset', 'datetime').label('Last Reset'),
+        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('last_mac', 'reference').label('Gateway')
+            .targetEntity(gateways)
+            .targetField(nga.field('mac')),
         nga.field('downlinks', 'referenced_list')
             .targetEntity(txframes)
             .targetReferenceField('devaddr')
@@ -395,24 +426,29 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('txdata.port'),
                 nga.field('txdata.data')
             ])
-            .listActions(['delete'])
-    ]).concat(linkFieldsADR).concat([
-        nga.field('adr_flag_use', 'choice').label('Used ADR')
+            .listActions(['delete']),
+        // ADR
+        nga.field('adr_flag_set', 'choice').label('Set ADR')
             .choices(adr_choices)
-            .editable(false),
-        nga.field('adr_use.power', 'choice').label('Used power')
+            .defaultValue(1), // ON
+        nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
                 return power_choices.filter(function(item) {
                     return item.regions.indexOf(entry.values.region) >= 0
                 });
-            })
-            .editable(false),
-        nga.field('adr_use.datr', 'choice').label('Used data rate')
+            }),
+        nga.field('adr_set.datr', 'choice').label('Set data rate')
             .choices(function(entry) {
                 return data_rate_choices.filter(function(item) {
                     return item.regions.indexOf(entry.values.region) >= 0
                 });
-            })
+            }),
+        nga.field('adr_set.chans').label('Set channels')
+            .attributes({ placeholder: 'e.g. 0-2' })
+            .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
+        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset'),
+        nga.field('adr_flag_use', 'choice').label('Used ADR')
+            .choices(adr_choices)
             .editable(false),
         nga.field('adr_use.chans').label('Used channels')
             .editable(false),
@@ -421,19 +457,19 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr', 'template').label('RX')
             .template('<rgraph value="value"></rgraph>'),
         nga.field('devaddr', 'template').label('RX Quality')
-            .template('<qgraph value="value"></qgraph>')
-    ]).concat([
+            .template('<qgraph value="value"></qgraph>'),
+        // Status
         nga.field('devstat.battery', 'number').label('Battery'),
         nga.field('devstat.margin', 'number').label('SNR (dB)'),
         nga.field('devstat_time', 'datetime').label('Status Time'),
         nga.field('devstat_fcnt', 'number').label('Status FCnt'),
         nga.field('devaddr', 'template').label('Device Status')
             .template('<dgraph value="value"></dgraph>')
-    ]));
+    ]);
     nodes.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:14},
-        {name:"ADR", min:14, max:26},
-        {name:"Status", min:26, max:31}
+        {name:"ADR", min:14, max:24},
+        {name:"Status", min:24, max:29}
     ]));
     // add to the admin application
     admin.addEntity(nodes);
