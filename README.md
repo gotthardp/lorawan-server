@@ -129,6 +129,12 @@ or review the existing
 problem was not already reported and then
 [create new issue](https://github.com/gotthardp/lorawan-server/issues/new).
 
+### Public References
+
+The server was mentioned by the following blogs and articles:
+ * [Three reasons for creating an Open Source LoRaWan server](http://research.konicaminolta.eu/three-reasons-for-creating-an-open-source-lorawan-server)
+ * [LoraWAN server running on OpenWrt/LEDE](http://www.matchx.io/developers/forum/box/3-lorawan-server-running-on-openwrt-lede#3)
+
 
 ## Copyright and Licensing
 
