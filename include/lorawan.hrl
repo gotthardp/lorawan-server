@@ -4,7 +4,10 @@
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 
--record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
+-record(stat, {
+    time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb,
+    mail, desc % TTN extensions
+}).
 
 -record(ignored_link, {devaddr, mask}).
 -record(connector, {connid, uri, client_id, auth, name, pass, certfile, keyfile}).

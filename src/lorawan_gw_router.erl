@@ -30,7 +30,11 @@ uplinks(PkList) ->
 
 downlink(MAC, TxQ, PHYPayload) ->
     [Gateway] = mnesia:dirty_read(gateways, MAC),
-    gen_server:cast({global, ?MODULE}, {downlink, MAC, TxQ, Gateway#gateway.tx_rfch, PHYPayload}).
+    Power = case Gateway#gateway.tx_powe of
+        undefined -> lorawan_mac_region:default_erp(TxQ#txq.region);
+        Num -> Num
+    end,
+    gen_server:cast({global, ?MODULE}, {downlink, MAC, TxQ#txq{powe=Power}, Gateway#gateway.tx_rfch, PHYPayload}).
 
 
 init([]) ->

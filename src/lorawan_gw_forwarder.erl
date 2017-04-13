@@ -142,6 +142,8 @@ build_txpk(TxQ, RFch, Data) ->
                     [{imme, true} | Acc];
                 ({time, Time}, Acc) ->
                     [{imme, false}, {time, iso8601:format(Time)} | Acc];
+                ({region, _}, Acc) ->
+                    Acc; % internal parameter
                 (Elem, Acc) -> [Elem | Acc]
             end,
             [], lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))

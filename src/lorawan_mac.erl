@@ -47,6 +47,9 @@ process_status(MAC, S) ->
 store_status(G, undefined) ->
     G;
 store_status(G, S) ->
+    store_pos(store_desc(G, S), S).
+
+store_pos(G, S) ->
     if
         % store gateway GPS position
         is_number(S#stat.lati), is_number(S#stat.long), S#stat.lati /= 0, S#stat.long /= 0 ->
@@ -58,7 +61,16 @@ store_status(G, S) ->
                     G#gateway{ gpspos={S#stat.lati, S#stat.long} }
             end;
         % position not received
-        true -> G
+        true ->
+            G
+    end.
+
+store_desc(G, S) ->
+    if
+        is_binary(S#stat.desc), S#stat.desc /= <<>> ->
+            G#gateway{ desc=S#stat.desc };
+        true ->
+            G
     end.
 
 process_frame1(Gateway, RxQ, <<2#000:3, _:5,

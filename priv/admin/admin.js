@@ -156,13 +156,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 return value.replace(/[-:]/g, '')
             })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
+        nga.field('netid').label('NetID')
+            .attributes({ placeholder: 'e.g. 0123AB' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
         nga.field('tx_rfch', 'number').label('TX Chain')
             .attributes({ placeholder: 'e.g. 0' })
             .validation({ required: true })
             .defaultValue(0),
-        nga.field('netid').label('NetID')
-            .attributes({ placeholder: 'e.g. 0123AB' })
-            .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
+        nga.field('tx_powe', 'number').label('TX Power (dBm)')
+            .attributes({ placeholder: 'e.g. 14' }),
+        nga.field('ant_gain', 'number').label('Antenna Gain (dBi)')
+            .attributes({ placeholder: 'e.g. 6' }),
         nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('gpspos', 'template')

@@ -5,7 +5,8 @@
 %
 -module(lorawan_mac_region).
 
--export([rx1_window/3, rx2_window/3, rx2_rf/2, rx2_dr/1, rf_group/1, default_adr/1, default_rxwin/1, max_adr/1]).
+-export([rx1_window/3, rx2_window/3, rx2_rf/2, rx2_dr/1, rf_group/1]).
+-export([default_adr/1, default_rxwin/1, max_adr/1, default_erp/1]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -74,19 +75,17 @@ ch2fi(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
 
 rf_fixed(Region, RxQ) ->
     {Freq, DataRate} = regional_config(rx2_rf, Region),
-    Power = default_erp(Region),
-    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, powe=Power}.
+    #txq{region=Region, freq=Freq, datr=DataRate, codr=RxQ#rxq.codr}.
 
 rf_same(Region, RxQ, Freq, Offset) ->
     DataRate = datar_to_down(Region, RxQ#rxq.datr, Offset),
-    Power = default_erp(Region),
-    #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr, powe=Power}.
+    #txq{region=Region, freq=Freq, datr=DataRate, codr=RxQ#rxq.codr}.
 
 rf_group(Group) ->
-    #txq{freq = ch2f(Group#multicast_group.region, Group#multicast_group.chan),
+    #txq{region = Group#multicast_group.region,
+        freq = ch2f(Group#multicast_group.region, Group#multicast_group.chan),
         datr = dr_to_datar(Group#multicast_group.region, Group#multicast_group.datr),
-        codr = Group#multicast_group.datr,
-        powe = default_erp(Group#multicast_group.region)}.
+        codr = Group#multicast_group.datr}.
 
 tx_time(Region, Window, Stamp, TxQ) ->
     Delay = regional_config(Window, Region),
