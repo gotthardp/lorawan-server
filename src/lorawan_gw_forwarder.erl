@@ -147,6 +147,6 @@ build_txpk(TxQ, RFch, Data) ->
         end,
         [{modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}],
         lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
-    )].
+    ).
 
 % end of file
