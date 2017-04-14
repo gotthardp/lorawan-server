@@ -102,7 +102,8 @@ handle_info({'EXIT', _FromPid, Reason}, State) ->
     {noreply, State}.
 
 terminate(Reason, _State) ->
-    lager:debug("gateway router terminated: ~w", [Reason]),
+    % record graceful shutdown in the log
+    lager:info("gateway router terminated: ~w", [Reason]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
