@@ -132,21 +132,21 @@ get_rxpk_field(Field, List) ->
 
 
 build_txpk(TxQ, RFch, Data) ->
-    [{modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)} |
-        lists:foldl(
-            fun ({_, undefined}, Acc) ->
-                    Acc;
-                ({tmst, Time}, Acc) ->
-                    [{imme, false}, {tmst, Time} | Acc];
-                ({time, immediately}, Acc) ->
-                    [{imme, true} | Acc];
-                ({time, Time}, Acc) ->
-                    [{imme, false}, {time, iso8601:format(Time)} | Acc];
-                ({region, _}, Acc) ->
-                    Acc; % internal parameter
-                (Elem, Acc) -> [Elem | Acc]
-            end,
-            [], lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
-        )].
+    lists:foldl(
+        fun ({_, undefined}, Acc) ->
+                Acc;
+            ({tmst, Time}, Acc) ->
+                [{imme, false}, {tmst, Time} | Acc];
+            ({time, immediately}, Acc) ->
+                [{imme, true} | Acc];
+            ({time, Time}, Acc) ->
+                [{imme, false}, {time, iso8601:format(Time)} | Acc];
+            ({region, _}, Acc) ->
+                Acc; % internal parameter
+            (Elem, Acc) -> [Elem | Acc]
+        end,
+        [{modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}],
+        lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
+    )].
 
 % end of file
