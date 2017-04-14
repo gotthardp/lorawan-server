@@ -13,7 +13,7 @@
 
 rx1_window(Link, RxQ, Window) ->
     Offset = case Link#link.rxwin_use of
-        {Off, _, _} -> Off;
+        {Off, _, _} when is_integer(Off) -> Off;
         _Else -> 0
     end,
     tx_time(Link#link.region, Window, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, Offset)).
