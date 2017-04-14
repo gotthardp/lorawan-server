@@ -5,7 +5,7 @@
 %
 {application, lorawan_server,
     [{description, "LoRaWAN Application Server"},
-    {vsn, "0.3.0"},
+    {vsn, "0.4.0"},
     {modules, []},
     {registered, []},
     {mod, {lorawan_app, []}},
@@ -15,8 +15,8 @@
             {<<"microchip-mote">>, lorawan_application_microchip_mote},
             {<<"websocket">>, lorawan_application_websocket}
         ]},
-        {forwarder_port, 1680},
-        {http_admin_port, 8080},
+        {packet_forwarder_listen, [{port, 1680}]},
+        {http_admin_listen, [{port, 8080}]},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},
         {websocket_timeout, 3600000}, % ms
         % regional parameters

@@ -52,8 +52,8 @@ start(_Type, _Args) ->
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
         ]++Handlers}
     ]),
-    {ok, Port} = application:get_env(http_admin_port),
-    {ok, _} = cowboy:start_clear(http, 100, [{port, Port}], #{
+    {ok, CowboyOpts} = application:get_env(http_admin_listen),
+    {ok, _} = cowboy:start_clear(http, 10, CowboyOpts, #{
         env => #{dispatch => Dispatch}
     }),
     lorawan_sup:start_link().

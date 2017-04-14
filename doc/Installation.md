@@ -76,11 +76,13 @@ For example:
         {<<"microchip-mote">>, lorawan_application_microchip_mote},
         {<<"websocket">>, lorawan_application_websocket}]},
     % UDP port listening for packets from the packet_forwarder Gateway
-    {forwarder_port, 1680},
+    {packet_forwarder_listen, [{port, 1680}]},
     % HTTP port for web-administration and REST API
-    {http_admin_port, 8080},
+    {http_admin_listen, [{port, 8080}]},
     % default username and password for the admin interface
-    {http_admin_credentials, {<<"admin">>, <<"admin">>}}
+    {http_admin_credentials, {<<"admin">>, <<"admin">>}},
+    % websocket expiration if client sends no data
+    {websocket_timeout, 3600000} % ms
 ]}].
 ```
 
@@ -120,6 +122,9 @@ For example:
     }
 }
 ```
+
+When both packet_forwarder and lorawan-server are running on the same machine
+use `localhost` or `127.0.0.1` as the `server_address`.
 
 ## Build Instructions
 

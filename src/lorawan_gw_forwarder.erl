@@ -18,11 +18,13 @@
 
 -record(state, {sock}).
 
-start_link(Port) ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [Port], []).
+start_link(PktFwdOpts) ->
+    gen_server:start_link({global, ?MODULE}, ?MODULE, [PktFwdOpts], []).
 
-init([Port]) ->
-    case gen_udp:open(Port, [binary]) of
+init([PktFwdOpts]) ->
+    % We set the port to 0 because it is given in the Opts directly.
+    % The port in the options takes precedence over the one in the first argument.
+    case gen_udp:open(0, [binary | PktFwdOpts]) of
         {ok, Socket} ->
             {ok, #state{sock=Socket}};
         {error, Reason} ->
