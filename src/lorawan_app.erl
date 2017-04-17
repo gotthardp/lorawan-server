@@ -27,7 +27,7 @@ start(_Type, _Args) ->
                 [users, user, record_info(fields, user)]},
             {"/gateways/[:mac]", lorawan_admin_database,
                 [gateways, gateway, record_info(fields, gateway)]},
-            {"/multicast_groups/[:devaddr]", lorawan_admin_database,
+            {"/multicast_channels/[:devaddr]", lorawan_admin_database,
                 [multicast_groups, multicast_group, record_info(fields, multicast_group)]},
             {"/devices/[:deveui]", lorawan_admin_database,
                 [devices, device, record_info(fields, device)]},

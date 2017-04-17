@@ -13,7 +13,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('name'));
     var gateways = nga.entity('gateways')
         .identifier(nga.field('mac'));
-    var multicast_groups = nga.entity('multicast_groups')
+    var multicast_channels = nga.entity('multicast_channels')
         .identifier(nga.field('devaddr'));
     var devices = nga.entity('devices')
         .identifier(nga.field('deveui'));
@@ -184,9 +184,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(gateways);
 
-    // ---- multicast_groups
-    multicast_groups.listView().title('Multicast Groups');
-    multicast_groups.listView().fields([
+    // ---- multicast_channels
+    multicast_channels.listView().title('Multicast Channels');
+    multicast_channels.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
@@ -205,7 +205,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .sortField('devaddr')
     .sortDir('ASC');
 
-    multicast_groups.creationView().fields([
+    multicast_channels.creationView().fields([
         nga.field('devaddr').label('DevAddr')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{8}' }),
@@ -242,9 +242,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0)
     ]);
-    multicast_groups.editionView().fields(multicast_groups.creationView().fields());
+    multicast_channels.editionView().fields(multicast_channels.creationView().fields());
     // add to the admin application
-    admin.addEntity(multicast_groups);
+    admin.addEntity(multicast_channels);
 
     // ---- devices
     devices.listView().fields([
@@ -612,7 +612,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
         .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
             .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
-            .addChild(nga.menu(multicast_groups).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
+            .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
             .addChild(nga.menu(ignored_nodes).icon('<span class="fa fa-ban fa-fw"></span>'))
         )
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))

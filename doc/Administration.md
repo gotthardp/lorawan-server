@@ -11,20 +11,28 @@ be then altered via the admin interface.
 
 The following REST resources are made available:
 
-  Resource        | Methods          | Explanation
- -----------------|------------------| ------------------------------------------------
-  /applications   | GET              | Supported LoRaWAN applications
-  /users          | GET, POST        | Users of the admin interface
-  /users/*ABC*    | GET, PUT, DELETE | User *ABC*
-  /gateways       | GET, POST        | LoRaWAN gateways
-  /gateways/*123* | GET, PUT, DELETE | Gateway with MAC=*123*
-  /devices        | GET, POST        | Devices registered for over-the-air activation (OTAA)
-  /devices/*123*  | GET, PUT, DELETE | Device with DevEUI=*123*
-  /nodes          | GET, POST        | Active network nodes, both ABP and activated OTAA
-  /nodes/*123*    | GET, PUT, DELETE | Active network node with DevAddr=*123*
-  /txframes       | GET              | Frames scheduled for transmission
-  /txframes/*123* | GET, DELETE      | Frame with ID=*123*
-  /rxframes       | GET              | Recent received frames
+  Resource                  | Methods          | Explanation
+ ---------------------------|------------------| ------------------------------------------------
+  /applications             | GET              | Supported LoRaWAN applications
+  /users                    | GET, POST        | Users of the admin interface
+  /users/*ABC*              | GET, PUT, DELETE | User *ABC*
+  /gateways                 | GET, POST        | LoRaWAN gateways
+  /gateways/*123*           | GET, PUT, DELETE | Gateway with MAC=*123*
+  /multicast_channels       | GET, POST        | Class C multicast channels
+  /multicast_channels/*123* | GET, PUT, DELETE | Multicast channel with DevAddr=*123*
+  /ignored_nodes            | GET, POST        | Nodes ignored by the server
+  /ignored_nodes/*123*      | GET, PUT, DELETE | Ignored node with DevAddr=*123*
+  /devices                  | GET, POST        | Devices registered for over-the-air activation (OTAA)
+  /devices/*123*            | GET, PUT, DELETE | Device with DevEUI=*123*
+  /nodes                    | GET, POST        | Active network nodes, both ABP and activated OTAA
+  /nodes/*123*              | GET, PUT, DELETE | Active network node with DevAddr=*123*
+  /txframes                 | GET              | Frames scheduled for transmission
+  /txframes/*123*           | GET, DELETE      | Frame with ID=*123*
+  /rxframes                 | GET              | Recent received frames
+  /handlers                 | GET              | Backend handlers
+  /handlers/*ABC*           | GET, DELETE      | Backend handler for the Group *ABC*
+  /connectors               | GET              | Backend connectors
+  /connectors/*ABC*         | GET, DELETE      | Backend connector *ABC*
 
 ### Filtering
 
