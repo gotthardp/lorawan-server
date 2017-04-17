@@ -104,7 +104,8 @@ send_downlink(AppID, DevAddr, Time, TxData) ->
 parse_uplink(#handler{format = <<"raw">>}, _DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ) ->
     {binary, Data};
 parse_uplink(#handler{format = <<"json">>, parse = Parse}, DevAddr, AppArgs, RxData=#rxdata{port=Port, data=Data}, RxQ) ->
-    Msg = lorawan_admin:build([{devaddr, DevAddr}, {appargs, AppArgs}, {rxq, RxQ},
+    Msg = lorawan_admin:build([{devaddr, DevAddr}, {appargs, AppArgs},
+        {datetime, calendar:universal_time()}, {rxq, RxQ},
         {fields, data_to_fields(Parse, Port, Data)} | ?to_proplist(rxdata, RxData)]),
     {text, jsx:encode(Msg)}.
 

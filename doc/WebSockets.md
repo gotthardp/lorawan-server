@@ -33,11 +33,13 @@ The JSON structure the server sends to clients contains the following fields:
   devaddr     | Hex String  | DevAddr of the link (active node).
   appargs     | Any         | Application arguments for this node.
   port        | Integer     | LoRaWAN port number.
-  fcnt        | Integer     | Frame number
+  fcnt        | Integer     | Received frame sequence number.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
+  fields      | Object      | Payload decoded by a corresponding application handler.
   shall_reply | Boolean     | Whether the server has to send a downlink message.
   last_lost   | Boolean     | Whether the previous confirmed downlink was lost.
-  rxq         | Record      | Reception quality
+  datetime    | ISO 8601    | Timestamp using the server clock.
+  rxq         | Object      | Indicators of the reception quality.
 
 For example:
 ```json
