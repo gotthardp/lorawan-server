@@ -18,11 +18,11 @@ The server:
    * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
  * Invokes external applications. It currently supports connections via:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
-   * [MQTT v3.1/v3.1.1] (http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html),
+   * [MQTT v3.1/v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html),
      including applications hosted in
      [Amazon AWS IoT](https://aws.amazon.com/iot/),
      [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
-     or [Adafruit IO](https://io.adafruit.com/).
+     or [Adafruit IO](https://io.adafruit.com/)
  * Handles (any number of) Class A or Class C devices.
    * Supports both the node activation by personalization (ABP) and the over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
