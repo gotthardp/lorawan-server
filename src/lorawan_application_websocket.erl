@@ -12,8 +12,8 @@
 
 init(_App) ->
     {ok, [
-        {"/ws/:type/:name/raw", lorawan_ws_frames, [raw]},
-        {"/ws/:type/:name/json", lorawan_ws_frames, [json]}
+        {"/ws/:type/:name/raw", lorawan_ws_frames, [<<"raw">>]},
+        {"/ws/:type/:name/json", lorawan_ws_frames, [<<"json">>]}
     ]}.
 
 handle_join(_DevAddr, _AppID, _AppArgs) ->
@@ -28,6 +28,6 @@ handle_rx(DevAddr, AppID, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
 
 send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ) ->
     Sockets = lorawan_ws_frames:get_processes(DevAddr, AppID),
-    [Pid ! {send, DevAddr, AppArgs, RxData, RxQ} || Pid <- Sockets].
+    [Pid ! {send, DevAddr, AppID, AppArgs, RxData, RxQ} || Pid <- Sockets].
 
 % end of file

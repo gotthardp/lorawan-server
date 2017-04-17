@@ -10,8 +10,8 @@
 }).
 
 -record(ignored_link, {devaddr, mask}).
--record(connector, {connid, uri, client_id, auth, name, pass, certfile, keyfile}).
--record(handler, {appid, connid, outbound, inbound}).
+-record(connector, {connid, enabled, uri, published, subscribe, consumed, client_id, auth, name, pass, certfile, keyfile}).
+-record(handler, {appid, format, parse, build, connid}).
 
 -define(to_record(Record, List, Default),
     list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).

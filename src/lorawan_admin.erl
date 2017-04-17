@@ -63,6 +63,8 @@ parse({Key, Value}) when Key == last_qs ->
     {Key, lists:map(fun(Item) -> parse_qs(Item) end, Value)};
 parse({Key, Value}) when Key == average_qs ->
     {Key, parse_qs(Value)};
+parse({Key, Value}) when Key == build; Key == parse ->
+    {Key, parse_fun(Value)};
 parse(Else) ->
     Else.
 
@@ -104,6 +106,8 @@ build({Key, Value}) when Key == last_qs ->
     {Key, lists:map(fun(Item) -> build_qs(Item) end, Value)};
 build({Key, Value}) when Key == average_qs ->
     {Key, build_qs(Value)};
+build({Key, Value}) when Key == build; Key == parse ->
+    {Key, build_fun(Value)};
 build(Else) ->
     Else.
 
@@ -144,6 +148,16 @@ parse_qs(List) ->
 
 build_qs({RSSI, SNR}) ->
     [{rssi, RSSI}, {snr, SNR}].
+
+parse_fun(Code) ->
+    % try to parse the function
+    {ok, Ts, _} = erl_scan:string(binary_to_list(Code)),
+    {ok, Exprs} = erl_parse:parse_exprs(Ts),
+    {value, Fun, _} = erl_eval:exprs(Exprs, []),
+    {Code, Fun}.
+
+build_fun({Code, _Fun}) ->
+    Code.
 
 intervals_to_text(List) when is_list(List) ->
     lists:flatten(string:join(

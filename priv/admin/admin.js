@@ -123,6 +123,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 6, label: '0 dBm', regions: ['KR920-923'] }
     ];
 
+    format_choices = [
+        { value: 'raw', label: 'Raw Data' },
+        { value: 'json', label: 'JSON' }
+    ];
+
     // ---- users
     users.listView().fields([
         nga.field('name').isDetailLink(true)
@@ -184,6 +189,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     multicast_groups.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('region'),
+        nga.field('app').label('Application'),
+        nga.field('appid').label('Group'),
         nga.field('chan', 'number').label('Channel'),
         nga.field('datr', 'choice').label('Data rate')
             .choices(function(entry) {
@@ -205,6 +212,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('region', 'choice')
             .choices(region_choices)
             .validation({ required: true }),
+        nga.field('app', 'reference').label('Application')
+            .targetEntity(applications)
+            .targetField(nga.field('name'))
+            .validation({ required: true }),
+        nga.field('appid').label('Group'),
         nga.field('chan', 'number').label('Channel')
             .validation({ required: true }),
         nga.field('datr', 'choice').label('Data rate')
@@ -239,10 +251,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Group'),
         nga.field('appargs').label('Arguments'),
         nga.field('last_join', 'datetime').label('Last Join'),
-        nga.field('link', 'reference')
+        nga.field('link', 'reference').label('Node')
             .targetEntity(nodes)
             .targetField(nga.field('devaddr'))
     ])
@@ -250,7 +262,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .sortDir('ASC');
     devices.listView().filters([
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID')
+        nga.field('appid').label('Group')
     ]);
 
     devices.creationView().fields([
@@ -264,7 +276,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Group'),
         nga.field('appargs').label('Arguments'),
         nga.field('appeui').label('AppEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
@@ -278,7 +290,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('can_join', 'boolean').label('Can Join?')
             .defaultValue(true),
         nga.field('last_join', 'datetime').label('Last Join'),
-        nga.field('link')
+        nga.field('link').label('Node')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('adr_flag_set', 'choice').label('Set ADR')
@@ -318,7 +330,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
         nga.field('region'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Group'),
         nga.field('appargs').label('Arguments'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
@@ -329,7 +341,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .sortDir('ASC');
     nodes.listView().filters([
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID')
+        nga.field('appid').label('Group')
     ]);
 
     nodes.creationView().fields([
@@ -344,7 +356,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Group'),
         nga.field('appargs').label('Arguments'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
@@ -402,7 +414,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Group'),
         nga.field('appargs').label('Arguments'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
@@ -510,7 +522,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(nodes)
             .targetField(nga.field('devaddr')),
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID'),
+        nga.field('appid').label('Group'),
         nga.field('rxq.lsnr').label('SNR'),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('port', 'number'),
@@ -523,25 +535,31 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('mac')),
         nga.field('devaddr').label('DevAddr'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('AppID')
+        nga.field('appid').label('Group')
     ]);
     // add to the admin application
     admin.addEntity(rxframes);
 
     // ---- connectors
     connectors.listView().fields([
-        nga.field('connid').label('Connector ID').isDetailLink(true),
+        nga.field('connid').label('Name').isDetailLink(true),
+        nga.field('enabled', 'boolean'),
         nga.field('uri').label('URI'),
-        nga.field('client_id').label('Client ID'),
-        nga.field('auth'),
-        nga.field('name')
+        nga.field('published').label('Published Topic'),
+        nga.field('subscribe').label('Subscribe'),
+        nga.field('consumed').label('Consumed Topic')
     ]);
     connectors.creationView().fields([
-        nga.field('connid').label('Connector ID')
+        nga.field('connid').label('Connector Name')
+            .validation({ required: true }),
+        nga.field('enabled', 'boolean')
             .validation({ required: true }),
         nga.field('uri').label('URI')
             .attributes({ placeholder: 'e.g. mqtt://server:8883' })
             .validation({ required: true }),
+        nga.field('published').label('Published Topic'),
+        nga.field('subscribe').label('Subscribe'),
+        nga.field('consumed').label('Consumed Topic'),
         nga.field('client_id').label('Client ID'),
         nga.field('auth', 'choice')
             .choices([
@@ -555,26 +573,35 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('keyfile', 'file').label('Private Key')
             .uploadInformation({'url': 'upload'})
     ]);
+    connectors.creationView().template(createWithTabsTemplate([
+        {name:"General", min:0, max:5},
+        {name:"Authentication", min:5, max:11}
+    ]));
     connectors.editionView().fields(connectors.creationView().fields());
+    connectors.editionView().template(editWithTabsTemplate([
+        {name:"General", min:0, max:6},
+        {name:"Authentication", min:6, max:12}
+    ]));
     // add to the admin application
     admin.addEntity(connectors);
 
     // ---- handlers
     handlers.listView().fields([
-        nga.field('appid').label('AppID').isDetailLink(true),
-        nga.field('connid').label('Connector ID'),
-        nga.field('outbound'),
-        nga.field('inbound')
+        nga.field('appid').label('Group').isDetailLink(true),
+        nga.field('format', 'choice')
+            .choices(format_choices),
+        nga.field('connid').label('Connector')
     ]);
     handlers.creationView().fields([
-        nga.field('appid').label('AppID')
+        nga.field('appid').label('Group')
             .validation({ required: true }),
-        nga.field('connid', 'reference').label('Connector ID')
+        nga.field('format', 'choice')
+            .choices(format_choices),
+        nga.field('parse', 'text').label('Parse Uplink'),
+        nga.field('build', 'text').label('Build Downlink'),
+        nga.field('connid', 'reference').label('Connector')
             .targetEntity(connectors)
             .targetField(nga.field('connid'))
-            .validation({ required: true }),
-        nga.field('outbound'),
-        nga.field('inbound')
     ]);
     handlers.editionView().fields(handlers.creationView().fields());
     // add to the admin application
@@ -590,7 +617,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         )
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(nodes).icon('<span class="fa fa-rss fa-fw"></span>'))
-        .addChild(nga.menu().title('Applications').icon('<span class="fa fa-database fa-fw"></span>')
+        .addChild(nga.menu().title('Backends').icon('<span class="fa fa-industry fa-fw"></span>')
           .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
           .addChild(nga.menu(connectors).icon('<span class="fa fa-bolt fa-fw"></span>'))
         )

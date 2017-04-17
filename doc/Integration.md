@@ -5,15 +5,15 @@
 You can integrate with generic MQTT server, e.g. the
 [RabbitMQ](https://www.rabbitmq.com/mqtt.html).
 
-Open the lorawan-server web-administration and create an Application Connector:
+Open the lorawan-server web-administration and create a Backend Connector:
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
+ * *Published Topic* is a pattern for the publication topic, e.g. `out/{devaddr}`.
+ * *Subscribe* is a topic to be subscribed, e.g. `in/#`.
+ * *Consumed Topic* is a pattern for the subscribed topic, e.g. `in/{devaddr}`.
+
+On the Authentication tab:
  * *Auth* shall be set to *Username+Password*, even when the *Name* and
    *Password/Key* are empty.
-
-Then create a new Handler:
- * *Connector ID* shall point to the *Application Connector* you just created.
- * *Outbound* is a publication topic.
- * *Inbound* is a subscription topic.
 
 ## AWS IoT
 
@@ -34,17 +34,18 @@ First, follow the AWS IoT guidelines to configure your IoT device:
    ```
  * Create a device and link it to the same certificate.
 
-Then, open the lorawan-server web-administration and create an Application Connector:
+Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the AWS *Endpoint* with the `mqtts://` prefix
+ * *Published Topic* is a pattern for the publication topic, e.g. `out/{devaddr}`.
+ * *Subscribe* is a topic to be subscribed, e.g. `in/#`.
+ * *Consumed Topic* is a pattern for the subscribed topic, e.g. `in/{devaddr}`.
+
+On the Authentication tab:
  * *Client ID* is the AWS *Account Id*
  * *Auth* shall be set to *Username+Password*
  * *User Certificate* is the `xxx-certificate.pem.crt` file you downloaded
  * *Private Key* is the `xxx-private.pem.key` file
 
-Finally, create a new Handler:
- * *Connector ID* shall point to the *Application Connector* you just created.
- * *Outbound* is a publication topic.
- * *Inbound* is a subscription topic.
 
 ## Azure IoT Hub
 
@@ -56,8 +57,14 @@ First, follow the Azure guidelines to configure your IoT device:
    *Auto Generate Keys*.
  * Optionally you may also define a *Shared access policy*.
 
-Then, open the lorawan-server web-administration and create an Application Connector:
+Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the IoT Hub *Hostname* with the `mqtts://` prefix
+ * *Published Topic* shall be `devices/{devaddr}/messages/events/`.
+   The trailing slash is mandatory.
+ * *Subscribe* shall be `devices/xxxxxxxx/messages/devicebound/#`.
+ * *Consumed Topic* shall be `devices/{devaddr}/messages/devicebound/#`.
+
+On the Authentication tab:
  * *Client ID* is the *Device ID*
  * *Auth* shall be set to *Shared Access Signature*
  * When authenticating using the device key:
@@ -67,38 +74,30 @@ Then, open the lorawan-server web-administration and create an Application Conne
    * *Name* is the *Access policy name*
    * *Password/Key* is the access policy *Primary key* (encoded using Base64)
 
-Finally, create a new Handler:
- * *Connector ID* shall point to the *Application Connector* you just created.
- * *Outbound* shall be "devices/*Device ID*/messages/events/".
-   The trailing slash is mandatory.
- * *Inbound* shall be "devices/*Device ID*/messages/devicebound/#".
 
 ## Adafruit IO
 
 AdafruitIO supports MQTT and MQTT/SSL. Before doing the integration, make sure
 you consult the following Adafruit articles:
 
-* [Adafruit IO](https://learn.adafruit.com/adafruit-io)
-* [Adafruit IO Basics: Feeds](https://learn.adafruit.com/adafruit-io-basics-feeds)
-* [Adafruit IO Basics: Dashboards](https://learn.adafruit.com/adafruit-io-basics-dashboards)
-* [MQTT, AdafruitIO & You!](https://learn.adafruit.com/mqtt-adafruit-io-and-you)
+ * [Adafruit IO](https://learn.adafruit.com/adafruit-io)
+ * [Adafruit IO Basics: Feeds](https://learn.adafruit.com/adafruit-io-basics-feeds)
+ * [Adafruit IO Basics: Dashboards](https://learn.adafruit.com/adafruit-io-basics-dashboards)
+ * [MQTT, AdafruitIO & You!](https://learn.adafruit.com/mqtt-adafruit-io-and-you)
 
 Once your Adafruit account, dashboards and feeds are set up, go to the
 lorawan-server web-administration and create an Applications->Connector:
-* *Connector ID* - Your name for this connector, should be unique.
-* *URI* - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
-* *Client ID* - can be anything, but try to keep it unique among connectors.
-* *Auth* should be set to *Username+Password*:
+ * *URI* - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
+ * *Published Topic* - Name of the topic you will be publishing to in the form
+   `YourUserName/feeds/YourFeed`.
+ * *Subscribe* - Name of the topic you want to receive data from in the form
+   `YourUserName/feeds/YourFeed`.
+
+On the Authentication tab:
+ * *Client ID* - can be anything, but try to keep it unique among connectors.
+ * *Auth* should be set to *Username+Password*:
    * *Name* - Your Adafruit account name (see the last article in the list above).
    * *Password/Key* - Your Adafruit Key, NOT your account password (see above).
-
-Finally, create a new Applications->Handler:
-* *AppID* - Name to identify your Handler in the *Devices* configuration.
-* *Connector ID* - Should point to the Connector you just created.
-* *Outbound* - Name of the topic you will be publishing to in the form
-`YourUserName/feeds/YourFeed`.
-* *Inbound* - Name of the topic you want to receive data from in the form
-`YourUserName/feeds/YourFeed`.
 
 After all of this is ready, you may select this Handler as an *AppID* in your
 *Devices* or *Nodes* configuration pages. And **don't forget** to set your *Application*

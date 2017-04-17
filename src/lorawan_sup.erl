@@ -22,12 +22,12 @@ init([]) ->
         {packet_forwarder,
             {lorawan_gw_forwarder, start_link, [PktFwdOpts]},
             permanent, 5000, worker, [lorawan_gw_forwarder]},
-        {connector_factory,
-            {lorawan_connector_factory, start_link, []},
-            permanent, 5000, worker, [lorawan_connector_factory]},
         {connector_sup,
             {lorawan_connector_sup, start_link, []},
-            permanent, 5000, supervisor, [lorawan_connector_sup]}
+            permanent, 5000, supervisor, [lorawan_connector_sup]},
+        {connector_factory,
+            {lorawan_connector_factory, start_link, []},
+            permanent, 5000, worker, [lorawan_connector_factory]}
     ]}}.
 
 % end of file

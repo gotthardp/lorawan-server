@@ -6,30 +6,30 @@
 -module(lorawan_connector_mqtt).
 -behaviour(gen_server).
 
--export([start_link/2, publish/3]).
+-export([start_link/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include("lorawan.hrl").
 
--record(state, {mqttc}).
+-record(state, {mqttc, ping_timer, subscribe, published, consumed}).
 
 start_link(ConnUri, Conn) ->
     gen_server:start_link(?MODULE, [ConnUri, Conn], []).
 
-publish(Server, Topic, Payload) ->
-    gen_server:cast(Server, {publish, Topic, Payload}).
 
-init([ConnUri, Conn]) ->
+init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
     {_Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
     {ok, C} = emqttc:start_link(lists:append([
         [{host, HostName},
         {port, Port},
         {logger, warning},
+        {reconnect, 3},
         {keepalive, 0}],
         auth_args(ConnUri, Conn),
         ssl_args(ConnUri, Conn)
     ])),
-    {ok, #state{mqttc = C}}.
+    {ok, #state{mqttc = C, subscribe=Sub,
+        published=prepare_filling(Pub), consumed=prepare_matching(Cons)}}.
 
 % Microsoft Shared Access Signature
 auth_args({_Scheme, _UserInfo, HostName, _Port, _Path, _Query},
@@ -65,19 +65,17 @@ ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{}) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({publish, Topic, Payload}, State = #state{mqttc = C}) ->
-    emqttc:publish(C, Topic, Payload),
-    {noreply, State};
-handle_cast(_Request, State) ->
-    {noreply, State}.
+handle_cast({publish, Msg, Vars}, State) ->
+    handle_publish(Msg, Vars, State).
 
+handle_info({mqttc, C, connected}, State=#state{mqttc=C}) ->
+    handle_connect(State);
+handle_info({mqttc, C, disconnected}, State=#state{mqttc=C}) ->
+    handle_disconnect(State);
+handle_info(ping, State) ->
+    handle_ping(State);
 handle_info({publish, Topic, Payload}, State) ->
-    io:format("Message from ~s: ~p~n", [Topic, Payload]),
-    {noreply, State};
-handle_info({mqttc, C, connected}, State = #state{mqttc = C}) ->
-    {noreply, State};
-handle_info({mqttc, C, disconnected}, State = #state{mqttc = C}) ->
-    {noreply, State};
+    handle_consume(Topic, Payload, State);
 handle_info(_Unknown, State) ->
     {noreply, State}.
 
@@ -86,6 +84,96 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
+
+
+handle_connect(#state{subscribe=undefined}=State) ->
+    {noreply, State};
+handle_connect(#state{mqttc=C, subscribe=Topic}=State) ->
+    emqttc:subscribe(C, Topic, 1),
+    Timer = schedule_refresh(),
+    {noreply, State#state{ping_timer=Timer}}.
+
+handle_ping(State=#state{mqttc=C}) ->
+    pong = emqttc:ping(C),
+    Timer = schedule_refresh(),
+    {noreply, State#state{ping_timer=Timer}}.
+
+handle_disconnect(State=#state{ping_timer=Timer}) ->
+    maybe_cancel_timer(Timer),
+    {noreply, State#state{ping_timer=undefined}}.
+
+schedule_refresh() ->
+    erlang:send_after(60*1000, self(), ping).
+
+maybe_cancel_timer(undefined) ->
+    ok;
+maybe_cancel_timer(Timer) ->
+    erlang:cancel_timer(Timer).
+
+
+handle_publish(Msg, Vars, State=#state{mqttc=C, published=Pattern}) ->
+    emqttc:publish(C, fill_pattern(Pattern, Vars), Msg),
+    {noreply, State}.
+
+handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
+    Vars = match_pattern(Topic, Pattern),
+    case lorawan_application_backend:handle_downlink(Msg, undefined,
+            proplists:get_value(group, Vars),
+            lorawan_mac:hex_to_binary(proplists:get_value(devaddr, Vars))) of
+        ok ->
+            {noreply, State};
+        {error, Error} ->
+            lager:error("Bad downlink ~w", [Error]),
+            {noreply, State}
+    end.
+
+
+prepare_filling(Pattern) ->
+    case re:run(Pattern, "{[^}]+}", [global]) of
+        {match, [Match]} ->
+            {Pattern,
+                [{binary_to_existing_atom(binary:part(Pattern, Start+1, Len-2), latin1), {Start, Len}}
+                    || {Start, Len} <- Match]};
+        nomatch ->
+            {Pattern, []}
+    end.
+
+fill_pattern({Pattern, []}, _) ->
+    Pattern;
+fill_pattern({Pattern, Vars}, Values) ->
+    lists:foldl(
+        fun({Var, Val}, Patt) ->
+            case proplists:get_value(Var, Vars) of
+                {Start, Len} ->
+                    <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
+                    <<Prefix/binary, Val/binary, Suffix/binary>>;
+                undefined ->
+                    Patt
+            end
+        end, Pattern, Values).
+
+prepare_matching(Pattern) ->
+    EPattern = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
+    case re:run(EPattern, "{[^}]+}", [global]) of
+        {match, [Match]} ->
+            Regex = lists:foldl(
+                fun({Start, Len}, Patt) ->
+                    <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
+                    <<Prefix/binary, "([a-zA-z0-9]*)", Suffix/binary>>
+                end, EPattern, Match),
+            {ok, MP} = re:compile(<<"^", Regex/binary, "$">>),
+            {MP, [binary_to_existing_atom(binary:part(EPattern, Start+1, Len-2), latin1) || {Start, Len} <- Match]};
+        nomatch ->
+            {Pattern, []}
+    end.
+
+match_pattern(Topic, {Pattern, Vars}) ->
+    case re:run(Topic, Pattern, [global, {capture, all, binary}]) of
+        {match, [[_Head | Matches]]} ->
+            lists:zip(Vars, Matches);
+        nomatch ->
+            undefined
+    end.
 
 % Shared Access Signature functions
 % see https://docs.microsoft.com/en-us/azure/storage/storage-dotnet-shared-access-signature-part-1
@@ -115,5 +203,22 @@ build_access_token(Res0, AccessKey, Expiry) ->
     Sig = http_uri:encode(base64:encode_to_string(
         crypto:hmac(sha256, base64:decode(AccessKey), ToSign))),
     io_lib:format("SharedAccessSignature sr=~s&sig=~s&se=~B", [Res, Sig, Now+Expiry]).
+
+-include_lib("eunit/include/eunit.hrl").
+
+matchtst(undefined = Vars, Pattern, Topic) ->
+    [?_assertEqual(Vars, match_pattern(Topic, prepare_matching(Pattern))),
+    ?_assertEqual(Pattern, fill_pattern(prepare_filling(Pattern), Vars))];
+matchtst(Vars, Pattern, Topic) ->
+    [?_assertEqual(Vars, match_pattern(Topic, prepare_matching(Pattern))),
+    ?_assertEqual(Topic, fill_pattern(prepare_filling(Pattern), Vars))].
+
+pattern_test_()-> [
+    matchtst([], <<"normal/uri">>, <<"normal/uri">>),
+    matchtst(undefined, <<"normal/uri">>, <<"another/uri">>),
+    matchtst([{devaddr, <<"00112233">>}], <<"{devaddr}">>, <<"00112233">>),
+    matchtst([{devaddr, <<"00112233">>}], <<"prefix.{devaddr}">>, <<"prefix.00112233">>),
+    matchtst([{devaddr, <<"00112233">>}], <<"{devaddr}/suffix">>, <<"00112233/suffix">>),
+    matchtst([{devaddr, <<"00112233">>}], <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>)].
 
 % end of file
