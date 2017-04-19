@@ -335,6 +335,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('devstat.battery', 'number').label('Battery'),
+        nga.field('devstat.margin', 'number').label('SNR (dB)'),
         nga.field('last_rx', 'datetime').label('Last RX')
     ])
     .sortField('devaddr')

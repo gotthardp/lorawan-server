@@ -112,42 +112,44 @@ build(Else) ->
     Else.
 
 parse_latlon(List) ->
-    {proplists:get_value(lat, List), proplists:get_value(lon, List)}.
+    {parse_opt(lat, List), parse_opt(lon, List)}.
 
 build_latlon({Lat, Lon}) ->
-    [{lat, Lat}, {lon, Lon}].
+    [build_opt(lat, Lat), build_opt(lon, Lon)].
 
 parse_adr(List) ->
-    {proplists:get_value(power, List), proplists:get_value(datr, List),
+    {parse_opt(power, List), parse_opt(datr, List),
         case proplists:get_value(chans, List, null) of
             null -> undefined;
             Val -> text_to_intervals(binary_to_list(Val))
         end}.
 
 build_adr({TXPower, DataRate, Chans}) ->
-    [{power, TXPower}, {datr, DataRate}, {chans,
+    [build_opt(power, TXPower), build_opt(datr, DataRate), {chans,
         case Chans of
             undefined -> null;
             Val -> list_to_binary(intervals_to_text(Val))
         end}].
 
 parse_rxwin(List) ->
-    {proplists:get_value(rx1_dr_offset, List), proplists:get_value(rx2_dr, List), proplists:get_value(rx2_freq, List)}.
+    {parse_opt(rx1_dr_offset, List),
+        parse_opt(rx2_dr, List), parse_opt(rx2_freq, List)}.
 
 build_rxwin({RX1DROffset, RX2DataRate, Frequency}) ->
-    [{rx1_dr_offset, RX1DROffset}, {rx2_dr, RX2DataRate}, {rx2_freq, Frequency}].
+    [build_opt(rx1_dr_offset, RX1DROffset),
+        build_opt(rx2_dr, RX2DataRate), build_opt(rx2_freq, Frequency)].
 
 parse_devstat(List) ->
-    {proplists:get_value(battery, List), proplists:get_value(margin, List)}.
+    {parse_opt(battery, List), parse_opt(margin, List)}.
 
 build_devstat({Battery, Margin}) ->
-    [{battery, Battery}, {margin, Margin}].
+    [build_opt(battery, Battery), build_opt(margin, Margin)].
 
 parse_qs(List) ->
-    {proplists:get_value(rssi, List), proplists:get_value(snr, List)}.
+    {parse_opt(rssi, List), parse_opt(snr, List)}.
 
 build_qs({RSSI, SNR}) ->
-    [{rssi, RSSI}, {snr, SNR}].
+    [build_opt(rssi, RSSI), build_opt(snr, SNR)].
 
 parse_fun(Code) ->
     % try to parse the function
@@ -158,6 +160,16 @@ parse_fun(Code) ->
 
 build_fun({Code, _Fun}) ->
     Code.
+
+build_opt(Field, undefined) -> {Field, null};
+build_opt(Field, Value) -> {Field, Value}.
+
+parse_opt(Field, List) ->
+    case proplists:get_value(Field, List) of
+        null -> undefined;
+        undefined -> undefined;
+        Value -> Value
+    end.
 
 intervals_to_text(List) when is_list(List) ->
     lists:flatten(string:join(
