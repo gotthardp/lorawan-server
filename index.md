@@ -4,16 +4,35 @@ Open-source LoRaWAN Server that integrates both the network-server and the appli
 <p>
 The server:
 <ul>
-<li>Communicates with remote LoRaWAN gateways.</li>
-<li>Performs all required encryption and integrity checks.</li>
+<li>Communicates (any number of) with remote LoRaWAN gateways.</li>
+<li>Performs all required encryption and integrity checks.
+    <ul>
+    <li>Supports relaxed frame-counter check for simple ABP devices.</li>
+    </ul>
+</li>
 <li>Invokes internal modules with application logic.</li>
-<li>Invokes external applications connected via the WebSocket protocol.</li>
-<li>Supports (any number of) Class A devices.</li>
-<li>Supports both the activation by personalization and the over-the-air activation.</li>
-<li>Supports both unconfirmed and confirmed data uplink and downlink.</li>
-<li>Supports the EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928 and CN 470-510 band.</li>
-<li>Supports per-node configuration of TX power and data rate (manual ADR).</li>
-<li>Runs on all major operating systems, including Windows, Linux, OS X and Solaris, even in a Docker container.</li>
+<li>Invokes external applications. It currently supports connections via:
+    <ul>
+    <li>WebSocket protocol</li>
+    <li>MQTT, including applications hosted in Amazon AWS IoT, Microsoft Azure IoT Hub.</li>
+    </ul>
+</li>
+<li>Handles (any number of) Class A or Class C devices.
+    <ul>
+    <li>Supports both the activation by personalization and the over-the-air activation.</li>
+    <li>Supports both unconfirmed and confirmed data uplink and downlink.</li>
+    <li>Supports multicast to user-defined groups.</li>
+    <li>Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928, CN 470-510 and KR 920-923 band.</li>
+    </ul>
+</li>
+<li>Provides a network management interface. 
+    <ul>
+    <li>Displays device battery and connectivity status.</li>
+    <li>Supports both manual and automatic configuration of TX power and data rate (ADR).</li>
+    </ul>
+</li>
+<li>Runs on all major operating systems, including Windows, Linux, OS X and Solaris, even on embedded systems like OpenWrt or in a Docker container.</li>
+<li>Does not crash as it's implemented in Erlang, which is designed for building fault-tolerant systems.</li>
 <li>Is free, distributed under the MIT license.</li>
 </ul>
 </p>
