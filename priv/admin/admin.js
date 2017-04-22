@@ -513,7 +513,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     admin.addEntity(ignored_nodes);
 
     // ---- rxframes
-    rxframes.listView().title('Received Frames');
+    rxframes.listView().title('Received Frames')
+        .batchActions([]);
     rxframes.listView().fields([
         nga.field('datetime', 'datetime').label('Received'),
         nga.field('mac', 'reference').label('MAC')
