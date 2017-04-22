@@ -154,7 +154,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
             last_mac=Gateway#gateway.mac, last_rxq=RxQ, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
             adr_use=lorawan_mac_region:default_adr(D#device.region), adr_set=D#device.adr_set,
             rxwin_use=lorawan_mac_region:default_rxwin(D#device.region), rxwin_set=D#device.rxwin_set,
-            last_reset=calendar:universal_time(), last_qs=[]},
+            last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]},
         ok = mnesia:write(links, NewLink, write),
         NewLink
     end),
@@ -304,13 +304,16 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
                 % device didn't change any settings
                 Link;
             {_TXPower, DataRate, _Chans} ->
-                Link#link{adr_flag_use=ADR, last_qs=[]};
+                lager:debug("ADR indicator set to ~w", [ADR]),
+                Link#link{adr_flag_use=ADR, devstat_fcnt=undefined, last_qs=[]};
             {TXPower, _OldDataRate, Chans} ->
                 lager:debug("DataRate ~w switched to dr ~w", [Link#link.devaddr, DataRate]),
-                Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans}, last_qs=[]};
+                Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans},
+                    devstat_fcnt=undefined, last_qs=[]};
             undefined ->
                 lager:debug("DataRate ~w switched to dr ~w", [Link#link.devaddr, DataRate]),
-                Link#link{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined}, last_qs=[]}
+                Link#link{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined},
+                    devstat_fcnt=undefined, last_qs=[]}
         end,
     % process commands
     RxFrame = build_rxframe(Gateway, ULink, RxQ, Frame),

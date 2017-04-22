@@ -76,7 +76,7 @@ handle_adr(FOptsIn, Link) ->
     case find_adr(FOptsIn) of
         {1, 1, 1} ->
             lager:debug("LinkADRReq ~w succeeded", [Link#link.devaddr]),
-            Link#link{adr_use=Link#link.adr_set, last_qs=[]};
+            Link#link{adr_use=Link#link.adr_set, devstat_fcnt=undefined, last_qs=[]};
         {PowerACK, DataRateACK, ChannelMaskACK} ->
             lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
             {TXPower, DataRate, Chans} = Link#link.adr_set,
