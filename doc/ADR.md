@@ -7,20 +7,9 @@ be manually defined by the administrator or automatically determined by the serv
 Note this functionality must be also enabled in the device, which is indicated
 by the *Use ADR* parameter.
 
-## Automatic ADR
+## Device Configuration
 
-The server calculates an average RSSI and SNR for the last 20 frames received.
- * The *Data Rate* (Spreading Factor) is defined so that the LoRa demodulator SNR
-   for the target *Data Rate* matches the observed average SNR.
- * When the highest *Data Rate* is reached, the *Power* is decreased, so the
-   RSSI stays above -110 dbB, which is an expected sensitivity for the highest rate.
-
-
-## Manual ADR
-
-### Device Configuration
-
-For each OTAA device you can define which ADR parameters shall be requested when
+For each OTAA device you can define what ADR parameters shall be requested when
 the device joins the network:
  - **Set ADR** can be used to request or disable ADR for this device;
  - **Set Power** defines the power (in dBm) to be requested;
@@ -33,24 +22,45 @@ server administration.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
 
-### Link Configuration
+## Node Configuration
 
-For each connected node (link) you can define ADR paramaters to be requested by
-the server. Initally, this is the Device Configuration.
+After a device joins the network the server requests the ADR parameters specified
+in the Device ADR configuration explained above. These become the new requested
+Node parameters, regardless of any previous settings.
 
-The server administration also displays the node settings:
- - **Use ADR** indicates whether the node can do ADR;
- - **Use Power** indicates the last accepted TX power setting (in dBm);
- - **Use Data Rate** indicates the data rate;
- - **Use Channels** indicates the set of channels to be used.
+The requested Node parameters are however not affected by a reset of ABP devices.
 
-The ADR request to change these settings is sent to the device only when both
-**Set ADR** and **Use ADR** are `ON`, when all ADR settings are defined (not null)
-and when some ADR parameter differs from the last accepted setting.
+The server administration also displays the currently used ADR settings:
+ - **Used ADR** indicates whether the node can do ADR;
+ - **Used Channels** indicates the set of channels to be used;
+ - **RX** graph indicates the device Power (dBm), Data Rate and Frequency (MHz).
+
+After a join or a reset of an ABP device the effective parameters are reverted to
+their standard defaults.
+
+The ADR request to change these settings is sent to the device when both **Set ADR**
+and **Use ADR** are `ON` or `Manual`, when all requested ADR settings are defined
+(not empty) and when some ADR parameter differs from the used (last accepted settings).
 
 If the device does not support (or allow) some of the requested settings, the
 entire request will fail. When a request fails, the requested ADR parameter(s) that
-caused the failure will be cleared (set to null) and no other parameter will become
+caused the failure will be cleared (set to empty) and no other parameter will become
 effective.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-link-status.png)
+
+### Manual ADR
+
+For each connected node you can manually modify the requested ADR settings. The
+ADR request will be sent to the node with the next downlink frame.
+
+### Automatic ADR
+
+You can also **Set ADR** to `ON` and let the server to automatically set the
+requested ADR parameters depending on the signal quality.
+
+The server calculates an average RSSI and SNR for the last 20 frames received.
+ * The *Data Rate* (Spreading Factor) is defined so that the LoRa demodulator SNR
+   for the target *Data Rate* matches the observed average SNR.
+ * When the highest *Data Rate* is reached, the *Power* is decreased, so the
+   RSSI stays above -100 dbB, which is an expected sensitivity for the highest rate.
