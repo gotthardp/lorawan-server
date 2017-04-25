@@ -105,7 +105,7 @@ and develop your own modules.
 
 To implement an internal application you need to create a new module implementing the
 `lorawan_application` behaviour as described in the [Development Guide](doc/Development.md)
-and [Custom Handler Guidelines](doc/Handlers.md).
+and [Custom Application Guide](doc/Applications.md).
 
 ### Troubleshooting
 [![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)

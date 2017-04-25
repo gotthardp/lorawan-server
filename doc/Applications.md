@@ -1,18 +1,19 @@
-# Building Custom Handlers
+# Building Custom Applications
 
-By default you will see two handlers for connecting external applications:
+By default you will see 4 different applications. Two wrappers for connecting to
+external applications:
  * *backend* for connecting to [MQTT Backends](doc/Backends.md).
  * *websocket* for receiving connections from [WebSocket clients](doc/WebSockets.md).
 
-And two very simple internal application handlers for existing motes:
+And two very simple internal applications for existing motes:
  * *semtech-mote* for
    [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
  * *microchip-mote* for
    [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
 
-You may follow these examples and create your own internal application handlers.
+You may follow these examples and create your own internal applications.
 
-Each application handler may implement:
+Each application may implement:
   * LoRaWAN application handlers (see `lorawan_application` behaviour);
   * HTTP server handlers for
 [static files](https://ninenines.eu/docs/en/cowboy/2.0/guide/static_files/),

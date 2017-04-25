@@ -99,6 +99,6 @@ On the Authentication tab:
    * *Name* - Your Adafruit account name (see the last article in the list above).
    * *Password/Key* - Your Adafruit Key, NOT your account password (see above).
 
-After all of this is ready, you may select this Handler as an *AppID* in your
+After all of this is ready, you may select this Handler as a *Group* in your
 *Devices* or *Nodes* configuration pages. And **don't forget** to set your *Application*
-field to **connector** there.
+field to **backend** there.

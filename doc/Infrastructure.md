@@ -25,7 +25,7 @@ received by a group of devices.
 To define a multicast channel you need to set:
  * *DevAddr* of the channel; this must not collide with any *Node* address.
  * *Region* that determines the LoRaWAN regional parameters.
- * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
+ * *Application* identifier corresponding to one of the [Applications](Applications.md) configured.
  * *Group* denotes application-specific device group or behaviour.
  * *Channel* determines the frequency.
  * *Data rate* and *Coding rate* determine the radio signal encoding.

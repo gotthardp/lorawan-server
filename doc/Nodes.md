@@ -6,7 +6,7 @@
 Nodes are active devices. For each network node you can set:
  * *DevAddr* of the node
  * *Region* that determines the LoRaWAN regional parameters
- * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
+ * *Application* identifier corresponding to one of the [Applications](Applications.md) configured.
  * *Group* denotes application-specific device group or behaviour.
  * *Arguments*, which is an opaque string with application-specific settings.
  * *NwkSKey* and *AppSKey*

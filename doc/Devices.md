@@ -6,7 +6,7 @@
 For each device, which may connect to your network, you can set:
  * *DevEUI* of the device
  * *Region* that determines the LoRaWAN regional parameters
- * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
+ * *Application* identifier corresponding to one of the [Applications](Applications.md) configured.
  * *Group* denotes application-specific device group or behaviour.
  * *Arguments*, which is an opaque string with application-specific settings.
  * *AppEUI* and *AppKey*

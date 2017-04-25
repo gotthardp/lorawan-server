@@ -35,7 +35,7 @@ The JSON structure the server sends to clients contains the following fields:
   port        | Integer     | LoRaWAN port number.
   fcnt        | Integer     | Received frame sequence number.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
-  fields      | Object      | Payload decoded by a corresponding application handler.
+  fields      | Object      | Payload decoded by a corresponding [backend handler](Backends.md).
   shall_reply | Boolean     | Whether the server has to send a downlink message.
   last_lost   | Boolean     | Whether the previous confirmed downlink was lost.
   datetime    | ISO 8601    | Timestamp using the server clock.
@@ -55,6 +55,7 @@ The client may send back to the server a JSON structure with the following field
   devaddr     | Hex String  | DevAddr of the active node.
   port        | Integer     | LoRaWAN port number. If not specified for Class A, the port number of last uplink will be used. Mandatory for Class C.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
+  fields      | Object      | Payload to be encoded by a corresponding [backend handler](Backends.md).
   confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
   pending     | Boolean     | Whether the application has more to send (false by default).
   time        | ISO 8601    | Requested downlink time or `immediately` (for class C devices only).

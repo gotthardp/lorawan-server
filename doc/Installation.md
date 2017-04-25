@@ -65,7 +65,7 @@ The service is managed using `bin/lorawan-service.bat` *command*, where:
 
 Review the `lorawan-server/releases/<VERSION>/sys.config` with the server configuration:
  * To enable/disable applications, modify the `plugins` section. For more details
-   see the [Handler Development Guide](Handlers.md).
+   see the [Custom Application Guide](Applications.md).
 
 For example:
 ```erlang
