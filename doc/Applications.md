@@ -2,8 +2,8 @@
 
 By default you will see 4 different applications. Two wrappers for connecting to
 external applications:
- * *backend* for connecting to [MQTT Backends](doc/Backends.md).
- * *websocket* for receiving connections from [WebSocket clients](doc/WebSockets.md).
+ * *backend* for connecting to [MQTT Backends](Backends.md).
+ * *websocket* for receiving connections from [WebSocket clients](WebSockets.md).
 
 And two very simple internal applications for existing motes:
  * *semtech-mote* for
