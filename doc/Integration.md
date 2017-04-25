@@ -7,9 +7,9 @@ You can integrate with generic MQTT server, e.g. the
 
 Open the lorawan-server web-administration and create a Backend Connector:
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
- * *Published Topic* is a pattern for the publication topic, e.g. `out/{devaddr}`.
+ * *Published Topic* is a pattern for constructing the message topic, e.g. `out/{devaddr}`.
  * *Subscribe* is a topic to be subscribed, e.g. `in/#`.
- * *Consumed Topic* is a pattern for the subscribed topic, e.g. `in/{devaddr}`.
+ * *Consumed Topic* is a pattern for parsing the message topic, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
  * *Auth* shall be set to *Username+Password*, even when the *Name* and

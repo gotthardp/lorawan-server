@@ -45,8 +45,12 @@ and check the device EUI is correctly listed.
 ### {unknown_devaddr, DevAddr}
 
 The device *DevAddr* activated-by-personalization (ABP) is not correctly configured.
-Open the [Web Administration](Administration.md), go to the *Links* list
+Open the [Web Administration](Administration.md), go to the *Nodes* list
 and check the device address is correctly listed.
+
+If you see strange *DevAddr* numbers from devices that you don't know, there
+may be a second network near you. You can add devices from this network into
+the list of [Ignored Nodes](Infrastructure.md).
 
 ### {bad_mic, DeviceID}
 
@@ -57,7 +61,7 @@ The Message Integrity Check (MIC) of a received frame has failed.
    * If the *DeviceID* is a 8-bytes long *DevEUI*,
      open the [Web Administration](Administration.md),
      go to the *Devices* list and check the *AppKey*.
-   * If the *DeviceID* is a 4-bytes long *DevAddr*, go to the *Links* list
+   * If the *DeviceID* is a 4-bytes long *DevAddr*, go to the *Nodes* list
      and check the *NwkSKey*.
 
 ### {fcnt_gap_too_large, DevAddr, FCnt}
@@ -66,7 +70,7 @@ The device sent an unexpected frame counter *FCnt*. This may be because:
  * The device is activated-by-personalization (ABP) and it did reset recently.
  * The device was unreachable for a very long time.
 
-If this is an exceptional case, go to the *Links* list and manually update the
+If this is an exceptional case, go to the *Nodes* list and manually update the
 *FCnt Up* to the *FCnt* number.
 
 To allow ABP devices to freely reset set the *FCnt Check* to *Reset on zero*,

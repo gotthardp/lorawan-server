@@ -576,8 +576,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .uploadInformation({'url': 'upload'})
     ]);
     connectors.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:5},
-        {name:"Authentication", min:5, max:11}
+        {name:"General", min:0, max:6},
+        {name:"Authentication", min:6, max:12}
     ]));
     connectors.editionView().fields(connectors.creationView().fields());
     connectors.editionView().template(editWithTabsTemplate([

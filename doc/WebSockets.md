@@ -1,7 +1,7 @@
 # WebSocket Interface
 
 To enable the WebSocket interface for a specific device you need to set the Device
-or Link Application to `websocket`.
+or Node Application to `websocket`.
 
 To connect to the WebSocket, open URL `ws://server:8080/ws/<Type>/<Name>/<Format>`. The
 URL is used to select both the target device(s) as well as the desired format.
@@ -9,7 +9,7 @@ URL is used to select both the target device(s) as well as the desired format.
   Type / Name        | Behaviour
  --------------------|--------------------------------------------------------------------
   /devices/*123*/... | Connects to a device with a DevEUI=*123*.
-  /links/*456*/...   | Connects to a link (active node) with a DevAddr=*456*.
+  /nodes/*456*/...   | Connects to an active node with a DevAddr=*456*.
   /groups/*ABC*/...  | Connects to all websocket devices whose **AppID** is set to *ABC*.
 
 Multiple parallel connections may be established to one URL.
@@ -23,14 +23,14 @@ can be viewed via the [Administration interface](Administration.md).
   .../raw            | Transmits the application data only, no port numbers nor flags.
   .../json           | Transmits JSON structures.
 
-For example, `ws://127.0.0.1:8080/ws/links/11223344/json` connects to the DevAddr *11223344*
+For example, `ws://127.0.0.1:8080/ws/nodes/11223344/json` connects to the DevAddr *11223344*
 using the JSON format.
 
 The JSON structure the server sends to clients contains the following fields:
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
-  devaddr     | Hex String  | DevAddr of the link (active node).
+  devaddr     | Hex String  | DevAddr of the active node.
   appargs     | Any         | Application arguments for this node.
   port        | Integer     | LoRaWAN port number.
   fcnt        | Integer     | Received frame sequence number.
@@ -52,7 +52,7 @@ The client may send back to the server a JSON structure with the following field
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
-  devaddr     | Hex String  | DevAddr of the link (active node).
+  devaddr     | Hex String  | DevAddr of the active node.
   port        | Integer     | LoRaWAN port number. If not specified for Class A, the port number of last uplink will be used. Mandatory for Class C.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
   confirmed   | Boolean     | Whether the message shall be confirmed (false by default).

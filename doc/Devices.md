@@ -1,0 +1,28 @@
+# Device Administration
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
+
+## General
+
+For each device, which may connect to your network, you can set:
+ * *DevEUI* of the device
+ * *Region* that determines the LoRaWAN regional parameters
+ * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
+ * *Group* denotes application-specific device group or behaviour.
+ * *Arguments*, which is an opaque string with application-specific settings.
+ * *AppEUI* and *AppKey*
+ * *FCnt Check* to be used for this device
+   * *Strict 16-bit* (default) or *Strict 32-bit* indicate a standard compliant counter.
+   * *Reset on zero* behaves like a "less strict 16-bit", which allows personalised (ABP)
+     devices to reset the counter.
+     This weakens device security a bit as more reply attacks are possible.
+   * *Disabled* disables the check for faulty devices.
+     This destroys the device security.
+ * *Can Join?* flag that allows you to prevent the device from joining.
+ * *Last Join* is a timestamp of the last successful Join request.
+
+Once the device joins the network, the *Node* field will contain a reference to the *Nodes* list.
+
+## ADR
+
+Optionally, you can also define a set of [ADR](ADR.md) parameters. Once the device
+joins the network, the server will attempt to configure the device accordingly.

@@ -7,6 +7,32 @@ The port and default credentials (which are set when the server database is crea
 can be changed in the [`sys.config`](../lorawan_server.config). The credentials can
 be then altered via the admin interface.
 
+
+## Web Admin
+
+The management web-pages are available under `/admin`. It is a wrapper around
+the REST API described below.
+
+The following configuration pages are available:
+ * *Users* contain a list of user identities that can manage the server. All
+   have the same access rights.
+ * [*Infrastructure*](Infrastructure.md) covers configuration of LoRa Gateways,
+   Multicast Channels and the list of Ignored Nodes.
+ * [*Devices*](Devices.md) contain a list of devices that are allowed to join
+   using the over-the-air-activation (OTAA).
+ * [*Nodes*](Nodes.md) contain a list of active network nodes, both
+   activated by personalization (ABP) as well as those that joined as OTAA.
+ * [*Backends*](Backends.md) at remote servers that shall receive the
+   application data.
+
+You (at least) have to:
+ * Add LoRaWAN gateways you want to use to the *Gateways* list.
+ * Configure each device you want to use:
+   * To add a device activated by personalization (ABP), create a new *Nodes* list entry.
+   * To add an OTAA device, create a new *Devices* list entry and start the device.
+     The *Nodes* list will be updated automatically once the device joins the network.
+
+
 ## REST API
 
 The following REST resources are made available:
@@ -54,82 +80,6 @@ for instance:
 http://server:8080/rxframes?_page=2&_perPage=20
 
 The server also inserts the HTTP header `X-Total-Count` indicating the total item count.
-
-
-## Web Admin
-
-The management web-pages are available under `/admin`. It is just a wrapper around
-the REST API.
-
-You (at least) have to:
- * Add LoRaWAN gateways you want to use to the *Gateways* list.
- * Configure each device you want to use:
-   * To add a device activated by personalization (ABP), create a new *Nodes* list entry.
-   * To add an OTAA device, create a new *Devices* list entry and start the device. The *Nodes*
-     list will be updated automatically once the device joins the network.
-
-### Users
-
-List of user identities that can manage the server. All have the same access rights.
-
-### Gateways
-
-For each LoRaWAN gateway you can set:
- * *MAC* address of the gateway
- * *TX Chain* identifies the gateway "RF chain" used for downlinks; usually 0
- * *NetID* of the network
- * *Location* and *Altitude* of the gateway
-
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-gateway.png)
-
-### Devices
-
-For each device, which may connect to your network, you can set:
- * *DevEUI* of the device
- * *Region* that determines the LoRaWAN regional parameters
- * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
- * *AppID*, which denotes application-specific group or behaviour.
- * *Arguments*, which is an opaque string with application-specific settings.
- * *AppEUI* and *AppKey*
- * *FCnt Check* to be used for this device
-   * *Strict 16-bit* (default) or *Strict 32-bit* indicate a standard compliant counter.
-   * *Reset on zero* behaves like a "less strict 16-bit", which allows personalised (ABP)
-     devices to reset the counter.
-     This weakens device security a bit as more reply attacks are possible.
-   * *Disabled* disables the check for faulty devices.
-     This destroys the device security.
- * *Can Join?* flag that allows you to prevent the device from joining
-
-Once the device joins the network, the *Link* field will contain a reference to the *Nodes* list.
-
-Optionally, you can also define a set of [ADR](ADR.md) parameters. Once the device
-joins the network, the server will attempt to configure the device accordingly.
-
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
-
-### Nodes
-
-Nodes are active devices. For each network node you can set:
- * *DevEUI* of the device
- * *Region* that determines the LoRaWAN regional parameters
- * *Application* identifier corresponding to one of the [Handlers](Handlers.md) configured.
- * *AppID*, which denotes application-specific group or behaviour.
- * *Arguments*, which is an opaque string with application-specific settings.
- * *NwkSKey* and *AppSKey*
- * *FCnt Check* to be used for this device (see the Devices section for more explanation).
-
-Optionally, you can also set the [ADR](ADR.md) parameters. The server will attempt
-to configure the device accordingly.
-
-Below the configuration options you can monitor the performance of the device. You
-can see the assumed [ADR](ADR.md) parameters and two graphs that display the last
-50 received frames.
-
-The *Downlinks* table lists frames created by the application, which are scheduled for
-transmission. Class A devices listen for downlinks only for 2 seconds after an uplink
-transmission, so it may take a while until all messages are transmitted.
-
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-link-status.png)
 
 
 ## Backup and Restore
