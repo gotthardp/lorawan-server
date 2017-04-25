@@ -1,5 +1,17 @@
 # Building Custom Handlers
 
+By default you will see two handlers for connecting external applications:
+ * *backend* for connecting to [MQTT Backends](doc/Backends.md).
+ * *websocket* for receiving connections from [WebSocket clients](doc/WebSockets.md).
+
+And two very simple internal application handlers for existing motes:
+ * *semtech-mote* for
+   [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
+ * *microchip-mote* for
+   [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
+
+You may follow these examples and create your own internal application handlers.
+
 Each application handler may implement:
   * LoRaWAN application handlers (see `lorawan_application` behaviour);
   * HTTP server handlers for

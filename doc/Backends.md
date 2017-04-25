@@ -12,7 +12,12 @@ To create a new handler you need to set:
  * *Connector* identifier (see the next chapter)
 
 The *Parse Uplink* is an Erlang function that converts a binary to a list that
-gets JSON encoded into the `fields` attribute.
+gets JSON encoded into the `fields` attribute. It shall be a
+[Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
+with two parameters, which matches the
+[binary data](http://erlang.org/doc/programming_examples/bit_syntax.html)
+and returns an
+[Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping).
 
 For example:
 
@@ -22,29 +27,20 @@ fun(_Port, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>
 end.
 ```
 
-It shall be a
-[Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
-with two parameters, which matches the
-[binary data](http://erlang.org/doc/programming_examples/bit_syntax.html)
-and returns an
-[Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping).
-
 *Build Downlink* works in the opposite direction. It takes whatever is in the
-"fields" attribute and converts that into a binary. If you send `{"fields":1}`,
-you can have a function like this:
+"fields" attribute and converts that into a binary. It shall be a
+[Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
+with two parameters, which gets an
+[Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping)
+and returns
+[binary data](http://erlang.org/doc/programming_examples/bit_syntax.html).
+If you send `{"fields":1}`, you can have a function like this:
 
 ```erlang
 fun(_Port, LED) ->
   <<LED>>
 end.
 ```
-
-It shall be a
-[Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
-with two parameters, which gets an
-[Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping)
-and returns
-[binary data](http://erlang.org/doc/programming_examples/bit_syntax.html).
 
 
 ## Connectors
