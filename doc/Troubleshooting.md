@@ -1,7 +1,8 @@
 # Troubleshooting Instructions
 
-Please review the server logs in `lorawan-server/log`. The log messages contain
-date and time, severity (debug, info, notice, warning, error), process ID and a description.
+Please review the server logs in `lorawan-server/log`. The `debug.log`,
+`error.log` and `crash.log` are available. The log messages contain date and time,
+severity (debug, info, notice, warning, error), process ID and a description.
 
 For example:
 ```
@@ -12,7 +13,7 @@ Binary identifiers are often shown in the Erlang binary notation, enclosed in `<
 is simply a list of bytes in decimal notation.
 For example, `<<1,39,235,255,255,176,23,196>>` means `01-27-EB-FF-FF-B0-17-C4`.
 
-By default the `debug` messages are not logged. To see the debug messages you need to
+By default no messages are shown on the console. To see the debug messages you need to
 open the server configuration in `lorawan-server/releases/<VERSION>/sys.config`,
 uncomment (remove the `%` character) from the `{lager_console_backend, debug}` line
 and restart the server.
