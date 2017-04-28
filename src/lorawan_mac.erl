@@ -353,7 +353,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
     end.
 
 handle_downlink(Link, Time, TxData) ->
-    TxQ = lorawan_mac_region:rx2_rf(Link, Link#link.last_rxq),
+    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, Link#link.last_rxq),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
     send_unicast(TxQ#txq{time=Time}, Link#link.devaddr, 0, lorawan_mac_commands:build_fopts(Link), TxData).
 
