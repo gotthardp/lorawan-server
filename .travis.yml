@@ -1,7 +1,6 @@
 language: erlang
 otp_release:
-  - 18.3
-  - 19.1
+  - 19.3
 script:
   - make build test release dist
 deploy:
@@ -13,6 +12,6 @@ deploy:
   file:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
   on:
-    condition: $TRAVIS_OTP_RELEASE = 18.3
+    condition: $TRAVIS_OTP_RELEASE = 19.3
     tags: true
     repo: gotthardp/lorawan-server

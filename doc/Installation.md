@@ -19,7 +19,7 @@ Then start the server by `systemctl start lorawan-server`.
 
 ### Using the Binary Release on Linux
 
-You will need the Erlang/OTP 18 or later. Try typing `yum install erlang` or
+You will need the Erlang/OTP 19 or later. Try typing `yum install erlang` or
 `apt-get install erlang`.
 
 Then download the latest binary release
@@ -47,7 +47,7 @@ On Linux systems with systemd you should:
 ### Using the Binary Release on Windows
 
 Install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads) of
-Erlang/OTP 18 or later.
+Erlang/OTP 19 or later.
 
 Unpack the release using the [7-Zip](http://www.7-zip.org) and run the server by
 ```bash
