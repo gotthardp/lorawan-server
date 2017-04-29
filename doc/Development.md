@@ -1,5 +1,12 @@
 # Development Guidelines
 
+## Software Architecture
+
+The following figure shows a process hierarchy of the lorawan-server:
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/software-architecture.png)
+
+
 ## Debugging
 
 ### Logging

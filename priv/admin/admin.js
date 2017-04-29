@@ -632,7 +632,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             }),
         nga.field('text', 'wysiwyg')
     ])
-    .sortField('datetime');
+    .sortField('last_rx');
     // add to the admin application
     admin.addEntity(events);
 
@@ -684,7 +684,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                     }),
                 nga.field('text', 'wysiwyg')
             ])
-            .sortField('datetime')
+            .sortField('last_rx')
             .perPage(7)
         )
         .addCollection(nga.collection(devices)

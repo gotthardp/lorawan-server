@@ -34,19 +34,19 @@ This may be due to:
  * Firewall misconfiguration. Check the server firewall does not block the port 1680.
    See [Installation Instructions](Installation.md) for configuration guidelines.
 
-### {unknown_mac, MAC}
+### unknown_mac
 
 The gateway *MAC* is not correctly configured.
 Open the [Web Administration](Administration.md), go to the *Infrastructure-Gateways*
 list and check the gateway *MAC* is correctly listed.
 
-### {unknown_deveui, DevEUI}
+### unknown_deveui
 
 The over-the-air activated (OTAA) device *DevEUI* is not correctly configured.
 Open the [Web Administration](Administration.md), go to the *Devices* list
 and check the device EUI is correctly listed.
 
-### {unknown_devaddr, DevAddr}
+### unknown_devaddr
 
 The device *DevAddr* activated-by-personalization (ABP) is not correctly configured.
 Open the [Web Administration](Administration.md), go to the *Nodes* list
@@ -56,19 +56,19 @@ If you see strange *DevAddr* numbers from devices that you don't know, there
 may be a second network near you. You can add devices from this network into
 the list of [Ignored Nodes](Infrastructure.md).
 
-### {bad_mic, DeviceID}
+### bad_mic
 
 The Message Integrity Check (MIC) of a received frame has failed.
  * If this appeared only once this was due to a transmission error.
- * If this happens periodically with the same DeviceID, the device is not correctly
+ * If this happens periodically with the same ID, the device is not correctly
    configured.
-   * If the *DeviceID* is a 8-bytes long *DevEUI*,
-     open the [Web Administration](Administration.md),
+   * When this is related to a 8-bytes long *DevEUI*, open the
+     [Web Administration](Administration.md),
      go to the *Devices* list and check the *AppKey*.
-   * If the *DeviceID* is a 4-bytes long *DevAddr*, go to the *Nodes* list
+   * When this is related to a 4-bytes long *DevAddr*, go to the *Nodes* list
      and check the *NwkSKey*.
 
-### {fcnt_gap_too_large, DevAddr, FCnt}
+### fcnt_gap_too_large
 
 The device sent an unexpected frame counter *FCnt*. This may be because:
  * The device is activated-by-personalization (ABP) and it did reset recently.

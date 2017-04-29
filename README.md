@@ -60,7 +60,7 @@ You only need to install the [Erlang/OTP](http://www.erlang.org) 19 or later.
 
 The main components of the lorawan-server are shown in the following figure:
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/server-architecture.png)
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/system-architecture.png)
 
 ### Usage
 
