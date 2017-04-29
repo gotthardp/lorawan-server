@@ -39,10 +39,12 @@ write_event(Severity, Entity, EID, Message) ->
     mnesia:transaction(fun() ->
         case mnesia:read(events, EvId, write) of
             [E] ->
-                mnesia:write(events, E#event{count=inc(E#event.count)}, write);
+                mnesia:write(events, E#event{last_rx=calendar:universal_time(),
+                    count=inc(E#event.count)}, write);
             [] ->
-                mnesia:write(events, #event{evid=EvId, severity=Severity, count=1,
-                    datetime=calendar:universal_time(), entity=Entity, eid=EID, text=Text}, write)
+                mnesia:write(events, #event{evid=EvId, severity=Severity,
+                    first_rx=calendar:universal_time(), last_rx=calendar:universal_time(),
+                    count=1, entity=Entity, eid=EID, text=Text}, write)
         end
     end).
 

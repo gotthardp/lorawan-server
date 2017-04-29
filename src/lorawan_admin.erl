@@ -49,8 +49,8 @@ parse({Key, Value}) when Key == rxq; Key == last_rxq ->
     {Key, ?to_record(rxq, parse(Value))};
 parse({Key, Value}) when Key == txdata ->
     {Key, ?to_record(txdata, parse(Value))};
-parse({Key, Value}) when Key == last_join; Key == last_reset; Key == last_rx;
-                        Key == devstat_time; Key == datetime ->
+parse({Key, Value}) when Key == last_join; Key == last_reset; Key == datetime;
+                        Key == devstat_time; Key == first_rx; Key == last_rx ->
     {Key, iso8601:parse(Value)};
 parse({Key, <<"immediately">>}) when Key == time ->
     {Key, immediately};
@@ -94,8 +94,8 @@ build({Key, Value}) when Key == txdata ->
     {Key, build(?to_proplist(txdata, Value))};
 build({Key, immediately}) when Key == time ->
     {Key, <<"immediately">>};
-build({Key, Value}) when Key == last_join; Key == last_reset; Key == last_rx;
-                            Key == devstat_time; Key == time; Key == datetime ->
+build({Key, Value}) when Key == last_join; Key == last_reset; Key == datetime;
+                            Key == devstat_time; Key == time; Key == first_rx; Key == last_rx ->
     {Key, iso8601:format(Value)};
 build({Key, Value}) when Key == devstat ->
     {Key, build_devstat(Value)};

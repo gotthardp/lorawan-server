@@ -175,7 +175,7 @@ expired_events() ->
     ETime = calendar:gregorian_seconds_to_datetime(
         calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - AgeSeconds),
     mnesia:dirty_select(events,
-        [{#event{evid='$1', datetime='$2', _='_'}, [{'=<', '$2', {const, ETime}}], ['$1']}]).
+        [{#event{evid='$1', last_rx='$2', _='_'}, [{'=<', '$2', {const, ETime}}], ['$1']}]).
 
 purge_txframes(DevAddr) ->
     [mnesia:dirty_delete_object(txframes, Obj) ||
