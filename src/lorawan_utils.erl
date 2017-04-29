@@ -25,17 +25,18 @@ throw_error(Entity, Text) ->
     throw_event(error, Entity, undefined, Text).
 
 
-throw_event(Severity, Entity, undefined, Text) ->
-    lager:log(Severity, self(), "~s ~w", [Entity, Text]),
-    write_event(Severity, Entity, undefined, Text);
+throw_event(Severity, Entity, undefined, Message) ->
+    lager:log(Severity, self(), "~s ~w", [Entity, Message]),
+    write_event(Severity, Entity, undefined, Message);
 
-throw_event(Severity, Entity, EID, Text) ->
-    lager:log(Severity, self(), "~s ~s ~w", [Entity, lorawan_mac:binary_to_hex(EID), Text]),
-    write_event(Severity, Entity, EID, Text).
+throw_event(Severity, Entity, EID, Message) ->
+    lager:log(Severity, self(), "~s ~s ~w", [Entity, lorawan_mac:binary_to_hex(EID), Message]),
+    write_event(Severity, Entity, EID, Message).
 
-write_event(Severity, Entity, EID, Text) ->
-    mnesia:dirty_write(events, #event{evid= <<(erlang:system_time()):64>>,
-        severity=Severity, datetime=calendar:universal_time(),
-        entity=Entity, eid=EID, text=list_to_binary(io_lib:write(Text))}).
+write_event(Severity, Entity, EID, Message) ->
+    Text = list_to_binary(io_lib:write(Message)),
+    EvId = crypto:hash(md4, term_to_binary({Entity, EID, Text})),
+    mnesia:dirty_write(events, #event{evid=EvId, severity=Severity,
+        datetime=calendar:universal_time(), entity=Entity, eid=EID, text=Text}).
 
 % end of file
