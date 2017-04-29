@@ -1,4 +1,10 @@
 # Device Administration
+
+This list contains devices that can join the LoRaWAN network using the
+over-the-air activation (OTAA). The active network nodes that either have
+already joined or have been activated-by-personalization (ABP) are listed on the
+[Nodes](Nodes.md) page.
+
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
 
 ## General

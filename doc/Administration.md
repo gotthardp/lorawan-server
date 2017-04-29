@@ -13,6 +13,11 @@ be then altered via the admin interface.
 The management web-pages are available under `/admin`. It is a wrapper around
 the REST API described below.
 
+The server Dashboard shows:
+ * List of [Gateways](Infrastructure.md), [Devices](Devices.md) and
+   [Nodes](Nodes.md).
+ * Seven most recent [Events](Events.md) and seven most recent frames received.
+
 The following configuration pages are available:
  * *Users* contain a list of user identities that can manage the server. All
    have the same access rights.
@@ -59,6 +64,7 @@ The following REST resources are made available:
   /handlers/*ABC*           | GET, DELETE      | Backend handler for the Group *ABC*
   /connectors               | GET              | Backend connectors
   /connectors/*ABC*         | GET, DELETE      | Backend connector *ABC*
+  /events                   | GET              | Recent errors and warnings
 
 ### Filtering
 

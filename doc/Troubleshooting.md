@@ -1,8 +1,11 @@
 # Troubleshooting Instructions
 
-Please review the server logs in `lorawan-server/log`. The `debug.log`,
-`error.log` and `crash.log` are available. The log messages contain date and time,
-severity (debug, info, notice, warning, error), process ID and a description.
+Overview of recent errors and warnings is provided in the server [Event List](Events.md).
+Details can be found in the server logs.
+
+The server logs are stored in `lorawan-server/log`. By default three log files are
+provided: `debug.log`, `error.log` and `crash.log`. The log messages contain date
+and time, severity (debug, info, notice, warning, error), process ID and a description.
 
 For example:
 ```

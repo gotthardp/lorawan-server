@@ -1,4 +1,10 @@
 # Node Administration
+
+This list contains active network nodes that either have already joined the network
+using the over-the-air activation (OTAA) or have been activated-by-personalization
+(ABP). All devices that can join the network using OTAA are listed on the
+[Devices](Devices.md) list.
+
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-link-status.png)
 
 ## General

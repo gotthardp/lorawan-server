@@ -619,7 +619,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- events
     events.listView().fields([
         nga.field('severity'),
-        nga.field('datetime', 'datetime').label('Occurred'),
+        nga.field('datetime', 'datetime').label('Last Occurred'),
+        nga.field('count', 'number'),
         nga.field('entity'),
         nga.field('eid')
             .template(function(entry){
@@ -671,7 +672,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(events)
             .fields([
                 nga.field('severity'),
-                nga.field('datetime', 'datetime').label('Occurred'),
+                nga.field('datetime', 'datetime').label('Last Occurred'),
                 nga.field('entity'),
                 nga.field('eid')
                     .template(function(entry){

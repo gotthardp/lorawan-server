@@ -36,7 +36,17 @@ throw_event(Severity, Entity, EID, Message) ->
 write_event(Severity, Entity, EID, Message) ->
     Text = list_to_binary(io_lib:write(Message)),
     EvId = crypto:hash(md4, term_to_binary({Entity, EID, Text})),
-    mnesia:dirty_write(events, #event{evid=EvId, severity=Severity,
-        datetime=calendar:universal_time(), entity=Entity, eid=EID, text=Text}).
+    mnesia:transaction(fun() ->
+        case mnesia:read(events, EvId, write) of
+            [E] ->
+                mnesia:write(events, E#event{count=inc(E#event.count)}, write);
+            [] ->
+                mnesia:write(events, #event{evid=EvId, severity=Severity, count=1,
+                    datetime=calendar:universal_time(), entity=Entity, eid=EID, text=Text}, write)
+        end
+    end).
+
+inc(undefined) -> 1;
+inc(Num) -> Num+1.
 
 % end of file
