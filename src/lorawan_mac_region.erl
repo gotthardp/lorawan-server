@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_region).
 
--export([rx1_window/3, rx2_window/3, rx2_rf/2, rx2_dr/1, rf_group/1]).
+-export([rx1_window/3, rx2_window/3, rx2_rf/2, rf_group/1]).
 -export([default_adr/1, default_rxwin/1, max_adr/1, default_erp/1]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
@@ -119,10 +119,6 @@ dr_to_down(Region, DR)
     end.
 
 % data rate conversions
-
-rx2_dr(Region) ->
-    {_F, DataRate} = regional_config(rx2_rf, Region),
-    datar_to_dr(Region, DataRate).
 
 datars(Region)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>;

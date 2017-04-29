@@ -34,11 +34,10 @@ parse(List) when is_list(List) ->
 
 parse({Key, Value}) when Value == null; Value == undefined ->
     {Key, undefined};
-parse({Key, Value}) when Key == netid -> {Key, lorawan_mac:hex_to_binary(Value)};
 parse({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                         Key == deveui; Key == appeui; Key == appkey; Key == link;
                         Key == devaddr; Key == nwkskey; Key == appskey;
-                        Key == data; Key == frid ->
+                        Key == data; Key == frid; Key == evid; Key == eid ->
     {Key, lorawan_mac:hex_to_binary(Value)};
 parse({Key, Value}) when Key == gpspos ->
     {Key, parse_latlon(Value)};
@@ -78,12 +77,10 @@ build(List) when is_list(List) ->
 
 build({Key, undefined}) ->
     {Key, null};
-build({Key, Value}) when Key == netid ->
-    {Key, lorawan_mac:binary_to_hex(Value)};
 build({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                             Key == deveui; Key == appeui; Key == appkey; Key == link;
                             Key == devaddr; Key == nwkskey; Key == appskey;
-                            Key == data; Key == frid ->
+                            Key == data; Key == frid; Key == evid; Key == eid ->
     {Key, lorawan_mac:binary_to_hex(Value)};
 build({Key, Value}) when Key == gpspos ->
     {Key, build_latlon(Value)};
@@ -162,6 +159,7 @@ build_fun({Code, _Fun}) ->
     Code.
 
 build_opt(Field, undefined) -> {Field, null};
+build_opt(Field, <<"undefined">>) -> {Field, null}; %% temporary db consistency fix, to be removed after some time
 build_opt(Field, Value) -> {Field, Value}.
 
 parse_opt(Field, List) ->

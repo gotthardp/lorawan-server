@@ -14,6 +14,7 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
+    lorawan_utils:throw_info(server, started),
     {ok, PktFwdOpts} = application:get_env(packet_forwarder_listen),
     {ok, {{one_for_one, 10, 10}, [
         {gateway_router,

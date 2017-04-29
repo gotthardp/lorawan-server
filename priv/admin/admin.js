@@ -30,6 +30,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('connid'));
     var handlers = nga.entity('handlers')
         .identifier(nga.field('appid'));
+    var events = nga.entity('events')
+        .identifier(nga.field('evid'));
 
     adr_choices = [
         { value: 0, label: 'OFF' },
@@ -241,6 +243,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0)
+            .validation({ required: true })
     ]);
     multicast_channels.editionView().fields(multicast_channels.creationView().fields());
     // add to the admin application
@@ -366,9 +369,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
         nga.field('fcntup', 'number').label('FCnt Up')
-            .defaultValue(0),
+            .defaultValue(0)
+            .validation({ required: true }),
         nga.field('fcntdown', 'number').label('FCnt Down')
-            .defaultValue(0),
+            .defaultValue(0)
+            .validation({ required: true }),
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
@@ -424,9 +429,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
         nga.field('fcntup', 'number').label('FCnt Up')
-            .defaultValue(0),
+            .defaultValue(0)
+            .validation({ required: true }),
         nga.field('fcntdown', 'number').label('FCnt Down')
-            .defaultValue(0),
+            .defaultValue(0)
+            .validation({ required: true }),
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
@@ -609,6 +616,24 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(handlers);
 
+    // ---- events
+    events.listView().fields([
+        nga.field('severity'),
+        nga.field('datetime', 'datetime').label('Occurred'),
+        nga.field('entity'),
+        nga.field('eid')
+            .template(function(entry){
+                if (entry.values.eid != null) {
+                    return "<a href='admin/#" + entry.values.entity + "s/edit/" + entry.values.eid + "'>" +
+                        entry.values.eid + "</a>";
+                }
+            }),
+        nga.field('text', 'wysiwyg')
+    ])
+    .sortField('datetime');
+    // add to the admin application
+    admin.addEntity(events);
+
     // ---- menu
     admin.menu(nga.menu()
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
@@ -643,22 +668,29 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .sortDir('ASC')
             .perPage(7)
         )
+        .addCollection(nga.collection(events)
+            .fields([
+                nga.field('severity'),
+                nga.field('datetime', 'datetime').label('Occurred'),
+                nga.field('entity'),
+                nga.field('eid')
+                    .template(function(entry){
+                        if (entry.values.eid != null) {
+                            return "<a href='admin/#" + entry.values.entity + "s/edit/" + entry.values.eid + "'>" +
+                                entry.values.eid + "</a>";
+                        }
+                    }),
+                nga.field('text', 'wysiwyg')
+            ])
+            .sortField('datetime')
+            .perPage(7)
+        )
         .addCollection(nga.collection(devices)
             .fields([
                 nga.field('deveui').label('DevEUI').isDetailLink(true),
                 nga.field('last_join', 'datetime').label('Last Join')
             ])
             .sortField('deveui')
-            .sortDir('ASC')
-            .perPage(7)
-        )
-        .addCollection(nga.collection(nodes)
-            .fields([
-                nga.field('devaddr').label('DevAddr').isDetailLink(true),
-                nga.field('devstat.battery', 'number').label('Battery'),
-                nga.field('last_rx', 'datetime').label('Last RX')
-            ])
-            .sortField('devaddr')
             .sortDir('ASC')
             .perPage(7)
         )
@@ -674,6 +706,16 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('rxq.lsnr').label('SNR')
             ])
             .sortField('datetime')
+            .perPage(7)
+        )
+        .addCollection(nga.collection(nodes)
+            .fields([
+                nga.field('devaddr').label('DevAddr').isDetailLink(true),
+                nga.field('devstat.battery', 'number').label('Battery'),
+                nga.field('last_rx', 'datetime').label('Last RX')
+            ])
+            .sortField('devaddr')
+            .sortDir('ASC')
             .perPage(7)
         )
     );

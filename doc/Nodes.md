@@ -12,6 +12,11 @@ Nodes are active devices. For each network node you can set:
  * *NwkSKey* and *AppSKey*
  * *FCnt Check* to be used for this device (see the Devices section for more explanation).
 
+The *US 902-928MHz* region allows a private *hybrid* mode introduced by
+[Multitech](www.multitech.net/developer/software/lora/introduction-to-lora).
+This is useful when you want to split the radio spectrum to 8 different sub-bands,
+but it requires custom device firmware.
+
 The *Downlinks* table lists frames created by the application, which are scheduled for
 transmission. Class A devices listen for downlinks only for 2 seconds after an uplink
 transmission, so it may take a while until all messages are transmitted.

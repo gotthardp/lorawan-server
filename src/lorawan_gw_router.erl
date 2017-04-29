@@ -7,7 +7,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([register/3, status/2, uplinks/1, downlink/3]).
+-export([register/3, status/2, uplinks/1, downlink/4, downlink_error/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([process_frame/3]).
 
@@ -28,13 +28,16 @@ status(MAC, S) ->
 uplinks(PkList) ->
     gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
-downlink(MAC, TxQ, PHYPayload) ->
+downlink(MAC, DevAddr, TxQ, PHYPayload) ->
     [Gateway] = mnesia:dirty_read(gateways, MAC),
     Power = case Gateway#gateway.tx_powe of
         undefined -> lorawan_mac_region:default_erp(TxQ#txq.region);
         Num -> Num
     end,
-    gen_server:cast({global, ?MODULE}, {downlink, MAC, TxQ#txq{powe=Power}, Gateway#gateway.tx_rfch, PHYPayload}).
+    gen_server:cast({global, ?MODULE}, {downlink, MAC, DevAddr, TxQ#txq{powe=Power}, Gateway#gateway.tx_rfch, PHYPayload}).
+
+downlink_error(MAC, Opaque, Error) ->
+    gen_server:cast({global, ?MODULE}, {downlink_error, MAC, Opaque, Error}).
 
 
 init([]) ->
@@ -44,21 +47,24 @@ init([]) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({register, MAC, Process, Target}, #state{pulladdr=Dict}=State) ->
+handle_cast({register, MAC, Process, {Host, Port, _}=Target}, #state{pulladdr=Dict}=State) ->
     case dict:find(MAC, Dict) of
         {ok, {Process, Target}} ->
             {noreply, State};
         _Else ->
-            lager:info("Gateway ~w at ~w ~w", [MAC, Process, Target]),
+            lorawan_utils:throw_info({gateway, MAC}, {at, Host, Port}),
             Dict2 = dict:store(MAC, {Process, Target}, Dict),
             {noreply, State#state{pulladdr=Dict2}}
     end;
 
 handle_cast({status, MAC, S}, State) ->
     case lorawan_mac:process_status(MAC, S) of
-        ok -> ok;
+        ok ->
+            ok;
+        {error, {Object, Error}} ->
+            lorawan_utils:throw_error(Object, Error);
         {error, Error} ->
-            lager:error("ERROR: ~w", [Error])
+            lorawan_utils:throw_error(server, Error)
     end,
     {noreply, State};
 
@@ -73,14 +79,21 @@ handle_cast({uplinks, PkList}, #state{recent=Recent}=State) ->
             Recent, Unique),
     {noreply, State#state{recent=Recent2}};
 
-handle_cast({downlink, MAC, TxQ, RFCh, PHYPayload}, #state{pulladdr=Dict}=State) ->
+handle_cast({downlink, MAC, DevAddr, TxQ, RFCh, PHYPayload}, #state{pulladdr=Dict}=State) ->
     case dict:find(MAC, Dict) of
         {ok, {Process, Target}} ->
             % send data to the gateway interface handler
-            gen_server:cast(Process, {send, Target, TxQ, RFCh, PHYPayload});
+            gen_server:cast(Process, {send, Target, DevAddr, TxQ, RFCh, PHYPayload});
         error ->
-            lager:info("Downlink request ignored. Gateway ~w not connected.", [MAC])
+            lager:warning("Downlink request ignored. Gateway ~w not connected.", [MAC])
     end,
+    {noreply, State};
+
+handle_cast({downlink_error, MAC, undefined, Error}, State) ->
+    lorawan_utils:throw_error({gateway, MAC}, Error),
+    {noreply, State};
+handle_cast({downlink_error, _MAC, DevAddr, Error}, State) ->
+    lorawan_utils:throw_error({node, DevAddr}, Error),
     {noreply, State}.
 
 
@@ -140,10 +153,12 @@ store_frame({MAC, RxQ, PHYPayload}, Dict) ->
 process_frame(MAC, RxQ, PHYPayload) ->
     case lorawan_mac:process_frame(MAC, RxQ, PHYPayload) of
         ok -> ok;
-        {send, TxQ, PHYPayload2} ->
-            downlink(MAC, TxQ, PHYPayload2);
+        {send, DevAddr, TxQ, PHYPayload2} ->
+            downlink(MAC, DevAddr, TxQ, PHYPayload2);
+        {error, {Object, Error}} ->
+            lorawan_utils:throw_error(Object, Error);
         {error, Error} ->
-            lager:error("ERROR: ~w", [Error])
+            lorawan_utils:throw_error(server, Error)
     end.
 
 % end of file

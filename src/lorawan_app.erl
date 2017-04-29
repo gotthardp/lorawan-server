@@ -16,6 +16,7 @@ start() ->
     {ok, _Started} = application:ensure_all_started(lorawan_server).
 
 start(_Type, _Args) ->
+    ok = ensure_erlang_version(19),
     lorawan_db:ensure_tables(),
     {ok, _} = timer:apply_interval(3600*1000, lorawan_db, trim_tables, []),
 
@@ -43,6 +44,8 @@ start(_Type, _Args) ->
                 [handlers, handler, record_info(fields, handler)]},
             {"/connectors/[:connid]", lorawan_admin_database,
                 [connectors, connector, record_info(fields, connector)]},
+            {"/events/[:evid]", lorawan_admin_database,
+                [events, event, record_info(fields, event)]},
             {"/upload", lorawan_admin_upload, []},
             {"/rgraph/:devaddr", lorawan_admin_rxgraph, [rgraph]},
             {"/qgraph/:devaddr", lorawan_admin_rxgraph, [qgraph]},
@@ -61,5 +64,11 @@ start(_Type, _Args) ->
 stop(_State) ->
     ok = cowboy:stop_listener(http),
     ok.
+
+ensure_erlang_version(Min) ->
+    case list_to_integer(erlang:system_info(otp_release)) of
+        Num when Num >= Min -> ok;
+        _Else -> {error, prerequisite_failed}
+    end.
 
 % end of file

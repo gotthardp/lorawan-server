@@ -16,7 +16,7 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
--record(state, {sock}).
+-record(state, {sock, tokens}).
 
 start_link(PktFwdOpts) ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [PktFwdOpts], []).
@@ -26,7 +26,7 @@ init([PktFwdOpts]) ->
     % The port in the options takes precedence over the one in the first argument.
     case gen_udp:open(0, [binary | PktFwdOpts]) of
         {ok, Socket} ->
-            {ok, #state{sock=Socket}};
+            {ok, #state{sock=Socket, tokens=maps:new()}};
         {error, Reason} ->
             lager:error("Failed to start the packet_forwarder interface: ~w", Reason),
             {stop, Reason}
@@ -35,13 +35,15 @@ init([PktFwdOpts]) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({send, {Host, Port, Version}, TxQ, RFCh, PHYPayload}, #state{sock=Socket}=State) ->
+handle_cast({send, {Host, Port, Version}, DevAddr, TxQ, RFCh, PHYPayload},
+        #state{sock=Socket, tokens=Tokens}=State) ->
     Pk = [{txpk, build_txpk(TxQ, RFCh, PHYPayload)}],
     % lager:debug("<--- ~w", [Pk]),
-    ID = crypto:strong_rand_bytes(2),
+    Token = crypto:strong_rand_bytes(2),
+    {ok, Timer} = timer:send_after(30000, {no_ack, Token}),
     % PULL RESP
-    gen_udp:send(Socket, Host, Port, <<Version, ID/binary, 3, (jsx:encode(Pk))/binary>>),
-    {noreply, State}.
+    gen_udp:send(Socket, Host, Port, <<Version, Token/binary, 3, (jsx:encode(Pk))/binary>>),
+    {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr}, Tokens)}}.
 
 % PUSH DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
@@ -74,7 +76,16 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, _MAC:8/binary>
     {noreply, State};
 
 % TX ACK
-handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
+handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, Data/binary>>},
+        #state{sock=Socket, tokens=Tokens}=State) ->
+    {Opaque, Tokens2} =
+        case maps:take(Token, Tokens) of
+            {{Timer, Opq}, Tkns} ->
+                timer:cancel(Timer),
+                {Opq, Tkns};
+            error ->
+                {undefined, Tokens}
+        end,
     case jsx:is_json(Data) of
         true ->
             Data2 = jsx:decode(Data, [{labels, atom}]),
@@ -83,16 +94,24 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, MAC:8/binary, 
                 undefined -> ok;
                 <<"NONE">> -> ok;
                 Error ->
-                    lager:error("Transmission via ~w failed: ~s", [MAC, Error])
+                    lorawan_gw_router:downlink_error(MAC, Opaque, Error)
             end;
         false ->
             lager:error("Ignored PUSH_DATA: JSON syntax error")
     end,
-    {noreply, State};
+    {noreply, State#state{tokens=Tokens2}};
 
 % something strange
 handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
-    {noreply, State}.
+    {noreply, State};
+
+handle_info({no_ack, Token}, #state{tokens=Tokens}=State) ->
+    case maps:take(Token, Tokens) of
+        {_, Tokens2} ->
+            {noreply, State#state{tokens=Tokens2}};
+        error ->
+            {noreply, State}
+    end.
 
 terminate(Reason, _State) ->
     % record graceful shutdown in the log

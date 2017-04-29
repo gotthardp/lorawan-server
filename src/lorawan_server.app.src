@@ -77,7 +77,8 @@
         {devstat_gap, {86400, 24}},
         % packet_forwarder's push_timeout_ms + transport + deduplication_delay
         {preprocessing_delay, 300},
-        {deduplication_delay, 150}
+        {deduplication_delay, 150},
+        {event_lifetime, 86400}
     ]},
     {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, jsx, iso8601,
         emqttc, lorawan_server_api]}]}.

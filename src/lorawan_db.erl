@@ -68,6 +68,10 @@ ensure_tables() ->
         {handlers, [
             {record_name, handler},
             {attributes, record_info(fields, handler)},
+            {disc_copies, [node()]}]},
+        {events, [
+            {record_name, event},
+            {attributes, record_info(fields, event)},
             {disc_copies, [node()]}]}
     ]).
 
@@ -129,8 +133,8 @@ set_defaults(_Else) ->
     ok.
 
 trim_tables() ->
-    lists:foreach(fun(R) -> trim_rxframes(R) end,
-        mnesia:dirty_all_keys(links)).
+    [trim_rxframes(R) || R <- mnesia:dirty_all_keys(links)],
+    [mnesia:dirty_delete(events, E) || E <- expired_events()].
 
 get_rxframes(DevAddr) ->
     {_, Frames} = get_last_rxframes(DevAddr, 50),
@@ -165,6 +169,13 @@ trim_rxframes(DevAddr) ->
             lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
                 ExpRec)
     end.
+
+expired_events() ->
+    {ok, AgeSeconds} = application:get_env(lorawan_server, event_lifetime),
+    ETime = calendar:gregorian_seconds_to_datetime(
+        calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - AgeSeconds),
+    mnesia:dirty_select(events,
+        [{#event{evid='$1', datetime='$2', _='_'}, [{'=<', '$2', {const, ETime}}], ['$1']}]).
 
 purge_txframes(DevAddr) ->
     [mnesia:dirty_delete_object(txframes, Obj) ||
