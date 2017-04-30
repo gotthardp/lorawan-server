@@ -78,7 +78,7 @@ handle_adr(FOptsIn, Link) ->
             lager:debug("LinkADRReq ~w succeeded", [Link#link.devaddr]),
             Link#link{adr_use=Link#link.adr_set, devstat_fcnt=undefined, last_qs=[]};
         {PowerACK, DataRateACK, ChannelMaskACK} ->
-            lager:warning("LinkADRReq failed: power ~B, datr ~B, chans ~B", [PowerACK, DataRateACK, ChannelMaskACK]),
+            lorawan_utils:throw_warning({node, Link#link.devaddr}, {adr_req_failed, {PowerACK, DataRateACK, ChannelMaskACK}}),
             {TXPower, DataRate, Chans} = Link#link.adr_set,
             % clear the settings that failed
             Link#link{adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
@@ -103,9 +103,11 @@ handle_rxwin(FOptsIn, Link) ->
     case find_rxwin(FOptsIn) of
         {1, 1, 1} ->
             lager:debug("RXParamSetupAns ~w succeeded", [Link#link.devaddr]),
-            Link#link{rxwin_use=Link#link.rxwin_set};
+            {RX1DROffset, _, _} = Link#link.rxwin_set,
+            {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
+            Link#link{rxwin_use={RX1DROffset, RX2DataRate, Frequency}, rxwin_set={RX1DROffset, RX2DataRate, Frequency}};
         {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
-            lager:warning("RXParamSetupAns failed: offset ~B, datr ~B, chan ~B", [RX1DROffsetACK, RX2DataRateACK, ChannelACK]),
+            lorawan_utils:throw_warning({node, Link#link.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),
             {RX1DROffset, RX2DataRate, Frequency} = Link#link.rxwin_set,
             % clear the settings that failed
             Link#link{rxwin_set = {clear_when_zero(RX1DROffset, RX1DROffsetACK), clear_when_zero(RX2DataRate, RX2DataRateACK),
