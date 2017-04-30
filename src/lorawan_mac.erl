@@ -170,7 +170,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs) of
         ok ->
             % transmitting after join accept delay 1
-            TxQ = lorawan_mac_region:rx1_window(Link, RxQ, join1_delay),
+            TxQ = lorawan_mac_region:join1_window(Link, RxQ),
             {RX1DROffset, RX2DataRate, _} = Link#link.rxwin_use,
             txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, Link#link.devaddr);
         {error, Error} -> {error, {{node, Link#link.devaddr}, Error}}
@@ -302,7 +302,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Frame)),
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
-                    TxQ = lorawan_mac_region:rx1_window(Link, RxQ, rx1_delay),
+                    TxQ = lorawan_mac_region:rx1_window(Link, RxQ),
                     {send, Link#link.devaddr, TxQ, LostFrame};
                 {false, _} ->
                     ok
@@ -382,9 +382,9 @@ choose_tx(Link, RxQ) ->
     % transmit as soon as possible
     case erlang:monotonic_time(milli_seconds) - RxQ#rxq.srvtmst of
         Small when Small < Rx1Delay - GwDelay ->
-            lorawan_mac_region:rx1_window(Link, RxQ, rx1_delay);
+            lorawan_mac_region:rx1_window(Link, RxQ);
         _Big ->
-            lorawan_mac_region:rx2_window(Link, RxQ, rx2_delay)
+            lorawan_mac_region:rx2_window(Link, RxQ)
     end.
 
 retransmit_downlink(DevAddr) ->
