@@ -52,7 +52,7 @@ handle_cast({register, MAC, Process, {Host, Port, _}=Target}, #state{pulladdr=Di
         {ok, {Process, Target}} ->
             {noreply, State};
         _Else ->
-            lorawan_utils:throw_info({gateway, MAC}, {at, Host, Port}),
+            lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
             Dict2 = dict:store(MAC, {Process, Target}, Dict),
             {noreply, State#state{pulladdr=Dict2}}
     end;

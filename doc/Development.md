@@ -61,3 +61,15 @@ erl -smp -sname observer -hidden -setcookie MyCookie -run observer
 Please note that nodes allowed to communicate with each other use the same
 **magic cookie**. Make sure that `$HOME/.erlang.cookie` is the same, or
 enter the cookie explicitly by the `-setcookie MyCookie` parameter.
+
+
+## Release Process
+
+First, release the lorawan-server-api
+
+Then, create a new tag
+
+```bash
+git push origin v0.3.0-pre.0
+git tag v0.3.0-pre.0 master
+```

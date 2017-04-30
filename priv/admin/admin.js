@@ -672,7 +672,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         )
         .addCollection(nga.collection(events)
             .fields([
-                nga.field('severity'),
                 nga.field('last_rx', 'datetime').label('Last Occurred'),
                 nga.field('entity'),
                 nga.field('eid')

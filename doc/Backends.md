@@ -3,6 +3,8 @@
 To use this functionality you have to set Device/Node Application to *backend*
 and enter some *Group* name for this device/node.
 
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-handler.png)
+
 ## Handlers
 
 To create a new handler you need to set:

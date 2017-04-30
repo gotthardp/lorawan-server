@@ -25,22 +25,26 @@ throw_error(Entity, Text) ->
     throw_event(error, Entity, undefined, Text).
 
 
-throw_event(Severity, Entity, undefined, Message) ->
-    lager:log(Severity, self(), "~s ~w", [Entity, Message]),
-    write_event(Severity, Entity, undefined, Message);
+throw_event(Severity, Entity, undefined, Event) ->
+    lager:log(Severity, self(), "~s ~w", [Entity, Event]),
+    write_event(Severity, Entity, undefined, Event);
 
-throw_event(Severity, Entity, EID, Message) ->
-    lager:log(Severity, self(), "~s ~s ~w", [Entity, lorawan_mac:binary_to_hex(EID), Message]),
-    write_event(Severity, Entity, EID, Message).
+throw_event(Severity, Entity, EID, Event) ->
+    lager:log(Severity, self(), "~s ~s ~w", [Entity, lorawan_mac:binary_to_hex(EID), Event]),
+    write_event(Severity, Entity, EID, Event).
 
-write_event(Severity, Entity, EID, Message) ->
-    Text = list_to_binary(io_lib:write(Message)),
-    EvId = crypto:hash(md4, term_to_binary({Entity, EID, Text})),
+write_event(Severity, Entity, EID, Event) ->
+    Text = list_to_binary(io_lib:write(Event)),
+    EvId = crypto:hash(md4, term_to_binary({Entity, EID,
+        case Event of
+            {First, _} -> First;
+            Only -> Only
+        end})),
     mnesia:transaction(fun() ->
         case mnesia:read(events, EvId, write) of
             [E] ->
                 mnesia:write(events, E#event{last_rx=calendar:universal_time(),
-                    count=inc(E#event.count)}, write);
+                    count=inc(E#event.count), text=Text}, write);
             [] ->
                 mnesia:write(events, #event{evid=EvId, severity=Severity,
                     first_rx=calendar:universal_time(), last_rx=calendar:universal_time(),

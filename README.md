@@ -46,7 +46,7 @@ However:
 
 The API may change and some functions may not be implemented.
 To ask questions or request features please join the
-[lorawan-server mailing list](mailto:lorawan-server@googlegroups.com).
+[lorawan-server mailing list](https://groups.google.com/forum/#!forum/lorawan-server).
 We will gladly assist you. If you find a bug, you may also
 [add an Issue](https://github.com/gotthardp/lorawan-server/issues/new).
 
@@ -129,7 +129,7 @@ If the "build" icon above is red, please wait few minutes (or hours) until it
 gets green again.
 
 If nothing helps, please contact the
-[lorawan-server mailing list](mailto:lorawan-server@googlegroups.com)
+[lorawan-server mailing list](https://groups.google.com/forum/#!forum/lorawan-server)
 or review the existing
 [issues](https://github.com/gotthardp/lorawan-server/issues) to verify the
 problem was not already reported and then

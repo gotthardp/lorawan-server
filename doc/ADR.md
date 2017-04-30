@@ -7,6 +7,9 @@ be manually defined by the administrator or automatically determined by the serv
 Note this functionality must be also enabled in the device, which is indicated
 by the *Use ADR* parameter.
 
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-adr.png)
+
+
 ## Device Configuration
 
 For each OTAA device you can define what ADR parameters shall be requested when
@@ -20,7 +23,6 @@ the device joins the network:
 See the [Administration Guide](Administration.md) for more details on the
 server administration.
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
 
 ## Node Configuration
 
@@ -46,8 +48,6 @@ If the device does not support (or allow) some of the requested settings, the
 entire request will fail. When a request fails, the requested ADR parameter(s) that
 caused the failure will be cleared (set to empty) and no other parameter will become
 effective.
-
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-link-status.png)
 
 ### Manual ADR
 
