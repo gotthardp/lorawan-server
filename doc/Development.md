@@ -6,6 +6,27 @@ The following figure shows a process hierarchy of the lorawan-server:
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/software-architecture.png)
 
+The LoRaWAN communication is handled by the following modules:
+ * lorawan_gw_forwarder implements the
+   [packet_forwarder protocol](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT)
+ * lorawan_gw_router handles communication to multiple gateways. It performs uplink frame
+   deduplication and downlink gateway selection.
+ * lorawan_mac performs the LoRaWAN frame encoding and encryption.
+ * lorawan_mac_commands implements the LoRaWAN MAC commands, including [ADR](ADR.md)
+   algorithms.
+ * lorawan_mac_regions contains the region specific functions and constants.
+ * lorawan_handler invokes application modules for uplink processing and provides
+   functions for downlink scheduling. This is the interface between the LoRaWAN layer
+   and the application layer of the server.
+
+The [Cowboy HTTP sever](https://ninenines.eu/docs/en/cowboy/2.0/guide/introduction/)
+starts one process for each incoming each connection:
+ * lorawan_admin_... modules provide handlers for the REST API. They interact with
+   the mnesia database only.
+ * lorawan_ws_frames provide handler for the [WebSocket](WebSockets.md) interface.
+   The handler joins a [pg2 process group](http://erlang.org/doc/man/pg2.html)
+   corresponding to the request URI.
+
 
 ## Debugging
 
