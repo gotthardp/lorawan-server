@@ -29,7 +29,7 @@ init0(Req, <<"devices">>, Format, Opts) ->
             Req2 = cowboy_req:reply(404, Req),
             {ok, Req2, undefined}
     end;
-init0(Req, <<"links">>, Format, Opts) ->
+init0(Req, <<"nodes">>, Format, Opts) ->
     DevAddr = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
     case mnesia:dirty_read(links, DevAddr) of
         [Link=#link{app= <<"websocket">>}] ->
@@ -53,9 +53,9 @@ websocket_init(#state{devaddr=undefined, appid=AppID} = State) ->
     ok = pg2:join({?MODULE, groups, AppID}, self()),
     {ok, State};
 websocket_init(#state{devaddr=DevAddr} = State) ->
-    lager:debug("WebSocket to link ~w", [DevAddr]),
-    ok = pg2:create({?MODULE, links, DevAddr}),
-    ok = pg2:join({?MODULE, links, DevAddr}, self()),
+    lager:debug("WebSocket to node ~w", [DevAddr]),
+    ok = pg2:create({?MODULE, nodes, DevAddr}),
+    ok = pg2:join({?MODULE, nodes, DevAddr}, self()),
     {ok, State}.
 
 websocket_handle({text, Msg}, State) ->
@@ -96,7 +96,7 @@ terminate(Reason, _Req, _State) ->
     ok.
 
 get_processes(DevAddr, AppID) ->
-    get_processes0({?MODULE, links, DevAddr}) ++ get_processes0({?MODULE, groups, AppID}).
+    get_processes0({?MODULE, nodes, DevAddr}) ++ get_processes0({?MODULE, groups, AppID}).
 
 get_processes0(Group) ->
     case pg2:get_members(Group) of
