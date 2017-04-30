@@ -19,6 +19,7 @@ start_link(ConnUri, Conn) ->
 
 init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
     {_Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
+    lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
     {ok, C} = emqttc:start_link(lists:append([
         [{host, HostName},
         {port, Port},
@@ -62,6 +63,11 @@ ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{}) ->
         {versions, ['tlsv1.2']}
     ]}].
 
+handle_call(disconnect, _From, State=#state{mqttc=C, ping_timer=Timer}) ->
+    % the disconnected event will not be delivered
+    emqttc:disconnect(C),
+    maybe_cancel_timer(Timer),
+    {stop, normal, ok, State};
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 

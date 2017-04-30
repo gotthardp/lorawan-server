@@ -49,8 +49,9 @@ On the Authentication tab:
 
 ## Azure IoT Hub
 
-Microsoft Azure IoT Hub can be integrated via MQTT. A separate connection is
-needed for each Node.
+Microsoft Azure IoT Hub can be integrated via MQTT. Azure uses per-device credentials
+so you cannot connect multiple devices (each with its own credentials) using the
+same connection. A dedicated Connector is needed for each Node.
 
 First, follow the Azure guidelines to configure your IoT device:
  * Create a new Device, use *Symmetric Key* authentication and let the system to
