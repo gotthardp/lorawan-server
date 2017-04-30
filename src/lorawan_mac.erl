@@ -180,9 +180,8 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
 initial_rxwin({A1, A2, _}, {B1, B2, B3}) ->
     {apply_default(A1, B1), apply_default(A2, B2), B3}.
 
-apply_default(undefined, Default) -> Default;
-apply_default(<<"undefined">>, Default) -> Default; %% temporary db consistency fix, to be removed after some time
-apply_default(Value, _Default) -> Value.
+apply_default(Value, _Default) when is_number(Value) -> Value;
+apply_default(_Else, Default) -> Default.
 
 create_devaddr(NetID) ->
     <<_:17, NwkID:7>> = NetID,
