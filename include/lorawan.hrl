@@ -14,16 +14,18 @@
 -record(handler, {appid, format, parse, build, connid}).
 -record(event, {evid, severity, first_rx, last_rx, count, entity, eid, text}).
 
--define(to_record(Record, List, Default),
-    list_to_tuple([Record|[proplists:get_value(X, List, Default) || X <- record_info(fields, Record)]])).
+-define(to_record(Record, Object, Default),
+    list_to_tuple([Record|[maps:get(X, Object, Default) || X <- record_info(fields, Record)]])).
 
--define(to_record(Record, List), ?to_record(Record, List, undefined)).
+-define(to_record(Record, Object), ?to_record(Record, Object, undefined)).
 
--define(to_proplist(Record, RecData),
-    lists:filter(fun({_, undefined}) -> false;
-                    (_) -> true
-                end,
-        lists:zip(record_info(fields, Record), tl(tuple_to_list(RecData)))
-    )).
+-define(to_map(Record, RecData),
+    maps:from_list(
+        lists:filter(
+            fun ({_, undefined}) -> false;
+                (_) -> true
+            end,
+            lists:zip(record_info(fields, Record), tl(tuple_to_list(RecData)))
+    ))).
 
 % end of file

@@ -104,9 +104,12 @@ send_downlink(AppID, DevAddr, Time, TxData) ->
 parse_uplink(#handler{format = <<"raw">>}, _DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ) ->
     {binary, Data};
 parse_uplink(#handler{format = <<"json">>, parse = Parse}, DevAddr, AppArgs, RxData=#rxdata{port=Port, data=Data}, RxQ) ->
-    Msg = lorawan_admin:build([{devaddr, DevAddr}, {appargs, AppArgs},
-        {datetime, calendar:universal_time()}, {rxq, RxQ},
-        {fields, data_to_fields(Parse, Port, Data)} | ?to_proplist(rxdata, RxData)]),
+    Msg = lorawan_admin:build(
+        maps:merge(
+            ?to_map(rxdata, RxData),
+            #{devaddr => DevAddr, appargs => AppArgs, datetime => calendar:universal_time(),
+                rxq => RxQ, fields => data_to_fields(Parse, Port, Data)}
+        )),
     {text, jsx:encode(Msg)}.
 
 data_to_fields({_, Fun}, Port, Data) when is_function(Fun) ->
@@ -122,16 +125,16 @@ data_to_fields(_Else, _, _) ->
 build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
     case jsx:is_json(Msg) of
         true ->
-            Struct = lorawan_admin:parse(jsx:decode(Msg, [{labels, atom}])),
-            Port = proplists:get_value(port, Struct),
-            Data = proplists:get_value(data, Struct, <<>>),
-            {ok, proplists:get_value(devaddr, Struct),
-                proplists:get_value(time, Struct),
+            Struct = lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])),
+            Port = maps:get(port, Struct, undefined),
+            Data = maps:get(data, Struct, <<>>),
+            {ok, maps:get(devaddr, Struct, undefined),
+                maps:get(time, Struct, undefined),
                 #txdata{
-                    confirmed = proplists:get_value(confirmed, Struct, false),
+                    confirmed = maps:get(confirmed, Struct, false),
                     port = Port,
-                    data = fields_to_data(Build, Port, proplists:get_value(fields, Struct), Data),
-                    pending = proplists:get_value(pending, Struct, false)
+                    data = fields_to_data(Build, Port, maps:get(fields, Struct, undefined), Data),
+                    pending = maps:get(pending, Struct, false)
                 }};
         false ->
             {error, json_syntax_error}

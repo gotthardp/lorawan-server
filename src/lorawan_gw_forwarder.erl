@@ -49,12 +49,13 @@ handle_cast({send, {Host, Port, Version}, DevAddr, TxQ, RFCh, PHYPayload},
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
     case jsx:is_json(Data) of
         true ->
-            Data2 = jsx:decode(Data, [{labels, atom}]),
+            Data2 = jsx:decode(Data, [return_maps, {labels, atom}]),
             % lager:debug("---> ~w", [Data2]),
             lists:foreach(
                 fun ({rxpk, Pk}) -> rxpk(MAC, Pk);
                     ({stat, Pk}) -> status(MAC, Pk)
-                end, Data2),
+                end,
+                maps:to_list(Data2)),
             % PUSH ACK
             gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>);
         false ->
@@ -88,9 +89,9 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
         end,
     case jsx:is_json(Data) of
         true ->
-            Data2 = jsx:decode(Data, [{labels, atom}]),
-            Ack = proplists:get_value(txpk_ack, Data2),
-            case proplists:get_value(error, Ack) of
+            Data2 = jsx:decode(Data, [return_maps, {labels, atom}]),
+            Ack = maps:get(txpk_ack, Data2),
+            case maps:get(error, Ack, undefined) of
                 undefined -> ok;
                 <<"NONE">> -> ok;
                 Error ->
@@ -136,20 +137,20 @@ rxpk(MAC, PkList) ->
             end, PkList)).
 
 parse_rxpk(Pk) ->
-    Data = base64:decode(proplists:get_value(data, Pk)),
-    case proplists:get_value(modu, Pk) of
+    Data = base64:decode(maps:get(data, Pk)),
+    case maps:get(modu, Pk) of
         <<"LORA">> ->
             RxQ = list_to_tuple([rxq|[get_rxpk_field(X, Pk) || X <- record_info(fields, rxq)]]),
             {RxQ, Data}
     end.
 
 get_rxpk_field(time, List) ->
-    case proplists:get_value(time, List) of
+    case maps:get(time, List, undefined) of
         undefined -> undefined;
         Value -> iso8601:parse_exact(Value)
     end;
 get_rxpk_field(Field, List) ->
-    proplists:get_value(Field, List).
+    maps:get(Field, List, undefined).
 
 
 build_txpk(TxQ, RFch, Data) ->

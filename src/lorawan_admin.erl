@@ -6,7 +6,7 @@
 -module(lorawan_admin).
 
 -export([handle_authorization/2]).
--export([parse/1, build/1]).
+-export([parse/1, parse/2, build/1, build/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -28,129 +28,131 @@ user_password(User) ->
         [U] -> U#user.pass
     end.
 
-parse(List) when is_list(List) ->
-    lists:map(fun(Item) -> parse(Item) end,
-        List);
+parse(Object) when is_map(Object) ->
+    maps:map(fun(Key, Value) -> parse(Key, Value) end,
+        Object).
 
-parse({Key, Value}) when Value == null; Value == undefined ->
-    {Key, undefined};
-parse({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
+parse(_Key, Value) when Value == null; Value == undefined ->
+    undefined;
+parse(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                         Key == deveui; Key == appeui; Key == appkey; Key == link;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
-    {Key, lorawan_mac:hex_to_binary(Value)};
-parse({Key, Value}) when Key == severity; Key == entity ->
-    {Key, binary_to_existing_atom(Value, latin1)};
-parse({Key, Value}) when Key == gpspos ->
-    {Key, parse_latlon(Value)};
-parse({Key, Value}) when Key == adr_use; Key == adr_set ->
-    {Key, parse_adr(Value)};
-parse({Key, Value}) when Key == rxwin_use; Key == rxwin_set ->
-    {Key, parse_rxwin(Value)};
-parse({Key, Value}) when Key == rxq; Key == last_rxq ->
-    {Key, ?to_record(rxq, parse(Value))};
-parse({Key, Value}) when Key == txdata ->
-    {Key, ?to_record(txdata, parse(Value))};
-parse({Key, Value}) when Key == last_join; Key == last_reset; Key == datetime;
+    lorawan_mac:hex_to_binary(Value);
+parse(Key, Value) when Key == severity; Key == entity ->
+    binary_to_existing_atom(Value, latin1);
+parse(Key, Value) when Key == gpspos ->
+    parse_latlon(Value);
+parse(Key, Value) when Key == adr_use; Key == adr_set ->
+    parse_adr(Value);
+parse(Key, Value) when Key == rxwin_use; Key == rxwin_set ->
+    parse_rxwin(Value);
+parse(Key, Value) when Key == rxq; Key == last_rxq ->
+    ?to_record(rxq, parse(Value));
+parse(Key, Value) when Key == txdata ->
+    ?to_record(txdata, parse(Value));
+parse(Key, Value) when Key == last_join; Key == last_reset; Key == datetime;
                         Key == devstat_time; Key == first_rx; Key == last_rx ->
-    {Key, iso8601:parse(Value)};
-parse({Key, <<"immediately">>}) when Key == time ->
-    {Key, immediately};
-parse({Key, Value}) when Key == time ->
-    {Key, iso8601:parse_exact(Value)};
-parse({Key, Value}) when Key == devstat ->
-    {Key, parse_devstat(Value)};
-parse({Key, Value}) when Key == last_qs ->
-    {Key, lists:map(fun(Item) -> parse_qs(Item) end, Value)};
-parse({Key, Value}) when Key == average_qs ->
-    {Key, parse_qs(Value)};
-parse({Key, Value}) when Key == build; Key == parse ->
-    {Key, parse_fun(Value)};
-parse(Else) ->
-    Else.
+    iso8601:parse(Value);
+parse(Key, <<"immediately">>) when Key == time ->
+    immediately;
+parse(Key, Value) when Key == time ->
+    iso8601:parse_exact(Value);
+parse(Key, Value) when Key == devstat ->
+    parse_devstat(Value);
+parse(Key, Value) when Key == last_qs ->
+    lists:map(fun(Item) -> parse_qs(Item) end, Value);
+parse(Key, Value) when Key == average_qs ->
+    parse_qs(Value);
+parse(Key, Value) when Key == build; Key == parse ->
+    parse_fun(Value);
+parse(_Key, Value) ->
+    Value.
 
-build(List) when is_list(List) ->
-    lists:foldl(
-        fun
-            % hide very internal fields
-            ({Key, _Value}, A) when Key == srvtmst -> A;
-            (Item, A) -> [build(Item) | A]
-        end, [], List);
+build(Object) when is_map(Object) ->
+    maps:map(
+        fun(Key, Value) -> build(Key, Value) end,
+        maps:filter(
+            fun
+                % hide very internal fields
+                (Key, _Value) when Key == srvtmst -> false;
+                (_, _) -> true
+            end, Object)).
 
-build({Key, undefined}) ->
-    {Key, null};
-build({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
-                            Key == deveui; Key == appeui; Key == appkey; Key == link;
-                            Key == devaddr; Key == nwkskey; Key == appskey;
-                            Key == data; Key == frid; Key == evid; Key == eid ->
-    {Key, lorawan_mac:binary_to_hex(Value)};
-build({Key, Value}) when Key == severity; Key == entity ->
-    {Key, atom_to_binary(Value, latin1)};
-build({Key, Value}) when Key == gpspos ->
-    {Key, build_latlon(Value)};
-build({Key, Value}) when Key == adr_use; Key == adr_set ->
-    {Key, build_adr(Value)};
-build({Key, Value}) when Key == rxwin_use; Key == rxwin_set ->
-    {Key, build_rxwin(Value)};
-build({Key, Value}) when Key == rxq; Key == last_rxq ->
-    {Key, build(?to_proplist(rxq, Value))};
-build({Key, Value}) when Key == txdata ->
-    {Key, build(?to_proplist(txdata, Value))};
-build({Key, immediately}) when Key == time ->
-    {Key, <<"immediately">>};
-build({Key, Value}) when Key == last_join; Key == last_reset; Key == datetime;
-                            Key == devstat_time; Key == time; Key == first_rx; Key == last_rx ->
-    {Key, iso8601:format(Value)};
-build({Key, Value}) when Key == devstat ->
-    {Key, build_devstat(Value)};
-build({Key, Value}) when Key == last_qs ->
-    {Key, lists:map(fun(Item) -> build_qs(Item) end, Value)};
-build({Key, Value}) when Key == average_qs ->
-    {Key, build_qs(Value)};
-build({Key, Value}) when Key == build; Key == parse ->
-    {Key, build_fun(Value)};
-build(Else) ->
-    Else.
+build(_Key, undefined) ->
+    null;
+build(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
+                        Key == deveui; Key == appeui; Key == appkey; Key == link;
+                        Key == devaddr; Key == nwkskey; Key == appskey;
+                        Key == data; Key == frid; Key == evid; Key == eid ->
+    lorawan_mac:binary_to_hex(Value);
+build(Key, Value) when Key == severity; Key == entity ->
+    atom_to_binary(Value, latin1);
+build(Key, Value) when Key == gpspos ->
+    build_latlon(Value);
+build(Key, Value) when Key == adr_use; Key == adr_set ->
+    build_adr(Value);
+build(Key, Value) when Key == rxwin_use; Key == rxwin_set ->
+    build_rxwin(Value);
+build(Key, Value) when Key == rxq; Key == last_rxq ->
+    build(?to_map(rxq, Value));
+build(Key, Value) when Key == txdata ->
+    build(?to_map(txdata, Value));
+build(Key, immediately) when Key == time ->
+    <<"immediately">>;
+build(Key, Value) when Key == last_join; Key == last_reset; Key == datetime;
+                        Key == devstat_time; Key == time; Key == first_rx; Key == last_rx ->
+    iso8601:format(Value);
+build(Key, Value) when Key == devstat ->
+    build_devstat(Value);
+build(Key, Value) when Key == last_qs ->
+    lists:map(fun(Item) -> build_qs(Item) end, Value);
+build(Key, Value) when Key == average_qs ->
+    build_qs(Value);
+build(Key, Value) when Key == build; Key == parse ->
+    build_fun(Value);
+build(_Key, Value) ->
+    Value.
 
 parse_latlon(List) ->
     {parse_opt(lat, List), parse_opt(lon, List)}.
 
 build_latlon({Lat, Lon}) ->
-    [build_opt(lat, Lat), build_opt(lon, Lon)].
+    #{lat => build_opt(Lat), lon => build_opt(Lon)}.
 
 parse_adr(List) ->
     {parse_opt(power, List), parse_opt(datr, List),
-        case proplists:get_value(chans, List, null) of
+        case maps:get(chans, List, null) of
             null -> undefined;
             Val -> text_to_intervals(binary_to_list(Val))
         end}.
 
 build_adr({TXPower, DataRate, Chans}) ->
-    [build_opt(power, TXPower), build_opt(datr, DataRate), {chans,
+    #{power => build_opt(TXPower), datr => build_opt(DataRate), chans =>
         case Chans of
             undefined -> null;
             Val -> list_to_binary(intervals_to_text(Val))
-        end}].
+        end}.
 
 parse_rxwin(List) ->
     {parse_opt(rx1_dr_offset, List),
         parse_opt(rx2_dr, List), parse_opt(rx2_freq, List)}.
 
 build_rxwin({RX1DROffset, RX2DataRate, Frequency}) ->
-    [build_opt(rx1_dr_offset, RX1DROffset),
-        build_opt(rx2_dr, RX2DataRate), build_opt(rx2_freq, Frequency)].
+    #{rx1_dr_offset => build_opt(RX1DROffset),
+        rx2_dr => build_opt(RX2DataRate), rx2_freq => build_opt(Frequency)}.
 
 parse_devstat(List) ->
     {parse_opt(battery, List), parse_opt(margin, List)}.
 
 build_devstat({Battery, Margin}) ->
-    [build_opt(battery, Battery), build_opt(margin, Margin)].
+    #{battery => build_opt(Battery), margin => build_opt(Margin)}.
 
 parse_qs(List) ->
     {parse_opt(rssi, List), parse_opt(snr, List)}.
 
 build_qs({RSSI, SNR}) ->
-    [build_opt(rssi, RSSI), build_opt(snr, SNR)].
+    #{rssi => build_opt(RSSI), snr => build_opt(SNR)}.
 
 parse_fun(Code) ->
     % try to parse the function
@@ -162,14 +164,13 @@ parse_fun(Code) ->
 build_fun({Code, _Fun}) ->
     Code.
 
-build_opt(Field, undefined) -> {Field, null};
-build_opt(Field, <<"undefined">>) -> {Field, null}; %% temporary db consistency fix, to be removed after some time
-build_opt(Field, Value) -> {Field, Value}.
+build_opt(undefined) -> null;
+build_opt(<<"undefined">>) -> null; %% temporary db consistency fix, to be removed after some time
+build_opt(Value) -> Value.
 
 parse_opt(Field, List) ->
-    case proplists:get_value(Field, List) of
+    case maps:get(Field, List, undefined) of
         null -> undefined;
-        undefined -> undefined;
         Value -> Value
     end.
 

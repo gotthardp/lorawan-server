@@ -26,7 +26,7 @@ init(Req, [Table, Record, Fields, Module]) ->
     init0(Req, Table, Record, Fields, Module).
 
 init0(Req, Table, Record, Fields, Module) ->
-    {_, Key} = lorawan_admin:parse({hd(Fields), cowboy_req:binding(hd(Fields), Req)}),
+    Key = lorawan_admin:parse(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
     {cowboy_rest, Req, #state{table=Table, record=Record, fields=Fields, key=Key, module=Module}}.
 
 is_authorized(Req, State) ->
@@ -67,19 +67,19 @@ sort(Req, List) ->
             Field2 = binary_to_existing_atom(Field, latin1),
             lists:sort(
                 fun(A,B) ->
-                    proplists:get_value(Field2, A) =< proplists:get_value(Field2, B)
+                    maps:get(Field2, A, undefined) =< maps:get(Field2, B, undefined)
                 end, List);
         #{'_sortDir' := <<"DESC">>, '_sortField' := Field} ->
             Field2 = binary_to_existing_atom(Field, latin1),
             lists:sort(
                 fun(A,B) ->
-                    proplists:get_value(Field2, A) >= proplists:get_value(Field2, B)
+                    maps:get(Field2, A, undefined) >= maps:get(Field2, B, undefined)
                 end, List)
     end.
 
 read_records(Req, #state{table=Table, record=Record, fields=Fields, module=Module}=State) ->
     Filter = apply(Module, parse, [get_filters(Req)]),
-    Match = list_to_tuple([Record|[proplists:get_value(X, Filter, '_') || X <- Fields]]),
+    Match = list_to_tuple([Record|[maps:get(X, Filter, '_') || X <- Fields]]),
     lists:map(
         fun(Rec)-> build_record(Rec, State) end,
         mnesia:dirty_select(Table, [{Match, [], ['$_']}])).
@@ -87,15 +87,18 @@ read_records(Req, #state{table=Table, record=Record, fields=Fields, module=Modul
 get_filters(Req) ->
     case cowboy_req:match_qs([{'_filters', [], <<"{}">>}], Req) of
         #{'_filters' := Filter} ->
-            jsx:decode(Filter, [{labels, atom}])
+            jsx:decode(Filter, [return_maps, {labels, atom}])
     end.
 
 build_record(Rec, #state{fields=Fields, module=Module}) ->
     apply(Module, build, [
-        lists:filter(fun({_, undefined}) -> false;
-                        (_) -> true
-                     end,
-            lists:zip(Fields, tl(tuple_to_list(Rec))))]).
+        maps:from_list(
+            lists:filter(
+                fun ({_, undefined}) -> false;
+                    (_) -> true
+                end,
+                lists:zip(Fields, tl(tuple_to_list(Rec)))))
+        ]).
 
 content_types_accepted(Req, State) ->
     {[
@@ -106,7 +109,7 @@ handle_write(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case jsx:is_json(Data) of
         true ->
-            import_records(jsx:decode(Data, [{labels, atom}]), State),
+            import_records(jsx:decode(Data, [return_maps, {labels, atom}]), State),
             {true, Req2, State};
         false ->
             lager:debug("Bad JSON in HTTP request"),
@@ -114,14 +117,14 @@ handle_write(Req, State) ->
     end.
 
 import_records([], _State) -> ok;
-import_records([First|Rest], State) when is_list(First) ->
+import_records([First|Rest], State) ->
     write_record(First, State),
     import_records(Rest, State);
-import_records([First|_Rest] = List, State) when is_tuple(First) ->
-    write_record(List, State).
+import_records(Object, State) when is_map(Object) ->
+    write_record(Object, State).
 
 write_record(List, #state{table=Table, record=Record, fields=Fields, module=Module}) ->
-    Rec = list_to_tuple([Record|[proplists:get_value(X, apply(Module, parse, [List])) || X <- Fields]]),
+    Rec = list_to_tuple([Record|[maps:get(X, apply(Module, parse, [List]), undefined) || X <- Fields]]),
     mnesia:transaction(fun() ->
         ok = mnesia:write(Table, Rec, write) end).
 
