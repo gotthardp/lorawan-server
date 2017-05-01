@@ -20,7 +20,7 @@ the device joins the network:
  - **Set Channels** defines the set of channels to be used. The channels are given
    as a comma-separated list of interfaces, e.g. `0-2` (for EU) or `0-71` (for US).
 
-See the [Administration Guide](Administration.md) for more details on the
+See the [Device Administration](Devices.md) guide for more details on the
 server administration.
 
 
@@ -28,9 +28,9 @@ server administration.
 
 After a device joins the network the server requests the ADR parameters specified
 in the Device ADR configuration explained above. These become the new requested
-Node parameters, regardless of any previous settings.
+Node ADR parameters, regardless of any previous settings.
 
-The requested Node parameters are however not affected by a reset of ABP devices.
+Note that the requested Node parameters are not affected by an ABP device reset.
 
 The server administration also displays the currently used ADR settings:
  - **Used ADR** indicates whether the node can do ADR;

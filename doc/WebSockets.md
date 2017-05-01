@@ -16,7 +16,7 @@ Multiple parallel connections may be established to one URL.
 When the device sends a frame, all connected clients will receive the application data.
 Any of the clients may then send a response back. If multiple clients send data to
 the device the frames will be enqueued and sent one by one. The enqueued *Downlinks*
-can be viewed via the [Administration interface](Administration.md).
+can be viewed via the [Node Administration](Nodes.md) page.
 
   Format             | Behaviour
  --------------------|--------------------------------------------------------------------
@@ -86,7 +86,7 @@ go to **about:config** and set **network.websocket.timeout.ping.request** to (fo
 ## Demo page
 
 Demo client is available at [`admin/ws.html`](../priv/admin/ws.html). Select the
-target device or a group (DevEUI, DevAddr or AppID) and the desired format (Raw or JSON)
+target device or a group (DevEUI, DevAddr or Group) and the desired format (Raw or JSON)
 and establish a WebSocket connection.
 The page will display data received from the device and allow you to send data back.
 

@@ -39,6 +39,8 @@ parse({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     {Key, lorawan_mac:hex_to_binary(Value)};
+parse({Key, Value}) when Key == severity; Key == entity ->
+    {Key, binary_to_existing_atom(Value, latin1)};
 parse({Key, Value}) when Key == gpspos ->
     {Key, parse_latlon(Value)};
 parse({Key, Value}) when Key == adr_use; Key == adr_set ->
@@ -82,6 +84,8 @@ build({Key, Value}) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                             Key == devaddr; Key == nwkskey; Key == appskey;
                             Key == data; Key == frid; Key == evid; Key == eid ->
     {Key, lorawan_mac:binary_to_hex(Value)};
+build({Key, Value}) when Key == severity; Key == entity ->
+    {Key, atom_to_binary(Value, latin1)};
 build({Key, Value}) when Key == gpspos ->
     {Key, build_latlon(Value)};
 build({Key, Value}) when Key == adr_use; Key == adr_set ->

@@ -96,7 +96,9 @@ By default you can access the administration at http://*server*:8080, using
 
 You can integrate lorawan-server with external applications using the WebSocket
 interface as described in the [WebSocket Guide](doc/WebSockets.md), or using MQTT
-as described in the [Backend Administration](doc/Backends.md).
+as described in the [Backend Administration](doc/Backends.md). Instructions on
+how to integrate with some major clouds such as AWS or Azure are provided in the
+[Integration Guide](Integration.md).
 
 You can also use the internal web server and develop internal applications, which
 may offer custom REST APIs. The lorawan-server is designed to be highly extensible.
@@ -104,8 +106,8 @@ I encourage you to [Learn You Some Erlang](http://learnyousomeerlang.com/introdu
 and develop your own modules.
 
 To implement an internal application you need to create a new module implementing the
-`lorawan_application` behaviour as described in the [Development Guide](doc/Development.md)
-and [Custom Application Guide](doc/Applications.md).
+`lorawan_application` behaviour as described in the
+[Custom Application Guide](doc/Applications.md) and [Development Guide](doc/Development.md).
 
 ### Troubleshooting
 [![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)

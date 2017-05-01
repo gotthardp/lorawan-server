@@ -34,6 +34,16 @@ This may be due to:
  * Firewall misconfiguration. Check the server firewall does not block the port 1680.
    See [Installation Instructions](Installation.md) for configuration guidelines.
 
+### Join request received, but no further frames
+
+This is usually because the downlink frame including the Join response was not sent or
+received by the device.
+
+This may be because:
+ * Gateway error. Check for any error in your gateway log file.
+ * The device did not listen on the channel (frequency) used by the server. Verify
+   your device listens in the RX1 window.
+
 ### unknown_mac
 
 The gateway *MAC* is not correctly configured.

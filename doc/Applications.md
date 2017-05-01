@@ -75,8 +75,8 @@ shall return either `ok` or `{error, error_description}`.
 
 The `handle_rx/5` will be called upon reception of a LoRaWAN frame:
   * *DevAddr* is the 4-byte device address
-  * *AppID* is an application-specific identifier
-  * *AppArgs* is an opaque value assigned to the device
+  * *AppID* is an application-specific device group or behaviour
+  * *AppArgs* is an opaque string with application-specific settings
   * *RxData* is the #rxdata{} record with:
     * *fcnt*
     * *port* number

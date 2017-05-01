@@ -9,7 +9,7 @@ using the over-the-air activation (OTAA) or have been activated-by-personalizati
 
 ## General
 
-Nodes are active devices. For each network node you can set:
+For each active network Node you can set:
  * *DevAddr* of the node
  * *Region* that determines the LoRaWAN regional parameters
  * *Application* identifier corresponding to one of the [Applications](Applications.md) configured.
@@ -23,9 +23,10 @@ The *US 902-928MHz* region allows a private *hybrid* mode introduced by
 This is useful when you want to split the radio spectrum to 8 different sub-bands,
 but it requires custom device firmware.
 
-The *Downlinks* table lists frames created by the application, which are scheduled for
+The *Downlinks* table contains frames created by the application, which are scheduled for
 transmission. Class A devices listen for downlinks only for 2 seconds after an uplink
-transmission, so it may take a while until all messages are transmitted.
+transmission, so it may take a while until all messages are transmitted. Class C
+downlinks are not listed there as these are scheduled immediately.
 
 
 ## ADR

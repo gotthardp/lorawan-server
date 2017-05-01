@@ -88,6 +88,24 @@ http://server:8080/rxframes?_page=2&_perPage=20
 The server also inserts the HTTP header `X-Total-Count` indicating the total item count.
 
 
+## Proxy Configuration
+
+When the lorawan-server is installed behind a HTTP proxy you may need to adjust
+the proxy configuration as follows.
+
+### Apache HTTP
+
+```ApacheConf
+<VirtualHost *:80>
+    ProxyPass        /ws  ws://localhost:8080/ws
+    ProxyPass        /    http://localhost:8080/
+    ProxyPassReverse /    http://localhost:8080/
+    ProxyPreserveHost On
+    ServerName lorawan.example.com
+</VirtualHost>
+```
+
+
 ## Backup and Restore
 
 Use the `dbexport` script to backup your list of users, gateways, devices and nodes.

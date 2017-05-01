@@ -3,7 +3,8 @@
 ## Generic MQTT Server
 
 You can integrate with generic MQTT server, e.g. the
-[RabbitMQ](https://www.rabbitmq.com/mqtt.html).
+[RabbitMQ](https://www.rabbitmq.com/mqtt.html) or
+[Mosquitto](https://mosquitto.org).
 
 Open the lorawan-server web-administration and create a Backend Connector:
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
@@ -87,7 +88,7 @@ you consult the following Adafruit articles:
  * [MQTT, AdafruitIO & You!](https://learn.adafruit.com/mqtt-adafruit-io-and-you)
 
 Once your Adafruit account, dashboards and feeds are set up, go to the
-lorawan-server web-administration and create an Applications->Connector:
+lorawan-server web-administration and create a Backends->Connector:
  * *URI* - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
  * *Published Topic* - Name of the topic you will be publishing to in the form
    `YourUserName/feeds/YourFeed`.
@@ -100,6 +101,6 @@ On the Authentication tab:
    * *Name* - Your Adafruit account name (see the last article in the list above).
    * *Password/Key* - Your Adafruit Key, NOT your account password (see above).
 
-After all of this is ready, you may select this Handler as a *Group* in your
-*Devices* or *Nodes* configuration pages. And **don't forget** to set your *Application*
+After all of this is ready, you need to select this Handler as a *Group* on your
+*Devices* or *Nodes* configuration page. And **don't forget** to set your *Application*
 field to **backend** there.

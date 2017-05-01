@@ -25,7 +25,7 @@ For example:
 
 ```erlang
 fun(_Port, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
-  [{led, LED}, {pressure, Press}, {temp, Temp/100}, {alt_bar, AltBar}, {batt, Batt}]
+  #{led => LED, pressure => Press, temp => Temp/100, alt_bar => AltBar, batt => Batt}
 end.
 ```
 
@@ -36,10 +36,10 @@ with two parameters, which gets an
 [Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping)
 and returns
 [binary data](http://erlang.org/doc/programming_examples/bit_syntax.html).
-If you send `{"fields":1}`, you can have a function like this:
+If you send `{"fields":{"led":1}}`, you can have a function like this:
 
 ```erlang
-fun(_Port, LED) ->
+fun(_Port, #{led := LED}) ->
   <<LED>>
 end.
 ```
@@ -69,6 +69,9 @@ On the Authentication tab:
 To include node-specific attributes the topics may include following patterns:
  * `{devaddr}` that matches the DevAddr of the node
  * `{group}` that matches the node group
+
+If the Connector is *Enabled* and a *Subscribe* topic is defined the server will
+automatically connect to the MQTT broker and subscribe this topic.
 
 Please read the [Integration Guide](Integration.md) for detailed information on
 how to connect to a generic MQTT server like RabbitMQ, AWS IoT, Azure IoT Hub or

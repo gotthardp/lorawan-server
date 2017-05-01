@@ -633,6 +633,22 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('text', 'wysiwyg')
     ])
     .sortField('last_rx');
+    events.listView().filters([
+        nga.field('severity', 'choice')
+            .choices([
+                { value: 'error', label: 'error' },
+                { value: 'warning', label: 'warning' },
+                { value: 'info', label: 'info' }
+            ]),
+        nga.field('entity', 'choice')
+            .choices([
+                { value: 'server', label: 'server' },
+                { value: 'gateway', label: 'gateway' },
+                { value: 'device', label: 'device' },
+                { value: 'node', label: 'node' }
+            ]),
+        nga.field('eid')
+    ]);
     // add to the admin application
     admin.addEntity(events);
 
