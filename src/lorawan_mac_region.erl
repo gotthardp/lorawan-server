@@ -6,7 +6,7 @@
 -module(lorawan_mac_region).
 
 -export([join1_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_group/1]).
--export([default_adr/1, default_rxwin/1, max_adr/1, default_erp/1]).
+-export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -255,15 +255,15 @@ max_adr(<<"AU915-928">>) -> {10, 4};
 max_adr(<<"CN470-510">>) -> {7, 6};
 max_adr(<<"KR920-923">>) -> {6, 5}.
 
-% default power for downlinks (dBm)
-default_erp(<<"EU863-870">>) -> 14;
-default_erp(<<"US902-928">>) -> 20;
-default_erp(<<"US902-928-PR">>) -> 20;
-default_erp(<<"CN779-787">>) -> 10;
-default_erp(<<"EU433">>) -> 10;
-default_erp(<<"AU915-928">>) -> 20;
-default_erp(<<"CN470-510">>) -> 14;
-default_erp(<<"KR920-923">>) -> 14.
+% {default, maximal} power for downlinks (dBm)
+eirp_limits(<<"EU863-870">>) -> {14, 20};
+eirp_limits(<<"US902-928">>) -> {20, 26};
+eirp_limits(<<"US902-928-PR">>) -> {20, 26};
+eirp_limits(<<"CN779-787">>) -> {10, 10};
+eirp_limits(<<"EU433">>) -> {10, 10};
+eirp_limits(<<"AU915-928">>) -> {20, 26};
+eirp_limits(<<"CN470-510">>) -> {14, 17};
+eirp_limits(<<"KR920-923">>) -> {14, 23}.
 
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};

@@ -29,16 +29,18 @@ uplinks(PkList) ->
     gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
 downlink(MAC, DevAddr, TxQ, PHYPayload) ->
+    {EIRPdef, EIRPmax} = lorawan_mac_region:eirp_limits(TxQ#txq.region),
     [Gateway] = mnesia:dirty_read(gateways, MAC),
-    Power = case Gateway#gateway.tx_powe of
-        undefined -> lorawan_mac_region:default_erp(TxQ#txq.region);
-        Num -> Num
-    end,
-    gen_server:cast({global, ?MODULE}, {downlink, MAC, DevAddr, TxQ#txq{powe=Power}, Gateway#gateway.tx_rfch, PHYPayload}).
+    Power = value_or_default(Gateway#gateway.tx_powe, EIRPdef),
+    Gain = value_or_default(Gateway#gateway.ant_gain, 0),
+    gen_server:cast({global, ?MODULE}, {downlink, MAC, DevAddr,
+        TxQ#txq{powe=erlang:min(Power, EIRPmax-Gain)}, Gateway#gateway.tx_rfch, PHYPayload}).
 
 downlink_error(MAC, Opaque, Error) ->
     gen_server:cast({global, ?MODULE}, {downlink_error, MAC, Opaque, Error}).
 
+value_or_default(Num, _Def) when is_number(Num) -> Num;
+value_or_default(_Num, Def) -> Def.
 
 init([]) ->
     process_flag(trap_exit, true),

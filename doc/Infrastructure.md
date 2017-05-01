@@ -8,12 +8,14 @@ For each LoRaWAN gateway you can set and view:
  * *NetID* of the network
  * *TX Chain* identifies the gateway "RF chain" used for downlinks; usually 0
  * *TX Power (dBm)* defines transmission power for downlinks
- * *Antenna Gain (dBi)* can be set to calculate the Equivalent Isotropic Radiated
-   Power (EIRP), which is equivalent to *TX Power (dBm)* * *Antenna Gain (dBi)*.
- * *Description*
+ * *Antenna Gain (dBi)* can be set to ensure the *TX Power* + *Antenna Gain*
+   is below the maximal allowed Equivalent Isotropic Radiated Power (EIRP).
+ * *Description* for your convenience
  * *Last RX* contains a timestamp of the last received packet. A gateway is
    considered dead if it didn't sent anything for more than 60 seconds.
  * *Location* and *Altitude* of the gateway
+
+The gateway power is a minimum of *TX Power* and (max EIRP - *Antenna Gain*).
 
 
 ## Multicast Channels
