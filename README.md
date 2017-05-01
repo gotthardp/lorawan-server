@@ -54,6 +54,7 @@ We will gladly assist you. If you find a bug, you may also
 ## Documentation
 
 The lorawan-server includes all functions required to run a private LoRa network.
+It integrates your LoRaWAN network directly with your backend IT systems.
 The server is provided as a comprehensive package with a single configuration file
 and a single administration tool.
 You only need to install the [Erlang/OTP](http://www.erlang.org) 19 or later.
