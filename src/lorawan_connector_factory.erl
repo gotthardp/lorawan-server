@@ -110,6 +110,7 @@ init_connector(Conn) ->
             ets:insert(?TABLE_ID, {Conn#connector.connid, Pid}),
             {ok, Pid};
         Error ->
+            lager:error("Cannot connect ~w: ~w", [Conn#connector.connid, Error]),
             Error
     end.
 

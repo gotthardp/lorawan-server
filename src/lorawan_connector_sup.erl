@@ -17,9 +17,18 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 start_child(Conn) ->
-    {ok, ConnUri} = parse_uri(Conn#connector.uri),
-    Module = uri_handler(ConnUri),
-    % connect
+    case parse_uri(Conn#connector.uri) of
+        {ok, {mqtt, _, _, _, _, _} = ConnUri} ->
+            connect(lorawan_connector_mqtt, ConnUri, Conn);
+        {ok, {mqtts, _, _, _, _, _} = ConnUri} ->
+            connect(lorawan_connector_mqtt, ConnUri, Conn);
+        {ok, _Else} ->
+            {error, not_supported};
+        {error, Error} ->
+            {error, Error}
+    end.
+
+connect(Module, ConnUri, Conn) ->
     supervisor:start_child(?SERVER, {Conn#connector.connid,
         {Module, start_link, [ConnUri, Conn]},
         transient, 5000, worker, [Module]}).
@@ -35,8 +44,5 @@ parse_uri(Uri) when is_binary(Uri) ->
 
 parse_uri(Uri) when is_list(Uri) ->
     http_uri:parse(Uri, [{scheme_defaults, [{mqtt, 1883}, {mqtts, 8883}]}]).
-
-uri_handler({mqtt, _, _, _, _, _}) -> lorawan_connector_mqtt;
-uri_handler({mqtts, _, _, _, _, _}) -> lorawan_connector_mqtt.
 
 % end of file
