@@ -565,7 +565,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('uri').label('URI')
             .attributes({ placeholder: 'e.g. mqtt://server:8883' })
-            .validation({ required: true }),
+            .validation({ required: true, pattern: '^(mqtt)s?:\/\/[^\/?#]+[^?#]*' }),
         nga.field('published').label('Published Topic'),
         nga.field('subscribe').label('Subscribe'),
         nga.field('consumed').label('Consumed Topic'),
