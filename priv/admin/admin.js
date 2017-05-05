@@ -536,6 +536,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('port', 'number'),
         nga.field('data')
+            .template(function(entry){
+                return "<div title='[ASCII] " + hextoascii(entry.values.data) + "'>" + entry.values.data + "</div>"
+            })
     ])
     .sortField('datetime');
     rxframes.listView().filters([
@@ -745,6 +748,19 @@ function timeyoung(value, deltas) {
     var x1 = new Date();
     var x2 = new Date(value);
     return x1.getTime() - x2.getTime() < deltas*1000;
+}
+
+function hextoascii(val) {
+    var hex  = val.toString();
+    var str = '';
+    for (var n = 0; n < hex.length; n += 2) {
+        var char = parseInt(hex.substr(n, 2), 16);
+        if(char >= 0x20 && char <= 0x7E)
+            str += String.fromCharCode(char);
+        else
+            str += '.';
+    }
+    return str;
 }
 
 function createWithTabsTemplate(list) {
