@@ -10,9 +10,16 @@ must correspond to the Handler *Group* name.
 
 To create a new handler you need to set:
  * *Group* name
- * *Format* to either *Raw* content or *JSON*
+ * *Format* of the message payload, which can be:
+   * *Raw* to receive and send raw application data only, without ant port numbers nor flags.
+   * *JSON* to use the JSON structures described in the [JSON Payload](JSON.md) documentation.
  * *Parse Uplink* and *Build Downlink* functions (for the JSON format only)
  * *Connector* identifier (see the next chapter)
+
+If the *Connector* is not defined, this Handler will be applied to
+[WebSocket](WebSockets.md) connections only.
+
+### Parse Uplink
 
 The *Parse Uplink* is an Erlang function that converts a binary to a list that
 gets JSON encoded into the `fields` attribute. It shall be a
@@ -30,6 +37,29 @@ fun(_Port, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>
 end.
 ```
 
+The `<<A, B, C>>` is a binary pattern, where A, B, C are "variables" corresponding
+to the values encoded in the binary. Erlang matches the incoming binary data against
+this pattern and fills the "variables" with the values in the binary. Here are some
+examples:
+ * <<A>> matches 1 value, 1 byte long.
+ * <<A, B>> matches 2 values, each 1 byte long.
+ * <<A:16>> matches 1 unsigned int value, 2 bytes long in big-endian
+ * <<A:16/little-signed-integer>> matches 1 signed int valuem 2 byes long in little-endian
+ * <<A:2/binary>> matches an array of 2 bytes
+
+To match a variable sized array of bytes you can do:
+
+```erlang
+fun(_Port, <<Count, Data:Count/binary>>) ->
+  #{data => binary_to_list(Data)}
+end.
+```
+
+Once you have the variables, you put them in a structure that gets encoded in JSON.
+The `#{name1 => A, name2 => B, name3 => C}` creates a JSON `{"name1":A, "name2":B, "name3":C}`.
+
+### Build Downlink
+
 *Build Downlink* works in the opposite direction. It takes whatever is in the
 "fields" attribute and converts that into a binary. It shall be a
 [Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
@@ -42,6 +72,18 @@ If you send `{"fields":{"led":1}}`, you can have a function like this:
 ```erlang
 fun(_Port, #{led := LED}) ->
   <<LED>>
+end.
+```
+
+The `#{name1 := A, name2 := B, name3 := C}` matches a JSON structure
+`{"name1":A, "name2":B, "name3":C}`. The order is not significant, but all
+fields are mandatory.
+
+To build a variable sized array you can do:
+
+```erlang
+fun(_Port, #{data := Data}) ->
+  <<(length(Data)), (list_to_binary(Data))/binary>>
 end.
 ```
 

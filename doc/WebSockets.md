@@ -1,7 +1,8 @@
 # WebSocket Interface
 
 To enable the WebSocket interface for a specific device you need to set the Device
-or Node Application to `websocket`.
+or Node **Application** to `websocket`. You may also set the **Group** name as
+explained below.
 
 To connect to the WebSocket, open URL `ws://server:8080/ws/<Type>/<Name>/<Format>`. The
 URL is used to select both the target device(s) as well as the desired format.
@@ -10,7 +11,7 @@ URL is used to select both the target device(s) as well as the desired format.
  --------------------|--------------------------------------------------------------------
   /devices/*123*/... | Connects to a device with a DevEUI=*123*.
   /nodes/*456*/...   | Connects to an active node with a DevAddr=*456*.
-  /groups/*ABC*/...  | Connects to all websocket devices whose **AppID** is set to *ABC*.
+  /groups/*ABC*/...  | Connects to all websocket devices whose **Group** name is set to *ABC*.
 
 Multiple parallel connections may be established to one URL.
 When the device sends a frame, all connected clients will receive the application data.
@@ -20,52 +21,15 @@ can be viewed via the [Node Administration](Nodes.md) page.
 
   Format             | Behaviour
  --------------------|--------------------------------------------------------------------
-  .../raw            | Transmits the application data only, no port numbers nor flags.
-  .../json           | Transmits JSON structures.
+  .../raw            | Transmits the raw application data only, no port numbers nor flags.
+  .../json           | Transmits JSON structures described in the [JSON Payload](JSON.md) documentation.
 
 For example, `ws://127.0.0.1:8080/ws/nodes/11223344/json` connects to the DevAddr *11223344*
 using the JSON format.
 
-The JSON structure the server sends to clients contains the following fields:
-
-  Field       | Type        | Explanation
- -------------|-------------|-------------------------------------------------------------
-  devaddr     | Hex String  | DevAddr of the active node.
-  appargs     | Any         | Application arguments for this node.
-  port        | Integer     | LoRaWAN port number.
-  fcnt        | Integer     | Received frame sequence number.
-  data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
-  fields      | Object      | Payload decoded by a corresponding [backend handler](Backends.md).
-  shall_reply | Boolean     | Whether the server has to send a downlink message.
-  last_lost   | Boolean     | Whether the previous confirmed downlink was lost.
-  datetime    | ISO 8601    | Timestamp using the server clock.
-  rxq         | Object      | Indicators of the reception quality.
-
-For example:
-```json
-    {"devaddr":"11223344", "port":2, "fcnt":58, "data":"0125D50B020BA23645F1A90BDDEE0004",
-        "shall_reply":false, "last_lost":false,
-        "rxq":{"lsnr":9.2,"rssi":-53,"tmst":3127868932,"codr":"4/5","datr":"SF12BW125","freq":868.3}}
-```
-
-The client may send back to the server a JSON structure with the following fields:
-
-  Field       | Type        | Explanation
- -------------|-------------|-------------------------------------------------------------
-  devaddr     | Hex String  | DevAddr of the active node.
-  port        | Integer     | LoRaWAN port number. If not specified for Class A, the port number of last uplink will be used. Mandatory for Class C.
-  data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
-  fields      | Object      | Payload to be encoded by a corresponding [backend handler](Backends.md).
-  confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
-  pending     | Boolean     | Whether the application has more to send (false by default).
-  time        | ISO 8601    | Requested downlink time or `immediately` (for class C devices only).
-
-For example:
-```json
-    {"devaddr":"11223344", "data":"0026BF08BD03CD35000000000000FFFF", "confirmed":true}
-    {"data":"00", "port":2, "time":"2017-03-04T21:05:30.2000"}
-    {"data":"00", "port":2, "time":"immediately"}
-```
+The [Backend Handlers](Backends.md) are applicable also to WebSockets. If a JSON handler
+is defined for the Device / Node *Group* the *Parse Uplink* and *Build Downlink* functions
+are invoked to handle the "fields" attribute.
 
 
 ## Keep-alive
@@ -82,6 +46,7 @@ To keep the connection open for a longer time:
 The **ping** frames may not be enabled by default. To enable **ping** frames in Firefox,
 go to **about:config** and set **network.websocket.timeout.ping.request** to (for example)
 120 (seconds).
+
 
 ## Demo page
 
