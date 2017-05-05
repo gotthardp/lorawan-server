@@ -41,11 +41,11 @@ The `<<A, B, C>>` is a binary pattern, where A, B, C are "variables" correspondi
 to the values encoded in the binary. Erlang matches the incoming binary data against
 this pattern and fills the "variables" with the values in the binary. Here are some
 examples:
- * <<A>> matches 1 value, 1 byte long.
- * <<A, B>> matches 2 values, each 1 byte long.
- * <<A:16>> matches 1 unsigned int value, 2 bytes long in big-endian
- * <<A:16/little-signed-integer>> matches 1 signed int valuem 2 byes long in little-endian
- * <<A:2/binary>> matches an array of 2 bytes
+ * `<<A>>` matches 1 value, 1 byte long.
+ * `<<A, B>>` matches 2 values, each 1 byte long.
+ * `<<A:16>>` matches 1 unsigned int value, 2 bytes long in big-endian
+ * `<<A:16/little-signed-integer>>` matches 1 signed int value, 2 byes long in little-endian
+ * `<<A:2/binary>>` matches an array of 2 bytes
 
 To match a variable sized array of bytes you can do:
 
@@ -55,7 +55,7 @@ fun(_Port, <<Count, Data:Count/binary>>) ->
 end.
 ```
 
-Once you have the variables, you put them in a structure that gets encoded in JSON.
+Once you have the matched variables, you put them in a structure that gets encoded in JSON.
 The `#{name1 => A, name2 => B, name3 => C}` creates a JSON `{"name1":A, "name2":B, "name3":C}`.
 
 ### Build Downlink
@@ -78,6 +78,9 @@ end.
 The `#{name1 := A, name2 := B, name3 := C}` matches a JSON structure
 `{"name1":A, "name2":B, "name3":C}`. The order is not significant, but all
 fields are mandatory.
+
+The binary is then built using similar approach as the pattern matching
+explained above. For example, `<<A, B, C>>` builds a binary of three 1-byte integers.
 
 To build a variable sized array you can do:
 
