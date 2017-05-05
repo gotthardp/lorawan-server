@@ -1,7 +1,8 @@
 # Backend Administration
 
 To use this functionality you have to set Device/Node Application to *backend*
-and enter some *Group* name for this device/node.
+and enter some *Group* name for this device/node. The device/node *Group*
+must correspond to the Handler *Group* name.
 
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-handler.png)
 
