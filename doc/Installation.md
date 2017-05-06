@@ -9,7 +9,7 @@ This document describes how to build, install and configure the lorawan-server.
 On the Debian Linux and its clones like Raspbian you can use the .deb package.
 
 Download the Debian package
-[lorawan-server-<VERSION>.deb](https://github.com/gotthardp/lorawan-server/releases)
+[lorawan-server-*.deb](https://github.com/gotthardp/lorawan-server/releases)
 and install it by:
 ```bash
 dpkg -i lorawan-server-<VERSION>.deb
@@ -40,12 +40,19 @@ You can run the server by:
 bin/lorawan-server
 ```
 
+By default the database directory `Mnesia.lorawan@*` and the `log` files are
+stored in the `lorawan-server` directory you created. If you want to store the
+run-time information to another directory, set the `LORAWAN_HOME` environment
+variable.
+
 The lorawan-server can be started in background as a daemon.
 On Linux systems with systemd you should:
  * Unpack the binary release to `/usr/lib/lorawan-server`
  * Copy `bin/lorawan-server.service` to `/lib/systemd/system`
  * Create a dedicated user by `useradd --home-dir /var/lib/lorawan-server --create-home lorawan`
  * Start the server by `systemctl start lorawan-server`
+
+This will put the database and the logs into `/var/lib/lorawan-server`.
 
 ### Using the Binary Release on Windows
 
@@ -63,6 +70,28 @@ The service is managed using `bin/lorawan-service.bat` *command*, where:
    panel administrative tools to start/stop or enable/disable the service.
  * *remove* will remove the previously added service.
  * *list* will display parameters of a previously added service.
+
+
+## Upgrade
+
+The server binaries are stored in three subdirectories: `bin`, `lib` and `releases`.
+These files are:
+ * In `/usr/lib/lorawan-server` when using the official releases
+ * In `lorawan-server/_build/default/rel/lorawan-server` when you build the server
+   from sources
+ * Or wherever you extracted them
+
+The server run-time files are automatically created during the first run. It
+includes the database in `Mnesia.lorawan@*` and `log` files. These files are:
+ * In `/var/lib/lorawan-server` when using the official releases
+ * In the directory specified by the `LORAWAN_HOME` environment variable
+ * Otherwise it is in the same directory as the server binaries
+
+To upgrade your server binaries:
+ * Backup or make sure you don't delete the `Mnesia.lorawan@*` sub-directory.
+ * Delete the existing `bin`, `lib` and `releases` sub-directories and replace
+   them by new server binaries.
+
 
 ## Server Configuration
 
@@ -131,6 +160,8 @@ use `localhost` or `127.0.0.1` as the `server_address`.
 
 ## Build Instructions
 
+### Manual Installation
+
 You will need the following prerequisites:
  * Rebar3, the Erlang build tool.
    * On Linux it will download automatically.
@@ -158,3 +189,22 @@ make release
 ```
 
 The release will be created in `lorawan-server/_build/default/rel/lorawan-server`.
+
+According to the above installation instructions the server binaries are under
+`/usr/lib/lorawan-server`. To upgrade your installation you shall **replace** the
+content of the `bin`, `lib` and `releases` sub-directories with the newly created
+content.
+
+### Creating the Debian package
+
+On the Debian Linux and its clones like Raspbian you can use the .deb package.
+
+Build the Debian package bu running `make dpkg`. It will request your `root`
+password and then create a package `/tmp/lorawan-server_<VERSION>.deb`.
+
+You can then install the package by:
+```bash
+dpkg -i /tmp/lorawan-server-*.deb
+```
+
+You can start the server by `systemctl start lorawan-server`.

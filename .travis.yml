@@ -1,8 +1,9 @@
 language: erlang
+sudo: required
 otp_release:
   - 19.3
 script:
-  - make build test release dist
+  - make test dist dpkg
 deploy:
   provider: releases
   api_key:
@@ -11,6 +12,7 @@ deploy:
   skip_cleanup: true
   file:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
+    - /tmp/lorawan-server-*.deb
   on:
     condition: $TRAVIS_OTP_RELEASE = 19.3
     tags: true

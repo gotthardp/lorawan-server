@@ -42,4 +42,7 @@ release:
 dist:
 	@$(REBAR3) tar
 
+dpkg:
+	sudo ./scripts/dpkg-deb/build-deb
+
 # end of file
