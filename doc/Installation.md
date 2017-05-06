@@ -200,11 +200,12 @@ content.
 On the Debian Linux and its clones like Raspbian you can use the .deb package.
 
 Build the Debian package bu running `make dpkg`. It will request your `root`
-password and then create a package `/tmp/lorawan-server_<VERSION>.deb`.
+password and then create a package
+`lorawan-server/_build/default/rel/lorawan-server/lorawan-server_<VERSION>.deb`.
 
 You can then install the package by:
 ```bash
-dpkg -i /tmp/lorawan-server-*.deb
+dpkg -i lorawan-server_*.deb
 ```
 
 You can start the server by `systemctl start lorawan-server`.

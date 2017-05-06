@@ -11,7 +11,7 @@ deploy:
   skip_cleanup: true
   file:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
-    - /tmp/lorawan-server-*.deb
+    - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server_*_all.deb
   on:
     condition: $TRAVIS_OTP_RELEASE = 19.3
     tags: true

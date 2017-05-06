@@ -23,4 +23,4 @@ rsync -tp ${SCRIPT_DIR}/control ${SCRIPT_DIR}/postinst ${SCRIPT_DIR}/postrm $ROO
 mkdir -p $ROOT/usr/share/doc/lorawan-server
 rsync -tp ${SCRIPT_DIR}/../../LICENSE $ROOT/usr/share/doc/lorawan-server/copyright
 
-fakeroot dpkg-deb --build $ROOT
+fakeroot dpkg-deb --build $ROOT $REL
