@@ -23,7 +23,7 @@ The gateway power is always a minimum of *TX Power* and (max EIRP - *Antenna Gai
 
 Class B and Class C devices support multicast. Multiple devices can be configured
 to listen for downlinks targeted to a given *DevAddr*, so the same frame can be
-received by a group of devices.
+received by a group of devices. See also the [Communication](Communication.md) guide.
 
 To define a multicast channel you need to set:
  * *DevAddr* of the channel; this must not collide with any *Node* address.
