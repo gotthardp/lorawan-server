@@ -12,7 +12,7 @@ ifeq ($(REBAR3),)
 REBAR3 = $(CURDIR)/rebar3
 endif
 
-.PHONY: deps test build
+.PHONY: test build
 
 build: $(REBAR3)
 	@$(REBAR3) compile
@@ -23,9 +23,6 @@ $(REBAR3):
 
 upgrade:
 	@$(REBAR3) upgrade
-
-deps:
-	@$(REBAR3) get-deps
 
 clean:
 	@$(REBAR3) clean
