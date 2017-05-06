@@ -1,8 +1,6 @@
 language: erlang
-sudo: required
 otp_release:
   - 19.3
-before_script: [] # Need to do this, or travis will use rebar2!
 script:
   - make test dist dpkg
 deploy:
