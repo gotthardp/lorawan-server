@@ -60,10 +60,10 @@ frame to the gateway and relies on its scheduling mechanism to transmit the fram
 ### Multicast
 
 It is possible to send one downlink frame to multiple Class C devices. First,
-a multicast channel needs to be defined both in the device
-(see `struct sMulticastParams`) and also in the network
-[Infrastructure](Infrastructure.md). The multicast DevAddr is a special dedicated
-address that must not collide with any *Node* address.
+a multicast channel needs to be defined both in the network
+[Infrastructure](Infrastructure.md) and also in the device (see `struct sMulticastParams`
+in [LoRaMac-node](https://github.com/Lora-net/LoRaMac-node)). The multicast DevAddr
+is a special dedicated address that must not collide with any *Node* address.
 
 To send a multicast downlink the application simply initiates a downlink with:
  * DevAddr that was previously defined as a multicast channel.
