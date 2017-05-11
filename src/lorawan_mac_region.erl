@@ -5,24 +5,27 @@
 %
 -module(lorawan_mac_region).
 
--export([join1_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_group/1]).
+-export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_group/1]).
 -export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 join1_window(Link, RxQ) ->
-    tx_time(Link#link.region, join1_delay, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, 0)).
+    tx_time(join1_delay, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, 0)).
+
+join2_window(Link, RxQ) ->
+    tx_time(join2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
 
 rx1_window(Link, RxQ) ->
     Offset = case Link#link.rxwin_use of
         {Off, _, _} when is_integer(Off) -> Off;
         _Else -> 0
     end,
-    tx_time(Link#link.region, rx1_delay, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, Offset)).
+    tx_time(rx1_delay, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, Offset)).
 
 rx2_window(Link, RxQ) ->
-    tx_time(Link#link.region, rx2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
+    tx_time(rx2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
 
 % we calculate in fixed-point numbers
 rx1_rf(Region, RxQ, Offset)
@@ -90,8 +93,8 @@ rf_group(Group) ->
         datr = dr_to_datar(Group#multicast_group.region, Group#multicast_group.datr),
         codr = Group#multicast_group.datr}.
 
-tx_time(Region, Window, Stamp, TxQ) ->
-    Delay = regional_config(Window, Region),
+tx_time(Window, Stamp, TxQ) ->
+    {ok, Delay} = application:get_env(lorawan_server, Window),
     TxQ#txq{tmst=Stamp+Delay}.
 
 datar_to_down(Region, DataRate, Offset) ->

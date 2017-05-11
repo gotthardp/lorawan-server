@@ -142,7 +142,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     AppSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#02, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
 
-    {atomic, Link} = mnesia:transaction(fun() ->
+    {atomic, Device} = mnesia:transaction(fun() ->
         [D] = mnesia:read(devices, DevEUI, write),
         NewAddr = if
             D#device.link == undefined;
@@ -151,26 +151,43 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
             true ->
                 D#device.link
         end,
-        ok = mnesia:write(devices, D#device{link=NewAddr, last_join=calendar:universal_time()}, write),
 
-        lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, NewAddr]),
-        NewLink = #link{devaddr=NewAddr, region=D#device.region,
-            app=D#device.app, appid=D#device.appid, appargs=D#device.appargs,
-            nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0, fcnt_check=D#device.fcnt_check,
-            last_mac=Gateway#gateway.mac, last_rxq=RxQ, adr_flag_use=0, adr_flag_set=D#device.adr_flag_set,
-            adr_use=lorawan_mac_region:default_adr(D#device.region),
-            adr_set=D#device.adr_set,
-            rxwin_use=initial_rxwin(D#device.rxwin_set, lorawan_mac_region:default_rxwin(D#device.region)),
-            rxwin_set=D#device.rxwin_set,
-            last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]},
-        ok = mnesia:write(links, NewLink, write),
-        NewLink
+        NewD = D#device{link=NewAddr, last_join=calendar:universal_time()},
+        ok = mnesia:write(devices, NewD, write),
+        NewD
     end),
+
+    ReJoin =
+        case mnesia:dirty_read(links, Device#device.link) of
+            [#link{last_rx=undefined}] -> true;
+            _Else -> false
+        end,
+
+    lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, Device#device.link]),
+    Link = #link{devaddr=Device#device.link, region=Device#device.region,
+        app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
+        nwkskey=NwkSKey, appskey=AppSKey,
+        fcntup=0, fcntdown=0, fcnt_check=Device#device.fcnt_check,
+        last_mac=Gateway#gateway.mac, last_rxq=RxQ,
+        adr_flag_use=0, adr_flag_set=Device#device.adr_flag_set,
+        adr_use=lorawan_mac_region:default_adr(Device#device.region),
+        adr_set=Device#device.adr_set,
+        rxwin_use=initial_rxwin(Device#device.rxwin_set, lorawan_mac_region:default_rxwin(Device#device.region)),
+        rxwin_set=Device#device.rxwin_set,
+        last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]},
+    ok = mnesia:dirty_write(links, Link),
+
     reset_link(Link#link.devaddr),
     case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs) of
         ok ->
-            % transmitting after join accept delay 1
-            TxQ = lorawan_mac_region:join1_window(Link, RxQ),
+            TxQ = case ReJoin of
+                false ->
+                    % transmitting after join accept delay 1
+                    lorawan_mac_region:join1_window(Link, RxQ);
+                true ->
+                    lager:debug("Retransmitting JoinAccept in RX2"),
+                    lorawan_mac_region:join2_window(Link, RxQ)
+            end,
             {RX1DROffset, RX2DataRate, _} = Link#link.rxwin_use,
             txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, Link#link.devaddr);
         {error, Error} -> {error, {{node, Link#link.devaddr}, Error}}
@@ -376,11 +393,11 @@ handle_multicast(Group, Time, TxData) ->
     send_multicast(TxQ#txq{time=Time}, Group#multicast_group.devaddr, TxData).
 
 choose_tx(Link, RxQ) ->
-    Rx1Delay = lorawan_mac_region:regional_config(rx1_delay, Link#link.region) / 1000,
+    {ok, Rx1Delay} = application:get_env(lorawan_server, rx1_delay),
     {ok, GwDelay} = application:get_env(lorawan_server, preprocessing_delay),
     % transmit as soon as possible
     case erlang:monotonic_time(milli_seconds) - RxQ#rxq.srvtmst of
-        Small when Small < Rx1Delay - GwDelay ->
+        Small when Small < Rx1Delay/1000 - GwDelay ->
             lorawan_mac_region:rx1_window(Link, RxQ);
         _Big ->
             lorawan_mac_region:rx2_window(Link, RxQ)
