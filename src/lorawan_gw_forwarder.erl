@@ -53,7 +53,12 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
             % lager:debug("---> ~w", [Data2]),
             lists:foreach(
                 fun ({rxpk, Pk}) -> rxpk(MAC, Pk);
-                    ({stat, Pk}) -> status(MAC, Pk)
+                    ({stat, Pk}) -> status(MAC, Pk);
+                    % ignore non-standard ideetron/lorank extensions
+                    % https://github.com/Ideetron/packet_forwarder/blob/master/poly_pkt_fwd/src/poly_pkt_fwd.c#L2085
+                    ({time, _Time}) -> ok;
+                    (Else) ->
+                        lager:warning("Unknown element in JSON: ~w", [Else])
                 end,
                 maps:to_list(Data2)),
             % PUSH ACK
