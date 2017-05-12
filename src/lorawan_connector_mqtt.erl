@@ -11,25 +11,27 @@
 
 -include("lorawan.hrl").
 
--record(state, {mqttc, ping_timer, subscribe, published, consumed}).
+-record(state, {cargs, ver, mqttc, ping_timer, subscribe, published, consumed}).
 
 start_link(ConnUri, Conn) ->
     gen_server:start_link(?MODULE, [ConnUri, Conn], []).
 
-
 init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
+    process_flag(trap_exit, true),
     {_Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
     lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
-    {ok, C} = emqttc:start_link(lists:append([
+    CArgs = lists:append([
         [{host, HostName},
         {port, Port},
         {logger, warning},
-        {reconnect, 3},
+        {reconnect, {4, 60, 3}},
         {keepalive, 0}],
         auth_args(ConnUri, Conn),
         ssl_args(ConnUri, Conn)
-    ])),
-    {ok, #state{mqttc = C, subscribe=Sub,
+    ]),
+    % initially use MQTT 3.1.1
+    {ok, C} = emqttc:start_link([{proto_ver, 4} | CArgs]),
+    {ok, #state{cargs=CArgs, ver=4, mqttc=C, subscribe=Sub,
         published=prepare_filling(Pub), consumed=prepare_matching(Cons)}}.
 
 % Microsoft Shared Access Signature
@@ -82,14 +84,21 @@ handle_info(ping, State) ->
     handle_ping(State);
 handle_info({publish, Topic, Payload}, State) ->
     handle_consume(Topic, Payload, State);
+handle_info({'EXIT', C, {shutdown, {connack_error, 'CONNACK_PROTO_VER'}}}, State=#state{cargs=CArgs, ver=4}) ->
+    % downgrade to MQTT 3.1
+    {ok, C} = emqttc:start_link([{proto_ver, 3} | CArgs]),
+    {noreply, State#state{ver=3, mqttc=C}};
+handle_info({'EXIT', C, {shutdown, Error}}, State=#state{mqttc=C, ping_timer=Timer}) ->
+    maybe_cancel_timer(Timer),
+    {stop, {shutdown, Error}, State};
 handle_info(_Unknown, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-  ok.
+    ok.
 
 code_change(_OldVsn, State, _Extra) ->
-  {ok, State}.
+    {ok, State}.
 
 
 handle_connect(#state{subscribe=undefined}=State) ->

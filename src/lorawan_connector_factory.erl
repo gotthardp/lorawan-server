@@ -51,12 +51,10 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info({'EXIT', Pid, _Reason}, State) ->
+handle_info({'EXIT', Pid, Reason}, State) ->
     case ets:match(?TABLE_ID, {'$1', Pid}) of
         [[ConnId]] ->
-            lager:debug("Connector ~s terminated", [ConnId]),
-            lorawan_connector_sup:delete_child(ConnId),
-            ets:delete(?TABLE_ID, ConnId),
+            handle_exit(ConnId, Reason),
             {noreply, State};
         [] ->
             {noreply, State}
@@ -121,5 +119,18 @@ maybe_terminate_connector_id(ConnId) ->
         [] ->
             ok
     end.
+
+handle_exit(ConnId, Reason) ->
+    lorawan_connector_sup:delete_child(ConnId),
+    ets:delete(?TABLE_ID, ConnId),
+    handle_exit2(ConnId, Reason).
+
+handle_exit2(_ConnId, normal) ->
+    ok;
+handle_exit2(ConnId, {shutdown, Error}) ->
+    lager:error("Connector ~s terminated: ~w", [ConnId, Error]),
+    % make sure we don't start it again
+    [Conn] = mnesia:dirty_read(connectors, ConnId),
+    mnesia:dirty_write(connectors, Conn#connector{enabled=false}).
 
 % end of file
