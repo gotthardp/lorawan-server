@@ -84,10 +84,10 @@ handle_info(ping, State) ->
     handle_ping(State);
 handle_info({publish, Topic, Payload}, State) ->
     handle_consume(Topic, Payload, State);
-handle_info({'EXIT', C, {shutdown, _Error}}, State=#state{cargs=CArgs, phase=connect311}) ->
+handle_info({'EXIT', C, {shutdown, _Error}}, State=#state{cargs=CArgs, phase=connect311, mqttc=C}) ->
     % downgrade to MQTT 3.1
-    {ok, C} = emqttc:start_link([{proto_ver, 3} | CArgs]),
-    {noreply, State#state{phase=connect31, mqttc=C}};
+    {ok, C2} = emqttc:start_link([{proto_ver, 3} | CArgs]),
+    {noreply, State#state{phase=connect31, mqttc=C2}};
 handle_info({'EXIT', C, {shutdown, Error}}, State=#state{mqttc=C, ping_timer=Timer}) ->
     maybe_cancel_timer(Timer),
     {stop, {shutdown, Error}, State};
