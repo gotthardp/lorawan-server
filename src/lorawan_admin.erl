@@ -74,6 +74,7 @@ build(Object) when is_map(Object) ->
         fun(Key, Value) -> build(Key, Value) end,
         maps:filter(
             fun
+                (_Key, undefined) -> false;
                 % hide very internal fields
                 (Key, _Value) when Key == srvtmst -> false;
                 (_, _) -> true

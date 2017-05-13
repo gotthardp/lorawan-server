@@ -7,7 +7,7 @@
 -behaviour(lorawan_application).
 
 -export([init/1, handle_join/3, handle_rx/5]).
--export([parse_uplink/5, handle_downlink/4]).
+-export([parse_uplink/5, handle_downlink/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -28,32 +28,48 @@ handle_rx(DevAddr, AppID, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
 send_to_backend(DevAddr, AppID, AppArgs, RxData, RxQ) ->
     case mnesia:dirty_read(handlers, AppID) of
         [Handler] ->
-            {_, Data} = parse_uplink(Handler, DevAddr, AppArgs, RxData, RxQ),
-            lorawan_connector_factory:publish(Handler#handler.connid, Data,
-                [{devaddr, lorawan_mac:binary_to_hex(DevAddr)}, {group, AppID}]);
+            {_, Data, Vars} = parse_uplink(Handler, DevAddr, AppArgs, RxData, RxQ),
+            lorawan_connector_factory:publish(Handler#handler.connid, Data, Vars);
         [] ->
             {error, {unknown_appid, AppID}}
     end.
 
-handle_downlink(Msg, Format, AppID, DevAddr) ->
-    Handler = get_handler(get_appid(DevAddr, AppID), Format),
+handle_downlink(Msg, Format, Vars) ->
+    Handler = get_handler(get_appid(Vars), Format),
     case build_downlink(Handler, Msg) of
-        {ok, undefined, Time, TxData} ->
-            send_downlink(AppID, DevAddr, Time, TxData),
-            ok;
-        {ok, DevAddr2, Time, TxData} ->
-            send_downlink(AppID, DevAddr2, Time, TxData),
+        {ok, Vars2, Time, TxData} ->
+            send_downlink(maps:merge(Vars, Vars2), Time, TxData),
             ok;
         {error, Error} ->
             {error, Error}
     end.
 
-get_appid(DevAddr, Default) ->
+get_appid(#{deveui := DevEUI} = Vars) ->
+    get_device_appid(DevEUI, Vars);
+get_appid(#{devaddr := DevAddr} = Vars) ->
+    get_link_appid(DevAddr, Vars);
+get_appid(Vars) ->
+    maps:get(group, Vars, undefined).
+
+get_device_appid(DevEUI, Vars) ->
+    case mnesia:dirty_read(devices, DevEUI) of
+        [] ->
+            case maps:get(devaddr, Vars, undefined) of
+                undefined ->
+                    maps:get(group, Vars, undefined);
+                DevAddr ->
+                    get_link_appid(DevAddr, Vars)
+            end;
+        [Device] ->
+            Device#device.appid
+    end.
+
+get_link_appid(DevAddr, Vars) ->
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
             case mnesia:dirty_read(multicast_groups, DevAddr) of
                 [] ->
-                    Default;
+                    maps:get(group, Vars, undefined);
                 [Group] ->
                     Group#multicast_group.appid
             end;
@@ -71,11 +87,26 @@ get_handler(AppID, Format) ->
             Handler#handler{format=Format}
     end.
 
-send_downlink(AppID, undefined, undefined, TxData) ->
-    % downlink to a group
-    [lorawan_handler:store_frame(DevAddr, TxData)
-        || DevAddr <- mnesia:dirty_select(links, [{#link{devaddr='$1', appid=AppID, _='_'}, [], ['$1']}])];
-send_downlink(_AppID, DevAddr, undefined, TxData) ->
+
+
+send_downlink(#{deveui := DevEUI}, undefined, TxData) ->
+    case mnesia:dirty_read(devices, DevEUI) of
+        [] ->
+            {error, {unknown_deveui, DevEUI}};
+        [Device] ->
+            % standard downlink to an explicit node
+            lorawan_handler:store_frame(Device#device.link, TxData)
+    end;
+send_downlink(#{deveui := DevEUI}, Time, TxData) ->
+    case mnesia:dirty_read(devices, DevEUI) of
+        [] ->
+            {error, {unknown_deveui, DevEUI}};
+        [Device] ->
+            [Link] = mnesia:dirty_read(links, Device#device.link),
+            % class C downlink to an explicit node
+            lorawan_handler:downlink(Link, Time, TxData)
+    end;
+send_downlink(#{devaddr := DevAddr}, undefined, TxData) ->
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
             {error, {unknown_devaddr, DevAddr}};
@@ -83,14 +114,12 @@ send_downlink(_AppID, DevAddr, undefined, TxData) ->
             % standard downlink to an explicit node
             lorawan_handler:store_frame(DevAddr, TxData)
     end;
-send_downlink(AppID, DevAddr, Time, TxData) ->
+send_downlink(#{devaddr := DevAddr}, Time, TxData) ->
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
             case mnesia:dirty_read(multicast_groups, DevAddr) of
                 [] ->
-                    % class C downlink to a group of devices
-                    [lorawan_handler:downlink(Link, Time, TxData)
-                        || Link <- mnesia:dirty_select(links, [{#link{appid=AppID, _='_'}, [], ['$_']}])];
+                    {error, {unknown_devaddr, DevAddr}};
                 [Group] ->
                     % scheduled multicast
                     lorawan_handler:multicast(Group, Time, TxData)
@@ -98,19 +127,38 @@ send_downlink(AppID, DevAddr, Time, TxData) ->
         [Link] ->
             % class C downlink to an explicit node
             lorawan_handler:downlink(Link, Time, TxData)
-    end.
+    end;
+send_downlink(#{group := AppID}, undefined, TxData) ->
+    % downlink to a group
+    [lorawan_handler:store_frame(DevAddr, TxData)
+        || DevAddr <- mnesia:dirty_select(links, [{#link{devaddr='$1', appid=AppID, _='_'}, [], ['$1']}])];
+send_downlink(#{group := AppID}, Time, TxData) ->
+    % class C downlink to a group of devices
+    [lorawan_handler:downlink(Link, Time, TxData)
+        || Link <- mnesia:dirty_select(links, [{#link{appid=AppID, _='_'}, [], ['$_']}])];
+send_downlink(Else, _Time, _TxData) ->
+    lager:error("Unknown downlink target: ~w", [Else]).
 
-
-parse_uplink(#handler{format = <<"raw">>}, _DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ) ->
-    {binary, Data};
-parse_uplink(#handler{format = <<"json">>, parse = Parse}, DevAddr, AppArgs, RxData=#rxdata{port=Port, data=Data}, RxQ) ->
+parse_uplink(#handler{appid = AppID, format = <<"raw">>},
+        DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ) ->
+    {binary, Data, construct_vars(AppID, DevAddr)};
+parse_uplink(#handler{appid = AppID, format = <<"json">>, parse = Parse},
+        DevAddr, AppArgs, RxData=#rxdata{port=Port, data=Data}, RxQ) ->
+    Vars = construct_vars(AppID, DevAddr),
     Msg = lorawan_admin:build(
         maps:merge(
             ?to_map(rxdata, RxData),
-            #{devaddr => DevAddr, appargs => AppArgs, datetime => calendar:universal_time(),
+            Vars#{appargs => AppArgs, datetime => calendar:universal_time(),
                 rxq => RxQ, fields => data_to_fields(Parse, Port, Data)}
         )),
-    {text, jsx:encode(Msg)}.
+    {text, jsx:encode(Msg), Vars}.
+
+construct_vars(AppID, DevAddr) ->
+    Vars = #{group => AppID, devaddr => DevAddr},
+    case mnesia:dirty_index_read(devices, DevAddr, #device.link) of
+        [#device{deveui=DevEUI}] -> Vars#{deveui => DevEUI};
+        [] -> Vars
+    end.
 
 data_to_fields({_, Fun}, Port, Data) when is_function(Fun) ->
     try Fun(Port, Data)
@@ -128,7 +176,7 @@ build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
             Struct = lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])),
             Port = maps:get(port, Struct, undefined),
             Data = maps:get(data, Struct, <<>>),
-            {ok, maps:get(devaddr, Struct, undefined),
+            {ok, Struct,
                 maps:get(time, Struct, undefined),
                 #txdata{
                     confirmed = maps:get(confirmed, Struct, false),
@@ -140,7 +188,7 @@ build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
             {error, json_syntax_error}
     end;
 build_downlink(_Else, Msg) ->
-    {ok, undefined, undefined, #txdata{data=Msg}}.
+    {ok, #{}, undefined, #txdata{data=Msg}}.
 
 fields_to_data(_, _, undefined, Data) ->
     Data;

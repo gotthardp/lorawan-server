@@ -112,7 +112,9 @@ On the Authentication tab:
  * *Name* and *Password/Key* for plain authentication
  * *User Certificate* and *Private Key* if SSL authentication is needed
 
-To include node-specific attributes the topics may include following patterns:
+To include node-specific attributes the published and consumed topic may include
+following patterns:
+ * `{deveui}` that matches the DevEUI of the node
  * `{devaddr}` that matches the DevAddr of the node
  * `{group}` that matches the node group
 

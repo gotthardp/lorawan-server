@@ -12,7 +12,7 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
--record(state, {devaddr, appid, format}).
+-record(state, {target, format}).
 
 init(Req, [Format]) ->
     Type = cowboy_req:binding(type, Req),
@@ -23,7 +23,7 @@ init0(Req, <<"devices">>, Format, Opts) ->
     DevEUI = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
     case mnesia:dirty_read(devices, DevEUI) of
         [Dev=#device{app= <<"websocket">>}] ->
-            {cowboy_websocket, Req, #state{devaddr=Dev#device.link, appid=Dev#device.appid, format=Format}, Opts};
+            {cowboy_websocket, Req, #state{target=#{devaddr=>Dev#device.link}, format=Format}, Opts};
         _Else ->
             lager:warning("No WebSocket for DevEUI: ~w", [DevEUI]),
             Req2 = cowboy_req:reply(404, Req),
@@ -32,8 +32,8 @@ init0(Req, <<"devices">>, Format, Opts) ->
 init0(Req, <<"nodes">>, Format, Opts) ->
     DevAddr = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
     case mnesia:dirty_read(links, DevAddr) of
-        [Link=#link{app= <<"websocket">>}] ->
-            {cowboy_websocket, Req, #state{devaddr=DevAddr, appid=Link#link.appid, format=Format}, Opts};
+        [#link{app= <<"websocket">>}] ->
+            {cowboy_websocket, Req, #state{target=#{devaddr=>DevAddr}, format=Format}, Opts};
         _Else ->
             lager:warning("No WebSocket for DevAddr: ~w", [DevAddr]),
             Req2 = cowboy_req:reply(404, Req),
@@ -41,21 +41,21 @@ init0(Req, <<"nodes">>, Format, Opts) ->
     end;
 init0(Req, <<"groups">>, Format, Opts) ->
     AppID = cowboy_req:binding(name, Req),
-    {cowboy_websocket, Req, #state{devaddr=undefined, appid=AppID, format=Format}, Opts};
+    {cowboy_websocket, Req, #state{target=#{group=>AppID}, format=Format}, Opts};
 init0(Req, Unknown, _Format, _Opts) ->
     lager:warning("Unknown WebSocket type: ~s", [Unknown]),
     Req2 = cowboy_req:reply(404, Req),
     {ok, Req2, undefined}.
 
-websocket_init(#state{devaddr=undefined, appid=AppID} = State) ->
-    lager:debug("WebSocket to group '~s'", [AppID]),
-    ok = pg2:create({?MODULE, groups, AppID}),
-    ok = pg2:join({?MODULE, groups, AppID}, self()),
-    {ok, State};
-websocket_init(#state{devaddr=DevAddr} = State) ->
+websocket_init(#state{target=#{devaddr:=DevAddr}} = State) ->
     lager:debug("WebSocket to node ~w", [DevAddr]),
     ok = pg2:create({?MODULE, nodes, DevAddr}),
     ok = pg2:join({?MODULE, nodes, DevAddr}, self()),
+    {ok, State};
+websocket_init(#state{target=#{group:=AppID}} = State) ->
+    lager:debug("WebSocket to group '~s'", [AppID]),
+    ok = pg2:create({?MODULE, groups, AppID}),
+    ok = pg2:join({?MODULE, groups, AppID}, self()),
     {ok, State}.
 
 websocket_handle({text, Msg}, State) ->
@@ -69,8 +69,8 @@ websocket_handle(Data, State) ->
     lager:warning("Unknown handle ~w", [Data]),
     {ok, State}.
 
-handle_downlink(Msg, #state{devaddr=DevAddr, appid=AppID, format=Format} = State) ->
-    case lorawan_application_backend:handle_downlink(Msg, Format, AppID, DevAddr) of
+handle_downlink(Msg, #state{target=Target, format=Format} = State) ->
+    case lorawan_application_backend:handle_downlink(Msg, Format, Target) of
         ok ->
             {ok, State};
         {error, Error} ->
@@ -79,14 +79,14 @@ handle_downlink(Msg, #state{devaddr=DevAddr, appid=AppID, format=Format} = State
     end.
 
 websocket_info({send, DevAddr, AppID, AppArgs, RxData, RxQ}, #state{format=Format} = State) ->
-    case mnesia:dirty_read(handlers, AppID) of
-        [Handler] ->
-            {reply, lorawan_application_backend:parse_uplink(Handler#handler{format=Format},
-                DevAddr, AppArgs, RxData, RxQ), State};
-        [] ->
-            {reply, lorawan_application_backend:parse_uplink(#handler{format=Format},
-                DevAddr, AppArgs, RxData, RxQ), State}
-    end;
+    Handler =
+        case mnesia:dirty_read(handlers, AppID) of
+            [Rec] -> Rec#handler{format=Format};
+            [] -> #handler{format=Format}
+        end,
+    {Charset, Data, _Vars} =
+        lorawan_application_backend:parse_uplink(Handler, DevAddr, AppArgs, RxData, RxQ),
+    {reply, {Charset, Data}, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~w", [Info]),
     {ok, State}.

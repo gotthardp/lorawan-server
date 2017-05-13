@@ -127,14 +127,12 @@ maybe_cancel_timer(Timer) ->
 
 
 handle_publish(Msg, Vars, State=#state{mqttc=C, published=Pattern}) ->
-    emqttc:publish(C, fill_pattern(Pattern, Vars), Msg),
+    emqttc:publish(C, fill_pattern(Pattern, lorawan_admin:build(Vars)), Msg),
     {noreply, State}.
 
 handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
-    Vars = match_pattern(Topic, Pattern),
     case lorawan_application_backend:handle_downlink(Msg, undefined,
-            proplists:get_value(group, Vars),
-            lorawan_mac:hex_to_binary(proplists:get_value(devaddr, Vars))) of
+            lorawan_admin:parse(match_pattern(Topic, Pattern))) of
         ok ->
             {noreply, State};
         {error, Error} ->
@@ -158,9 +156,9 @@ prepare_filling(Pattern) ->
 fill_pattern({Pattern, []}, _) ->
     Pattern;
 fill_pattern({Pattern, Vars}, Values) ->
-    lists:foldl(
-        fun({Var, Val}, Patt) ->
-            case proplists:get_value(Var, Vars) of
+    maps:fold(
+        fun(Var, Val, Patt) ->
+            case proplists:get_value(Var, Vars, undefined) of
                 {Start, Len} ->
                     <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
                     <<Prefix/binary, Val/binary, Suffix/binary>>;
@@ -189,7 +187,7 @@ prepare_matching(Pattern) ->
 match_pattern(Topic, {Pattern, Vars}) ->
     case re:run(Topic, Pattern, [global, {capture, all, binary}]) of
         {match, [[_Head | Matches]]} ->
-            lists:zip(Vars, Matches);
+            maps:from_list(lists:zip(Vars, Matches));
         nomatch ->
             undefined
     end.
@@ -233,11 +231,11 @@ matchtst(Vars, Pattern, Topic) ->
     ?_assertEqual(Topic, fill_pattern(prepare_filling(Pattern), Vars))].
 
 pattern_test_()-> [
-    matchtst([], <<"normal/uri">>, <<"normal/uri">>),
+    matchtst(#{}, <<"normal/uri">>, <<"normal/uri">>),
     matchtst(undefined, <<"normal/uri">>, <<"another/uri">>),
-    matchtst([{devaddr, <<"00112233">>}], <<"{devaddr}">>, <<"00112233">>),
-    matchtst([{devaddr, <<"00112233">>}], <<"prefix.{devaddr}">>, <<"prefix.00112233">>),
-    matchtst([{devaddr, <<"00112233">>}], <<"{devaddr}/suffix">>, <<"00112233/suffix">>),
-    matchtst([{devaddr, <<"00112233">>}], <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>)].
+    matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}">>, <<"00112233">>),
+    matchtst(#{devaddr => <<"00112233">>}, <<"prefix.{devaddr}">>, <<"prefix.00112233">>),
+    matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}/suffix">>, <<"00112233/suffix">>),
+    matchtst(#{devaddr => <<"00112233">>}, <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>)].
 
 % end of file

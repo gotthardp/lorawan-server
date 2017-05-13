@@ -12,6 +12,7 @@ The JSON structure the server sends to clients contains the following fields:
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
+  deveui      | Hex String  | DevEUI of the device.
   devaddr     | Hex String  | DevAddr of the active node.
   appargs     | Any         | Application arguments for this node.
   port        | Integer     | LoRaWAN port number.
@@ -36,6 +37,7 @@ The client may send back to the server a JSON structure with the following field
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
+  deveui      | Hex String  | DevEUI of the device.
   devaddr     | Hex String  | DevAddr of the active node.
   port        | Integer     | LoRaWAN port number. If not specified for Class A, the port number of last uplink will be used. Mandatory for Class C.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
