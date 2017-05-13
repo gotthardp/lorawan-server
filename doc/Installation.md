@@ -88,9 +88,12 @@ includes the database in `Mnesia.lorawan@*` and `log` files. These files are:
  * Otherwise it is in the same directory as the server binaries
 
 To upgrade your server binaries:
+ * Stop the lorawan-server
  * Backup or make sure you don't delete the `Mnesia.lorawan@*` sub-directory.
  * Delete the existing `bin`, `lib` and `releases` sub-directories and replace
    them by new server binaries.
+ * Copy `bin/lorawan-server.service` to `/lib/systemd/system`
+ * Start the lorawan-server
 
 
 ## Server Configuration
