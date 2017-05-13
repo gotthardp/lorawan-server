@@ -161,7 +161,8 @@ occured_rxframe_after(StartDate, #rxframe{datetime = FrameDate}) ->
     StartDate =< FrameDate.
 
 trim_rxframes(DevAddr) ->
-    case get_last_rxframes(DevAddr, 50) of
+    {ok, Count} = application:get_env(lorawan_server, retained_rxframes),
+    case get_last_rxframes(DevAddr, Count) of
         {[], _} ->
             ok;
         {ExpRec, _} ->

@@ -66,6 +66,70 @@ The following REST resources are made available:
   /connectors/*ABC*         | GET, DELETE      | Backend connector *ABC*
   /events                   | GET              | Recent errors and warnings
 
+For example:
+
+Get a list of all users by:
+
+```HTTP
+GET /users HTTP/1.1
+```
+
+```HTTP
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{"name":"admin","pass":"admin"},{"name":"backup","pass":"backup"}]
+```
+
+Create or update a set of users by:
+
+```HTTP
+POST /users HTTP/1.1
+Content-Type: application/json
+
+[{"name":"admin","pass":"admin"},{"name":"backup","pass":"backup"}]
+```
+
+```HTTP
+HTTP/1.1 204 No Content
+```
+
+Get one user by:
+
+```HTTP
+GET /users/backup HTTP/1.1
+```
+
+```HTTP
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"name":"backup","pass":"backup"}
+```
+
+Update one user by:
+
+```HTTP
+PUT /users/backup HTTP/1.1
+Content-Type: application/json
+
+{"name":"backup","pass":"backup"}
+```
+
+```HTTP
+HTTP/1.1 204 No Content
+```
+
+Delete one user by:
+
+```HTTP
+DELETE /users/backup HTTP/1.1
+```
+
+```HTTP
+HTTP/1.1 204 No Content
+```
+
 ### Filtering
 
 To list only some items the REST API accepts the `_filters` query parameter, which
