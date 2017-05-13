@@ -157,10 +157,10 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewD
     end),
 
-    ReJoin =
+    JoinCnt =
         case mnesia:dirty_read(links, Device#device.link) of
-            [#link{last_rx=undefined}] -> true;
-            _Else -> false
+            [#link{reset_count=Cnt, last_rx=undefined}] when is_integer(Cnt) -> Cnt+1;
+            _Else -> 1
         end,
 
     lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, Device#device.link]),
@@ -168,7 +168,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey,
         fcntup=0, fcntdown=0, fcnt_check=Device#device.fcnt_check,
-        last_mac=Gateway#gateway.mac, last_rxq=RxQ,
+        reset_count=JoinCnt, last_mac=Gateway#gateway.mac, last_rxq=RxQ,
         adr_flag_use=0, adr_flag_set=Device#device.adr_flag_set,
         adr_use=lorawan_mac_region:default_adr(Device#device.region),
         adr_set=Device#device.adr_set,
@@ -180,11 +180,11 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     reset_link(Link#link.devaddr),
     case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs) of
         ok ->
-            TxQ = case ReJoin of
-                false ->
+            TxQ = case JoinCnt band 1 of
+                1 ->
                     lager:debug("Join-Accept in RX1: ~w", [Link#link.rxwin_use]),
                     lorawan_mac_region:join1_window(Link, RxQ);
-                true ->
+                0 ->
                     lager:debug("Join-Accept in RX2: ~w", [Link#link.rxwin_use]),
                     lorawan_mac_region:join2_window(Link, RxQ)
             end,
