@@ -462,6 +462,17 @@ encode_multicast(MType, DevAddr, TxData) ->
     encode_frame(MType, DevAddr, G#multicast_group.nwkskey, G#multicast_group.appskey,
         G#multicast_group.fcntdown, 0, 0, <<>>, TxData).
 
+encode_frame(MType, DevAddr, NwkSKey, _AppSKey, FCnt, ADR, ACK, FOpts, #txdata{port=0, data=Data, pending=FPending}) ->
+    FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_bit(FPending)):1, 0:4,
+        FCnt:16/little-unsigned-integer>>,
+    FRMPayload = cipher(FOpts, NwkSKey, 1, DevAddr, FCnt),
+    MACPayload = <<FHDR/binary, 0:8, (reverse(FRMPayload))/binary>>,
+    if
+        Data == undefined; Data == <<>> -> ok;
+        true -> lager:warning("Ignored application data with Port 0")
+    end,
+    sign_frame(MType, DevAddr, NwkSKey, FCnt, MACPayload);
+
 encode_frame(MType, DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
     FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_bit(FPending)):1, (byte_size(FOpts)):4,
         FCnt:16/little-unsigned-integer, FOpts/binary>>,
@@ -471,13 +482,13 @@ encode_frame(MType, DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts, #txdata{po
         undefined ->
             lager:warning("Ignored application data without a Port number"),
             <<FHDR/binary>>;
-        0 ->
-            FRMPayload = cipher(Data, NwkSKey, 1, DevAddr, FCnt),
-            <<FHDR/binary, 0:8, (reverse(FRMPayload))/binary>>;
         Num when Num > 0 ->
             FRMPayload = cipher(Data, AppSKey, 1, DevAddr, FCnt),
             <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>
     end,
+    sign_frame(MType, DevAddr, NwkSKey, FCnt, MACPayload).
+
+sign_frame(MType, DevAddr, NwkSKey, FCnt, MACPayload) ->
     Msg = <<MType:3, 0:3, 0:2, MACPayload/binary>>,
     MIC = aes_cmac:aes_cmac(NwkSKey, <<(b0(1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4),
     <<Msg/binary, MIC/binary>>.
