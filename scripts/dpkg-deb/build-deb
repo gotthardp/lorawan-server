@@ -5,7 +5,7 @@ fi
 SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
 
 REL=${SCRIPT_DIR}/../../_build/default/rel/lorawan-server
-VERSION=`find ${REL}/releases -type d -name "*.*.*" -printf "%f"`
+VERSION=`find ${REL}/releases -type d -name "*.*.*" -printf "%f\n" | sort | tail -1`
 REVISION=1
 
 ROOT=/tmp/lorawan-server_${VERSION}-${REVISION}_all

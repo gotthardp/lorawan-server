@@ -75,14 +75,14 @@ The service is managed using `bin/lorawan-service.bat` *command*, where:
 ## Upgrade
 
 The server binaries are stored in three subdirectories: `bin`, `lib` and `releases`.
-These files are:
+These files are either:
  * In `/usr/lib/lorawan-server` when using the official releases
  * In `lorawan-server/_build/default/rel/lorawan-server` when you build the server
    from sources
  * Or wherever you extracted them
 
 The server run-time files are automatically created during the first run. It
-includes the database in `Mnesia.lorawan@*` and `log` files. These files are:
+includes the database in `Mnesia.lorawan@*` and `log` files. These files are either:
  * In `/var/lib/lorawan-server` when using the official releases
  * In the directory specified by the `LORAWAN_HOME` environment variable
  * Otherwise it is in the same directory as the server binaries
@@ -91,7 +91,8 @@ To upgrade your server binaries:
  * Stop the lorawan-server
  * Backup or make sure you don't delete the `Mnesia.lorawan@*` sub-directory.
  * Delete the existing `bin`, `lib` and `releases` sub-directories and replace
-   them by new server binaries.
+   them by `bin`, `lib` and `releases` from the new binary release. You can simply
+   unpack the content of the binary release e.g. in `/usr/lib/lorawan-server`.
  * Copy `bin/lorawan-server.service` to `/lib/systemd/system`
  * Start the lorawan-server
 
