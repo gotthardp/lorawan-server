@@ -66,7 +66,7 @@ The following REST resources are made available:
   /connectors/*ABC*         | GET, DELETE      | Backend connector *ABC*
   /events                   | GET              | Recent errors and warnings
 
-As a rule, POST should be used to create new entries and GET should be used to
+As a rule, POST should be used to create new entries and PUT should be used to
 update existing entries.
 
 For example:
