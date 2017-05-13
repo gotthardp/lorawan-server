@@ -182,10 +182,10 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         ok ->
             TxQ = case ReJoin of
                 false ->
-                    % transmitting after join accept delay 1
+                    lager:debug("Join-Accept in RX1: ~w", [Link#link.rxwin_use]),
                     lorawan_mac_region:join1_window(Link, RxQ);
                 true ->
-                    lager:debug("Retransmitting JoinAccept in RX2"),
+                    lager:debug("Join-Accept in RX2: ~w", [Link#link.rxwin_use]),
                     lorawan_mac_region:join2_window(Link, RxQ)
             end,
             {RX1DROffset, RX2DataRate, _} = Link#link.rxwin_use,
