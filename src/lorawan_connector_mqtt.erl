@@ -11,7 +11,7 @@
 
 -include("lorawan.hrl").
 
--record(state, {cargs, ver, mqttc, ping_timer, subscribe, published, consumed}).
+-record(state, {cargs, phase, mqttc, ping_timer, subscribe, published, consumed}).
 
 start_link(ConnUri, Conn) ->
     gen_server:start_link(?MODULE, [ConnUri, Conn], []).
@@ -31,7 +31,7 @@ init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
     ]),
     % initially use MQTT 3.1.1
     {ok, C} = emqttc:start_link([{proto_ver, 4} | CArgs]),
-    {ok, #state{cargs=CArgs, ver=4, mqttc=C, subscribe=Sub,
+    {ok, #state{cargs=CArgs, phase=connect311, mqttc=C, subscribe=Sub,
         published=prepare_filling(Pub), consumed=prepare_matching(Cons)}}.
 
 % Microsoft Shared Access Signature
@@ -84,10 +84,10 @@ handle_info(ping, State) ->
     handle_ping(State);
 handle_info({publish, Topic, Payload}, State) ->
     handle_consume(Topic, Payload, State);
-handle_info({'EXIT', C, {shutdown, {connack_error, 'CONNACK_PROTO_VER'}}}, State=#state{cargs=CArgs, ver=4}) ->
+handle_info({'EXIT', C, {shutdown, _Error}}, State=#state{cargs=CArgs, phase=connect311}) ->
     % downgrade to MQTT 3.1
     {ok, C} = emqttc:start_link([{proto_ver, 3} | CArgs]),
-    {noreply, State#state{ver=3, mqttc=C}};
+    {noreply, State#state{phase=connect31, mqttc=C}};
 handle_info({'EXIT', C, {shutdown, Error}}, State=#state{mqttc=C, ping_timer=Timer}) ->
     maybe_cancel_timer(Timer),
     {stop, {shutdown, Error}, State};
@@ -102,11 +102,11 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 handle_connect(#state{subscribe=undefined}=State) ->
-    {noreply, State};
+    {noreply, State#state{phase=connected}};
 handle_connect(#state{mqttc=C, subscribe=Topic}=State) ->
     emqttc:subscribe(C, Topic, 1),
     Timer = schedule_refresh(),
-    {noreply, State#state{ping_timer=Timer}}.
+    {noreply, State#state{phase=connected, ping_timer=Timer}}.
 
 handle_ping(State=#state{mqttc=C}) ->
     pong = emqttc:ping(C),
@@ -143,6 +143,8 @@ handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
     end.
 
 
+prepare_filling(undefined) ->
+    undefined;
 prepare_filling(Pattern) ->
     case re:run(Pattern, "{[^}]+}", [global]) of
         {match, [Match]} ->
@@ -167,6 +169,8 @@ fill_pattern({Pattern, Vars}, Values) ->
             end
         end, Pattern, Values).
 
+prepare_matching(undefined) ->
+    undefined;
 prepare_matching(Pattern) ->
     EPattern = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
     case re:run(EPattern, "{[^}]+}", [global]) of
