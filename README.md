@@ -102,7 +102,7 @@ You can integrate lorawan-server with external applications using the WebSocket
 interface as described in the [WebSocket Guide](doc/WebSockets.md), or using MQTT
 as described in the [Backend Administration](doc/Backends.md). Instructions on
 how to integrate with some major clouds such as AWS or Azure are provided in the
-[Integration Guide](Integration.md).
+[Integration Guide](doc/Integration.md).
 
 You can also use the internal web server and develop internal applications, which
 may offer custom REST APIs. The lorawan-server is designed to be highly extensible.
