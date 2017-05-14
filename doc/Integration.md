@@ -16,6 +16,7 @@ On the Authentication tab:
  * *Auth* shall be set to *Username+Password*, even when the *Name* and
    *Password/Key* are empty.
 
+
 ## AWS IoT
 
 Amazon Web Services (AWS) can be integrated via MQTT. All Nodes can share the same
@@ -48,7 +49,40 @@ On the Authentication tab:
  * *Private Key* is the `xxx-private.pem.key` file
 
 
-## Azure IoT Hub
+## IBM Watson IoT Platform
+
+IBM Watson IoT Platform can be integrated via MQTT. The lorawan-server can act
+as a Gateway acting on behalf of multiple devices.
+
+First, follow the IBM Bluemix documentation to configure the IoT Gateway:
+ * Create a *device type* for your devices, e.g. "loramote"
+ * Create a *gateway type* for the lorawan-server, e.g. "loraserver"
+ * Create one gateway of the *gateway type* you just created using an arbitrary
+   *Device ID*. After you click **Add** don't close the web-page displaying the
+   auto-generated *Authentication Token*.
+ * Do not create any devices; these will be created automatically once they send
+   some data.
+
+Then, open the lorawan-server web-administration and create an Backend Connector:
+ * *URI* shall be `mqtt://orgid.messaging.internetofthings.ibmcloud.com`, where
+   orgid is your *Organization ID* displayed on the web-page you didn't close.
+ * *Published Topic* is a pattern for the publication topic,
+   e.g. `iot-2/type/loramote/id/{deveui}/evt/status/fmt/json`, where loramote is
+   the *device type* you created.
+ * *Subscribe* is a topic to be subscribed, e.g. `iot-2/type/loramote/id/+/cmd/+/fmt/+`.
+ * *Consumed Topic* is a pattern for the subscribed topic,
+   e.g. `iot-2/type/loramote/id/{deveui}/cmd/status/fmt/json`.
+
+On the Authentication tab:
+ * *Client ID* shall be `g:orgid:loraserver:test`, where orgid is the *Organization ID*,
+   loraserver is *gateway type* you created and test is the gateway *Device ID*.
+ * *Auth* shall be set to *Username+Password*
+ * *Name* shall always be `use-token-auth`
+ * *Password/Key* is the gateway *Authentication Token* displayed on the page you
+   didn't close.
+
+
+## Microsoft Azure IoT Hub
 
 Microsoft Azure IoT Hub can be integrated via MQTT. Azure uses per-device credentials
 so you cannot connect multiple devices (each with its own credentials) using the

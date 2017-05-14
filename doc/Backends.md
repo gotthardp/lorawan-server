@@ -122,5 +122,5 @@ If the Connector is *Enabled* and a *Subscribe* topic is defined the server will
 automatically connect to the MQTT broker and subscribe this topic.
 
 Please read the [Integration Guide](Integration.md) for detailed information on
-how to connect to a generic MQTT server like RabbitMQ, AWS IoT, Azure IoT Hub or
-Adafruit IO.
+how to connect to a generic MQTT server like RabbitMQ or an IoT Platform like
+AWS IoT, IBM Watson IoT, Azure IoT Hub or Adafruit IO.

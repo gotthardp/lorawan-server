@@ -21,6 +21,7 @@ The server:
    * [MQTT v3.1/v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html),
      including applications hosted in
      [Amazon AWS IoT](https://aws.amazon.com/iot/),
+     [IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things),
      [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
      or [Adafruit IO](https://io.adafruit.com/)
  * Handles (any number of) Class A or Class C devices.
