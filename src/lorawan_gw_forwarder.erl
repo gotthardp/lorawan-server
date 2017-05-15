@@ -47,9 +47,8 @@ handle_cast({send, {Host, Port, Version}, DevAddr, TxQ, RFCh, PHYPayload},
 
 % PUSH DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
-    case jsx:is_json(Data) of
-        true ->
-            Data2 = jsx:decode(Data, [return_maps, {labels, atom}]),
+    case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
+        Data2 when is_map(Data2) ->
             % lager:debug("---> ~w", [Data2]),
             lists:foreach(
                 fun ({rxpk, Pk}) -> rxpk(MAC, Pk);
@@ -63,7 +62,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
                 maps:to_list(Data2)),
             % PUSH ACK
             gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>);
-        false ->
+        _Else ->
             lager:error("Ignored PUSH_DATA: JSON syntax error")
     end,
     {noreply, State};
@@ -92,9 +91,8 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
             error ->
                 {undefined, Tokens}
         end,
-    case jsx:is_json(Data) of
-        true ->
-            Data2 = jsx:decode(Data, [return_maps, {labels, atom}]),
+    case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
+        Data2 when is_map(Data2) ->
             Ack = maps:get(txpk_ack, Data2),
             case maps:get(error, Ack, undefined) of
                 undefined -> ok;
@@ -102,7 +100,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                 Error ->
                     lorawan_gw_router:downlink_error(MAC, Opaque, Error)
             end;
-        false ->
+        _Else ->
             lager:error("Ignored PUSH_DATA: JSON syntax error")
     end,
     {noreply, State#state{tokens=Tokens2}};

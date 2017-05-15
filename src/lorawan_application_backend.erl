@@ -171,9 +171,8 @@ data_to_fields(_Else, _, _) ->
     undefined.
 
 build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
-    case jsx:is_json(Msg) of
-        true ->
-            Struct = lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])),
+    case catch lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])) of
+        Struct when is_map(Struct) ->
             Port = maps:get(port, Struct, undefined),
             Data = maps:get(data, Struct, <<>>),
             {ok, Struct,
@@ -184,7 +183,7 @@ build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
                     data = fields_to_data(Build, Port, maps:get(fields, Struct, undefined), Data),
                     pending = maps:get(pending, Struct, false)
                 }};
-        false ->
+        _Else ->
             {error, json_syntax_error}
     end;
 build_downlink(_Else, Msg) ->

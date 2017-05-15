@@ -107,11 +107,11 @@ content_types_accepted(Req, State) ->
 
 handle_write(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
-    case jsx:is_json(Data) of
-        true ->
-            import_records(jsx:decode(Data, [return_maps, {labels, atom}]), State),
+    case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
+        Struct when is_map(Struct) ->
+            import_records(Struct, State),
             {true, Req2, State};
-        false ->
+        _Else ->
             lager:debug("Bad JSON in HTTP request"),
             {stop, cowboy_req:reply(400, Req2), State}
     end.
