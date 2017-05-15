@@ -348,7 +348,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
         end,
     % process commands
     RxFrame = build_rxframe(Gateway, ULink, RxQ, Frame),
-    {ok, L2, FOptsOut, RxFrame2} = lorawan_mac_commands:handle(RxQ, ULink, FOpts, RxFrame),
+    {ok, MacConfirm, L2, FOptsOut, RxFrame2} = lorawan_mac_commands:handle(RxQ, ULink, FOpts, RxFrame),
     ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time(), last_mac=Gateway#gateway.mac, last_rxq=RxQ}),
     ok = mnesia:dirty_write(rxframes, RxFrame2),
     % check whether last downlink transmission was lost
@@ -364,6 +364,9 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
             true;
         byte_size(FOptsOut) > 0 ->
             % have MAC commands to send
+            true;
+        MacConfirm == true ->
+            % reception of RXParamSetupAns and RXTimingSetupAns needs to be confirmed
             true;
         true ->
             % else

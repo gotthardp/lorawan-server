@@ -16,12 +16,12 @@ handle(RxQ, Link, FOpts, RxFrame) ->
         [] -> ok;
         List1 -> lager:debug("~w -> ~w", [Link#link.devaddr, List1])
     end,
-    Link2 = handle_adr(FOptsIn,
-        handle_rxwin(FOptsIn,
+    {MacConfirm, Link2} = handle_rxwin(FOptsIn,
+        handle_adr(FOptsIn,
         handle_status(FOptsIn, Link))),
     {Link3, RxFrame2} = auto_adr(RxQ, Link2, RxFrame),
     % check for new commands
-    {ok, Link3, build_fopts(Link3), RxFrame2}.
+    {ok, MacConfirm, Link3, build_fopts(Link3), RxFrame2}.
 
 build_fopts(Link) ->
     FOptsOut = send_adr(Link,
@@ -105,15 +105,17 @@ handle_rxwin(FOptsIn, Link) ->
             lager:debug("RXParamSetupAns ~w succeeded", [Link#link.devaddr]),
             {RX1DROffset, _, _} = Link#link.rxwin_set,
             {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
-            Link#link{rxwin_use={RX1DROffset, RX2DataRate, Frequency}, rxwin_set={RX1DROffset, RX2DataRate, Frequency}};
+            {true, Link#link{rxwin_use={RX1DROffset, RX2DataRate, Frequency},
+                rxwin_set={RX1DROffset, RX2DataRate, Frequency}}};
         {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
             lorawan_utils:throw_warning({node, Link#link.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),
             {RX1DROffset, RX2DataRate, Frequency} = Link#link.rxwin_set,
             % clear the settings that failed
-            Link#link{rxwin_set = {clear_when_zero(RX1DROffset, RX1DROffsetACK), clear_when_zero(RX2DataRate, RX2DataRateACK),
-                clear_when_zero(Frequency, ChannelACK)}};
+            {true, Link#link{rxwin_set = {clear_when_zero(RX1DROffset, RX1DROffsetACK),
+                clear_when_zero(RX2DataRate, RX2DataRateACK),
+                clear_when_zero(Frequency, ChannelACK)}}};
         undefined ->
-            Link
+            {false, Link}
     end.
 
 find_rxwin(FOptsIn) ->
