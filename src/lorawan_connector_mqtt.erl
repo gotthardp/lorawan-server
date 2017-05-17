@@ -65,10 +65,9 @@ ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{}) ->
         {versions, ['tlsv1.2']}
     ]}].
 
-handle_call(disconnect, _From, State=#state{mqttc=C, ping_timer=Timer}) ->
+handle_call(disconnect, _From, State=#state{mqttc=C}) ->
     % the disconnected event will not be delivered
     emqttc:disconnect(C),
-    maybe_cancel_timer(Timer),
     {stop, normal, ok, State};
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
@@ -88,9 +87,8 @@ handle_info({'EXIT', C, {shutdown, _Error}}, State=#state{cargs=CArgs, phase=con
     % downgrade to MQTT 3.1
     {ok, C2} = emqttc:start_link([{proto_ver, 3} | CArgs]),
     {noreply, State#state{phase=connect31, mqttc=C2}};
-handle_info({'EXIT', C, {shutdown, Error}}, State=#state{mqttc=C, ping_timer=Timer}) ->
-    maybe_cancel_timer(Timer),
-    {stop, {shutdown, Error}, State};
+handle_info({'EXIT', C, Error}, State=#state{mqttc=C}) ->
+    {stop, Error, State};
 handle_info(_Unknown, State) ->
     {noreply, State}.
 

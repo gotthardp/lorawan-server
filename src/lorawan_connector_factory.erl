@@ -127,7 +127,7 @@ handle_exit(ConnId, Reason) ->
 
 handle_exit2(_ConnId, normal) ->
     ok;
-handle_exit2(ConnId, {shutdown, Error}) ->
+handle_exit2(ConnId, Error) ->
     lager:error("Connector ~s terminated: ~w", [ConnId, Error]),
     % make sure we don't start it again
     [Conn] = mnesia:dirty_read(connectors, ConnId),
