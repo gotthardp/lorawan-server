@@ -73,8 +73,11 @@ handle_downlink(Msg, #state{target=Target, format=Format} = State) ->
     case lorawan_application_backend:handle_downlink(Msg, Format, Target) of
         ok ->
             {ok, State};
+        {error, {Object, Error}} ->
+            lorawan_utils:throw_error(Object, Error),
+            {stop, State};
         {error, Error} ->
-            lager:error("Bad downlink ~w", [Error]),
+            lorawan_utils:throw_error(server, Error),
             {stop, State}
     end.
 

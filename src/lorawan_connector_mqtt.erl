@@ -92,7 +92,8 @@ handle_info({'EXIT', C, Error}, State=#state{phase=attempt311, mqttc=C}) ->
     handle_reconnect(Error, attempt31, State);
 handle_info({'EXIT', C, Error}, State=#state{mqttc=C}) ->
     handle_reconnect(Error, attempt311, State);
-handle_info(_Unknown, State) ->
+handle_info(Unknown, State) ->
+    lager:debug("Unknown message: ~w", [Unknown]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -163,13 +164,15 @@ handle_publish(Msg, Vars, State=#state{mqttc=C, published=Pattern}) ->
 
 handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
     case lorawan_application_backend:handle_downlink(Msg, undefined,
-            lorawan_admin:parse(match_pattern(Topic, Pattern))) of
+            match_vars(Topic, Pattern)) of
         ok ->
-            {noreply, State};
+            ok;
+        {error, {Object, Error}} ->
+            lorawan_utils:throw_error(Object, Error);
         {error, Error} ->
-            lager:error("Bad downlink ~w", [Error]),
-            {noreply, State}
-    end.
+            lorawan_utils:throw_error(server, Error)
+    end,
+    {noreply, State}.
 
 
 prepare_filling(undefined) ->
@@ -221,6 +224,15 @@ match_pattern(Topic, {Pattern, Vars}) ->
             maps:from_list(lists:zip(Vars, Matches));
         nomatch ->
             undefined
+    end.
+
+match_vars(Topic, Pattern) ->
+    case match_pattern(Topic, Pattern) of
+        undefined ->
+            lager:error("Topic ~w does not match pattern ~w", [Topic, Pattern]),
+            #{};
+        Vars ->
+            lorawan_admin:parse(Vars)
     end.
 
 % Shared Access Signature functions

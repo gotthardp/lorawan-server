@@ -104,13 +104,19 @@ init_connector_id(ConnId) ->
 init_connector(Conn) ->
     case lorawan_connector_sup:start_child(Conn) of
         {ok, Pid} ->
-            link(Pid),
-            ets:insert(?TABLE_ID, {Conn#connector.connid, Pid}),
-            {ok, Pid};
+            init_connector0(Conn, Pid);
+        {error, {already_started, Pid}} ->
+            % the process got rested by its supervisor
+            init_connector0(Conn, Pid);
         Error ->
             lager:error("Cannot connect ~w: ~w", [Conn#connector.connid, Error]),
             Error
     end.
+
+init_connector0(Conn, Pid) ->
+    link(Pid),
+    ets:insert(?TABLE_ID, {Conn#connector.connid, Pid}),
+    {ok, Pid}.
 
 maybe_terminate_connector_id(ConnId) ->
     case ets:lookup(?TABLE_ID, ConnId) of

@@ -57,10 +57,12 @@ invoke_handler2(Module, Fun, Params) ->
     end.
 
 store_frame(DevAddr, TxData) ->
-    mnesia:transaction(fun() ->
-        mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
-            datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}, write)
-    end).
+    {atomic, ok} =
+        mnesia:transaction(fun() ->
+            mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
+                datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}, write)
+        end),
+    ok.
 
 send_stored_frames(DevAddr, DefPort) ->
     case mnesia:dirty_select(txframes, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]) of
@@ -96,7 +98,7 @@ downlink(Link, Time, TxData) ->
         {send, _DevAddr, TxQ, PHYPayload2} ->
             lorawan_gw_router:downlink(Link#link.last_mac, Link#link.devaddr, TxQ, PHYPayload2);
         {error, Error} ->
-            lorawan_utils:throw_error({node, Link#link.devaddr}, Error)
+            {error, {{node, Link#link.devaddr}, Error}}
     end.
 
 multicast(Group, Time, TxData) ->
@@ -104,7 +106,7 @@ multicast(Group, Time, TxData) ->
         {send, _DevAddr, TxQ, PHYPayload2} ->
             lorawan_gw_router:downlink(Group#multicast_group.mac, Group#multicast_group.devaddr, TxQ, PHYPayload2);
         {error, Error} ->
-            lorawan_utils:throw_error({multicast_group, Group#multicast_group.devaddr}, Error)
+            {error, {{multicast_group, Group#multicast_group.devaddr}, Error}}
     end.
 
 % end of file
