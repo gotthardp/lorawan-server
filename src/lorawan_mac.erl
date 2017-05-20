@@ -147,7 +147,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewAddr = if
             D#device.link == undefined;
             byte_size(D#device.link) < 4 ->
-                create_devaddr(NetID);
+                create_devaddr(NetID, 3);
             true ->
                 D#device.link
         end,
@@ -200,10 +200,18 @@ initial_rxwin({A1, A2, _}, {B1, B2, B3}) ->
 apply_default(Value, _Default) when is_number(Value) -> Value;
 apply_default(_Else, Default) -> Default.
 
-create_devaddr(NetID) ->
+create_devaddr(NetID, Attempts) ->
     <<_:17, NwkID:7>> = NetID,
-    %% FIXME: verify uniqueness
-    <<NwkID:7, 0:1, (crypto:strong_rand_bytes(3))/binary>>.
+    <<_:7, NwkAddr:25/bitstring>> = crypto:strong_rand_bytes(4),
+    DevAddr = <<NwkID:7, NwkAddr:25/bitstring>>,
+    % assert uniqueness
+    case mnesia:read(links, DevAddr, read) of
+        [] ->
+            DevAddr;
+        [#link{}] when Attempts > 0 ->
+            create_devaddr(NetID, Attempts-1)
+        %% FIXME: do not crash when Attempts == 0
+    end.
 
 txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, DevAddr) ->
     MHDR = <<2#001:3, 0:3, 0:2>>,
