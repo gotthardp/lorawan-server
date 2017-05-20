@@ -11,7 +11,8 @@
 
 -include("lorawan.hrl").
 
--record(state, {cargs, phase, mqttc, ping_timer, subscribe, published, consumed}).
+-record(state, {cargs, phase, mqttc, last_connect, connect_count,
+    ping_timer, subscribe, published, consumed}).
 
 start_link(ConnUri, Conn) ->
     gen_server:start_link(?MODULE, [ConnUri, Conn], []).
@@ -24,15 +25,13 @@ init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
         [{host, HostName},
         {port, Port},
         {logger, warning},
-        {reconnect, {4, 60, 3}},
         {keepalive, 0}],
         auth_args(ConnUri, Conn),
         ssl_args(ConnUri, Conn)
     ]),
     % initially use MQTT 3.1.1
-    {ok, C} = emqttc:start_link([{proto_ver, 4} | CArgs]),
-    {ok, #state{cargs=CArgs, phase=connect311, mqttc=C, subscribe=Sub,
-        published=prepare_filling(Pub), consumed=prepare_matching(Cons)}}.
+    {ok, connect(attempt311, #state{cargs=CArgs, connect_count=0, subscribe=Sub,
+        published=prepare_filling(Pub), consumed=prepare_matching(Cons)})}.
 
 % Microsoft Shared Access Signature
 auth_args({_Scheme, _UserInfo, HostName, _Port, _Path, _Query},
@@ -65,6 +64,9 @@ ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{}) ->
         {versions, ['tlsv1.2']}
     ]}].
 
+handle_call(disconnect, _From, State=#state{mqttc=undefined}) ->
+    % already disconnected
+    {stop, normal, ok, State};
 handle_call(disconnect, _From, State=#state{mqttc=C}) ->
     % the disconnected event will not be delivered
     emqttc:disconnect(C),
@@ -75,20 +77,21 @@ handle_call(_Request, _From, State) ->
 handle_cast({publish, Msg, Vars}, State) ->
     handle_publish(Msg, Vars, State).
 
+handle_info({connect, Phase}, State) ->
+    {noreply, connect(Phase, State)};
+handle_info(ping, State) ->
+    handle_ping(State);
+
 handle_info({mqttc, C, connected}, State=#state{mqttc=C}) ->
     handle_connect(State);
 handle_info({mqttc, C, disconnected}, State=#state{mqttc=C}) ->
-    handle_disconnect(State);
-handle_info(ping, State) ->
-    handle_ping(State);
+    handle_reconnect(disconnected, attempt311, State);
 handle_info({publish, Topic, Payload}, State) ->
     handle_consume(Topic, Payload, State);
-handle_info({'EXIT', C, {shutdown, _Error}}, State=#state{cargs=CArgs, phase=connect311, mqttc=C}) ->
-    % downgrade to MQTT 3.1
-    {ok, C2} = emqttc:start_link([{proto_ver, 3} | CArgs]),
-    {noreply, State#state{phase=connect31, mqttc=C2}};
+handle_info({'EXIT', C, Error}, State=#state{phase=attempt311, mqttc=C}) ->
+    handle_reconnect(Error, attempt31, State);
 handle_info({'EXIT', C, Error}, State=#state{mqttc=C}) ->
-    {stop, Error, State};
+    handle_reconnect(Error, attempt311, State);
 handle_info(_Unknown, State) ->
     {noreply, State}.
 
@@ -98,6 +101,36 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+handle_reconnect(Error, Phase, #state{ping_timer=Timer} = State) ->
+    maybe_cancel_timer(Timer),
+    handle_reconnect0(Error, Phase, State#state{mqttc=undefined, ping_timer=undefined}).
+
+handle_reconnect0(Error, Phase, #state{phase=OldPhase, last_connect=Last, connect_count=Count} = State) ->
+    lager:debug("Connector ~w ~w reconnect ~B", [OldPhase, Error, Count]),
+    case calendar:datetime_to_gregorian_seconds(calendar:universal_time())
+            - calendar:datetime_to_gregorian_seconds(Last) of
+        Diff when Diff < 30, Count > 120 ->
+            % give up after 2 hours
+            {stop, Error, State};
+        Diff when Diff < 30, Count > 0 ->
+            % wait, then wait even longer, but no longer than 30 sec
+            timer:send_after(erlang:min(Count*5000, 30000), {connect, Phase}),
+            {noreply, State#state{connect_count=Count+1}};
+        Diff when Diff < 30, Count == 0 ->
+            % initially try to reconnect immediately
+            {noreply, connect(Phase, State#state{connect_count=1})};
+        true ->
+            {noreply, connect(Phase, State#state{connect_count=0})}
+    end.
+
+connect(Phase, #state{cargs=CArgs} = State) ->
+    {ok, C} = connect0(Phase, CArgs),
+    State#state{phase=Phase, mqttc=C, last_connect=calendar:universal_time()}.
+
+connect0(attempt31, CArgs) ->
+    emqttc:start_link([{proto_ver, 3} | CArgs]);
+connect0(attempt311, CArgs) ->
+    emqttc:start_link([{proto_ver, 4} | CArgs]).
 
 handle_connect(#state{subscribe=undefined}=State) ->
     {noreply, State#state{phase=connected}};
@@ -106,14 +139,14 @@ handle_connect(#state{mqttc=C, subscribe=Topic}=State) ->
     Timer = schedule_refresh(),
     {noreply, State#state{phase=connected, ping_timer=Timer}}.
 
+handle_ping(State=#state{mqttc=undefined}) ->
+    % ping timer expired, but meanwhile the client crashed
+    % wait for reconnection
+    {noreply, State};
 handle_ping(State=#state{mqttc=C}) ->
     pong = emqttc:ping(C),
     Timer = schedule_refresh(),
     {noreply, State#state{ping_timer=Timer}}.
-
-handle_disconnect(State=#state{ping_timer=Timer}) ->
-    maybe_cancel_timer(Timer),
-    {noreply, State#state{ping_timer=undefined}}.
 
 schedule_refresh() ->
     erlang:send_after(60*1000, self(), ping).
