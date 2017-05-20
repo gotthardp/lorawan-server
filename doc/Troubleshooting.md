@@ -90,3 +90,8 @@ If this is an exceptional case, go to the *Nodes* list and manually update the
 To allow ABP devices to freely reset set the *FCnt Check* to *Reset on zero*,
 but please note this weakens LoRaWAN security a bit.
 It is recommended to use over-the-air-activation (OTAA) instead.
+
+### prerequisite_failed
+
+This is reported when the lorawan-server is started with older Erlang/OTP. At
+least 19.0 (or later) is required.
