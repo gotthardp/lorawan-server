@@ -64,9 +64,7 @@ handle_cast({status, MAC, S}, State) ->
         ok ->
             ok;
         {error, {Object, Error}} ->
-            lorawan_utils:throw_error(Object, Error);
-        {error, Error} ->
-            lorawan_utils:throw_error(server, Error)
+            lorawan_utils:throw_error(Object, Error)
     end,
     {noreply, State};
 

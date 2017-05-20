@@ -294,7 +294,7 @@ reset_link(DevAddr) ->
 
 build_rxframe(Gateway, Link, RxQ, Frame) ->
     TXPower = case Link#link.adr_use of
-        {Power, _, _} -> Power;
+        {Power, _, _} when is_integer(Power) -> Power;
         _Else -> undefined
     end,
     % #rxframe{frid, mac, rxq, average_qs, app, appid, region, devaddr, fcnt, port, data, datetime, devstat}

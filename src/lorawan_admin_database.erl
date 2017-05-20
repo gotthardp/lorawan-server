@@ -108,7 +108,7 @@ content_types_accepted(Req, State) ->
 handle_write(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
-        Struct when is_map(Struct) ->
+        Struct when is_list(Struct); is_map(Struct) ->
             import_records(Struct, State),
             {true, Req2, State};
         _Else ->

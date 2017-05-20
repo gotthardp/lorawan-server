@@ -96,9 +96,7 @@ transmit_and_delete(DefPort, TxFrame, Pending) ->
 downlink(Link, Time, TxData) ->
     case lorawan_mac:handle_downlink(Link, Time, TxData) of
         {send, _DevAddr, TxQ, PHYPayload2} ->
-            lorawan_gw_router:downlink(Link#link.last_mac, Link#link.devaddr, TxQ, PHYPayload2);
-        {error, Error} ->
-            {error, {{node, Link#link.devaddr}, Error}}
+            lorawan_gw_router:downlink(Link#link.last_mac, Link#link.devaddr, TxQ, PHYPayload2)
     end.
 
 multicast(Group, Time, TxData) ->

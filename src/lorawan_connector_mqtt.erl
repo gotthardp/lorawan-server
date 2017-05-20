@@ -120,7 +120,7 @@ handle_reconnect0(Error, Phase, #state{phase=OldPhase, last_connect=Last, connec
         Diff when Diff < 30, Count == 0 ->
             % initially try to reconnect immediately
             {noreply, connect(Phase, State#state{connect_count=1})};
-        true ->
+        _Diff ->
             {noreply, connect(Phase, State#state{connect_count=0})}
     end.
 
