@@ -147,7 +147,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewAddr = if
             D#device.link == undefined;
             byte_size(D#device.link) < 4 ->
-                create_devaddr(NetID, 3);
+                create_devaddr(NetID, Gateway#gateway.subid, 3);
             true ->
                 D#device.link
         end,
@@ -200,18 +200,29 @@ initial_rxwin({A1, A2, _}, {B1, B2, B3}) ->
 apply_default(Value, _Default) when is_number(Value) -> Value;
 apply_default(_Else, Default) -> Default.
 
-create_devaddr(NetID, Attempts) ->
+create_devaddr(NetID, SubID, Attempts) ->
     <<_:17, NwkID:7>> = NetID,
-    <<_:7, NwkAddr:25/bitstring>> = crypto:strong_rand_bytes(4),
-    DevAddr = <<NwkID:7, NwkAddr:25/bitstring>>,
+    DevAddr =
+        case SubID of
+            undefined ->
+                <<NwkID:7, (rand_bitstring(25))/bitstring>>;
+            Bits ->
+                <<NwkID:7, Bits/bitstring, (rand_bitstring(25-bit_size(Bits)))/bitstring>>
+        end,
     % assert uniqueness
     case mnesia:read(links, DevAddr, read) of
         [] ->
             DevAddr;
         [#link{}] when Attempts > 0 ->
-            create_devaddr(NetID, Attempts-1)
+            create_devaddr(NetID, SubID, Attempts-1)
         %% FIXME: do not crash when Attempts == 0
     end.
+
+rand_bitstring(Num) when Num rem 8 > 0 ->
+    <<Bits:Num/bitstring, _/bitstring>> = crypto:strong_rand_bytes(1 + Num div 8),
+    Bits;
+rand_bitstring(Num) when Num rem 8 == 0 ->
+    crypto:strong_rand_bytes(Num div 8).
 
 txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, DevAddr) ->
     MHDR = <<2#001:3, 0:3, 0:2>>,

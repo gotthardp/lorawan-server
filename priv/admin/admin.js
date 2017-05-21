@@ -146,6 +146,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
         nga.field('netid').label('NetID'),
+        nga.field('subid').label('SubID')
+            .map(format_bitstring),
         nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('alive', 'boolean').label('Alive')
@@ -166,6 +168,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('netid').label('NetID')
             .attributes({ placeholder: 'e.g. 0123AB' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
+        nga.field('subid').label('SubID')
+            .map(format_bitstring)
+            .transform(parse_bitstring)
+            .attributes({ placeholder: 'e.g. 0:3' })
+            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+' }),
         nga.field('tx_rfch', 'number').label('TX Chain')
             .attributes({ placeholder: 'e.g. 0' })
             .validation({ required: true })
@@ -679,6 +686,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .fields([
                 nga.field('mac').label('MAC').isDetailLink(true),
                 nga.field('netid').label('NetID'),
+                nga.field('subid').label('SubID')
+                    .map(format_bitstring),
                 nga.field('last_rx', 'datetime').label('Last RX'),
                 nga.field('alive', 'boolean').label('Alive')
                     .map(function timediff(value, entry) {
@@ -761,6 +770,22 @@ function hextoascii(val) {
             str += '.';
     }
     return str;
+}
+
+function format_bitstring(value, entry) {
+    if(entry["subid.val"] != null)
+        return entry["subid.val"] + ":" + entry["subid.len"];
+    else
+        return null;
+}
+function parse_bitstring(value, entry) {
+    if(value.length > 0)
+    {
+        var parts = value.split(':', 2);
+        return {val: parts[0], len: +parts[1]};
+    }
+    else
+        return null;
 }
 
 function createWithTabsTemplate(list) {

@@ -39,6 +39,8 @@ parse(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:hex_to_binary(Value);
+parse(Key, Value) when Key == subid ->
+    parse_bitstring(Value);
 parse(Key, Value) when Key == severity; Key == entity ->
     binary_to_existing_atom(Value, latin1);
 parse(Key, Value) when Key == gpspos ->
@@ -87,6 +89,8 @@ build(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:binary_to_hex(Value);
+build(Key, Value) when Key == subid ->
+    build_bitstring(Value);
 build(Key, Value) when Key == severity; Key == entity ->
     atom_to_binary(Value, latin1);
 build(Key, Value) when Key == gpspos ->
@@ -114,6 +118,36 @@ build(Key, Value) when Key == build; Key == parse ->
     build_fun(Value);
 build(_Key, Value) ->
     Value.
+
+parse_bitstring(Map) ->
+    case parse_opt(val, Map) of
+        undefined ->
+            case parse_opt(len, Map) of
+                undefined ->
+                    <<>>;
+                Len ->
+                    <<0:Len>>
+            end;
+        Val ->
+            BinVal = lorawan_mac:hex_to_binary(Val),
+            case parse_opt(len, Map) of
+                undefined ->
+                    BinVal;
+                Len when Len =< bit_size(BinVal) ->
+                    <<Res:Len/bitstring, _/bitstring>> = BinVal,
+                    Res;
+                Len when Len > bit_size(BinVal) ->
+                    <<BinVal/binary, 0:(Len-bit_size(BinVal))>>
+            end
+    end.
+
+build_bitstring(Value) ->
+    case bit_size(Value) rem 8 of
+        0 -> #{val => lorawan_mac:binary_to_hex(Value),
+                len => bit_size(Value)};
+        N -> #{val => lorawan_mac:binary_to_hex(<<Value/bitstring, 0:(8-N)>>),
+                len => bit_size(Value)}
+    end.
 
 parse_latlon(List) ->
     {parse_opt(lat, List), parse_opt(lon, List)}.
@@ -169,11 +203,13 @@ build_opt(undefined) -> null;
 build_opt(<<"undefined">>) -> null; %% temporary db consistency fix, to be removed after some time
 build_opt(Value) -> Value.
 
-parse_opt(Field, List) ->
-    case maps:get(Field, List, undefined) of
-        null -> undefined;
+parse_opt(Field, List, Default) ->
+    case maps:get(Field, List, Default) of
+        null -> Default;
         Value -> Value
     end.
+parse_opt(Field, List) ->
+    parse_opt(Field, List, undefined).
 
 intervals_to_text(List) when is_list(List) ->
     lists:flatten(string:join(
@@ -196,6 +232,17 @@ text_to_intervals(Text) ->
         end, string:tokens(Text, ";, ")).
 
 -include_lib("eunit/include/eunit.hrl").
+
+bitstring_test_() -> [
+    ?_assertEqual(<<2:4>>, parse_bitstring(#{val => <<"20">>, len => 4})),
+    ?_assertEqual(<<16#20,0>>, parse_bitstring(#{val => <<"20">>, len => 16})),
+    ?_assertEqual(<<0>>, parse_bitstring(#{val => <<"00">>})),
+    ?_assertEqual(<<0:7>>, parse_bitstring(#{len => 7})),
+    ?_assertEqual(<<>>, parse_bitstring(#{})),
+    ?_assertEqual(#{val => <<>>, len => 0}, build_bitstring(<<>>)),
+    ?_assertEqual(#{val => <<"07">>, len => 8}, build_bitstring(<<7>>)),
+    ?_assertEqual(#{val => <<"70">>, len => 4}, build_bitstring(<<7:4>>))
+].
 
 bits_test_()-> [
     ?_assertEqual("0", intervals_to_text([{0,0}])),

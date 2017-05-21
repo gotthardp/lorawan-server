@@ -5,7 +5,9 @@
 
 For each LoRaWAN gateway you can set and view:
  * *MAC* address of the gateway
- * *NetID* of the network
+ * *NetID* of the network. Private networks should use 000000 or 000001.
+ * *SubID* in the format *HexValue*:*Length* specifies the (optional) fixed
+   bits in the DevAddr (see below).
  * *TX Chain* identifies the gateway "RF chain" used for downlinks; usually 0
  * *TX Power (dBm)* defines transmission power for downlinks
  * *Antenna Gain (dBi)* can be set to ensure the *TX Power* + *Antenna Gain*
@@ -15,6 +17,11 @@ For each LoRaWAN gateway you can set and view:
  * *Last RX* contains a timestamp of the last received packet. A gateway is
    considered dead if it didn't sent anything for more than 60 seconds.
  * *Location* and *Altitude* of the gateway
+
+The *NetID* and *SubID* are used to create DevAddr of OTAA devices. Each DevAddr
+is composed of 7 LSB of NetID, followed by *X* *SubID* bits, followed by 25-*X*
+random bits. This allows operator to define separate private sub-networks using
+the same *NetID*.
 
 The gateway power is always a minimum of *TX Power* and (max EIRP - *Antenna Gain*).
 
