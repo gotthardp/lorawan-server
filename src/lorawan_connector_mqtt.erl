@@ -85,7 +85,8 @@ handle_info(ping, State) ->
 handle_info({mqttc, C, connected}, State=#state{mqttc=C}) ->
     handle_connect(State);
 handle_info({mqttc, C, disconnected}, State=#state{mqttc=C}) ->
-    handle_reconnect(disconnected, attempt311, State);
+    % no action, waiting for 'EXIT'
+    {noreply, State};
 handle_info({publish, Topic, Payload}, State) ->
     handle_consume(Topic, Payload, State);
 handle_info({'EXIT', C, Error}, State=#state{phase=attempt311, mqttc=C}) ->
