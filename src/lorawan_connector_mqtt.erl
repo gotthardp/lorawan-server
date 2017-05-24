@@ -64,6 +64,15 @@ ssl_args({mqtts, _UserInfo, _Host, _Port, _Path, _Query}, #connector{}) ->
         {versions, ['tlsv1.2']}
     ]}].
 
+handle_call({resubscribe, Sub2}, _From, State=#state{mqttc=C, subscribe=Sub1})
+        when C =/= undefined, Sub1 =/= Sub2 ->
+    % subscribe first to not loose any message
+    emqttc:subscribe(C, Sub2, 1),
+    emqttc:unsubscribe(C, Sub1),
+    {reply, ok, State#state{subscribe=Sub2}};
+handle_call({resubscribe, Sub2}, _From, State) ->
+    % nothing to do
+    {reply, ok, State#state{subscribe=Sub2}};
 handle_call(disconnect, _From, State=#state{mqttc=undefined}) ->
     % already disconnected
     {stop, normal, ok, State};

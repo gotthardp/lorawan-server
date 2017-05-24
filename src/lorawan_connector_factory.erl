@@ -63,7 +63,7 @@ handle_info({'EXIT', Pid, Reason}, State) ->
 handle_info({mnesia_table_event, {write, Record0, _Trans}}, State) ->
     case setelement(1, Record0, connector) of
         COn when COn#connector.enabled==true, COn#connector.subscribe =/= undefined ->
-            get_or_init_connector_id(COn#connector.connid);
+            get_or_init_subscription(COn);
         COff ->
             maybe_terminate_connector_id(COff#connector.connid)
     end,
@@ -99,6 +99,17 @@ init_connector_id(ConnId) ->
             init_connector(Conn);
         [] ->
             {error, {not_found, ConnId}}
+    end.
+
+get_or_init_subscription(#connector{connid=ConnId, enabled=false}) ->
+    {error, {disabled, ConnId}};
+get_or_init_subscription(#connector{connid=ConnId, subscribe=Topic} = Conn) ->
+    case ets:lookup(?TABLE_ID, ConnId) of
+        [{ConnId, Pid}] ->
+            gen_server:call(Pid, {resubscribe, Topic}),
+            {ok, Pid};
+        [] ->
+            init_connector(Conn)
     end.
 
 init_connector(Conn) ->
