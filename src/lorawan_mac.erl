@@ -446,11 +446,11 @@ repeat_downlink(DevAddr, ACK) ->
 
 send_unicast(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
     PHYPayload = encode_unicast(2#011, DevAddr, ACK, FOpts, TxData),
-    mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=false, phypayload=PHYPayload}),
+    ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=false, phypayload=PHYPayload}),
     {send, DevAddr, TxQ, PHYPayload};
 send_unicast(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
     PHYPayload = encode_unicast(2#101, DevAddr, ACK, FOpts, TxData),
-    mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=true, phypayload=PHYPayload}),
+    ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=true, phypayload=PHYPayload}),
     {send, DevAddr, TxQ, PHYPayload}.
 
 send_multicast(TxQ, DevAddr, #txdata{confirmed=false} = TxData) ->

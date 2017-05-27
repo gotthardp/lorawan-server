@@ -22,8 +22,12 @@ handle_join(_DevAddr, _AppID, _AppArgs) ->
 handle_rx(_DevAddr, _AppID, _AppArgs, #rxdata{last_lost=true}, _RxQ) ->
     retransmit;
 handle_rx(DevAddr, AppID, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
-    send_to_backend(DevAddr, AppID, AppArgs, RxData, RxQ),
-    lorawan_handler:send_stored_frames(DevAddr, Port).
+    case send_to_backend(DevAddr, AppID, AppArgs, RxData, RxQ) of
+        ok ->
+            lorawan_handler:send_stored_frames(DevAddr, Port);
+        {error, Error} ->
+            {error, Error}
+    end.
 
 send_to_backend(DevAddr, AppID, AppArgs, RxData, RxQ) ->
     case mnesia:dirty_read(handlers, AppID) of

@@ -144,7 +144,7 @@ store_frame({MAC, RxQ, PHYPayload}, Dict) ->
     case dict:find(PHYPayload, Dict) of
         {ok, Frames} ->
             dict:store(PHYPayload, [{MAC, RxQ}|Frames], Dict);
-        _Else ->
+        error ->
             {ok, Delay} = application:get_env(lorawan_server, deduplication_delay),
             timer:send_after(Delay, {process, PHYPayload}),
             dict:store(PHYPayload, [{MAC, RxQ}], Dict)

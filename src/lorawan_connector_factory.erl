@@ -21,7 +21,7 @@ publish(ConnId, Msg, Vars) ->
         {ok, Pid} ->
             gen_server:cast(Pid, {publish, Msg, Vars});
         {error, Error} ->
-            lager:error("Error ~w", [Error])
+            {error, Error}
     end.
 
 ensure_connected(ConnId) ->

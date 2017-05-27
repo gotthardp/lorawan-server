@@ -82,7 +82,7 @@ send_stored_frames(DevAddr, DefPort) ->
     end.
 
 transmit_and_delete(DefPort, TxFrame, Pending) ->
-    mnesia:dirty_delete(txframes, TxFrame#txframe.frid),
+    ok = mnesia:dirty_delete(txframes, TxFrame#txframe.frid),
     TxData = TxFrame#txframe.txdata,
     % raw websocket does not define port
     OutPort = if
