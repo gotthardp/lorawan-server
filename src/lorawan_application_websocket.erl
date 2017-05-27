@@ -23,7 +23,10 @@ handle_join(_DevAddr, _AppID, _AppArgs) ->
 handle_rx(_DevAddr, _AppID, _AppArgs, #rxdata{last_lost=true}, _RxQ) ->
     retransmit;
 handle_rx(DevAddr, AppID, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
-    send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ),
+    case send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ) of
+        [] -> lager:warning("Frame not sent to any process");
+        _List -> ok
+    end,
     lorawan_handler:send_stored_frames(DevAddr, Port).
 
 send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ) ->

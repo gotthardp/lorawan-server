@@ -29,7 +29,7 @@ ensure_connected(ConnId) ->
 
 init([]) ->
     process_flag(trap_exit, true),
-    ets:new(?TABLE_ID, [set, named_table]),
+    _Table = ets:new(?TABLE_ID, [set, named_table]),
     % start connectors that need to subscribe
     lists:foreach(
         fun(Conn) ->
@@ -138,7 +138,7 @@ maybe_terminate_connector_id(ConnId) ->
     end.
 
 handle_exit(ConnId, Reason) ->
-    lorawan_connector_sup:delete_child(ConnId),
+    ok = lorawan_connector_sup:delete_child(ConnId),
     ets:delete(?TABLE_ID, ConnId),
     handle_exit2(ConnId, Reason).
 

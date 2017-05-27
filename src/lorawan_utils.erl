@@ -40,17 +40,19 @@ write_event(Severity, Entity, EID, Event) ->
             {First, _} -> First;
             Only -> Only
         end})),
-    mnesia:transaction(fun() ->
-        case mnesia:read(events, EvId, write) of
-            [E] ->
-                mnesia:write(events, E#event{last_rx=calendar:universal_time(),
-                    count=inc(E#event.count), text=Text}, write);
-            [] ->
-                mnesia:write(events, #event{evid=EvId, severity=Severity,
-                    first_rx=calendar:universal_time(), last_rx=calendar:universal_time(),
-                    count=1, entity=Entity, eid=EID, text=Text}, write)
-        end
-    end).
+    {atomic, ok} =
+        mnesia:transaction(fun() ->
+            case mnesia:read(events, EvId, write) of
+                [E] ->
+                    mnesia:write(events, E#event{last_rx=calendar:universal_time(),
+                        count=inc(E#event.count), text=Text}, write);
+                [] ->
+                    mnesia:write(events, #event{evid=EvId, severity=Severity,
+                        first_rx=calendar:universal_time(), last_rx=calendar:universal_time(),
+                        count=1, entity=Entity, eid=EID, text=Text}, write)
+            end
+        end),
+    ok.
 
 inc(undefined) -> 1;
 inc(Num) -> Num+1.

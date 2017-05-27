@@ -125,7 +125,7 @@ handle_reconnect0(Error, Phase, #state{phase=OldPhase, last_connect=Last, connec
             {stop, Error, State};
         Diff when Diff < 30, Count > 0 ->
             % wait, then wait even longer, but no longer than 30 sec
-            timer:send_after(erlang:min(Count*5000, 30000), {connect, Phase}),
+            {ok, _} = timer:send_after(erlang:min(Count*5000, 30000), {connect, Phase}),
             {noreply, State#state{connect_count=Count+1}};
         Diff when Diff < 30, Count == 0 ->
             % initially try to reconnect immediately
@@ -165,7 +165,8 @@ schedule_refresh() ->
 maybe_cancel_timer(undefined) ->
     ok;
 maybe_cancel_timer(Timer) ->
-    erlang:cancel_timer(Timer).
+    _ = erlang:cancel_timer(Timer),
+    ok.
 
 
 handle_publish(Msg, Vars, State=#state{mqttc=C, published=Pattern}) ->

@@ -109,7 +109,7 @@ handle_write(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
         Struct when is_list(Struct); is_map(Struct) ->
-            import_records(Struct, State),
+            ok = import_records(Struct, State),
             {true, Req2, State};
         _Else ->
             lager:debug("Bad JSON in HTTP request"),
@@ -118,15 +118,16 @@ handle_write(Req, State) ->
 
 import_records([], _State) -> ok;
 import_records([First|Rest], State) ->
-    write_record(First, State),
+    {atomic, ok} = write_record(First, State),
     import_records(Rest, State);
 import_records(Object, State) when is_map(Object) ->
-    write_record(Object, State).
+    {atomic, ok} = write_record(Object, State),
+    ok.
 
 write_record(List, #state{table=Table, record=Record, fields=Fields, module=Module}) ->
     Rec = list_to_tuple([Record|[maps:get(X, apply(Module, parse, [List]), undefined) || X <- Fields]]),
     mnesia:transaction(fun() ->
-        ok = mnesia:write(Table, Rec, write) end).
+        mnesia:write(Table, Rec, write) end).
 
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};

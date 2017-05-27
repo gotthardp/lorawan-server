@@ -18,7 +18,7 @@ ensure_tables() ->
         false ->
             stopped = mnesia:stop(),
             lager:info("Database create schema"),
-            mnesia:create_schema([node()]),
+            ok = mnesia:create_schema([node()]),
             ok = mnesia:start()
     end,
     lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef) end, [
@@ -101,11 +101,19 @@ ensure_indexes(Name, TabDef) ->
             ensure_fields(Name, TabDef);
         true ->
             lager:info("Database index update ~w: ~w to ~w", [Name, OldIndexes, NewIndexes]),
-            [mnesia:del_table_index(Name, lists:nth(Idx-1, OldAttrs))
-                || Idx <- lists:subtract(OldIndexes, NewIndexes), Idx =< length(OldAttrs)+1],
+            lists:foreach(
+                fun (Idx) when Idx =< length(OldAttrs)+1 ->
+                        {atomic, ok} = mnesia:del_table_index(Name, lists:nth(Idx-1, OldAttrs));
+                    (_) ->
+                        ok
+                end, lists:subtract(OldIndexes, NewIndexes)),
             ensure_fields(Name, TabDef),
-            [mnesia:add_table_index(Name, lists:nth(Idx-1, NewAttrs))
-                || Idx <- lists:subtract(NewIndexes, OldIndexes), Idx =< length(NewAttrs)+1]
+            lists:foreach(
+                fun (Idx) when Idx =< length(NewAttrs)+1 ->
+                        {atomic, ok} = mnesia:add_table_index(Name, lists:nth(Idx-1, NewAttrs));
+                    (_) ->
+                        ok
+                end, lists:subtract(NewIndexes, OldIndexes))
     end.
 
 ensure_fields(Name, TabDef) ->
@@ -122,7 +130,8 @@ ensure_fields(Name, TabDef) ->
                     PropList = lists:zip(OldAttrs, Values),
                     list_to_tuple([Rec|[proplists:get_value(X, PropList) || X <- NewAttrs]])
                 end,
-                NewAttrs)
+                NewAttrs),
+            ok
     end.
 
 set_defaults(users) ->
@@ -179,8 +188,11 @@ expired_events() ->
         [{#event{evid='$1', last_rx='$2', _='_'}, [{'=<', '$2', {const, ETime}}], ['$1']}]).
 
 purge_txframes(DevAddr) ->
-    [mnesia:dirty_delete_object(txframes, Obj) ||
-        Obj <- mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})].
+    lists:foreach(
+        fun(Obj) ->
+            ok = mnesia:dirty_delete_object(txframes, Obj)
+        end,
+        mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})).
 
 index_of(Item, List) -> index_of(Item, List, 1).
 

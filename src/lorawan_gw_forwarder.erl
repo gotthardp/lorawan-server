@@ -42,7 +42,7 @@ handle_cast({send, {Host, Port, Version}, DevAddr, TxQ, RFCh, PHYPayload},
     Token = crypto:strong_rand_bytes(2),
     {ok, Timer} = timer:send_after(30000, {no_ack, Token}),
     % PULL RESP
-    gen_udp:send(Socket, Host, Port, <<Version, Token/binary, 3, (jsx:encode(Pk))/binary>>),
+    ok = gen_udp:send(Socket, Host, Port, <<Version, Token/binary, 3, (jsx:encode(Pk))/binary>>),
     {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr}, Tokens)}}.
 
 % PUSH DATA
@@ -61,7 +61,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
                 end,
                 maps:to_list(Data2)),
             % PUSH ACK
-            gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>);
+            ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>);
         _Else ->
             lager:error("Ignored PUSH_DATA: JSON syntax error")
     end,
@@ -72,7 +72,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #
     lorawan_gw_router:register(MAC, {global, ?MODULE}, {Host, Port, Version}),
     lorawan_gw_router:status(MAC, undefined),
     % PULL ACK
-    gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
+    ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
     {noreply, State};
 
 % TX ACK
@@ -86,7 +86,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
     {Opaque, Tokens2} =
         case maps:take(Token, Tokens) of
             {{Timer, Opq}, Tkns} ->
-                timer:cancel(Timer),
+                {ok, cancel} = timer:cancel(Timer),
                 {Opq, Tkns};
             error ->
                 {undefined, Tokens}
