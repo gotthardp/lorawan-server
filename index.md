@@ -14,7 +14,7 @@ The server:
 <li>Invokes external applications. It currently supports connections via:
     <ul>
     <li>WebSocket protocol</li>
-    <li>MQTT, including applications hosted in Amazon AWS IoT, Microsoft Azure IoT Hub.</li>
+    <li>MQTT, including applications hosted in Amazon AWS IoT, IBM Watson IoT or Microsoft Azure IoT Hub.</li>
     </ul>
 </li>
 <li>Handles (any number of) Class A or Class C devices.
