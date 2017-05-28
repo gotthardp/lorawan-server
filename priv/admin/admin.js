@@ -669,6 +669,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
             .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
             .addChild(nga.menu(ignored_nodes).icon('<span class="fa fa-ban fa-fw"></span>'))
+            .addChild(nga.menu(events).icon('<span class="fa fa-exclamation-triangle fa-fw"></span>'))
         )
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(nodes).icon('<span class="fa fa-rss fa-fw"></span>'))
