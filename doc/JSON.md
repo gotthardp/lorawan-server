@@ -49,6 +49,9 @@ The client may send back to the server a JSON structure with the following field
 For example:
 ```json
     {"devaddr":"11223344", "data":"0026BF08BD03CD35000000000000FFFF", "confirmed":true}
+```
+Or (for class C devices only):
+```json
     {"data":"00", "port":2, "time":"2017-03-04T21:05:30.2000"}
     {"data":"00", "port":2, "time":"immediately"}
 ```

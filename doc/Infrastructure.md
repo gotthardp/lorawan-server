@@ -56,3 +56,9 @@ To suppress warnings from a specific device, enter its *DevAddr* and
 To suppress warnings from all devices in a given network, enter a *DevAddr* of
 one device and `FE000000` as the *Mask*. The 7 upper bits (MSB) match in the
 address match the 7 lower bits (LSB) in the network identifier.
+
+
+## Events
+
+This list includes an overview of errors and warnings that have occurred during
+the last 24 hours. See [Event List](Events.md) guide for more details.
