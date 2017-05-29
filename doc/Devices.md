@@ -23,6 +23,10 @@ For each device, which may connect to your network, you can set:
      This weakens device security a bit as more reply attacks are possible.
    * *Disabled* disables the check for faulty devices.
      This destroys the device security.
+ * *TX Window* to be used for downlinks to this device:
+   * *Auto* to choose the earliest feasible option, either RX1 or RX2
+   * *RX1* to always use RX1
+   * *RX2* to always use RX2
  * *Can Join?* flag that allows you to prevent the device from joining.
  * *Last Join* is a timestamp of the last successful Join request.
 

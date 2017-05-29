@@ -17,6 +17,7 @@ For each active network Node you can set:
  * *Arguments*, which is an opaque string with application-specific settings.
  * *NwkSKey* and *AppSKey*
  * *FCnt Check* to be used for this device (see the Devices section for more explanation).
+ * *TX Window* to be used for downlinks to this device.
 
 The *US 902-928MHz* region allows a private *hybrid* mode introduced by
 [Multitech](www.multitech.net/developer/software/lora/introduction-to-lora).

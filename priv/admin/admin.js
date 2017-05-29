@@ -46,6 +46,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 3, label: 'Disabled' }
     ];
 
+    txwin_choices = [
+        { value: 0, label: 'Auto' },
+        { value: 1, label: 'RX1' },
+        { value: 2, label: 'RX2' }
+    ];
+
     region_choices = [
         { value: 'EU863-870', label: 'EU 863-870MHz' },
         { value: 'US902-928', label: 'US 902-928MHz' },
@@ -297,6 +303,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
+        nga.field('txwin', 'choice').label('TX Window')
+            .choices(txwin_choices)
+            .defaultValue(0), // Auto
         nga.field('can_join', 'boolean').label('Can Join?')
             .defaultValue(true),
         nga.field('last_join', 'datetime').label('Last Join'),
@@ -324,13 +333,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
     ]);
     devices.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:11},
-        {name:"ADR", min:11, max:16}
+        {name:"General", min:0, max:12},
+        {name:"ADR", min:12, max:17}
     ]));
     devices.editionView().fields(devices.creationView().fields());
     devices.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:11},
-        {name:"ADR", min:11, max:16}
+        {name:"General", min:0, max:12},
+        {name:"ADR", min:12, max:17}
     ]));
     // add to the admin application
     admin.addEntity(devices);
@@ -384,6 +393,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
+        nga.field('txwin', 'choice').label('TX Window')
+            .choices(txwin_choices)
+            .defaultValue(0), // Auto
         nga.field('last_reset', 'datetime').label('Last Reset'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('last_mac', 'reference').label('Gateway')
@@ -411,8 +423,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
     ]);
     nodes.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:13},
-        {name:"ADR", min:13, max:18}
+        {name:"General", min:0, max:14},
+        {name:"ADR", min:14, max:19}
     ]));
 
     nodes.editionView().fields([
@@ -444,6 +456,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
+        nga.field('txwin', 'choice').label('TX Window')
+            .choices(txwin_choices)
+            .defaultValue(0), // Auto
         nga.field('last_reset', 'datetime').label('Last Reset'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('last_mac', 'reference').label('Gateway')
@@ -498,9 +513,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<dgraph value="value"></dgraph>')
     ]);
     nodes.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:14},
-        {name:"ADR", min:14, max:24},
-        {name:"Status", min:24, max:29}
+        {name:"General", min:0, max:15},
+        {name:"ADR", min:15, max:25},
+        {name:"Status", min:25, max:30}
     ]));
     // add to the admin application
     admin.addEntity(nodes);

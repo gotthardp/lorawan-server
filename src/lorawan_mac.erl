@@ -160,14 +160,14 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     JoinCnt =
         case mnesia:dirty_read(links, Device#device.link) of
             [#link{reset_count=Cnt, last_rx=undefined}] when is_integer(Cnt) -> Cnt+1;
-            _Else -> 1
+            _Else -> 0
         end,
 
     lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, Device#device.link]),
     Link = #link{devaddr=Device#device.link, region=Device#device.region,
         app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
-        nwkskey=NwkSKey, appskey=AppSKey,
-        fcntup=0, fcntdown=0, fcnt_check=Device#device.fcnt_check,
+        nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0,
+        fcnt_check=Device#device.fcnt_check, txwin=Device#device.txwin,
         reset_count=JoinCnt, last_mac=Gateway#gateway.mac, last_rxq=RxQ,
         adr_flag_use=0, adr_flag_set=Device#device.adr_flag_set,
         adr_use=lorawan_mac_region:default_adr(Device#device.region),
@@ -180,11 +180,11 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     reset_link(Link#link.devaddr),
     case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs) of
         ok ->
-            TxQ = case JoinCnt band 1 of
-                1 ->
+            TxQ = case join_rxwin(Link, JoinCnt) of
+                0 ->
                     lager:debug("Join-Accept in RX1: ~w", [Link#link.rxwin_use]),
                     lorawan_mac_region:join1_window(Link, RxQ);
-                0 ->
+                1 ->
                     lager:debug("Join-Accept in RX2: ~w", [Link#link.rxwin_use]),
                     lorawan_mac_region:join2_window(Link, RxQ)
             end,
@@ -192,6 +192,13 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
             txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, Link#link.devaddr);
         {error, Error} -> {error, {{node, Link#link.devaddr}, Error}}
     end.
+
+join_rxwin(#link{txwin=1}, _) ->
+    0;
+join_rxwin(#link{txwin=2}, _) ->
+    1;
+join_rxwin(_, JoinCnt) ->
+    JoinCnt band 1.
 
 % join response allows to send initial rx1offset and rx2dr
 initial_rxwin({A1, A2, _}, {B1, B2, B3}) ->
@@ -337,7 +344,12 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Frame)),
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
-                    TxQ = lorawan_mac_region:rx1_window(Link, RxQ),
+                    TxQ = case Link of
+                            #link{txwin=2} ->
+                                lorawan_mac_region:rx2_window(Link, RxQ);
+                            _Else ->
+                                lorawan_mac_region:rx1_window(Link, RxQ)
+                        end,
                     {send, Link#link.devaddr, TxQ, LostFrame};
                 {false, _} ->
                     ok
@@ -414,6 +426,10 @@ handle_multicast(Group, Time, TxData) ->
     TxQ = lorawan_mac_region:rf_group(Group),
     send_multicast(TxQ#txq{time=Time}, Group#multicast_group.devaddr, TxData).
 
+choose_tx(#link{txwin=1}=Link, RxQ) ->
+    lorawan_mac_region:rx1_window(Link, RxQ);
+choose_tx(#link{txwin=2}=Link, RxQ) ->
+    lorawan_mac_region:rx2_window(Link, RxQ);
 choose_tx(Link, RxQ) ->
     {ok, Rx1Delay} = application:get_env(lorawan_server, rx1_delay),
     {ok, GwDelay} = application:get_env(lorawan_server, preprocessing_delay),
