@@ -34,15 +34,26 @@ This may be due to:
  * Firewall misconfiguration. Check the server firewall does not block the port 1680.
    See [Installation Instructions](Installation.md) for configuration guidelines.
 
-### Join request received, but no further frames
-
-This is usually because the downlink frame including the Join response was not sent or
-received by the device.
+### No downlink frames sent
 
 This may be because:
+ * Gateway configuration error. Verify you set correctly the *TX Chain* in your
+   [Infrastructure](Infrastructure.md) configuration.
  * Gateway error. Check for any error in your gateway log file.
  * The device did not listen on the channel (frequency) used by the server. Verify
-   your device listens in the RX1 window.
+   your device correctly listens in the right RX1/RX2 window. The RX2 frequencies
+   and data rates are provided in the
+   [regions](https://github.com/gotthardp/lorawan-server/blob/master/src/lorawan_server.app.src#L28)
+   config parameter.
+
+Some devices like the Arduino LMIC may have problems receiving downlinks in the RX1
+window. To bypass this you can set the *TX Window* of your [Device](Devices.md)
+or [Node](Nodes.md) to `RX2'.
+
+### Join request received, but no further uplink frames
+
+This is usually because the downlink frame including the Join response was not sent or
+received by the device. See *No downlink frames sent* above.
 
 ### unknown_mac
 
@@ -95,3 +106,16 @@ It is recommended to use over-the-air-activation (OTAA) instead.
 
 This is reported when the lorawan-server is started with older Erlang/OTP. At
 least 19.0 (or later) is required.
+
+### connector_disabled
+
+The server is configured to use a connector, which is disabled. Set the
+*Enabled* flag of your [Backend](Backends.md) connector configuration.
+
+### Unknown downlink target
+
+This is reported when a [Backend](Backends.md) connector doesn't know to what
+device a downlink shall be sent. You have two options:
+ * Define a "devaddr" or "deveui" field in the JSON structure, or
+ * Define the "Consumed Topic" as a template "in/{devaddr}", which causes the
+   server to parse the topic and extract the DevAddr from there.

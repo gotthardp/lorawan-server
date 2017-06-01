@@ -94,7 +94,7 @@ get_or_init_connector_id(ConnId) ->
 init_connector_id(ConnId) ->
     case mnesia:dirty_read(connectors, ConnId) of
         [#connector{enabled=false}] ->
-            {error, {disabled, ConnId}};
+            {error, {connector_disabled, ConnId}};
         [Conn] ->
             init_connector(Conn);
         [] ->
@@ -102,7 +102,7 @@ init_connector_id(ConnId) ->
     end.
 
 get_or_init_subscription(#connector{connid=ConnId, enabled=false}) ->
-    {error, {disabled, ConnId}};
+    {error, {connector_disabled, ConnId}};
 get_or_init_subscription(#connector{connid=ConnId, subscribe=Topic} = Conn) ->
     case ets:lookup(?TABLE_ID, ConnId) of
         [{ConnId, Pid}] ->

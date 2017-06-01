@@ -16,6 +16,11 @@ On the Authentication tab:
  * *Auth* shall be set to *Username+Password*, even when the *Name* and
    *Password/Key* are empty.
 
+To send a downlink message do e.g.
+```bash
+mosquitto_pub -h 127.0.0.1 -p 1883 -t 'in/00112233' -m '{"data":"00"}' -u 'user' -P 'pass'
+```
+
 
 ## AWS IoT
 

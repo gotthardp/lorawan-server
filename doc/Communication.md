@@ -22,6 +22,14 @@ Upon receiving an uplink frame the server:
      the *FCnt Up* did reset and the Node *FCnt Check* is set to *Reset on zero*.
      Such frames are processed as if the *FCnt Up* increased.
 
+Every LoRa device can transmit for a short time only, usually 0.1% or 1% depending
+on frequency. LoRaWAN is thus not suitable for continuous transmissions.
+
+  Duty | Total TX in 1 hour | Each TX  | Gap between TX
+ ------|--------------------|----------|----------------
+  0.1% | < 3.6s             | < 0.72s  | > 0.72s
+  1%   | < 36s              | < 3.6s   | > 1.8s
+
 
 ## Downlink
 

@@ -23,6 +23,12 @@ The JSON structure the server sends to clients contains the following fields:
   last_lost   | Boolean     | Whether the previous confirmed downlink was lost.
   datetime    | ISO 8601    | Timestamp using the server clock.
   rxq         | Object      | Indicators of the reception quality.
+  rxq.lsnr    | Number      | Lora SNR ratio in dB (signed float, 0.1 dB precision)
+  rxq.rssi    | Number      | RSSI in dBm (signed integer, 1 dB precision)
+  rxq.tmst    | Number      | Internal timestamp of "RX finished" event (32b unsigned)
+  rxq.codr    | String      | LoRa ECC coding rate identifier
+  rxq.datr    | String      | LoRa datarate identifier (eg. SF12BW500)
+  rxq.freq    | Number      | RX central frequency in MHz (unsigned float, Hz precision)
 
 For example:
 ```json

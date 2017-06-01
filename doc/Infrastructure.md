@@ -8,7 +8,9 @@ For each LoRaWAN gateway you can set and view:
  * *NetID* of the network. Private networks should use 000000 or 000001.
  * *SubID* in the format *HexValue*:*Length* specifies the (optional) fixed
    bits in the DevAddr (see below).
- * *TX Chain* identifies the gateway "RF chain" used for downlinks; usually 0
+ * *TX Chain* identifies the gateway "radio chain" used for downlinks (usually 0).
+   It shall correspond to a `radio_x` (e.g. `radio_0`) with `tx_enable: true`
+   in gateway's `global_conf.json`.
  * *TX Power (dBm)* defines transmission power for downlinks
  * *Antenna Gain (dBi)* can be set to ensure the *TX Power* + *Antenna Gain*
    is below the maximal allowed Equivalent Isotropic Radiated Power (EIRP)
