@@ -3,9 +3,10 @@ Description=LoRaWAN Server
 After=network.target
 
 [Service]
-Type=forking
+Type=simple
 ExecStart=/usr/lib/lorawan-server/bin/lorawan-daemon
 ExecStop=/usr/lib/lorawan-server/bin/lorawanctl stop
+User=lorawan
 
 [Install]
 WantedBy=multi-user.target

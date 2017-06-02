@@ -94,6 +94,7 @@ To upgrade your server binaries:
    them by `bin`, `lib` and `releases` from the new binary release. You can simply
    unpack the content of the binary release e.g. in `/usr/lib/lorawan-server`.
  * Copy `bin/lorawan-server.service` to `/lib/systemd/system`
+ * Reload the services by `sudo systemctl daemon-reload`
  * Start the lorawan-server
 
 
