@@ -28,7 +28,7 @@ init([PktFwdOpts]) ->
         {ok, Socket} ->
             {ok, #state{sock=Socket, tokens=maps:new()}};
         {error, Reason} ->
-            lager:error("Failed to start the packet_forwarder interface: ~w", Reason),
+            lager:error("Failed to start the packet_forwarder interface: ~w", [Reason]),
             {stop, Reason}
     end.
 
