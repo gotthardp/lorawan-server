@@ -631,6 +631,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('format', 'choice')
             .choices(format_choices),
+        nga.field('fields', 'choices').label('Uplink Fields')
+            .choices([
+                { value: 'deveui', label: 'deveui' },
+                { value: 'datetime', label: 'datetime' },
+                { value: 'rxq', label: 'rxq' }
+            ]),
         nga.field('parse', 'text').label('Parse Uplink'),
         nga.field('build', 'text').label('Build Downlink'),
         nga.field('connid', 'reference').label('Connector')

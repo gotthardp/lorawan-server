@@ -11,7 +11,7 @@
 
 -record(ignored_link, {devaddr, mask}).
 -record(connector, {connid, enabled, uri, published, subscribe, consumed, client_id, auth, name, pass, certfile, keyfile}).
--record(handler, {appid, format, parse, build, connid}).
+-record(handler, {appid, format, fields, parse, build, connid}).
 -record(event, {evid, severity, first_rx, last_rx, count, entity, eid, text}).
 
 -define(to_record(Record, Object, Default),
@@ -21,11 +21,11 @@
 
 -define(to_map(Record, RecData),
     maps:from_list(
-        lists:filter(
-            fun ({_, undefined}) -> false;
-                (_) -> true
+        lists:filtermap(
+            fun ({_K, D, D}) -> false;
+                ({K, V, _D}) -> {true, {K, V}}
             end,
-            lists:zip(record_info(fields, Record), tl(tuple_to_list(RecData)))
+            lists:zip3(record_info(fields, Record), tl(tuple_to_list(RecData)), tl(tuple_to_list(#Record{})))
     ))).
 
 % end of file

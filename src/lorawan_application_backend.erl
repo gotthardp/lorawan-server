@@ -157,23 +157,43 @@ filter_group_responses(_AppID, List) ->
 
 parse_uplink(#handler{appid = AppID, format = <<"raw">>},
         DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ) ->
-    {binary, Data, construct_vars(AppID, DevAddr)};
-parse_uplink(#handler{appid = AppID, format = <<"json">>, parse = Parse},
+    {binary, Data,
+        #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
+parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse = Parse},
         DevAddr, AppArgs, RxData=#rxdata{port=Port, data=Data}, RxQ) ->
-    Vars = construct_vars(AppID, DevAddr),
     Msg = lorawan_admin:build(
-        maps:merge(
-            ?to_map(rxdata, RxData),
-            Vars#{appargs => AppArgs, datetime => calendar:universal_time(),
-                rxq => RxQ, fields => data_to_fields(Parse, Port, Data)}
+        maps:merge(?to_map(rxdata, RxData),
+            vars_add(appargs, AppArgs,
+            vars_add_opt(deveui, get_deveui(DevAddr), Fields,
+            vars_add_opt(datetime, calendar:universal_time(), Fields,
+            vars_add_opt(rxq, RxQ, Fields,
+            vars_add(fields, data_to_fields(Parse, Port, Data),
+            #{group => AppID, devaddr => DevAddr})))))
         )),
-    {text, jsx:encode(Msg), Vars}.
+    {text, jsx:encode(Msg),
+        #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}}.
 
-construct_vars(AppID, DevAddr) ->
-    Vars = #{group => AppID, devaddr => DevAddr},
+vars_add(_Field, undefined, Vars) ->
+    Vars;
+vars_add(Field, Value, Vars) ->
+    Vars#{Field => Value}.
+
+vars_add_opt(_Field, undefined, _Fields, Vars) ->
+    Vars;
+vars_add_opt(Field, Value, undefined, Vars) ->
+    Vars#{Field => Value};
+vars_add_opt(Field, Value, Fields, Vars) ->
+    case lists:member(atom_to_binary(Field, latin1), Fields) of
+        true ->
+            Vars#{Field => Value};
+        false ->
+            Vars
+    end.
+
+get_deveui(DevAddr) ->
     case mnesia:dirty_index_read(devices, DevAddr, #device.link) of
-        [#device{deveui=DevEUI}] -> Vars#{deveui => DevEUI};
-        [] -> Vars
+        [#device{deveui=DevEUI}] -> DevEUI;
+        [] -> undefined
     end.
 
 data_to_fields({_, Fun}, Port, Data) when is_function(Fun) ->

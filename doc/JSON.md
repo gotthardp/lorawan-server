@@ -12,15 +12,20 @@ The JSON structure the server sends to clients contains the following fields:
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
-  deveui      | Hex String  | DevEUI of the device.
   devaddr     | Hex String  | DevAddr of the active node.
   appargs     | Any         | Application arguments for this node.
   port        | Integer     | LoRaWAN port number.
   fcnt        | Integer     | Received frame sequence number.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
   fields      | Object      | Payload decoded by a corresponding [backend handler](Backends.md).
-  shall_reply | Boolean     | Whether the server has to send a downlink message.
-  last_lost   | Boolean     | Whether the previous confirmed downlink was lost.
+  shall_reply | Boolean     | Whether the server has to send a downlink message. By default `false`.
+  last_lost   | Boolean     | Whether the previous confirmed downlink was lost. By default `false`.
+
+Additional *Uplink Fields* may be enabled in the [Backend](Backends.md) configuration:
+
+  Field       | Type        | Explanation
+ -------------|-------------|-------------------------------------------------------------
+  deveui      | Hex String  | DevEUI of the device.
   datetime    | ISO 8601    | Timestamp using the server clock.
   rxq         | Object      | Indicators of the reception quality.
   rxq.lsnr    | Number      | Lora SNR ratio in dB (signed float, 0.1 dB precision)
