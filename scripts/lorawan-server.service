@@ -4,7 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/lib/lorawan-server/bin/lorawan-daemon
+Environment=LORAWAN_HOME=/var/lib/lorawan-server
+ExecStart=/usr/lib/lorawan-server/bin/lorawan-server
 ExecStop=/usr/lib/lorawan-server/bin/lorawanctl stop
 User=lorawan
 

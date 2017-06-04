@@ -1,3 +1,0 @@
-#!/bin/sh
-export LORAWAN_HOME=/var/lib/lorawan-server
-/usr/lib/lorawan-server/bin/lorawan-server
