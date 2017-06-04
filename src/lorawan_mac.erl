@@ -159,8 +159,11 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
 
     JoinCnt =
         case mnesia:dirty_read(links, Device#device.link) of
-            [#link{reset_count=Cnt, last_rx=undefined}] when is_integer(Cnt) -> Cnt+1;
-            _Else -> 0
+            [#link{reset_count=Cnt, last_rx=undefined}] when is_integer(Cnt) ->
+                lorawan_utils:throw_warning({node, Device#device.link}, repeated_reset),
+                Cnt+1;
+            _Else ->
+                0
         end,
 
     lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, Device#device.link]),
@@ -282,36 +285,44 @@ check_link_fcnt(DevAddr, FCnt) ->
             {ok, retransmit, L};
         [L] when L#link.fcnt_check == 1 ->
             % strict 32-bit
-            case fcnt_gap32(L#link.fcntup, FCnt) of
+            case fcnt32_gap(L#link.fcntup, FCnt) of
+                1 ->
+                    {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, 1)}};
                 N when N < ?MAX_FCNT_GAP ->
-                    % L#link.fcntup is 32b, but the received FCnt may be 16b only
-                    LastFCnt = (L#link.fcntup + N) band 16#FFFFFFFF,
-                    {ok, new, L#link{fcntup = LastFCnt}};
+                    lorawan_utils:throw_warning({node, DevAddr}, {uplinks_lost, N-1}),
+                    {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, N)}};
                 _BigN ->
                     {error, {fcnt_gap_too_large, FCnt}}
             end;
         [L] ->
             % strict 16-bit (default)
-            case fcnt_gap16(L#link.fcntup, FCnt) of
+            case fcnt16_gap(L#link.fcntup, FCnt) of
+                1 ->
+                    {ok, new, L#link{fcntup = FCnt}};
                 N when N < ?MAX_FCNT_GAP ->
+                    lorawan_utils:throw_warning({node, DevAddr}, {uplinks_lost, N-1}),
                     {ok, new, L#link{fcntup = FCnt}};
                 _BigN ->
                     {error, {fcnt_gap_too_large, FCnt}}
             end
     end.
 
-fcnt_gap16(A, B) ->
+fcnt16_gap(A, B) ->
     if
         A =< B -> B - A;
         A > B -> 16#FFFF - A + B
     end.
 
-fcnt_gap32(A, B) ->
+fcnt32_gap(A, B) ->
     A16 = A band 16#FFFF,
     if
         A16 > B -> 16#10000 - A16 + B;
         true  -> B - A16
     end.
+
+fcnt32_inc(FCntUp, N) ->
+    % L#link.fcntup is 32b, but the received FCnt may be 16b only
+    (FCntUp + N) band 16#FFFFFFFF.
 
 reset_link(DevAddr) ->
     ok = mnesia:dirty_delete(pending, DevAddr),
@@ -454,6 +465,7 @@ repeat_downlink(DevAddr, ACK) ->
         [] ->
             {false, undefined};
         [#pending{confirmed=true} = Msg] when ACK == 0 ->
+            lorawan_utils:throw_warning({node, DevAddr}, downlink_lost),
             {true, Msg#pending.phypayload};
         [_Msg] ->
             ok = mnesia:dirty_delete(pending, DevAddr),
