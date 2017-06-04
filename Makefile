@@ -25,10 +25,8 @@ upgrade: $(REBAR3)
 	@$(REBAR3) upgrade
 
 clean: $(REBAR3)
-	@$(REBAR3) clean
-
-distclean: clean
-	@$(REBAR3) delete-deps
+	@$(REBAR3) clean --all
+	rm -rf node_modules
 
 test: $(REBAR3)
 	@$(REBAR3) eunit
