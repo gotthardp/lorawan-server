@@ -27,6 +27,8 @@ the same *NetID*.
 
 The gateway power is always a minimum of *TX Power* and (max EIRP - *Antenna Gain*).
 
+To clone an existing gateway, simply save it under a different *MAC*.
+
 
 ## Multicast Channels
 

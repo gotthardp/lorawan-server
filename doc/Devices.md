@@ -35,6 +35,8 @@ The *US 902-928MHz* region allows a private *hybrid* mode introduced by
 This is useful when you want to split the radio spectrum to 8 different sub-bands,
 but it requires custom device firmware.
 
+To clone an existing device, simply save it under a different *DevEUI*.
+
 Once the device joins the network, the *Node* field will contain a reference to the *Nodes* list.
 
 

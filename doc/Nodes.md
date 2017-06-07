@@ -29,6 +29,8 @@ transmission. Class A devices listen for downlinks only for 2 seconds after an u
 transmission, so it may take a while until all messages are transmitted. Class C
 downlinks are not listed there as these are scheduled immediately.
 
+To clone an existing node, simply save it under a different *DevAddr*.
+
 
 ## ADR
 
