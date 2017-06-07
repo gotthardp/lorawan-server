@@ -45,6 +45,9 @@ However:
  * It will probably never support the sophisticated management features of the
    commercial-grade network-servers.
 
+The maximum amount of gateways, devices and nodes the server can support depends
+on the server load and hardware performance. There are no hard limits.
+
 The API may change and some functions may not be implemented.
 To ask questions or request features please join the
 [lorawan-server mailing list](https://groups.google.com/forum/#!forum/lorawan-server).
@@ -143,9 +146,12 @@ problem was not already reported and then
 
 ### Public References
 
-The server was mentioned by the following blogs and articles:
+The server is used (both commercially and non-commercially) by various companies
+and institutions. It was mentioned by the following blogs and articles:
  * [Three reasons for creating an Open Source LoRaWan server](http://research.konicaminolta.eu/three-reasons-for-creating-an-open-source-lorawan-server)
  * [LoraWAN server running on OpenWrt/LEDE](http://www.matchx.io/developers/forum/box/3-lorawan-server-running-on-openwrt-lede#3)
+
+Please let me know if you use the lorawan-server and want to be listed here.
 
 
 ## Copyright and Licensing
