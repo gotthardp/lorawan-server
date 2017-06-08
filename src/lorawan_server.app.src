@@ -1,11 +1,11 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2017 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 {application, lorawan_server,
     [{description, "LoRaWAN Application Server"},
-    {vsn, "0.4.3"},
+    {vsn, "0.4.4"},
     {modules, []},
     {registered, []},
     {mod, {lorawan_app, []}},
