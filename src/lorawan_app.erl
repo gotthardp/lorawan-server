@@ -56,7 +56,7 @@ start(_Type, _Args) ->
         ]++Handlers}
     ]),
     {ok, CowboyOpts} = application:get_env(http_admin_listen),
-    {ok, _} = cowboy:start_clear(http, 10, CowboyOpts, #{
+    {ok, _} = cowboy:start_clear(http, CowboyOpts, #{
         env => #{dispatch => Dispatch}
     }),
     lorawan_sup:start_link().
