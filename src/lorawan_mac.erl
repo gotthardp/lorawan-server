@@ -45,7 +45,7 @@ process_status(MAC, S) ->
         [] ->
             {error, {{gateway, MAC}, unknown_mac}};
         [G] ->
-            mnesia:dirty_write(gateways,
+            ok = mnesia:dirty_write(gateways,
                 store_status(G#gateway{last_rx=calendar:universal_time()}, S)),
             ok
     end.
@@ -418,6 +418,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
     case lorawan_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
+            lager:debug("~w retransmitting", [Link#link.devaddr]),
             {send, Link#link.devaddr, choose_tx(Link, RxQ), LostFrame};
         {send, TxData} ->
             send_unicast(choose_tx(Link, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
@@ -494,7 +495,7 @@ encode_unicast(MType, DevAddr, ACK, FOpts, TxData) ->
             [D] = mnesia:read(links, DevAddr, write),
             FCnt = (D#link.fcntdown + 1) band 16#FFFFFFFF,
             NewD = D#link{fcntdown=FCnt},
-            mnesia:write(links, NewD, write),
+            ok = mnesia:write(links, NewD, write),
             NewD
         end),
     encode_frame(MType, DevAddr, L#link.nwkskey, L#link.appskey,
@@ -506,7 +507,7 @@ encode_multicast(MType, DevAddr, TxData) ->
             [D] = mnesia:read(multicast_groups, DevAddr, write),
             FCnt = (D#multicast_group.fcntdown + 1) band 16#FFFFFFFF,
             NewD = D#multicast_group{fcntdown=FCnt},
-            mnesia:write(multicast_groups, NewD, write),
+            ok = mnesia:write(multicast_groups, NewD, write),
             NewD
         end),
     encode_frame(MType, DevAddr, G#multicast_group.nwkskey, G#multicast_group.appskey,
