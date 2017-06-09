@@ -181,7 +181,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     ok = mnesia:dirty_write(links, Link),
 
     reset_link(Link#link.devaddr),
-    case lorawan_handler:handle_join(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs) of
+    case lorawan_handler:handle_join(Gateway, Device, Link) of
         ok ->
             TxQ = case join_rxwin(Link, JoinCnt) of
                 0 ->
@@ -415,7 +415,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
             false
     end,
     % invoke applications
-    case lorawan_handler:handle_rx(Link#link.devaddr, Link#link.app, Link#link.appid, Link#link.appargs,
+    case lorawan_handler:handle_rx(Gateway, Link,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
             lager:debug("~w retransmitting", [Link#link.devaddr]),

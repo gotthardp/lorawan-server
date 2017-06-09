@@ -81,14 +81,14 @@ handle_downlink(Msg, #state{target=Target, format=Format} = State) ->
             {stop, State}
     end.
 
-websocket_info({send, DevAddr, AppID, AppArgs, RxData, RxQ}, #state{format=Format} = State) ->
+websocket_info({send, Gateway, #link{appid=AppID}=Link, RxData, RxQ}, #state{format=Format} = State) ->
     Handler =
         case mnesia:dirty_read(handlers, AppID) of
             [Rec] -> Rec#handler{format=Format};
             [] -> #handler{format=Format}
         end,
     {Charset, Data, _Vars} =
-        lorawan_application_backend:parse_uplink(Handler, DevAddr, AppArgs, RxData, RxQ),
+        lorawan_application_backend:parse_uplink(Handler, Gateway, Link, RxData, RxQ),
     {reply, {Charset, Data}, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~w", [Info]),

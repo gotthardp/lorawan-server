@@ -643,6 +643,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(format_choices),
         nga.field('fields', 'choices').label('Uplink Fields')
             .choices([
+                { value: 'gateway', label: 'gateway' },
                 { value: 'deveui', label: 'deveui' },
                 { value: 'datetime', label: 'datetime' },
                 { value: 'rxq', label: 'rxq' }

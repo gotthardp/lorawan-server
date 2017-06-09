@@ -6,7 +6,7 @@
 -module(lorawan_application_websocket).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_rx/5]).
+-export([init/1, handle_join/3, handle_rx/4]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -16,21 +16,21 @@ init(_App) ->
         {"/ws/:type/:name/json", lorawan_ws_frames, [<<"json">>]}
     ]}.
 
-handle_join(_DevAddr, _AppID, _AppArgs) ->
+handle_join(_Gateway, _Device, _Link) ->
     % accept any device
     ok.
 
-handle_rx(_DevAddr, _AppID, _AppArgs, #rxdata{last_lost=true}, _RxQ) ->
+handle_rx(_Gateway, _Link, #rxdata{last_lost=true}, _RxQ) ->
     retransmit;
-handle_rx(DevAddr, AppID, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
-    case send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ) of
+handle_rx(Gateway, #link{devaddr=DevAddr}=Link, #rxdata{port=Port} = RxData, RxQ) ->
+    case send_to_sockets(Gateway, Link, RxData, RxQ) of
         [] -> lager:warning("Frame not sent to any process");
         _List -> ok
     end,
     lorawan_handler:send_stored_frames(DevAddr, Port).
 
-send_to_sockets(DevAddr, AppID, AppArgs, RxData, RxQ) ->
+send_to_sockets(Gateway, #link{devaddr=DevAddr, appid=AppID}=Link, RxData, RxQ) ->
     Sockets = lorawan_ws_frames:get_processes(DevAddr, AppID),
-    [Pid ! {send, DevAddr, AppID, AppArgs, RxData, RxQ} || Pid <- Sockets].
+    [Pid ! {send, Gateway, Link, RxData, RxQ} || Pid <- Sockets].
 
 % end of file

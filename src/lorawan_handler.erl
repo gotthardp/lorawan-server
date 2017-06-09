@@ -5,7 +5,7 @@
 %
 -module(lorawan_handler).
 
--export([init/0, handle_join/4, handle_rx/6]).
+-export([init/0, handle_join/3, handle_rx/4]).
 -export([store_frame/2, send_stored_frames/2, downlink/3, multicast/3]).
 
 -define(MAX_DELAY, 250). % milliseconds
@@ -30,11 +30,11 @@ invoke_init({App, {AppName, Module}}) ->
 invoke_init({App, Module}) when is_atom(Module) ->
     apply(Module, init, [App]).
 
-handle_join(DevAddr, App, AppID, AppArgs) ->
-    invoke_handler(handle_join, App, [DevAddr, AppID, AppArgs]).
+handle_join(Gateway, #device{app=App}=Device, Link) ->
+    invoke_handler(handle_join, App, [Gateway, Device, Link]).
 
-handle_rx(DevAddr, App, AppID, AppArgs, RxData, RxQ) ->
-    invoke_handler(handle_rx, App, [DevAddr, AppID, AppArgs, RxData, RxQ]).
+handle_rx(Gateway, #link{app=App}=Link, RxData, RxQ) ->
+    invoke_handler(handle_rx, App, [Gateway, Link, RxData, RxQ]).
 
 invoke_handler(Fun, App, Params) ->
     {ok, Modules} = application:get_env(lorawan_server, plugins),

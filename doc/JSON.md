@@ -25,6 +25,8 @@ Additional *Uplink Fields* may be enabled in the [Backend](Backends.md) configur
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
+  gateway     | Object      | Gateway that received the frame.
+  gateway.mac | Hex String  | MAC address of the gateway.
   deveui      | Hex String  | DevEUI of the device.
   datetime    | ISO 8601    | Timestamp using the server clock.
   rxq         | Object      | Indicators of the reception quality.

@@ -6,7 +6,7 @@
 -module(lorawan_application_backend).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_rx/5]).
+-export([init/1, handle_join/3, handle_rx/4]).
 -export([parse_uplink/5, handle_downlink/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -15,24 +15,24 @@
 init(_App) ->
     ok.
 
-handle_join(_DevAddr, _AppID, _AppArgs) ->
+handle_join(_Gateway, _Device, _Link) ->
     % accept any device
     ok.
 
-handle_rx(_DevAddr, _AppID, _AppArgs, #rxdata{last_lost=true}, _RxQ) ->
+handle_rx(_Gateway, _Link, #rxdata{last_lost=true}, _RxQ) ->
     retransmit;
-handle_rx(DevAddr, AppID, AppArgs, #rxdata{port=Port} = RxData, RxQ) ->
-    case send_to_backend(DevAddr, AppID, AppArgs, RxData, RxQ) of
+handle_rx(Gateway, #link{devaddr=DevAddr}=Link, #rxdata{port=Port} = RxData, RxQ) ->
+    case send_to_backend(Gateway, Link, RxData, RxQ) of
         ok ->
             lorawan_handler:send_stored_frames(DevAddr, Port);
         {error, Error} ->
             {error, Error}
     end.
 
-send_to_backend(DevAddr, AppID, AppArgs, RxData, RxQ) ->
+send_to_backend(Gateway, #link{appid=AppID}=Link, RxData, RxQ) ->
     case mnesia:dirty_read(handlers, AppID) of
         [Handler] ->
-            {_, Data, Vars} = parse_uplink(Handler, DevAddr, AppArgs, RxData, RxQ),
+            {_, Data, Vars} = parse_uplink(Handler, Gateway, Link, RxData, RxQ),
             lorawan_connector_factory:publish(Handler#handler.connid, Data, Vars);
         [] ->
             {error, {unknown_appid, AppID}}
@@ -156,19 +156,21 @@ filter_group_responses(_AppID, List) ->
         ok, List).
 
 parse_uplink(#handler{appid = AppID, format = <<"raw">>},
-        DevAddr, _AppArgs, #rxdata{data=Data}, _RxQ) ->
+        _Gateway, #link{devaddr=DevAddr}, #rxdata{data=Data}, _RxQ) ->
     {binary, Data,
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
 parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse = Parse},
-        DevAddr, AppArgs, RxData=#rxdata{port=Port, data=Data}, RxQ) ->
+        #gateway{mac=MAC}, #link{devaddr=DevAddr, appargs=AppArgs},
+        RxData=#rxdata{port=Port, data=Data}, RxQ) ->
     Msg = lorawan_admin:build(
         maps:merge(?to_map(rxdata, RxData),
             vars_add(appargs, AppArgs,
+            vars_add_opt(gateway, #{mac => MAC}, Fields,
             vars_add_opt(deveui, get_deveui(DevAddr), Fields,
             vars_add_opt(datetime, calendar:universal_time(), Fields,
             vars_add_opt(rxq, RxQ, Fields,
             vars_add(fields, data_to_fields(Parse, Port, Data),
-            #{group => AppID, devaddr => DevAddr})))))
+            #{group => AppID, devaddr => DevAddr}))))))
         )),
     {text, jsx:encode(Msg),
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}}.
