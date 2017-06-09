@@ -330,16 +330,20 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
-        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
+        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset'),
+        nga.field('request_devstat', 'boolean').label('Request Status?')
+            .defaultValue(true)
     ]);
     devices.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:12},
-        {name:"ADR", min:12, max:17}
+        {name:"ADR", min:12, max:17},
+        {name:"Status", min:17, max:18}
     ]));
     devices.editionView().fields(devices.creationView().fields());
     devices.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:12},
-        {name:"ADR", min:12, max:17}
+        {name:"ADR", min:12, max:17},
+        {name:"Status", min:17, max:18}
     ]));
     // add to the admin application
     admin.addEntity(devices);
@@ -420,11 +424,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
-        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset')
+        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset'),
+        // Status
+        nga.field('request_devstat', 'boolean').label('Request Status?')
+            .defaultValue(true)
     ]);
     nodes.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:14},
-        {name:"ADR", min:14, max:19}
+        {name:"ADR", min:14, max:19},
+        {name:"Status", min:19, max:20}
     ]));
 
     nodes.editionView().fields([
@@ -505,6 +513,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr', 'template').label('RX Quality')
             .template('<qgraph value="value"></qgraph>'),
         // Status
+        nga.field('request_devstat', 'boolean').label('Request Status?')
+            .defaultValue(true),
         nga.field('devstat.battery', 'number').label('Battery'),
         nga.field('devstat.margin', 'number').label('SNR (dB)'),
         nga.field('devstat_time', 'datetime').label('Status Time'),
@@ -515,7 +525,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     nodes.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:15},
         {name:"ADR", min:15, max:25},
-        {name:"Status", min:25, max:30}
+        {name:"Status", min:25, max:31}
     ]));
     // add to the admin application
     admin.addEntity(nodes);

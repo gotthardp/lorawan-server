@@ -265,6 +265,8 @@ set_rxwin(Link, FOptsOut) ->
             FOptsOut
     end.
 
+request_status(#link{request_devstat=false}, FOptsOut) ->
+    FOptsOut;
 request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}, FOptsOut)
         when LastDate == undefined; LastFCnt == undefined ->
     [dev_status_req | FOptsOut];

@@ -176,8 +176,8 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         adr_use=lorawan_mac_region:default_adr(Device#device.region),
         adr_set=Device#device.adr_set,
         rxwin_use=initial_rxwin(Device#device.rxwin_set, lorawan_mac_region:default_rxwin(Device#device.region)),
-        rxwin_set=Device#device.rxwin_set,
-        last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]},
+        rxwin_set=Device#device.rxwin_set, last_reset=calendar:universal_time(),
+        request_devstat=Device#device.request_devstat, devstat_fcnt=undefined, last_qs=[]},
     ok = mnesia:dirty_write(links, Link),
 
     reset_link(Link#link.devaddr),
