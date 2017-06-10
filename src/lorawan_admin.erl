@@ -116,6 +116,8 @@ build(Key, Value) when Key == average_qs ->
     build_qs(Value);
 build(Key, Value) when Key == build; Key == parse ->
     build_fun(Value);
+build(Key, Value) when Key == gateway ->
+    build(Value);
 build(_Key, Value) ->
     Value.
 
