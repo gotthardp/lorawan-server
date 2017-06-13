@@ -66,6 +66,10 @@ The following REST resources are made available:
   /connectors/*ABC*         | GET, DELETE      | Backend connector *ABC*
   /events                   | GET              | Recent errors and warnings
 
+There is a 1:1 mapping between the REST API and the Web Admin. Parameters
+that are in the Web Admin indicated as optional doesn't need to be provided in
+the REST API either.
+
 As a rule, POST should be used to create new entries and PUT should be used to
 update existing entries.
 
