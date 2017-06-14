@@ -28,7 +28,7 @@ Amazon Web Services (AWS) can be integrated via MQTT. All Nodes can share the sa
 connection to the server.
 
 First, follow the AWS IoT guidelines to configure your IoT device:
- * Create and activiate a certificate. Make sure you download the certificate
+ * Create and activiate a Security Certificate. Make sure you download the certificate
    (`xxx-certificate.pem.crt`) as well as the private key (`xxx-private.pem.key`).
  * Create a policy and link it to the certificate. For example, to allow
    all actions you can set:
@@ -52,6 +52,10 @@ On the Authentication tab:
  * *Auth* shall be set to *Username+Password*
  * *User Certificate* is the `xxx-certificate.pem.crt` file you downloaded
  * *Private Key* is the `xxx-private.pem.key` file
+
+Instead of creating a Security Certificate and then attaching it to the Thing
+you can alternatively create a Thing Security Certificate. In such case the
+*Client ID* shall be the Thing name.
 
 
 ## IBM Watson IoT Platform
