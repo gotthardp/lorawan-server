@@ -218,7 +218,7 @@ prepare_matching(Pattern) ->
     EPattern = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
     case re:run(EPattern, "{[^}]+}", [global]) of
         {match, Match} ->
-            Regex = lists:foldl(
+            Regex = lists:foldr(
                 fun([{Start, Len}], Patt) ->
                     <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
                     <<Prefix/binary, "([a-zA-z0-9]*)", Suffix/binary>>
