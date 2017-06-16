@@ -190,10 +190,10 @@ prepare_filling(undefined) ->
     undefined;
 prepare_filling(Pattern) ->
     case re:run(Pattern, "{[^}]+}", [global]) of
-        {match, [Match]} ->
+        {match, Match} ->
             {Pattern,
                 [{binary_to_existing_atom(binary:part(Pattern, Start+1, Len-2), latin1), {Start, Len}}
-                    || {Start, Len} <- Match]};
+                    || [{Start, Len}] <- Match]};
         nomatch ->
             {Pattern, []}
     end.
