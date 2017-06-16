@@ -217,14 +217,14 @@ prepare_matching(undefined) ->
 prepare_matching(Pattern) ->
     EPattern = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
     case re:run(EPattern, "{[^}]+}", [global]) of
-        {match, [Match]} ->
+        {match, Match} ->
             Regex = lists:foldl(
-                fun({Start, Len}, Patt) ->
+                fun([{Start, Len}], Patt) ->
                     <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
                     <<Prefix/binary, "([a-zA-z0-9]*)", Suffix/binary>>
                 end, EPattern, Match),
             {ok, MP} = re:compile(<<"^", Regex/binary, "$">>),
-            {MP, [binary_to_existing_atom(binary:part(EPattern, Start+1, Len-2), latin1) || {Start, Len} <- Match]};
+            {MP, [binary_to_existing_atom(binary:part(EPattern, Start+1, Len-2), latin1) || [{Start, Len}] <- Match]};
         nomatch ->
             {Pattern, []}
     end.
@@ -290,6 +290,7 @@ pattern_test_()-> [
     matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}">>, <<"00112233">>),
     matchtst(#{devaddr => <<"00112233">>}, <<"prefix.{devaddr}">>, <<"prefix.00112233">>),
     matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}/suffix">>, <<"00112233/suffix">>),
-    matchtst(#{devaddr => <<"00112233">>}, <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>)].
+    matchtst(#{devaddr => <<"00112233">>}, <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>),
+    matchtst(#{group => <<"test">>, devaddr => <<"00112233">>}, <<"{group}-{devaddr}">>, <<"test-00112233">>)].
 
 % end of file
