@@ -6,7 +6,7 @@
 -module(lorawan_mac_region).
 
 -export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_group/1]).
--export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1]).
+-export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1, tx_time/2]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -172,6 +172,10 @@ datar_to_tuple(DataRate) ->
     [SF, BW] = binary:split(DataRate, [<<"SF">>, <<"BW">>], [global, trim_all]),
     {binary_to_integer(SF), binary_to_integer(BW)}.
 
+codr_to_tuple(CodingRate) ->
+    [A, B] = binary:split(CodingRate, [<<"/">>], [global, trim_all]),
+    {binary_to_integer(A), binary_to_integer(B)}.
+
 powers(Region)
         when Region == <<"EU863-870">> -> [
     {0, 20},
@@ -278,9 +282,43 @@ freq_range(<<"AU915-928">>) -> {915, 928};
 freq_range(<<"CN470-510">>) -> {470, 510};
 freq_range(<<"KR920-923">>) -> {920, 923}.
 
+tx_time(#txdata{data=Data}, #txq{datr=DataRate, codr=CodingRate}) ->
+    {SF, BW} = datar_to_tuple(DataRate),
+    {4, CR} = codr_to_tuple(CodingRate),
+    tx_time(byte_size(Data), SF, CR, BW*1000).
+
+% see http://www.semtech.com/images/datasheet/LoraDesignGuide_STD.pdf
+tx_time(PL, SF, CR, 125000) when SF == 11; SF == 12 ->
+    % Optimization is mandated with spreading factors of 11 and 12 at 125 kHz bandwidth
+    tx_time(PL, SF, CR, 125000, 1);
+tx_time(PL, SF, CR, BW) ->
+    tx_time(PL, SF, CR, BW, 0).
+
+tx_time(PL, SF, CR, BW, DE) ->
+    TSym = math:pow(2, SF)/BW,
+    % lorawan uses an explicit header
+    PayloadSymbNb = 8 + max(ceiling((8*PL-4*SF+28+16)/(4*(SF-2*DE)))*CR, 0),
+    % lorawan uses 8 symbols preamble
+    1000*((8 + 4.25) + PayloadSymbNb)*TSym.
+
+ceiling(X) ->
+    T = erlang:trunc(X),
+    case (X - T) of
+        Neg when Neg < 0 -> T;
+        Pos when Pos > 0 -> T + 1;
+        _ -> T
+    end.
+
 -include_lib("eunit/include/eunit.hrl").
 
 region_test_()-> [
+    ?_assertEqual({12,125}, datar_to_tuple(<<"SF12BW125">>)),
+    ?_assertEqual({4,6}, codr_to_tuple(<<"4/6">>)),
+    % values [ms] verified using the LoRa Calculator
+    ?_assertEqual(991.232, tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF12BW125">>, codr= <<"4/5">>})),
+    ?_assertEqual(288.768, tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF10BW125">>, codr= <<"4/5">>})),
+    ?_assertEqual(20.608, tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF7BW250">>, codr= <<"4/5">>})),
+    ?_assertEqual(10.304, tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF7BW500">>, codr= <<"4/5">>})),
     ?_assertEqual(dr_to_datar(<<"EU863-870">>, 0), <<"SF12BW125">>),
     ?_assertEqual(dr_to_datar(<<"US902-928">>, 8), <<"SF12BW500">>),
     ?_assertEqual(datar_to_dr(<<"EU863-870">>, <<"SF9BW125">>), 3),

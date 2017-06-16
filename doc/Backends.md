@@ -98,6 +98,7 @@ To create a new connector you set:
  * *Connector Name*
  * *Enabled* flag that allows you to temporarily disable an existing connector.
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
+   if SSL shall be used.
  * *Published Topic*, which is a server pattern for constructing the publication
    topic, e.g. `out/{devaddr}`.
  * *Subscribe*, which is a topic to be subscribed, e.g. `in/#`. It may include
@@ -121,6 +122,13 @@ following patterns:
 
 If the Connector is *Enabled* and a *Subscribe* topic is defined the server will
 automatically connect to the MQTT broker and subscribe this topic.
+
+You can generate a self-signed *User Certificate* (`cert.pem`) and corresponding
+*Private Key* (`key.pem`) by:
+```
+openssl req -x509 -newkey rsa:4096 -keyout privkey.pem -out cert.pem -days 365
+openssl rsa -in privkey.pem -out key.pem
+```
 
 Please read the [Integration Guide](Integration.md) for detailed information on
 how to connect to a generic MQTT server like RabbitMQ or an IoT Platform like

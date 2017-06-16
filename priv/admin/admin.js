@@ -154,6 +154,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('netid').label('NetID'),
         nga.field('subid').label('SubID')
             .map(format_bitstring),
+        nga.field('group'),
         nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('alive', 'boolean').label('Alive')
@@ -187,6 +188,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 14' }),
         nga.field('ant_gain', 'number').label('Antenna Gain (dBi)')
             .attributes({ placeholder: 'e.g. 6' }),
+        nga.field('group'),
         nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('gpspos', 'template')
@@ -705,13 +707,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         )
         .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
         .addChild(nga.menu(nodes).icon('<span class="fa fa-rss fa-fw"></span>'))
+    );
+    if (typeof addPrivateMenu === "function") {
+        addPrivateMenu(nga, admin);
+    }
+    admin.menu()
         .addChild(nga.menu().title('Backends').icon('<span class="fa fa-industry fa-fw"></span>')
           .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
           .addChild(nga.menu(connectors).icon('<span class="fa fa-bolt fa-fw"></span>'))
         )
         .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
-        .autoClose(false)
-    );
+        .autoClose(false);
 
     // ---- dashboard
     admin.dashboard(nga.dashboard()

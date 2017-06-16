@@ -78,12 +78,12 @@ ensure_tables() ->
 ensure_table(Name, TabDef) ->
     case lists:member(Name, mnesia:system_info(tables)) of
         true ->
-            mnesia:wait_for_tables([Name], 2000),
+            ok = mnesia:wait_for_tables([Name], 2000),
             ensure_indexes(Name, TabDef);
         false ->
             lager:info("Database create ~w", [Name]),
-            mnesia:create_table(Name, TabDef),
-            mnesia:wait_for_tables([Name], 2000),
+            {atomic, ok} = mnesia:create_table(Name, TabDef),
+            ok = mnesia:wait_for_tables([Name], 2000),
             set_defaults(Name)
     end.
 
