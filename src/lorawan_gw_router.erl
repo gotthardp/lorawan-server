@@ -9,7 +9,6 @@
 -export([start_link/0]).
 -export([register/3, status/2, uplinks/1, downlink/4, downlink_error/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([process_frame/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -104,7 +103,7 @@ handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
             Q1#rxq.rssi >= Q2#rxq.rssi
         end,
         dict:fetch(PHYPayload, Recent)),
-    spawn_link(?MODULE, process_frame, [MAC, RxQ, PHYPayload]),
+    wpool:cast(handler_pool, {MAC, RxQ, PHYPayload}, available_worker),
     Recent2 = dict:erase(PHYPayload, Recent),
     {noreply, State#state{recent=Recent2}};
 % handler termination
@@ -148,17 +147,6 @@ store_frame({MAC, RxQ, PHYPayload}, Dict) ->
             {ok, Delay} = application:get_env(lorawan_server, deduplication_delay),
             {ok, _} = timer:send_after(Delay, {process, PHYPayload}),
             dict:store(PHYPayload, [{MAC, RxQ}], Dict)
-    end.
-
-process_frame(MAC, RxQ, PHYPayload) ->
-    case lorawan_mac:process_frame(MAC, RxQ, PHYPayload) of
-        ok -> ok;
-        {send, DevAddr, TxQ, PHYPayload2} ->
-            downlink(MAC, DevAddr, TxQ, PHYPayload2);
-        {error, {Object, Error}} ->
-            lorawan_utils:throw_error(Object, Error);
-        {error, Error} ->
-            lorawan_utils:throw_error(server, Error)
     end.
 
 % end of file

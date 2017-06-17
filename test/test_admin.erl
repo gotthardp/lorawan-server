@@ -5,15 +5,15 @@
 %
 -module(test_admin).
 
--export([add_device/1, add_node/1]).
+-export([add_gateway/1, add_node/1]).
 
-add_device(MAC) ->
-    post_json("gateways", [{mac, MAC}, {tx_rfch, 0}, {netid, <<"000000">>},
+add_gateway(MAC) ->
+    post_json("gateways", [{mac, lorawan_mac:binary_to_hex(MAC)}, {tx_rfch, 0}, {netid, <<"000000">>},
         {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
 add_node({DevAddr, NwkSKey, AppSKey}) ->
     % set devstat_fcnt so we can test MAC
-    post_json("nodes", [{devaddr, DevAddr}, {region, <<"EU863-870">>},
+    post_json("nodes", [{devaddr, lorawan_mac:binary_to_hex(DevAddr)}, {region, <<"EU863-870">>},
         {app, <<"semtech-mote">>}, {nwkskey, NwkSKey}, {appskey, AppSKey},
         {fcntup, 0}, {fcntdown, 0}, {fcnt_check, undefined}, {adr_flag_use, 0},
         {adr_use, [{power, 1}, {datr, 0}, {chans, <<"0-2">>}]},

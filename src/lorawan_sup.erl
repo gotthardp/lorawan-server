@@ -23,6 +23,13 @@ init([]) ->
         {packet_forwarder,
             {lorawan_gw_forwarder, start_link, [PktFwdOpts]},
             permanent, 5000, worker, [lorawan_gw_forwarder]},
+        {handler_pool,
+            {wpool, start_pool, [handler_pool, [
+                {workers, 20},
+                {overrun_warning, 200},
+                {worker, {lorawan_worker, []}}
+            ]]},
+            permanent, 5000, supervisor, []},
         {connector_sup,
             {lorawan_connector_sup, start_link, []},
             permanent, 5000, supervisor, [lorawan_connector_sup]},
