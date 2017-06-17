@@ -61,7 +61,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
                 end,
                 maps:to_list(Data2));
         _Else ->
-            lager:error("Ignored PUSH_DATA: JSON syntax error")
+            lager:error("Ignored PUSH_DATA: JSON syntax error: ~s", [Data])
     end,
     % PUSH ACK
     ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>),

@@ -26,7 +26,7 @@ init([]) ->
         {handler_pool,
             {wpool, start_pool, [handler_pool, [
                 {workers, 20},
-                {overrun_warning, 200},
+                {overrun_warning, 500},
                 {worker, {lorawan_worker, []}}
             ]]},
             permanent, 5000, supervisor, []},

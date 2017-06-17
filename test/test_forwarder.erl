@@ -25,7 +25,7 @@ push_and_pull(Gateway, Data) ->
     Gateway ! {uplink, self(), Data},
     receive
         Response -> Response
-        after 1000 -> {error, timeout}
+        after 2000 -> {error, timeout}
     end.
 
 init([MAC, Server]) ->
@@ -44,8 +44,16 @@ handle_cast(_Request, State) ->
 handle_info({uplink, _Pid, Binary}, State) when is_binary(Binary) ->
     {ok, State2} = push_data(Binary, State),
     {noreply, State2};
+handle_info({uplink, Pid, {rxpk, Frame}}, #state{rxpks=[]}=State) ->
+    {ok, _} = timer:send_after(?PUSH_TIMEOUT_MS, push_data),
+    {noreply, store_rxpk(Pid, Frame, State)};
+handle_info({uplink, Pid, {rxpk, Frame}}, #state{rxpks=Pks}=State) when length(Pks) < 50 ->
+    {noreply, store_rxpk(Pid, Frame, State)};
 handle_info({uplink, Pid, {rxpk, Frame}}, State) ->
-    {noreply, handle_uplink(Pid, Frame, State)};
+    #state{rxpks=Pks2} = State2 = store_rxpk(Pid, Frame, State),
+    {ok, State3} = push_data(jsx:encode([{rxpk, Pks2}]), State2),
+    {noreply, State3#state{rxpks=[]}};
+
 handle_info(push_data, #state{rxpks=Pks}=State) ->
     {ok, State2} = push_data(jsx:encode([{rxpk, Pks}]), State),
     {noreply, State2#state{rxpks=[]}};
@@ -78,12 +86,6 @@ handle_info({udp, Socket, _, _, <<1, _:16, 3, Data/binary>>},
     get_mote(proplists:get_value(tmst, TxPk), Motes) ! {ok, Frame},
     {noreply, State}.
 
-handle_uplink(Mote, Frame, #state{rxpks=[]}=State) ->
-    {ok, _} = timer:send_after(?PUSH_TIMEOUT_MS, push_data),
-    store_rxpk(Mote, Frame, State);
-handle_uplink(Mote, Frame, State) ->
-    store_rxpk(Mote, Frame, State).
-
 store_rxpk(Mote, Frame, #state{motes=Motes, rxpks=Pks}=State) ->
     {Idx, Motes2} = store_mote(Mote, Motes),
     % we assign each mote a sequence number and the use it as a timestamp
@@ -96,7 +98,6 @@ push_data(Payload, #state{mac=MAC, push_tokens=Tokens}=State) ->
     ok = send(State, <<1, Token:2/binary, 0, MAC/binary, Payload/binary>>),
     {ok, _} = timer:send_after(100, {push_expired, Token}),
     {ok, State#state{push_tokens=sets:add_element(Token, Tokens)}}.
-
 
 terminate(_Reason, #state{socket=Socket}) ->
     gen_udp:close(Socket),

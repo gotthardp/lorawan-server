@@ -7,7 +7,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -define(GW_COUNT, 10).
--define(NODES_PER_GW, 10).
+-define(NODES_PER_GW, 100).
 -define(FRAMES_PER_NODE, 5).
 
 -define(NWKSKEY, <<"2B7E151628AED2A6ABF7158809CF4F3C">>).
@@ -62,7 +62,7 @@ load_test_() ->
         fun load_test/1}.
 
 load_test(#state{nodes=Nodes}) ->
-    {inparallel,
+    {inparallel, 100,
         lists:map(
             fun(Node) ->
                 send_receive(Node, ?FRAMES_PER_NODE)

@@ -24,7 +24,7 @@ push_and_pull(Mote, FCnt, FPort, FData) ->
     Mote ! {self(), FCnt, FPort, FData},
     receive
         Response -> Response
-        after 1000 -> {error, timeout}
+        after 2000 -> {error, timeout}
     end.
 
 init([DevCfg, Gateway]) ->
