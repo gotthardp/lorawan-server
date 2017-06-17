@@ -6,9 +6,9 @@
 -module(load_tests).
 -include_lib("eunit/include/eunit.hrl").
 
--define(GW_COUNT, 20).
--define(NODES_PER_GW, 20).
--define(FRAMES_PER_NODE, 10).
+-define(GW_COUNT, 10).
+-define(NODES_PER_GW, 10).
+-define(FRAMES_PER_NODE, 5).
 
 -define(NWKSKEY, <<"2B7E151628AED2A6ABF7158809CF4F3C">>).
 -define(APPSKEY, <<"2B7E151628AED2A6ABF7158809CF4F3C">>).
