@@ -15,7 +15,6 @@
 -export([reverse/1, cipher/5, b0/4]).
 
 -define(MAX_FCNT_GAP, 16384).
--define(MAX_LOST_AFTER_RESET, 10).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -267,10 +266,11 @@ match(<<DevAddr:32>>, <<MatchAddr:32>>, <<MatchMask:32>>) ->
     (DevAddr band MatchMask) == MatchAddr.
 
 check_link_fcnt(DevAddr, FCnt) ->
+    {ok, MaxLost} = application:get_env(lorawan_server, max_lost_after_reset),
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
             {error, unknown_devaddr};
-        [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < ?MAX_LOST_AFTER_RESET ->
+        [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < MaxLost ->
             lager:debug("~w fcnt reset", [DevAddr]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, reset, L#link{fcntup = FCnt, fcntdown=0,
