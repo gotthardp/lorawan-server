@@ -1,6 +1,7 @@
 language: erlang
 otp_release:
   - 19.3
+  - 20.0
 script:
   - make test dist dpkg
 deploy:
