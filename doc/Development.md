@@ -70,6 +70,6 @@ First, don't forget to release the lorawan-server-api.
 Then, create a new tag:
 
 ```bash
-git tag v0.3.0-pre.0 master
-git push origin v0.3.0-pre.0
+git tag v0.4.0 master
+git push origin v0.4.0
 ```
