@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_region).
 
--export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_group/1]).
+-export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx1_rf/2, rx2_rf/2, rf_group/1]).
 -export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1, tx_time/2]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
@@ -282,10 +282,12 @@ freq_range(<<"AU915-928">>) -> {915, 928};
 freq_range(<<"CN470-510">>) -> {470, 510};
 freq_range(<<"KR920-923">>) -> {920, 923}.
 
-tx_time(#txdata{data=Data}, #txq{datr=DataRate, codr=CodingRate}) ->
+tx_time(#txdata{data=Data}, TxQ) ->
+    tx_time(byte_size(Data), TxQ);
+tx_time(Length, #txq{datr=DataRate, codr=CodingRate}) ->
     {SF, BW} = datar_to_tuple(DataRate),
     {4, CR} = codr_to_tuple(CodingRate),
-    tx_time(byte_size(Data), SF, CR, BW*1000).
+    tx_time(Length, SF, CR, BW*1000).
 
 % see http://www.semtech.com/images/datasheet/LoraDesignGuide_STD.pdf
 tx_time(PL, SF, CR, 125000) when SF == 11; SF == 12 ->
