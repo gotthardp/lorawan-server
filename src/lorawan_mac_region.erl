@@ -18,14 +18,17 @@ join2_window(Link, RxQ) ->
     tx_time(join2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
 
 rx1_window(Link, RxQ) ->
+    tx_time(rx1_delay, RxQ#rxq.tmst, rx1_rf(Link, RxQ)).
+
+rx2_window(Link, RxQ) ->
+    tx_time(rx2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
+
+rx1_rf(Link, RxQ) ->
     Offset = case Link#link.rxwin_use of
         {Off, _, _} when is_integer(Off) -> Off;
         _Else -> 0
     end,
-    tx_time(rx1_delay, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, Offset)).
-
-rx2_window(Link, RxQ) ->
-    tx_time(rx2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
+    rx1_rf(Link#link.region, RxQ, Offset).
 
 % we calculate in fixed-point numbers
 rx1_rf(Region, RxQ, Offset)
