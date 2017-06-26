@@ -94,7 +94,7 @@ rf_group(Group) ->
     #txq{region = Group#multicast_group.region,
         freq = ch2f(Group#multicast_group.region, Group#multicast_group.chan),
         datr = dr_to_datar(Group#multicast_group.region, Group#multicast_group.datr),
-        codr = Group#multicast_group.datr}.
+        codr = Group#multicast_group.codr}.
 
 tx_time(Window, Stamp, TxQ) ->
     {ok, Delay} = application:get_env(lorawan_server, Window),
