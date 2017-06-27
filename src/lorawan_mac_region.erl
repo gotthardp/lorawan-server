@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_region).
 
--export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx1_rf/2, rx2_rf/2, rf_group/1]).
+-export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx1_rf/2, rx2_rf/2, rf_fixed/1]).
 -export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1, tx_time/2]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
@@ -50,8 +50,8 @@ rx1_rf(<<"CN470-510">> = Region, RxQ, Offset) ->
 rx2_rf(<<"US902-928-PR">> = Region, RxQ) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
     rf_same(Region, RxQ, ch2f(Region, RxCh div 8), 0);
-rx2_rf(Region, RxQ) ->
-    rf_fixed(Region, RxQ).
+rx2_rf(Region, _RxQ) ->
+    rf_fixed(Region).
 
 f2ch(Freq, {Start, Inc}) -> round(10*Freq-Start) div Inc.
 
@@ -82,19 +82,13 @@ ch2f(<<"CN470-510">>, Ch) ->
 
 ch2fi(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
 
-rf_fixed(Region, RxQ) ->
-    {Freq, DataRate} = regional_config(rx2_rf, Region),
-    #txq{region=Region, freq=Freq, datr=DataRate, codr=RxQ#rxq.codr}.
+rf_fixed(Region) ->
+    {Freq, DataRate, CodingRate} = regional_config(rx2_rf, Region),
+    #txq{region=Region, freq=Freq, datr=DataRate, codr=CodingRate}.
 
 rf_same(Region, RxQ, Freq, Offset) ->
     DataRate = datar_to_down(Region, RxQ#rxq.datr, Offset),
     #txq{region=Region, freq=Freq, datr=DataRate, codr=RxQ#rxq.codr}.
-
-rf_group(Group) ->
-    #txq{region = Group#multicast_group.region,
-        freq = ch2f(Group#multicast_group.region, Group#multicast_group.chan),
-        datr = dr_to_datar(Group#multicast_group.region, Group#multicast_group.datr),
-        codr = Group#multicast_group.codr}.
 
 tx_time(Window, Stamp, TxQ) ->
     {ok, Delay} = application:get_env(lorawan_server, Window),
@@ -252,7 +246,7 @@ default_adr(<<"KR920-923">>) -> {1, 0, [{0, 2}]}.
 
 % {RX1DROffset, RX2DataRate, Frequency}
 default_rxwin(Region) ->
-    {Freq, DataRate} = regional_config(rx2_rf, Region),
+    {Freq, DataRate, _CodingRate} = regional_config(rx2_rf, Region),
     {0, datar_to_dr(Region, DataRate), Freq}.
 
 % {TXPower, DataRate}

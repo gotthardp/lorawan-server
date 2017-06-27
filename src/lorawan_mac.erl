@@ -436,7 +436,7 @@ handle_downlink(Link, Time, TxData) ->
     send_unicast(TxQ#txq{time=Time}, Link#link.devaddr, 0, lorawan_mac_commands:build_fopts(Link), TxData).
 
 handle_multicast(Group, Time, TxData) ->
-    TxQ = lorawan_mac_region:rf_group(Group),
+    TxQ = lorawan_mac_region:rf_fixed(Group#multicast_group.region),
     send_multicast(TxQ#txq{time=Time}, Group#multicast_group.devaddr, TxData).
 
 choose_tx(#link{txwin=1}=Link, RxQ) ->

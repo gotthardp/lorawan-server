@@ -5,7 +5,7 @@
 %
 {application, lorawan_server,
     [{description, "LoRaWAN Application Server"},
-    {vsn, "0.4.5"},
+    {vsn, "0.4.6"},
     {modules, []},
     {registered, []},
     {mod, {lorawan_app, []}},
@@ -28,30 +28,30 @@
         {regions, [
             {<<"EU863-870">>, [
                 % default RX2 frequency (MHz) and data rate (DRx)
-                {rx2_rf, {869.525, <<"SF12BW125">>}}
+                {rx2_rf, {869.525, <<"SF12BW125">>, <<"4/5">>}}
             ]},
             {<<"US902-928">>, [
-                {rx2_rf, {923.3, <<"SF12BW500">>}}
+                {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
             ]},
             % Multitech Private Hybrid Mode
             % http://www.multitech.net/developer/software/lora/introduction-to-lora
             {<<"US902-928-PR">>, [
-                {rx2_rf, {undefined, <<"SF12BW500">>}}
+                {rx2_rf, {undefined, <<"SF12BW500">>, <<"4/5">>}}
             ]},
             {<<"CN779-787">>, [
-                {rx2_rf, {786, <<"SF12BW125">>}}
+                {rx2_rf, {786, <<"SF12BW125">>, <<"4/5">>}}
             ]},
             {<<"EU433">>, [
-                {rx2_rf, {434.665, <<"SF12BW125">>}}
+                {rx2_rf, {434.665, <<"SF12BW125">>, <<"4/5">>}}
             ]},
             {<<"AU915-928">>, [
-                {rx2_rf, {923.3, <<"SF12BW500">>}}
+                {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
             ]},
             {<<"CN470-510">>, [
-                {rx2_rf, {505.3, <<"SF12BW125">>}}
+                {rx2_rf, {505.3, <<"SF12BW125">>, <<"4/5">>}}
             ]},
             {<<"KR920-923">>, [
-                {rx2_rf, {921.9, <<"SF12BW125">>}}
+                {rx2_rf, {921.9, <<"SF12BW125">>, <<"4/5">>}}
             ]}
         ]},
         % {sec, fcnt} after which the device status should be request

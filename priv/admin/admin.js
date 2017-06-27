@@ -79,13 +79,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 4, label: 'SF8 500 kHz (12500 bit/s)', regions: ['US902-928', 'US902-928-PR', 'AU915-928'] }
     ];
 
-    coding_rate_choices = [
-        { value: '4/5', label: '4/5 (1.25)' },
-        { value: '4/6', label: '4/6 (1.5)' },
-        { value: '4/7', label: '4/7 (1.75)' },
-        { value: '4/8', label: '4/8 (2.0)' }
-    ];
-
     power_choices = [
         { value: 0, label: '20 dBm', regions: ['EU863-870'] },
         { value: 1, label: '14 dBm', regions: ['EU863-870'] },
@@ -208,15 +201,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('region'),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group'),
-        nga.field('chan', 'number').label('Channel'),
-        nga.field('datr', 'choice').label('Data rate')
-            .choices(function(entry) {
-                return data_rate_choices.filter(function(item) {
-                    return item.regions.indexOf(entry.values.region) >= 0
-                });
-            }),
-        nga.field('codr', 'choice').label('Coding rate')
-            .choices(coding_rate_choices),
         nga.field('fcntdown', 'number').label('FCnt Down')
     ])
     .sortField('devaddr')
@@ -234,18 +218,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('appid').label('Group'),
-        nga.field('chan', 'number').label('Channel')
-            .validation({ required: true }),
-        nga.field('datr', 'choice').label('Data rate')
-            .validation({ required: true })
-            .choices(function(entry) {
-                return data_rate_choices.filter(function(item) {
-                    return item.regions.indexOf(entry.values.region) >= 0
-                });
-            }),
-        nga.field('codr', 'choice').label('Coding rate')
-            .choices(coding_rate_choices)
-            .validation({ required: true }),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
