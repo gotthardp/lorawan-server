@@ -790,7 +790,7 @@ function format_bitstring(value, entry) {
         return null;
 }
 function parse_bitstring(value, entry) {
-    if(value.length > 0)
+    if(value && value.length > 0)
     {
         var parts = value.split(':', 2);
         return {val: parts[0], len: +parts[1]};
