@@ -83,6 +83,9 @@ handle_call(disconnect, _From, State=#state{mqttc=C}) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
+handle_cast({publish, _Msg, _Vars}, State=#state{mqttc=undefined}) ->
+    lager:warning("MQTT broker disconnected, message lost"),
+    {noreply, State};
 handle_cast({publish, Msg, Vars}, State) ->
     handle_publish(Msg, Vars, State).
 
