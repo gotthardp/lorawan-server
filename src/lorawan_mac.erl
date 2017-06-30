@@ -422,10 +422,10 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
             lager:debug("~w retransmitting", [Link#link.devaddr]),
             {send, Link#link.devaddr, choose_tx(Link, RxQ), LostFrame};
         {send, TxData} ->
-            send_unicast(choose_tx(Link, RxQ), Link#link.devaddr, Confirm, FOptsOut, TxData);
+            send_unicast(Link, choose_tx(Link, RxQ), Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            send_unicast(choose_tx(Link, RxQ), Link#link.devaddr, Confirm, FOptsOut, #txdata{});
+            send_unicast(Link, choose_tx(Link, RxQ), Confirm, FOptsOut, #txdata{});
         ok -> ok;
         {error, Error} -> {error, {{node, Link#link.devaddr}, Error}}
     end.
@@ -433,7 +433,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
 handle_downlink(Link, Time, TxData) ->
     TxQ = lorawan_mac_region:rx2_rf(Link#link.region, Link#link.last_rxq),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
-    send_unicast(TxQ#txq{time=Time}, Link#link.devaddr, 0, lorawan_mac_commands:build_fopts(Link), TxData).
+    send_unicast(Link, TxQ#txq{time=Time}, 0, lorawan_mac_commands:build_fopts(Link), TxData).
 
 handle_multicast(Group, Time, TxData) ->
     TxQ = lorawan_mac_region:rf_fixed(Group#multicast_group.region),
@@ -474,14 +474,18 @@ repeat_downlink(DevAddr, ACK) ->
             {false, undefined}
     end.
 
-send_unicast(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=false} = TxData) ->
+send_unicast(#link{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=false}=TxData) ->
     PHYPayload = encode_unicast(2#011, DevAddr, ACK, FOpts, TxData),
     ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=false, phypayload=PHYPayload}),
     {send, DevAddr, TxQ, PHYPayload};
-send_unicast(TxQ, DevAddr, ACK, FOpts, #txdata{confirmed=true} = TxData) ->
+send_unicast(#link{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=true}=TxData) ->
     PHYPayload = encode_unicast(2#101, DevAddr, ACK, FOpts, TxData),
     ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=true, phypayload=PHYPayload}),
-    {send, DevAddr, TxQ, PHYPayload}.
+    {send, DevAddr, TxQ, PHYPayload};
+% non #txdata received, invoke the application to perform payload encoding
+send_unicast(Link, TxQ, ACK, FOpts, TxData) ->
+    {FOpts2, TxData2} = lorawan_handler:encode_tx(Link, TxQ, FOpts, TxData),
+    send_unicast(Link, TxQ, ACK, FOpts2, TxData2).
 
 send_multicast(TxQ, DevAddr, #txdata{confirmed=false} = TxData) ->
     % must be unconfirmed, ACK=0, no MAC commands allowed

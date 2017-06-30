@@ -5,7 +5,7 @@
 %
 -module(lorawan_handler).
 
--export([init/0, handle_join/3, handle_rx/4]).
+-export([init/0, handle_join/3, handle_rx/4, encode_tx/4]).
 -export([store_frame/2, send_stored_frames/2, downlink/3, multicast/3]).
 
 -define(MAX_DELAY, 250). % milliseconds
@@ -35,6 +35,9 @@ handle_join(Gateway, #device{app=App}=Device, Link) ->
 
 handle_rx(Gateway, #link{app=App}=Link, RxData, RxQ) ->
     invoke_handler(handle_rx, App, [Gateway, Link, RxData, RxQ]).
+
+encode_tx(#link{app=App}=Link, TxQ, FOpts, TxData) ->
+    invoke_handler(encode_tx, App, [Link, TxQ, FOpts, TxData]).
 
 invoke_handler(Fun, App, Params) ->
     {ok, Modules} = application:get_env(lorawan_server, plugins),
