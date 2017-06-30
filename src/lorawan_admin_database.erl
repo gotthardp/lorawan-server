@@ -126,8 +126,14 @@ import_records(Object, State) when is_map(Object) ->
 
 write_record(List, #state{table=Table, record=Record, fields=Fields, module=Module}) ->
     Rec = list_to_tuple([Record|[maps:get(X, apply(Module, parse, [List]), undefined) || X <- Fields]]),
-    mnesia:transaction(fun() ->
-        mnesia:write(Table, Rec, write) end).
+    % make sure there is a primary key
+    case element(2, Rec) of
+        undefined ->
+            {error, null_key};
+        _Else ->
+            mnesia:transaction(fun() ->
+                mnesia:write(Table, Rec, write) end)
+    end.
 
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};
