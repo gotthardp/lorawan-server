@@ -173,6 +173,15 @@ parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse
             #{group => AppID, devaddr => DevAddr}))))))
         )),
     {text, jsx:encode(Msg),
+        #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
+parse_uplink(#handler{appid = AppID, format = <<"www-form">>, parse = Parse},
+        #gateway{}, #link{devaddr=DevAddr, appargs=AppArgs},
+        #rxdata{port=Port, data=Data}, _RxQ) ->
+    Msg = lorawan_admin:build(
+        maps:merge(vars_add(appargs, AppArgs,
+            data_to_fields(Parse, Port, Data))
+        )),
+    {text, form_encode(Msg),
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}}.
 
 vars_add(_Field, undefined, Vars) ->
@@ -238,5 +247,28 @@ fields_to_data({_, Fun}, Port, Fields, Data) when is_function(Fun) ->
     end;
 fields_to_data(_Else, _, _, Data) ->
     Data.
+
+form_encode(Values) ->
+    cow_qs:qs(
+        lists:map(
+            fun({Name, Value}) ->
+                {atom_to_binary(Name, latin1), value_to_binary(Value)}
+            end,
+            maps:to_list(Values))).
+
+value_to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, latin1);
+value_to_binary(Num) when is_integer(Num) -> integer_to_binary(Num);
+value_to_binary(Num) when is_float(Num) -> float_to_binary(Num);
+value_to_binary(List) when is_list(List) -> list_to_binary(List);
+value_to_binary(Bin) when is_binary(Bin) -> Bin.
+
+-include_lib("eunit/include/eunit.hrl").
+
+www_form_test_()-> [
+    ?_assertEqual(<<>>, form_encode(#{})),
+    ?_assertEqual(<<"one=1">>, form_encode(#{one=>1})),
+    ?_assertEqual(<<"one=1&two=val">>, form_encode(#{one=>1,two=>"val"})),
+    ?_assertEqual(<<"one=1&three=%26&two=val">>, form_encode(#{one=>1,two=>"val",three=><<"&">>}))
+].
 
 % end of file

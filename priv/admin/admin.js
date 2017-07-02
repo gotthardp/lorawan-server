@@ -126,7 +126,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     format_choices = [
         { value: 'raw', label: 'Raw Data' },
-        { value: 'json', label: 'JSON' }
+        { value: 'json', label: 'JSON' },
+        { value: 'www-form', label: 'Web Form' }
     ];
 
     // ---- users

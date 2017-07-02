@@ -91,6 +91,31 @@ On the Authentication tab:
    didn't close.
 
 
+## MathWorks ThingSpeak
+
+MathWorks ThingSpeak can be integrated via MQTT. It supports only publishing to
+channels using MQTT, subscriptions are not supported by ThingSpeak.
+
+First, follow the ThingSpeak guidelines and create a New Channel:
+ * Set a channel *Name*;
+ * Define one or more *Field* labels;
+ * Once you *Save Channel*, display the *Write API Key*.
+
+Open the lorawan-server web-administration and create an Backend Connector:
+ * *URI* shall be either `mqtt://mqtt.thingspeak.com` or `mqtts://mqtt.thingspeak.com`
+ * *Published Topic* shall be `channels/<channelID>/publish/<apikey>`, where
+   * `<channelID>` is the numeric *Channel ID*
+   * `<apikey>` is the *Write API Key*
+ * *Subscribe* and *Consumed Topic* shall be left empty.
+
+Then, create a new Handler:
+ * *Group* shall correspond to a Group attribute of some [Nodes](Nodes.md).
+ * *Format* shall be *Web Form*.
+ * *Parse Uplink* shall include a data parsing function. See the [Backends](Backends.md).
+   guide for more information.
+ * *Connector* shall link to the Backend Connector you just created.
+
+
 ## Microsoft Azure IoT Hub
 
 Microsoft Azure IoT Hub can be integrated via MQTT. Azure uses per-device credentials

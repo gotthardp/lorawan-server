@@ -13,6 +13,7 @@ To create a new handler you need to set:
  * *Format* of the message payload, which can be:
    * *Raw* to receive and send raw application data only, without ant port numbers nor flags.
    * *JSON* to use the JSON structures described in the [JSON Payload](JSON.md) documentation.
+   * *Web Form* to use query strings like `NameOne=ValueOne&NameTwo=ValueTwo`.
  * *Uplink Fields* that will be sent in the JSON payload.
  * *Parse Uplink* and *Build Downlink* functions (for the JSON format only)
  * *Connector* identifier (see the next chapter)
