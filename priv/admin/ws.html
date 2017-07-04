@@ -97,9 +97,11 @@
     function onMessage(evt) {
         if(wsformat == "raw") {
             showScreen('<span style="color: blue;">RECEIVED: ' + ascii_to_hexa(evt.data) +'</span>');
-        } else {
+        } else if(wsformat == "json") {
             var msg = JSON.parse(evt.data);
             showScreen('<span style="color: blue;">RECEIVED: ' + JSON.stringify(msg) +'</span>');
+        } else {
+            showScreen('<span style="color: blue;">RECEIVED: ' + evt.data +'</span>');
         }
     };
 
@@ -138,6 +140,7 @@
         <select id="format">
           <option value="raw" selected="true">Raw</option>
           <option value="json">JSON</option>
+          <option value="www-form">Web Form</option>
         </select>
         <button type="button" onclick="toggle_connection()">connection</button>
       </p>

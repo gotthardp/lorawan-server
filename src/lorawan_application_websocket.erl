@@ -13,7 +13,8 @@
 init(_App) ->
     {ok, [
         {"/ws/:type/:name/raw", lorawan_ws_frames, [<<"raw">>]},
-        {"/ws/:type/:name/json", lorawan_ws_frames, [<<"json">>]}
+        {"/ws/:type/:name/json", lorawan_ws_frames, [<<"json">>]},
+        {"/ws/:type/:name/www-form", lorawan_ws_frames, [<<"www-form">>]}
     ]}.
 
 handle_join(_Gateway, _Device, _Link) ->

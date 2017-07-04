@@ -177,10 +177,8 @@ parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse
 parse_uplink(#handler{appid = AppID, format = <<"www-form">>, parse = Parse},
         #gateway{}, #link{devaddr=DevAddr, appargs=AppArgs},
         #rxdata{port=Port, data=Data}, _RxQ) ->
-    Msg = lorawan_admin:build(
-        maps:merge(vars_add(appargs, AppArgs,
-            data_to_fields(Parse, Port, Data))
-        )),
+    Msg = vars_add(appargs, AppArgs,
+            data_to_fields(Parse, Port, Data)),
     {text, form_encode(Msg),
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}}.
 
