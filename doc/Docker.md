@@ -26,6 +26,12 @@ and server logs will be stored.
 The `GOOGLE_MAPS_KEY` is the API Key you can
 [get from Google](https://developers.google.com/maps/documentation/javascript/get-api-key).
 
+To export different port numbers change the *first* number of the `publish`
+parameter to the desired port number. The syntax is `--publish hostPort:containerPort`
+so to receive packet_forwarder data at port 1700 simply use `--publish 1700:1680/udp`.
+
+## Automatic Updates
+
 To automatically update and restart your server whenever an update is available
 to the respective branch (stable or master) you can use the
 [Watchtower](https://github.com/v2tec/watchtower):

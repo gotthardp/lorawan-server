@@ -329,7 +329,7 @@ reset_link(DevAddr) ->
     % delete previously stored TX frames
     lorawan_db:purge_txframes(DevAddr).
 
-build_rxframe(Gateway, Link, RxQ, Frame) ->
+build_rxframe(Gateway, Link, RxQ, Confirm, Frame) ->
     TXPower = case Link#link.adr_use of
         {Power, _, _} when is_integer(Power) -> Power;
         _Else -> undefined
@@ -337,8 +337,8 @@ build_rxframe(Gateway, Link, RxQ, Frame) ->
     % #rxframe{frid, mac, rxq, average_qs, app, appid, region, devaddr, fcnt, port, data, datetime, devstat}
     #rxframe{frid= <<(erlang:system_time()):64>>,
         mac=Gateway#gateway.mac, powe=TXPower, rxq=RxQ, app=Link#link.app, appid=Link#link.appid,
-        region=Link#link.region, devaddr=Link#link.devaddr,
-        fcnt=Link#link.fcntup, port=Frame#frame.fport, data=Frame#frame.data,
+        region=Link#link.region, devaddr=Link#link.devaddr, fcnt=Link#link.fcntup,
+        confirm=bit_to_bool(Confirm), port=Frame#frame.fport, data=Frame#frame.data,
         datetime=calendar:universal_time(), devstat=Link#link.devstat}.
 
 handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
@@ -352,7 +352,7 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
         retransmit ->
             % we want to see retransmissions too
-            ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Frame)),
+            ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Confirm, Frame)),
             case retransmit_downlink(Link#link.devaddr) of
                 {true, LostFrame} ->
                     TxQ = case Link of
@@ -389,7 +389,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
                     devstat_fcnt=undefined, last_qs=[]}
         end,
     % process commands
-    RxFrame = build_rxframe(Gateway, ULink, RxQ, Frame),
+    RxFrame = build_rxframe(Gateway, ULink, RxQ, Confirm, Frame),
     {ok, MacConfirm, L2, FOptsOut, RxFrame2} = lorawan_mac_commands:handle(RxQ, ULink, FOpts, RxFrame),
     ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time(), last_mac=Gateway#gateway.mac, last_rxq=RxQ}),
     ok = mnesia:sync_dirty(
@@ -551,6 +551,9 @@ sign_frame(MType, DevAddr, NwkSKey, FCnt, MACPayload) ->
 
 bool_to_bit(true) -> 1;
 bool_to_bit(false) -> 0.
+
+bit_to_bool(0) -> true;
+bit_to_bool(1) -> false.
 
 get_adr_flag(#link{adr_flag_set=ADR}) when ADR == undefined; ADR == 0 -> 0;
 get_adr_flag(#link{adr_flag_set=ADR}) when ADR > 0 -> 1.

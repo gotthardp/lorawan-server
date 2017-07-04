@@ -79,6 +79,7 @@ handle_cast({uplinks, PkList}, #state{recent=Recent}=State) ->
     {noreply, State#state{recent=Recent2}};
 
 handle_cast({downlink, MAC, DevAddr, TxQ, RFCh, PHYPayload}, #state{pulladdr=Dict}=State) ->
+    % lager:debug("<-- datr ~s, codr ~s, tmst ~B, size ~B", [TxQ#txq.datr, TxQ#txq.codr, TxQ#txq.tmst, byte_size(PHYPayload)]),
     case dict:find(MAC, Dict) of
         {ok, {Process, Target}} ->
             % send data to the gateway interface handler
@@ -103,6 +104,7 @@ handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
             Q1#rxq.rssi >= Q2#rxq.rssi
         end,
         dict:fetch(PHYPayload, Recent)),
+    % lager:debug("--> datr ~s, codr ~s, tmst ~B, size ~B", [RxQ#rxq.datr, RxQ#rxq.codr, RxQ#rxq.tmst, byte_size(PHYPayload)]),
     wpool:cast(handler_pool, {MAC, RxQ, PHYPayload}, available_worker),
     Recent2 = dict:erase(PHYPayload, Recent),
     {noreply, State#state{recent=Recent2}};

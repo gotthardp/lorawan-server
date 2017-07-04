@@ -541,6 +541,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appid').label('Group'),
         nga.field('rxq.lsnr').label('SNR'),
         nga.field('fcnt', 'number').label('FCnt'),
+        nga.field('confirm', 'boolean'),
         nga.field('port', 'number'),
         nga.field('data')
             .template(function(entry){
