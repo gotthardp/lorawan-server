@@ -28,7 +28,7 @@ init([PktFwdOpts]) ->
         {ok, Socket} ->
             {ok, #state{sock=Socket, tokens=maps:new()}};
         {error, Reason} ->
-            lager:error("Failed to start the packet_forwarder interface: ~w", [Reason]),
+            lager:error("Failed to start the packet_forwarder interface: ~p", [Reason]),
             {stop, Reason}
     end.
 
@@ -38,7 +38,7 @@ handle_call(_Request, _From, State) ->
 handle_cast({send, {Host, Port, Version}, DevAddr, TxQ, RFCh, PHYPayload},
         #state{sock=Socket, tokens=Tokens}=State) ->
     Pk = [{txpk, build_txpk(TxQ, RFCh, PHYPayload)}],
-    % lager:debug("<--- ~w", [Pk]),
+    % lager:debug("<--- ~p", [Pk]),
     Token = crypto:strong_rand_bytes(2),
     {ok, Timer} = timer:send_after(30000, {no_ack, Token}),
     % PULL RESP
@@ -49,7 +49,7 @@ handle_cast({send, {Host, Port, Version}, DevAddr, TxQ, RFCh, PHYPayload},
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
         Data2 when is_map(Data2) ->
-            % lager:debug("---> ~w", [Data2]),
+            % lager:debug("---> ~p", [Data2]),
             lists:foreach(
                 fun ({rxpk, Pk}) -> rxpk(MAC, Pk);
                     ({stat, Pk}) -> status(MAC, Pk);
@@ -57,7 +57,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
                     % https://github.com/Ideetron/packet_forwarder/blob/master/poly_pkt_fwd/src/poly_pkt_fwd.c#L2085
                     ({time, _Time}) -> ok;
                     (Else) ->
-                        lager:warning("Unknown element in JSON: ~w", [Else])
+                        lager:warning("Unknown element in JSON: ~p", [Else])
                 end,
                 maps:to_list(Data2));
         _Else ->
@@ -119,7 +119,7 @@ handle_info({no_ack, Token}, #state{tokens=Tokens}=State) ->
 
 terminate(Reason, _State) ->
     % record graceful shutdown in the log
-    lager:info("packet_forwarder interface terminated: ~w", [Reason]),
+    lager:info("packet_forwarder interface terminated: ~p", [Reason]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

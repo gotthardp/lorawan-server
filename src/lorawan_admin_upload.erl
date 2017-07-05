@@ -16,7 +16,7 @@ init(Req, Opts) ->
             lager:debug("Uploaded ~p of content-type ~p", [FileName, ContentType]),
             {ok, Req3, Opts};
         {error, Error} ->
-            lager:error("Cannot upload ~p of content-type ~p: ~w", [FileName, ContentType, Error]),
+            lager:error("Cannot upload ~p of content-type ~p: ~p", [FileName, ContentType, Error]),
             Req4 = cowboy_req:reply(400, Req3),
             {ok, Req4, Opts}
     end.

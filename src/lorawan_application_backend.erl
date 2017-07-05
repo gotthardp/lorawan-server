@@ -144,7 +144,7 @@ send_downlink(#{group := AppID}, Time, TxData) ->
             || Link <- mnesia:dirty_select(links, [{#link{appid=AppID, _='_'}, [], ['$_']}])]
     );
 send_downlink(Else, _Time, _TxData) ->
-    lager:error("Unknown downlink target: ~w", [Else]).
+    lager:error("Unknown downlink target: ~p", [Else]).
 
 filter_group_responses(AppID, []) ->
     lager:warning("Group ~w is empty", [AppID]);
@@ -209,7 +209,7 @@ data_to_fields({_, Fun}, Port, Data) when is_function(Fun) ->
     try Fun(Port, Data)
     catch
         Error:Term ->
-            lager:error("Fun failed ~w:~w", [Error, Term]),
+            lager:error("Fun failed ~w:~p", [Error, Term]),
             undefined
     end;
 data_to_fields(_Else, _, _) ->
@@ -240,7 +240,7 @@ fields_to_data({_, Fun}, Port, Fields, Data) when is_function(Fun) ->
     try Fun(Port, Fields)
     catch
         Error:Term ->
-            lager:error("Fun failed ~w:~w", [Error, Term]),
+            lager:error("Fun failed ~w:~p", [Error, Term]),
             Data
     end;
 fields_to_data(_Else, _, _, Data) ->

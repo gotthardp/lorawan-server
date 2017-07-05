@@ -106,7 +106,7 @@ handle_info({'EXIT', C, Error}, State=#state{phase=attempt311, mqttc=C}) ->
 handle_info({'EXIT', C, Error}, State=#state{mqttc=C}) ->
     handle_reconnect(Error, attempt311, State);
 handle_info(Unknown, State) ->
-    lager:debug("Unknown message: ~w", [Unknown]),
+    lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->

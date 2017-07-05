@@ -112,12 +112,12 @@ handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
 handle_info({'EXIT', _FromPid, normal}, State) ->
     {noreply, State};
 handle_info({'EXIT', _FromPid, Reason}, State) ->
-    lager:error("Hanler terminated: ~w", [Reason]),
+    lager:error("Hanler terminated: ~p", [Reason]),
     {noreply, State}.
 
 terminate(Reason, _State) ->
     % record graceful shutdown in the log
-    lager:info("gateway router terminated: ~w", [Reason]),
+    lager:info("gateway router terminated: ~p", [Reason]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

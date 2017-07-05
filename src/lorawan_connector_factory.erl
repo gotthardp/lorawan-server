@@ -73,7 +73,7 @@ handle_info({mnesia_table_event, {delete, {connectors, ConnId}, _Trans}}, State)
     {noreply, State};
 
 handle_info(Info, State) ->
-    lager:debug("unknown info ~w", [Info]),
+    lager:debug("unknown info ~p", [Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -120,7 +120,7 @@ init_connector(Conn) ->
             % the process got rested by its supervisor
             init_connector0(Conn, Pid);
         Error ->
-            lager:error("Cannot connect ~w: ~w", [Conn#connector.connid, Error]),
+            lager:error("Cannot connect ~w: ~p", [Conn#connector.connid, Error]),
             Error
     end.
 
@@ -145,7 +145,7 @@ handle_exit(ConnId, Reason) ->
 handle_exit2(_ConnId, normal) ->
     ok;
 handle_exit2(ConnId, Error) ->
-    lager:error("Connector ~s terminated: ~w", [ConnId, Error]),
+    lager:error("Connector ~s terminated: ~p", [ConnId, Error]),
     % make sure we don't start it again
     [Conn] = mnesia:dirty_read(connectors, ConnId),
     mnesia:dirty_write(connectors, Conn#connector{enabled=false}).

@@ -26,15 +26,15 @@ throw_error(Entity, Text) ->
 
 
 throw_event(Severity, Entity, undefined, Event) ->
-    lager:log(Severity, self(), "~s ~w", [Entity, Event]),
+    lager:log(Severity, self(), "~s ~p", [Entity, Event]),
     write_event(Severity, Entity, undefined, Event);
 
 throw_event(Severity, Entity, EID, Event) ->
-    lager:log(Severity, self(), "~s ~s ~w", [Entity, lorawan_mac:binary_to_hex(EID), Event]),
+    lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_mac:binary_to_hex(EID), Event]),
     write_event(Severity, Entity, EID, Event).
 
 write_event(Severity, Entity, EID, Event) ->
-    Text = list_to_binary(io_lib:write(Event)),
+    Text = list_to_binary(io_lib:print(Event)),
     EvId = crypto:hash(md4, term_to_binary({Entity, EID,
         case Event of
             {First, _} -> First;

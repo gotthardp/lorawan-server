@@ -28,7 +28,7 @@ handle_cast({MAC, RxQ, PHYPayload}, State) ->
         {error, Error} ->
             lorawan_utils:throw_error(server, Error);
         {'EXIT', Error} ->
-            lager:error("~w", [Error])
+            lager:error("~p", [Error])
     end,
     {noreply, State}.
 
