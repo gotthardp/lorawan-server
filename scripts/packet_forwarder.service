@@ -1,0 +1,13 @@
+[Unit]
+Description=LoRaWAN Gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/lib/packet_forwarder
+ExecStartPre=/usr/lib/packet_forwarder/reset_lgw.sh start
+ExecStartPre=/usr/lib/packet_forwarder/update_gwid.sh local_conf.json
+ExecStart=/usr/lib/packet_forwarder/lora_pkt_fwd
+
+[Install]
+WantedBy=multi-user.target
