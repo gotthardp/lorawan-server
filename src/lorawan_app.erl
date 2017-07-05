@@ -55,10 +55,20 @@ start(_Type, _Args) ->
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
         ]++Handlers}
     ]),
-    {ok, CowboyOpts} = application:get_env(http_admin_listen),
-    {ok, _} = cowboy:start_clear(http, CowboyOpts, #{
-        env => #{dispatch => Dispatch}
-    }),
+    case application:get_env(http_admin_listen) of
+        {ok, HttpOpts} ->
+            {ok, _} = cowboy:start_clear(http, HttpOpts,
+                #{env => #{dispatch => Dispatch}});
+        undefined ->
+            ok
+    end,
+    case application:get_env(http_admin_listen_ssl) of
+        {ok, SslOpts} ->
+            {ok, _} = cowboy:start_tls(https, SslOpts,
+                #{env => #{dispatch => Dispatch}});
+        undefined ->
+            ok
+    end,
     lorawan_sup:start_link().
 
 stop(_State) ->
