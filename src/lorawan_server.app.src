@@ -16,6 +16,7 @@
             {<<"websocket">>, lorawan_application_websocket}
         ]},
         {packet_forwarder_listen, [{port, 1680}]},
+        {http_admin_listen, [{port, 8080}]},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},
         {retained_rxframes, 50},
         {websocket_timeout, 3600000}, % ms

@@ -56,18 +56,22 @@ start(_Type, _Args) ->
         ]++Handlers}
     ]),
     case application:get_env(http_admin_listen) of
+        undefined ->
+            ok;
+        {ok, undefined} ->
+            ok;
         {ok, HttpOpts} ->
             {ok, _} = cowboy:start_clear(http, HttpOpts,
-                #{env => #{dispatch => Dispatch}});
-        undefined ->
-            ok
+                #{env => #{dispatch => Dispatch}})
     end,
     case application:get_env(http_admin_listen_ssl) of
+        undefined ->
+            ok;
+        {ok, undefined} ->
+            ok;
         {ok, SslOpts} ->
             {ok, _} = cowboy:start_tls(https, SslOpts,
-                #{env => #{dispatch => Dispatch}});
-        undefined ->
-            ok
+                #{env => #{dispatch => Dispatch}})
     end,
     lorawan_sup:start_link().
 
