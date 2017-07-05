@@ -43,16 +43,16 @@ lager:warning("unexpected value: ~w", [Value])
 
 ### Connections to the lorawan node
 
-The lorawan-server is started in a cluster node `lorawan@<hostname>`. For example,
-if your `hostname` is `debian.home`, the server runs on `lorawan@debian`.
+The lorawan-server is started as a cluster node `lorawan@<hostname>`, where
+`<hostname>` is a short hostname of the machine hosting the server. For example,
+if `hostname --short` returns `debian`, the server runs as a node `lorawan@debian`.
 
-You can call functions on another node by `rpc:call(Node, Module, Function, Args)`.
+You can connect to a running lorawan-server by `erl -sname test -remsh lorawan@<hostname>`.
+Once connected you can e.g. use the [Mnesia functions](http://erlang.org/doc/man/mnesia.html)
+to directly access the server database.
 
-You can setup a connection to another node by `net_adm:ping(Node)` and then
-interact with its processes.
-
-Or you can start the [Observer](http://erlang.org/doc/apps/observer/observer_ug.html)
-and just trace the lorawan-server processes and activities.
+Advanced users can also start the [Observer](http://erlang.org/doc/apps/observer/observer_ug.html)
+and trace the lorawan-server processes and activities:
 
 ```bash
 erl -smp -sname observer -hidden -setcookie MyCookie -run observer
