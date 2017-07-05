@@ -2,7 +2,7 @@ USER=lorawan
 
 case "$1" in
     configure)
-    useradd --home-dir /var/lib/lorawan-server --create-home $USER
+    id -u $USER >/dev/null 2>&1 || useradd --home-dir /var/lib/lorawan-server --create-home $USER
     ;;
 
     *)
