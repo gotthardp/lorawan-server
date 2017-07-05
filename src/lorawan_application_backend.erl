@@ -201,7 +201,7 @@ vars_add_opt(Field, Value, Fields, Vars) ->
 
 get_deveui(DevAddr) ->
     case mnesia:dirty_index_read(devices, DevAddr, #device.link) of
-        [#device{deveui=DevEUI}] -> DevEUI;
+        [#device{deveui=DevEUI}|_] -> DevEUI;
         [] -> undefined
     end.
 
