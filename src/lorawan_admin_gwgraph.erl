@@ -37,7 +37,7 @@ get_gateway(Req, State) ->
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
                 [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
-                [{id, <<"delay">>}, {label, <<"Delay [ms]">>}, {type, <<"number">>}]
+                [{id, <<"delay">>}, {label, <<"Network Delay [ms]">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:filtermap(
                 fun ({Date, Delay}) ->

@@ -77,11 +77,6 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #
     {noreply, State};
 
 % TX ACK
-handle_info({udp, Socket, _Host, _Port, <<_Version, _Token:16, 5, _MAC:8/binary>>}, #state{sock=Socket}=State) ->
-    % no error occured
-    {noreply, State};
-
-% TX ACK
 handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, Data/binary>>},
         #state{sock=Socket, tokens=Tokens}=State) ->
     {Opaque, Tokens2} =
@@ -98,22 +93,29 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
             error ->
                 {undefined, Tokens}
         end,
-    case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
-        Data2 when is_map(Data2) ->
-            Ack = maps:get(txpk_ack, Data2),
-            case maps:get(error, Ack, undefined) of
-                undefined -> ok;
-                <<"NONE">> -> ok;
-                Error ->
-                    lorawan_gw_router:downlink_error(MAC, Opaque, Error)
-            end;
+    case Data of
+        <<>> ->
+            % no error occured
+            ok;
         _Else ->
-            lager:error("Ignored PUSH_DATA: JSON syntax error")
+            case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
+                Data2 when is_map(Data2) ->
+                    Ack = maps:get(txpk_ack, Data2),
+                    case maps:get(error, Ack, undefined) of
+                        undefined -> ok;
+                        <<"NONE">> -> ok;
+                        Error ->
+                            lorawan_gw_router:downlink_error(MAC, Opaque, Error)
+                    end;
+                Else ->
+                    lager:error("Ignored PUSH_DATA: JSON syntax error: ~w", [Else])
+            end
     end,
     {noreply, State#state{tokens=Tokens2}};
 
 % something strange
-handle_info({udp, _Socket, _Host, _Port, _Msg}, State) ->
+handle_info({udp, _Socket, _Host, _Port, Msg}, State) ->
+    lager:debug("Weird data ~w", [Msg]),
     {noreply, State};
 
 handle_info({no_ack, Token}, #state{tokens=Tokens}=State) ->

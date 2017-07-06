@@ -954,7 +954,7 @@ return {
             $scope.gwChartObject.type = "LineChart";
             $scope.gwChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Network Delay [ms]'},
+                    0: {"title": 'Network Delay [ms]', "minValue": 0, "maxValue": 2000},
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},
