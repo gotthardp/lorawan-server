@@ -71,6 +71,18 @@ The service is managed using `bin/lorawan-service.bat` *command*, where:
  * *remove* will remove the previously added service.
  * *list* will display parameters of a previously added service.
 
+### Using the Binary Release on Mac OS
+
+Install Erlang by `brew install erlang`.
+
+Unpack and run the release
+```bash
+unzip lorawan-server-<VERSION>.zip
+mv lorawan-server-<VERSION> lorawan-server
+cd lorawan-server
+bin/lorawan-server
+```
+
 
 ## Upgrade
 
@@ -171,9 +183,11 @@ You will need the following prerequisites:
  * Rebar3, the Erlang build tool.
    * On Linux it will download automatically.
    * On Windows follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
+   * On Mac OS, run `brew install rebar`.
  * npm, the JavaScript package manager.
    * On Linux, try typing `yum install npm` or `apt-get install npm`.
    * On Windows, install the [Node.js](https://nodejs.org/en/).
+   * On Mac OS, run `brew install node`.
 
 Get the latest sources by:
 ```bash

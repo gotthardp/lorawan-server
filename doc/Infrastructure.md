@@ -16,9 +16,14 @@ For each LoRaWAN gateway you can set and view:
    is below the maximal allowed Equivalent Isotropic Radiated Power (EIRP)
    for the given region.
  * *Description* for your convenience.
+ * *Location* and *Altitude* of the gateway
+
+For the status:
  * *Last RX* contains a timestamp of the last received packet. A gateway is
    considered dead if it didn't sent anything for more than 60 seconds.
- * *Location* and *Altitude* of the gateway
+ * *Delays* graph shows network (LAN) delay between the gateway and the server
+   measured during the [`PULL_RESP`](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT#L274)
+   sequence. Note this requires packet_forwarder v3.0 or higher.
 
 The *NetID* and *SubID* are used to create DevAddr of OTAA devices. Each DevAddr
 is composed of 7 LSB of NetID, followed by *X* *SubID* bits, followed by 25-*X*
