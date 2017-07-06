@@ -10,23 +10,33 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 handle(RxQ, Link, FOpts, RxFrame) ->
-    % process incoming commands
     FOptsIn = parse_fopts(FOpts),
     case FOptsIn of
         [] -> ok;
         List1 -> lager:debug("~w -> ~w", [Link#link.devaddr, List1])
     end,
+    % process incoming responses
     {MacConfirm, Link2} = handle_rxwin(FOptsIn,
         handle_adr(FOptsIn,
         handle_status(FOptsIn, Link))),
     {Link3, RxFrame2} = auto_adr(RxQ, Link2, RxFrame),
-    % check for new commands
-    {ok, MacConfirm, Link3, build_fopts(Link3), RxFrame2}.
+    % process requests
+    FOptsOut =
+        lists:foldl(
+            fun (link_check_req, Acc) -> [send_link_check(RxQ) | Acc];
+                (_Else, Acc) -> Acc
+            end,
+            [], FOptsIn),
+    % check for new requests
+    {ok, MacConfirm, Link3, build_fopts(Link3, FOptsOut), RxFrame2}.
 
 build_fopts(Link) ->
+    build_fopts(Link, []).
+
+build_fopts(Link, FOptsOut0) ->
     FOptsOut = send_adr(Link,
         set_rxwin(Link,
-        request_status(Link, []))),
+        request_status(Link, FOptsOut0))),
     case FOptsOut of
         [] -> ok;
         List2 -> lager:debug("~w <- ~w", [Link#link.devaddr, List2])
@@ -141,6 +151,12 @@ find_status(FOptsIn) ->
         end,
         undefined, FOptsIn).
 
+send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
+    {SF, _} = lorawan_mac_region:datar_to_tuple(DataRate),
+    Margin = SNR - max_snr(SF),
+    lager:debug("LinkCheckAns: margin: ~B", [Margin]),
+    {link_check_ans, Margin, 1}.
+
 
 auto_adr(RxQ, #link{adr_flag_set=1}=Link, RxFrame) ->
     % ADR is ON, so maintain quality statistics
@@ -200,9 +216,12 @@ average0(List) ->
     Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- List])/length(List)),
     Avg-Sigma.
 
-% from SX1272 DataSheet, Table 13
 max_snr(Region, DataRate) ->
     {SF, _} = lorawan_mac_region:dr_to_tuple(Region, DataRate),
+    max_snr(SF).
+
+% from SX1272 DataSheet, Table 13
+max_snr(SF) ->
     -5-2.5*(SF-6). % dB
 
 send_adr(Link, FOptsOut) ->
