@@ -184,14 +184,23 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 6' }),
         nga.field('group'),
         nga.field('desc').label('Description'),
-        nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('gpspos', 'template')
             .validation({required: true })
             .label('Location')
             .template('<map location="value"></map>'),
-        nga.field('gpsalt', 'number').label('Altitude')
+        nga.field('gpsalt', 'number').label('Altitude'),
+        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('mac', 'template').label('Delays')
+            .template('<gwgraph value="value"></gwgraph>')
     ]);
+    gateways.creationView().template(createWithTabsTemplate([
+        {name:"General", min:0, max:10}
+    ]));
     gateways.editionView().fields(gateways.creationView().fields());
+    gateways.editionView().template(editWithTabsTemplate([
+        {name:"General", min:0, max:10},
+        {name:"Status", min:10, max:12}
+    ]));
     // add to the admin application
     admin.addEntity(gateways);
 
@@ -926,6 +935,54 @@ myApp.config(function (uiGmapGoogleMapApiProvider) {
         libraries: 'visualization'
     });
 });
+
+myApp.directive('gwgraph', ['$http', '$interval', function($http, $interval) {
+return {
+    restrict: 'E',
+    scope: {
+        value: '=',
+    },
+    link: function($scope) {
+            function updateData() {
+                $http({method: 'GET', url: '/gwgraph/'.concat($scope.value)})
+                    .then(function(response) {
+                        $scope.gwChartObject.data = response.data.array;
+                        $scope.gwChartObject.options.vAxes[1] = response.data.band;
+                    });
+            }
+            $scope.gwChartObject = {};
+            $scope.gwChartObject.type = "LineChart";
+            $scope.gwChartObject.options = {
+                "vAxes": {
+                    0: {"title": 'Network Delay [ms]'},
+                },
+                "series": {
+                    0: {"targetAxisIndex": 0},
+                },
+                "chartArea": {
+                    "top": 0, "bottom": "10%",
+                    "left": 0, "right": 0
+                },
+                "legend": {
+                    "position": "none"
+                },
+                "pointSize": 3,
+                "hAxis": {
+                    "format": 'kk:mm'
+                },
+                "vAxis": {
+                    "textPosition": "in",
+                    "gridlines": {"count": -1}
+                }
+            };
+            updateData();
+            $scope.stopTime = $interval(updateData, 5000);
+            $scope.$on('$destroy', function() {
+                $interval.cancel($scope.stopTime);
+            });
+    },
+    template: '<div google-chart chart="gwChartObject"></div>'
+};}]);
 
 myApp.directive('rgraph', ['$http', '$interval', function($http, $interval) {
 return {

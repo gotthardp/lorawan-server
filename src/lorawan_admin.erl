@@ -62,6 +62,8 @@ parse(Key, Value) when Key == time ->
     iso8601:parse_exact(Value);
 parse(Key, Value) when Key == devstat ->
     parse_devstat(Value);
+parse(Key, Value) when Key == delays ->
+    lists:map(fun(#{date:=Date, delay:=Delay}) -> {iso8601:parse(Date), Delay} end, Value);
 parse(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> parse_qs(Item) end, Value);
 parse(Key, Value) when Key == average_qs ->
@@ -110,6 +112,8 @@ build(Key, Value) when Key == last_join; Key == last_reset; Key == datetime;
     iso8601:format(Value);
 build(Key, Value) when Key == devstat ->
     build_devstat(Value);
+build(Key, Value) when Key == delays ->
+    lists:map(fun({Date, Delay}) -> #{date=>iso8601:format(Date), delay=>Delay} end, Value);
 build(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> build_qs(Item) end, Value);
 build(Key, Value) when Key == average_qs ->

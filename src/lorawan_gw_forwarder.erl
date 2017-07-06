@@ -39,11 +39,12 @@ handle_cast({send, {Host, Port, Version}, DevAddr, TxQ, RFCh, PHYPayload},
         #state{sock=Socket, tokens=Tokens}=State) ->
     Pk = [{txpk, build_txpk(TxQ, RFCh, PHYPayload)}],
     % lager:debug("<--- ~p", [Pk]),
-    Token = crypto:strong_rand_bytes(2),
+    <<Token:16>> = crypto:strong_rand_bytes(2),
     {ok, Timer} = timer:send_after(30000, {no_ack, Token}),
+    Stamp = erlang:monotonic_time(milli_seconds),
     % PULL RESP
-    ok = gen_udp:send(Socket, Host, Port, <<Version, Token/binary, 3, (jsx:encode(Pk))/binary>>),
-    {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr}, Tokens)}}.
+    ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 3, (jsx:encode(Pk))/binary>>),
+    {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr, Stamp}, Tokens)}}.
 
 % PUSH DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
@@ -85,8 +86,14 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
         #state{sock=Socket, tokens=Tokens}=State) ->
     {Opaque, Tokens2} =
         case maps:take(Token, Tokens) of
-            {{Timer, Opq}, Tkns} ->
+            {{Timer, Opq, Stamp1}, Tkns} ->
+                Stamp2 = erlang:monotonic_time(milli_seconds),
                 {ok, cancel} = timer:cancel(Timer),
+                {atomic, ok} = mnesia:transaction(
+                    fun() ->
+                        [G] = mnesia:read(gateways, MAC, write),
+                        mnesia:write(gateways, store_delay(G, {calendar:universal_time(), Stamp2-Stamp1}), write)
+                    end),
                 {Opq, Tkns};
             error ->
                 {undefined, Tokens}
@@ -173,5 +180,10 @@ build_txpk(TxQ, RFch, Data) ->
         [{modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}],
         lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
     ).
+
+store_delay(#gateway{delays=undefined}=Gateway, Delay) ->
+    Gateway#gateway{delays=[Delay]};
+store_delay(#gateway{delays=Past}=Gateway, Delay) ->
+    Gateway#gateway{delays=lists:sublist([Delay | Past], 20)}.
 
 % end of file
