@@ -7,7 +7,7 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([register/3, status/2, uplinks/1, downlink/4, downlink_error/3]).
+-export([register/3, status/2, uplinks/1, downlink/5, downlink_error/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -27,12 +27,12 @@ status(MAC, S) ->
 uplinks(PkList) ->
     gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
-downlink(MAC, DevAddr, TxQ, PHYPayload) ->
+downlink(Req, MAC, DevAddr, TxQ, PHYPayload) ->
     {EIRPdef, EIRPmax} = lorawan_mac_region:eirp_limits(TxQ#txq.region),
     [Gateway] = mnesia:dirty_read(gateways, MAC),
     Power = value_or_default(Gateway#gateway.tx_powe, EIRPdef),
     Gain = value_or_default(Gateway#gateway.ant_gain, 0),
-    gen_server:cast({global, ?MODULE}, {downlink, MAC, DevAddr,
+    gen_server:cast({global, ?MODULE}, {downlink, Req, MAC, DevAddr,
         TxQ#txq{powe=erlang:min(Power, EIRPmax-Gain)}, Gateway#gateway.tx_rfch, PHYPayload}).
 
 downlink_error(MAC, Opaque, Error) ->
@@ -78,12 +78,12 @@ handle_cast({uplinks, PkList}, #state{recent=Recent}=State) ->
             Recent, Unique),
     {noreply, State#state{recent=Recent2}};
 
-handle_cast({downlink, MAC, DevAddr, TxQ, RFCh, PHYPayload}, #state{pulladdr=Dict}=State) ->
+handle_cast({downlink, Req, MAC, DevAddr, TxQ, RFCh, PHYPayload}, #state{pulladdr=Dict}=State) ->
     % lager:debug("<-- datr ~s, codr ~s, tmst ~B, size ~B", [TxQ#txq.datr, TxQ#txq.codr, TxQ#txq.tmst, byte_size(PHYPayload)]),
     case dict:find(MAC, Dict) of
         {ok, {Process, Target}} ->
             % send data to the gateway interface handler
-            gen_server:cast(Process, {send, Target, DevAddr, TxQ, RFCh, PHYPayload});
+            gen_server:cast(Process, {send, Target, Req, DevAddr, TxQ, RFCh, PHYPayload});
         error ->
             lager:warning("Downlink request ignored. Gateway ~w not connected.", [MAC])
     end,
@@ -99,13 +99,13 @@ handle_cast({downlink_error, _MAC, DevAddr, Error}, State) ->
 
 handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
     % find the best (for now)
-    [{MAC, RxQ}|_Rest] = lists:sort(
+    [{Req, MAC, RxQ}|_Rest] = lists:sort(
         fun({_M1, Q1}, {_M2, Q2}) ->
             Q1#rxq.rssi >= Q2#rxq.rssi
         end,
         dict:fetch(PHYPayload, Recent)),
     % lager:debug("--> datr ~s, codr ~s, tmst ~B, size ~B", [RxQ#rxq.datr, RxQ#rxq.codr, RxQ#rxq.tmst, byte_size(PHYPayload)]),
-    wpool:cast(handler_pool, {MAC, RxQ, PHYPayload}, available_worker),
+    wpool:cast(handler_pool, {Req, MAC, RxQ, PHYPayload}, available_worker),
     Recent2 = dict:erase(PHYPayload, Recent),
     {noreply, State#state{recent=Recent2}};
 % handler termination
@@ -124,31 +124,31 @@ code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
 
-remove_duplicates([{MAC, RxQ, PHYPayload} | Tail], Unique) ->
+remove_duplicates([{Req, MAC, RxQ, PHYPayload} | Tail], Unique) ->
     % check if the first element is duplicate
-    case lists:keytake(PHYPayload, 3, Tail) of
-        {value, {MAC2, RxQ2, PHYPayload}, Tail2} ->
+    case lists:keytake(PHYPayload, 4, Tail) of
+        {value, {Req2, MAC2, RxQ2, PHYPayload}, Tail2} ->
             % select element of a better quality and re-check for other duplicates
             if
                 RxQ#rxq.rssi >= RxQ2#rxq.rssi ->
-                    remove_duplicates([{MAC, RxQ, PHYPayload} | Tail2], Unique);
+                    remove_duplicates([{Req, MAC, RxQ, PHYPayload} | Tail2], Unique);
                 true -> % else
-                    remove_duplicates([{MAC2, RxQ2, PHYPayload} | Tail2], Unique)
+                    remove_duplicates([{Req2, MAC2, RxQ2, PHYPayload} | Tail2], Unique)
             end;
         false ->
-            remove_duplicates(Tail, [{MAC, RxQ, PHYPayload} | Unique])
+            remove_duplicates(Tail, [{Req, MAC, RxQ, PHYPayload} | Unique])
     end;
 remove_duplicates([], Unique) ->
     Unique.
 
-store_frame({MAC, RxQ, PHYPayload}, Dict) ->
+store_frame({Req, MAC, RxQ, PHYPayload}, Dict) ->
     case dict:find(PHYPayload, Dict) of
         {ok, Frames} ->
-            dict:store(PHYPayload, [{MAC, RxQ}|Frames], Dict);
+            dict:store(PHYPayload, [{Req, MAC, RxQ}|Frames], Dict);
         error ->
             {ok, Delay} = application:get_env(lorawan_server, deduplication_delay),
             {ok, _} = timer:send_after(Delay, {process, PHYPayload}),
-            dict:store(PHYPayload, [{MAC, RxQ}], Dict)
+            dict:store(PHYPayload, [{Req, MAC, RxQ}], Dict)
     end.
 
 % end of file
