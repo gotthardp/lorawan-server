@@ -98,7 +98,7 @@ init_connector_id(ConnId) ->
         [Conn] ->
             init_connector(Conn);
         [] ->
-            {error, {not_found, ConnId}}
+            {error, {unknown_connector, ConnId}}
     end.
 
 get_or_init_subscription(#connector{connid=ConnId, enabled=false}) ->
