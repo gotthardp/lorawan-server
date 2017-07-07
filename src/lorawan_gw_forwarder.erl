@@ -90,9 +90,9 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                         SDelay =
                             case UStamp of
                                 undefined -> undefined;
-                                Num -> Num-DStamp
+                                Num -> DStamp-Num
                             end,
-                        mnesia:write(gateways, store_delay(G, {calendar:universal_time(), SDelay, DStamp-AStamp}), write)
+                        mnesia:write(gateways, store_delay(G, {calendar:universal_time(), SDelay, AStamp-DStamp}), write)
                     end),
                 {Opq, Tkns};
             error ->
