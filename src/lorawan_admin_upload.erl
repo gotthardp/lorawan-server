@@ -10,7 +10,7 @@
 init(Req, Opts) ->
     {ok, Headers, Req2} = cowboy_req:read_part(Req),
     {ok, Data, Req3} = cowboy_req:read_part_body(Req2),
-    {file, <<"file">>, FileName, ContentType, _TE} = cow_multipart:form_data(Headers),
+    {file, <<"file">>, FileName, ContentType} = cow_multipart:form_data(Headers),
     case file:write_file(FileName, Data) of
         ok ->
             lager:debug("Uploaded ~p of content-type ~p", [FileName, ContentType]),
