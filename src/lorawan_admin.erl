@@ -113,7 +113,9 @@ build(Key, Value) when Key == last_join; Key == last_reset; Key == datetime;
 build(Key, Value) when Key == devstat ->
     build_devstat(Value);
 build(Key, Value) when Key == delays ->
-    lists:map(fun({Date, SDelay, NDelay}) -> #{date=>iso8601:format(Date), srvdelay=>SDelay, nwkdelay=>NDelay} end, Value);
+    lists:map(fun({Date, SDelay, NDelay}) -> #{date=>iso8601:format(Date), srvdelay=>SDelay, nwkdelay=>NDelay};
+                ({Date, NDelay}) -> #{date=>iso8601:format(Date), srvdelay=>undefined, nwkdelay=>NDelay}
+              end, Value);
 build(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> build_qs(Item) end, Value);
 build(Key, Value) when Key == average_qs ->
