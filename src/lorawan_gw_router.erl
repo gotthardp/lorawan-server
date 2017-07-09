@@ -100,7 +100,7 @@ handle_cast({downlink_error, _MAC, DevAddr, Error}, State) ->
 handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
     % find the best (for now)
     [{Req, MAC, RxQ}|_Rest] = lists:sort(
-        fun({_M1, Q1}, {_M2, Q2}) ->
+        fun({_R1, _M1, Q1}, {_R2, _M2, Q2}) ->
             Q1#rxq.rssi >= Q2#rxq.rssi
         end,
         dict:fetch(PHYPayload, Recent)),
