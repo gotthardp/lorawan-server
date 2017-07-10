@@ -120,7 +120,7 @@ init_connector(Conn) ->
             % the process got rested by its supervisor
             init_connector0(Conn, Pid);
         Error ->
-            lager:error("Cannot connect ~w: ~p", [Conn#connector.connid, Error]),
+            lager:error("Cannot connect ~p: ~p", [Conn#connector.connid, Error]),
             Error
     end.
 

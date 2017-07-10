@@ -130,7 +130,7 @@ process_frame1(Gateway, RxQ, <<MType:3, _:5,
             {error, {{node, DevAddr}, Error}}
     end;
 process_frame1(_Gateway, _RxQ, Msg, _MIC) ->
-    lager:debug("Bad frame: ~w", [Msg]),
+    lager:debug("Bad frame: ~p", [Msg]),
     {error, bad_frame}.
 
 handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
@@ -165,7 +165,8 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
                 0
         end,
 
-    lager:info("JOIN REQUEST ~w ~w -> ~w",[AppEUI, DevEUI, Device#device.link]),
+    lager:info("JOIN REQUEST ~s ~s -> ~s",
+        [binary_to_hex(AppEUI), binary_to_hex(DevEUI), binary_to_hex(Device#device.link)]),
     Link = #link{devaddr=Device#device.link, region=Device#device.region,
         app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0,
@@ -271,7 +272,7 @@ check_link_fcnt(DevAddr, FCnt) ->
         [] ->
             {error, unknown_devaddr};
         [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < MaxLost ->
-            lager:debug("~w fcnt reset", [DevAddr]),
+            lager:debug("~s fcnt reset", [binary_to_hex(DevAddr)]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, reset, L#link{fcntup = FCnt, fcntdown=0,
                 adr_use=lorawan_mac_region:default_adr(L#link.region),
@@ -380,11 +381,11 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
                 lager:debug("ADR indicator set to ~w", [ADR]),
                 Link#link{adr_flag_use=ADR, devstat_fcnt=undefined, last_qs=[]};
             {TXPower, _OldDataRate, Chans} ->
-                lager:debug("DataRate ~w switched to dr ~w", [Link#link.devaddr, DataRate]),
+                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#link.devaddr), DataRate]),
                 Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans},
                     devstat_fcnt=undefined, last_qs=[]};
             undefined ->
-                lager:debug("DataRate ~w switched to dr ~w", [Link#link.devaddr, DataRate]),
+                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#link.devaddr), DataRate]),
                 Link#link{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined},
                     devstat_fcnt=undefined, last_qs=[]}
         end,
@@ -419,7 +420,7 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
     case lorawan_handler:handle_rx(Gateway, Link,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
-            lager:debug("~w retransmitting", [Link#link.devaddr]),
+            lager:debug("~s retransmitting", [binary_to_hex(Link#link.devaddr)]),
             {send, Link#link.devaddr, choose_tx(Link, RxQ), LostFrame};
         {send, TxData} ->
             send_unicast(Link, choose_tx(Link, RxQ), Confirm, FOptsOut, TxData);
