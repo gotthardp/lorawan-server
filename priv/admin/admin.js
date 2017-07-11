@@ -261,6 +261,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .sortField('deveui')
     .sortDir('ASC');
     devices.listView().filters([
+        nga.field('deveui').label('DevEUI'),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group')
     ]);
@@ -348,6 +349,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .sortField('devaddr')
     .sortDir('ASC');
     nodes.listView().filters([
+        nga.field('devaddr').label('DevAddr'),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group')
     ]);
