@@ -153,7 +153,7 @@ find_status(FOptsIn) ->
 
 send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
     {SF, _} = lorawan_mac_region:datar_to_tuple(DataRate),
-    Margin = SNR - max_snr(SF),
+    Margin = trunc(SNR - max_snr(SF)),
     lager:debug("LinkCheckAns: margin: ~B", [Margin]),
     {link_check_ans, Margin, 1}.
 

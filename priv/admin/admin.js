@@ -153,7 +153,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('alive', 'boolean').label('Alive')
             .map(function timediff(value, entry) {
-                return timeyoung(entry.last_rx, 60);
+                return timeyoung(entry.last_rx, 60*1000);
             })
     ])
     .sortField('mac')
@@ -713,7 +713,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('last_rx', 'datetime').label('Last RX'),
                 nga.field('alive', 'boolean').label('Alive')
                     .map(function timediff(value, entry) {
-                        return timeyoung(entry.last_rx, 60);
+                        return timeyoung(entry.last_rx, 60*1000);
                     })
             ])
             .sortField('mac')
@@ -775,10 +775,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     nga.configure(admin);
 }]);
 
-function timeyoung(value, deltas) {
+function timeyoung(value, delta_ms) {
     var x1 = new Date();
     var x2 = new Date(value);
-    return x1.getTime() - x2.getTime() < deltas*1000;
+    return x1.getTime() - x2.getTime() < delta_ms;
 }
 
 function hextoascii(val) {
