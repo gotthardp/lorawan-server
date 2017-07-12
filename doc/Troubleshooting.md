@@ -34,7 +34,7 @@ This may be due to:
  * Firewall misconfiguration. Check the server firewall does not block the port 1680.
    See [Installation Instructions](Installation.md) for configuration guidelines.
 
-### No downlink frames sent
+### No downlink frames delivered
 
 This may be because:
  * Gateway configuration error. Verify you set correctly the *TX Chain* in your
@@ -105,7 +105,9 @@ It is recommended to use over-the-air-activation (OTAA) instead.
 ### repeated_reset
 
 No frames were received since last OTAA join or last ABP reset. This is just a
-warning; it could indicate a faulty device that is periodically re-starting.
+warning. It may be because:
+ * No downlink frames delivered (see above)
+ * Faulty device is periodically re-starting
 
 ### prerequisite_failed
 
