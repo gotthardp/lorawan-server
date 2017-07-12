@@ -102,6 +102,11 @@ To allow ABP devices to freely reset set the *FCnt Check* to *Reset on zero*,
 but please note this weakens LoRaWAN security a bit.
 It is recommended to use over-the-air-activation (OTAA) instead.
 
+### repeated_reset
+
+No frames were received since last OTAA join or last ABP reset. This is just a
+warning; it could indicate a faulty device that is periodically re-starting.
+
 ### prerequisite_failed
 
 This is reported when the lorawan-server is started with older Erlang/OTP. At
