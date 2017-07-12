@@ -281,7 +281,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appargs').label('Arguments'),
         nga.field('appeui').label('AppEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
-            .validation({ required: true, pattern: '[A-Fa-f0-9]{16}' }),
+            .validation({ pattern: '[A-Fa-f0-9]{16}' }),
         nga.field('appkey').label('AppKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
