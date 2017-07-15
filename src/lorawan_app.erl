@@ -63,7 +63,8 @@ start(_Type, _Args) ->
             ok;
         {ok, HttpOpts} ->
             {ok, _} = cowboy:start_clear(http, HttpOpts,
-                #{env => #{dispatch => Dispatch}})
+                #{env => #{dispatch => Dispatch},
+                stream_handlers => [lorawan_admin_logger, cowboy_stream_h]})
     end,
     case application:get_env(http_admin_listen_ssl) of
         undefined ->
