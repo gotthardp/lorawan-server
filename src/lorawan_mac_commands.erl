@@ -280,7 +280,9 @@ set_rxwin(Link, FOptsOut) ->
         _Else2 -> undefined
     end,
     if
-         OffSet /= undefined, OffSet /= OffUse ->
+        Link#link.adr_flag_use == 1,
+        (Link#link.adr_flag_set == 1 orelse Link#link.adr_flag_set == 2),
+        OffSet /= undefined, OffSet /= OffUse ->
             {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
             lager:debug("RXParamSetupReq ~w", [OffSet]),
             [{rx_param_setup_req, OffSet, RX2DataRate, trunc(10000*Frequency)} | FOptsOut];
