@@ -181,6 +181,8 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
     MaxSNR = max_snr(Link#link.region, DataRate)+10,
     StepsDR = trunc((AvgSNR-MaxSNR)/3),
     DataRate2 = if
+            DataRate == undefined ->
+                DataRate;
             StepsDR > 0, DataRate < MaxDR ->
                 lager:debug("DataRate ~s: average snr ~w ~w = ~w, dr ~w -> step ~w",
                     [lorawan_mac:binary_to_hex(Link#link.devaddr), round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
@@ -190,6 +192,8 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
         end,
     % receiver sensitivity for maximal DR in all regions is -120 dBm, we try to stay at -100 dBm
     TxPower2 = if
+            TxPower == undefined ->
+                TxPower;
             AvgRSSI > -96, TxPower < MinPower ->
                 PwrStepUp = trunc((AvgRSSI+100)/4), % 2-3dB between levels, go slower
                 lager:debug("Power ~s: average rssi ~w, power ~w -> up by ~w",
