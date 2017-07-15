@@ -158,7 +158,7 @@ send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
     {link_check_ans, Margin, 1}.
 
 
-auto_adr(RxQ, #link{adr_flag_set=1}=Link, RxFrame) ->
+auto_adr(RxQ, #link{adr_flag_use=1, adr_flag_set=1}=Link, RxFrame) ->
     % ADR is ON, so maintain quality statistics
     LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Link#link.last_qs),
     auto_adr0(Link#link{last_qs=LastQs}, RxFrame);

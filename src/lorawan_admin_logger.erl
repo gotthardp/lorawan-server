@@ -30,7 +30,7 @@ info(StreamId, Response, #state{next=Next0, path=Path}=State) ->
     {Command, Next} = cowboy_stream:info(StreamId, Response, Next0),
     {Command, State#state{next=Next}}.
 
-log_error(Status, _Path) when Status div 100 == 2; Status == 304 ->
+log_error(Status, _Path) when Status div 100 == 2; Status == 304; Status == 401 ->
     ok;
 log_error(Status, Path) ->
     lager:error("HTTP ~B ~s", [Status, Path]).
