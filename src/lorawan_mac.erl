@@ -161,7 +161,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     JoinCnt =
         case mnesia:dirty_read(links, Device#device.link) of
             [#link{reset_count=Cnt, last_rx=undefined}] when is_integer(Cnt) ->
-                lorawan_utils:throw_warning({node, Device#device.link}, repeated_reset),
+                lorawan_utils:throw_warning({node, Device#device.link}, {repeated_reset, Cnt+1}),
                 Cnt+1;
             _Else ->
                 0

@@ -52,6 +52,7 @@ start(_Type, _Args) ->
             {"/qgraph/:devaddr", lorawan_admin_rxgraph, [qgraph]},
             {"/devstat/:devaddr", lorawan_admin_devstat, []},
             {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
+            {"/favicon.ico", cowboy_static, {priv_file, lorawan_server, "favicon.ico"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
         ]++Handlers}
