@@ -59,17 +59,17 @@ This will put the database and the logs into `/var/lib/lorawan-server`.
 Install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads) of
 Erlang/OTP 19 or later.
 
-Unpack the release using the [7-Zip](http://www.7-zip.org) and run the server by
-```bash
-bin/lorawan-server.bat
-```
+Unpack the release using the [7-Zip](http://www.7-zip.org) to a new folder
+(e.g. `lorawan-server`) and then run the server by double-clicking `lorawan-server.bat`
+in the `lorawan-server/bin` folder.
 
 You can also run the lorawan-server as a Windows service.
-The service is managed using `bin/lorawan-service.bat` *command*, where:
- * *add* will add the service. Once added you can use the standard Windows control
+The service is managed using `lorawan-service.bat <command>`, where
+the `<command>` could be:
+ * *add* to add the service. Once added you can use the standard Windows control
    panel administrative tools to start/stop or enable/disable the service.
- * *remove* will remove the previously added service.
- * *list* will display parameters of a previously added service.
+ * *remove* to remove the previously added service.
+ * *list* to display parameters of a previously added service.
 
 ### Using the Binary Release on Mac OS
 
