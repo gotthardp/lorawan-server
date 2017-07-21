@@ -64,8 +64,8 @@ Unpack the release using the [7-Zip](http://www.7-zip.org) to a new folder
 in the `lorawan-server/bin` folder.
 
 You can also run the lorawan-server as a Windows service.
-The service is managed using `lorawan-service.bat <command>`, where
-the `<command>` could be:
+The service can be managed from a Command Prompt (`cmd`) using
+`lorawan-service.bat <command>`, where the `<command>` could be:
  * *add* to add the service. Once added you can use the standard Windows control
    panel administrative tools to start/stop or enable/disable the service.
  * *remove* to remove the previously added service.
