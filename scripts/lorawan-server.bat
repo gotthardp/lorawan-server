@@ -14,8 +14,8 @@ for %%A in ("%SCRIPT_DIR%\..") do (
     set "ROOT_DIR=%%~fA"
 )
 
-for /D %%A in (%ROOT_DIR%\lib\*) do (
-    set "FILES=!FILES! %%A\ebin"
+for /D %%A in ("%ROOT_DIR%\lib\*") do (
+    set FILES=!FILES! "%%A\ebin"
 )
 
 cd %ROOT_DIR% && %ERLDIR% -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app -config releases/{{release_version}}/sys.config
