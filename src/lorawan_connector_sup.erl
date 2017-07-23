@@ -18,6 +18,10 @@ start_link() ->
 
 start_child(Conn) ->
     case parse_uri(Conn#connector.uri) of
+        {ok, {http, _, _, _, _, _} = ConnUri} ->
+            connect(lorawan_connector_http, ConnUri, Conn);
+        {ok, {https, _, _, _, _, _} = ConnUri} ->
+            connect(lorawan_connector_http, ConnUri, Conn);
         {ok, {mqtt, _, _, _, _, _} = ConnUri} ->
             connect(lorawan_connector_mqtt, ConnUri, Conn);
         {ok, {mqtts, _, _, _, _, _} = ConnUri} ->
@@ -43,6 +47,7 @@ parse_uri(Uri) when is_binary(Uri) ->
     parse_uri(binary_to_list(Uri));
 
 parse_uri(Uri) when is_list(Uri) ->
-    http_uri:parse(Uri, [{scheme_defaults, [{mqtt, 1883}, {mqtts, 8883}]}]).
+    http_uri:parse(Uri, [{scheme_defaults, [{http, 80}, {https, 443},
+        {mqtt, 1883}, {mqtts, 8883}]}]).
 
 % end of file

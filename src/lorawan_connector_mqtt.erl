@@ -31,7 +31,8 @@ init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
     ]),
     % initially use MQTT 3.1.1
     {ok, connect(attempt311, #state{cargs=CArgs, connect_count=0, subscribe=Sub,
-        published=prepare_filling(Pub), consumed=prepare_matching(Cons)})}.
+        published=lorawan_connector_pattern:prepare_filling(Pub),
+        consumed=lorawan_connector_pattern:prepare_matching(Cons)})}.
 
 % Microsoft Shared Access Signature
 auth_args({_Scheme, _UserInfo, HostName, _Port, _Path, _Query},
@@ -83,11 +84,11 @@ handle_call(disconnect, _From, State=#state{mqttc=C}) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({publish, _Msg, _Vars}, State=#state{mqttc=undefined}) ->
+handle_cast({publish, _Message}, State=#state{mqttc=undefined}) ->
     lager:warning("MQTT broker disconnected, message lost"),
     {noreply, State};
-handle_cast({publish, Msg, Vars}, State) ->
-    handle_publish(Msg, Vars, State).
+handle_cast({publish, Message}, State) ->
+    handle_publish(Message, State).
 
 handle_info({connect, Phase}, State) ->
     {noreply, connect(Phase, State)};
@@ -172,13 +173,13 @@ maybe_cancel_timer(Timer) ->
     ok.
 
 
-handle_publish(Msg, Vars, State=#state{mqttc=C, published=Pattern}) ->
-    emqttc:publish(C, fill_pattern(Pattern, lorawan_admin:build(Vars)), Msg),
+handle_publish({_ContentType, Msg, Vars}, State=#state{mqttc=C, published=Pattern}) ->
+    emqttc:publish(C, lorawan_connector_pattern:fill_pattern(Pattern, lorawan_admin:build(Vars)), Msg),
     {noreply, State}.
 
 handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
     case lorawan_application_backend:handle_downlink(Msg, undefined,
-            match_vars(Topic, Pattern)) of
+            lorawan_connector_pattern:match_vars(Topic, Pattern)) of
         ok ->
             ok;
         {error, {Object, Error}} ->
@@ -187,67 +188,6 @@ handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
             lorawan_utils:throw_error(server, Error)
     end,
     {noreply, State}.
-
-
-prepare_filling(undefined) ->
-    undefined;
-prepare_filling(Pattern) ->
-    case re:run(Pattern, "{[^}]+}", [global]) of
-        {match, Match} ->
-            {Pattern,
-                [{binary_to_existing_atom(binary:part(Pattern, Start+1, Len-2), latin1), {Start, Len}}
-                    || [{Start, Len}] <- Match]};
-        nomatch ->
-            {Pattern, []}
-    end.
-
-fill_pattern({Pattern, []}, _) ->
-    Pattern;
-fill_pattern({Pattern, Vars}, Values) ->
-    maps:fold(
-        fun(Var, Val, Patt) ->
-            case proplists:get_value(Var, Vars, undefined) of
-                {Start, Len} ->
-                    <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
-                    <<Prefix/binary, Val/binary, Suffix/binary>>;
-                undefined ->
-                    Patt
-            end
-        end, Pattern, Values).
-
-prepare_matching(undefined) ->
-    undefined;
-prepare_matching(Pattern) ->
-    EPattern = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
-    case re:run(EPattern, "{[^}]+}", [global]) of
-        {match, Match} ->
-            Regex = lists:foldr(
-                fun([{Start, Len}], Patt) ->
-                    <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
-                    <<Prefix/binary, "([a-zA-z0-9]*)", Suffix/binary>>
-                end, EPattern, Match),
-            {ok, MP} = re:compile(<<"^", Regex/binary, "$">>),
-            {MP, [binary_to_existing_atom(binary:part(EPattern, Start+1, Len-2), latin1) || [{Start, Len}] <- Match]};
-        nomatch ->
-            {Pattern, []}
-    end.
-
-match_pattern(Topic, {Pattern, Vars}) ->
-    case re:run(Topic, Pattern, [global, {capture, all, binary}]) of
-        {match, [[_Head | Matches]]} ->
-            maps:from_list(lists:zip(Vars, Matches));
-        nomatch ->
-            undefined
-    end.
-
-match_vars(Topic, Pattern) ->
-    case match_pattern(Topic, Pattern) of
-        undefined ->
-            lager:error("Topic ~w does not match pattern ~w", [Topic, Pattern]),
-            #{};
-        Vars ->
-            lorawan_admin:parse(Vars)
-    end.
 
 % Shared Access Signature functions
 % see https://docs.microsoft.com/en-us/azure/storage/storage-dotnet-shared-access-signature-part-1
@@ -277,23 +217,5 @@ build_access_token(Res0, AccessKey, Expiry) ->
     Sig = http_uri:encode(base64:encode_to_string(
         crypto:hmac(sha256, base64:decode(AccessKey), ToSign))),
     io_lib:format("SharedAccessSignature sr=~s&sig=~s&se=~B", [Res, Sig, Now+Expiry]).
-
--include_lib("eunit/include/eunit.hrl").
-
-matchtst(undefined = Vars, Pattern, Topic) ->
-    [?_assertEqual(Vars, match_pattern(Topic, prepare_matching(Pattern))),
-    ?_assertEqual(Pattern, fill_pattern(prepare_filling(Pattern), Vars))];
-matchtst(Vars, Pattern, Topic) ->
-    [?_assertEqual(Vars, match_pattern(Topic, prepare_matching(Pattern))),
-    ?_assertEqual(Topic, fill_pattern(prepare_filling(Pattern), Vars))].
-
-pattern_test_()-> [
-    matchtst(#{}, <<"normal/uri">>, <<"normal/uri">>),
-    matchtst(undefined, <<"normal/uri">>, <<"another/uri">>),
-    matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}">>, <<"00112233">>),
-    matchtst(#{devaddr => <<"00112233">>}, <<"prefix.{devaddr}">>, <<"prefix.00112233">>),
-    matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}/suffix">>, <<"00112233/suffix">>),
-    matchtst(#{devaddr => <<"00112233">>}, <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>),
-    matchtst(#{group => <<"test">>, devaddr => <<"00112233">>}, <<"{group}-{devaddr}">>, <<"test-00112233">>)].
 
 % end of file

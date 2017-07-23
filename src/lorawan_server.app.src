@@ -5,7 +5,7 @@
 %
 {application, lorawan_server,
     [{description, "LoRaWAN Application Server"},
-    {vsn, "0.4.7"},
+    {vsn, "0.4.8"},
     {modules, []},
     {registered, []},
     {mod, {lorawan_app, []}},
@@ -62,7 +62,7 @@
         {deduplication_delay, 150},
         {event_lifetime, 86400}
     ]},
-    {applications, [kernel, stdlib, sasl, lager, cowboy, mnesia, worker_pool,
+    {applications, [kernel, stdlib, sasl, lager, cowboy, gun, mnesia, worker_pool,
         jsx, iso8601, emqttc, lorawan_server_api]}]}.
 
 % end of file

@@ -32,8 +32,8 @@ handle_rx(Gateway, #link{devaddr=DevAddr}=Link, #rxdata{port=Port} = RxData, RxQ
 send_to_backend(Gateway, #link{appid=AppID}=Link, RxData, RxQ) ->
     case mnesia:dirty_read(handlers, AppID) of
         [Handler] ->
-            {_, Data, Vars} = parse_uplink(Handler, Gateway, Link, RxData, RxQ),
-            lorawan_connector_factory:publish(Handler#handler.connid, Data, Vars);
+            lorawan_connector_factory:publish(Handler#handler.connid,
+                parse_uplink(Handler, Gateway, Link, RxData, RxQ));
         [] ->
             {error, {unknown_appid, AppID}}
     end.
@@ -157,7 +157,7 @@ filter_group_responses(_AppID, List) ->
 
 parse_uplink(#handler{appid = AppID, format = <<"raw">>},
         _Gateway, #link{devaddr=DevAddr}, #rxdata{data=Data}, _RxQ) ->
-    {binary, Data,
+    {<<"application/octet-stream">>, Data,
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
 parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse = Parse},
         #gateway{mac=MAC}, #link{devaddr=DevAddr, appargs=AppArgs},
@@ -172,14 +172,14 @@ parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse
             vars_add(fields, data_to_fields(Parse, Port, Data),
             #{group => AppID, devaddr => DevAddr}))))))
         )),
-    {text, jsx:encode(Msg),
+    {<<"application/json">>, jsx:encode(Msg),
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
 parse_uplink(#handler{appid = AppID, format = <<"www-form">>, parse = Parse},
         #gateway{}, #link{devaddr=DevAddr, appargs=AppArgs},
         #rxdata{port=Port, data=Data}, _RxQ) ->
     Msg = vars_add(appargs, AppArgs,
             data_to_fields(Parse, Port, Data)),
-    {text, form_encode(Msg),
+    {<<"application/x-www-form-urlencoded">>, form_encode(Msg),
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}}.
 
 vars_add(_Field, undefined, Vars) ->
