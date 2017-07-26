@@ -40,6 +40,7 @@ This may be because:
  * Gateway configuration error. Verify you set correctly the *TX Chain* in your
    [Infrastructure](Infrastructure.md) configuration.
  * Gateway error. Check for any error in your gateway log file.
+ * The device and gateway are using inconsistent private/public network mode setting.
  * The device did not listen on the channel (frequency) used by the server. Verify
    your device correctly listens in the right RX1/RX2 window. The RX2 frequencies
    and data rates are provided in the
