@@ -178,7 +178,7 @@ parse_uplink(#handler{appid = AppID, format = <<"www-form">>, parse = Parse},
         #gateway{}, #link{devaddr=DevAddr, appargs=AppArgs},
         #rxdata{port=Port, data=Data}, _RxQ) ->
     Msg = vars_add(appargs, AppArgs,
-            data_to_fields(Parse, Port, Data)),
+            vars_from_map(data_to_fields(Parse, Port, Data))),
     {<<"application/x-www-form-urlencoded">>, form_encode(Msg),
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}}.
 
@@ -198,6 +198,11 @@ vars_add_opt(Field, Value, Fields, Vars) ->
         false ->
             Vars
     end.
+
+vars_from_map(undefined) ->
+    #{};
+vars_from_map(Map) when is_map(Map) ->
+    Map.
 
 get_deveui(DevAddr) ->
     case mnesia:dirty_index_read(devices, DevAddr, #device.link) of
