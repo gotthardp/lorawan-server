@@ -130,7 +130,8 @@ get_mote(Time, Motes) ->
     end.
 
 rxpk(Base64Data) ->
-    {rxpk, [{modu, <<"LORA">>}, {freq, 868.10}, {datr, <<"SF12BW125">>}, {data, Base64Data}]}.
+    {rxpk, [{modu, <<"LORA">>}, {freq, 868.10}, {datr, <<"SF12BW125">>}, {codr, <<"4/5">>},
+        {data, Base64Data}]}.
 
 send(#state{socket=Socket, server={IP, Port}}, Payload) ->
     gen_udp:send(Socket, IP, Port, Payload).

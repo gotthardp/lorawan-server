@@ -155,11 +155,10 @@ rxpk(MAC, PkList) ->
 
 parse_rxpk(Pk) ->
     Data = base64:decode(maps:get(data, Pk)),
-    case maps:get(modu, Pk) of
-        <<"LORA">> ->
-            RxQ = list_to_tuple([rxq|[get_rxpk_field(X, Pk) || X <- record_info(fields, rxq)]]),
-            {RxQ, Data}
-    end.
+    % the modu field is ignored
+    % we assume "LORA" datr is a binary string and "FSK" datr is an integer
+    RxQ = list_to_tuple([rxq|[get_rxpk_field(X, Pk) || X <- record_info(fields, rxq)]]),
+    {RxQ, Data}.
 
 get_rxpk_field(time, List) ->
     case maps:get(time, List, undefined) of
@@ -171,6 +170,11 @@ get_rxpk_field(Field, List) ->
 
 
 build_txpk(TxQ, RFch, Data) ->
+    Modu =
+        case TxQ#txq.datr of
+            Bin when is_binary(Bin) -> <<"LORA">>;
+            Num when is_integer(Num) -> <<"FSK">>
+        end,
     lists:foldl(
         fun ({_, undefined}, Acc) ->
                 Acc;
@@ -184,7 +188,7 @@ build_txpk(TxQ, RFch, Data) ->
                 Acc; % internal parameter
             (Elem, Acc) -> [Elem | Acc]
         end,
-        [{modu, <<"LORA">>}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}],
+        [{modu, Modu}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}],
         lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
     ).
 

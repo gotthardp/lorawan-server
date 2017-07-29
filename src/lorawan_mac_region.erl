@@ -132,7 +132,8 @@ datars(Region)
     {3, {9, 125}},
     {4, {8, 125}},
     {5, {7, 125}},
-    {6, {7, 250}}];
+    {6, {7, 250}},
+    {7, 50000}]; % FSK
 datars(Region)
         when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> -> [
     {0,  {10, 125}},
@@ -163,11 +164,15 @@ datar_to_dr(Region, DataRate) ->
     end.
 
 tuple_to_datar({SF, BW}) ->
-    <<"SF", (integer_to_binary(SF))/binary, "BW", (integer_to_binary(BW))/binary>>.
+    <<"SF", (integer_to_binary(SF))/binary, "BW", (integer_to_binary(BW))/binary>>;
+tuple_to_datar(DataRate) ->
+    DataRate. % FSK
 
-datar_to_tuple(DataRate) ->
+datar_to_tuple(DataRate) when is_binary(DataRate) ->
     [SF, BW] = binary:split(DataRate, [<<"SF">>, <<"BW">>], [global, trim_all]),
-    {binary_to_integer(SF), binary_to_integer(BW)}.
+    {binary_to_integer(SF), binary_to_integer(BW)};
+datar_to_tuple(DataRate) when is_integer(DataRate) ->
+    DataRate. % FSK
 
 codr_to_tuple(CodingRate) ->
     [A, B] = binary:split(CodingRate, [<<"/">>], [global, trim_all]),
