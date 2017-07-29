@@ -11,14 +11,14 @@
 
 -include("lorawan.hrl").
 
--record(state, {conn, published, auth, nc, streams}).
+-record(state, {connid, pid, published, auth, nc, streams}).
 
 start_link(ConnUri, Conn) ->
     gen_server:start_link(?MODULE, [ConnUri, Conn], []).
 
 init([ConnUri, Conn=#connector{published=Pub, name=Name, pass=Pass}]) ->
-    process_flag(trap_exit, true),
     lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
+    ok = syn:register(Conn#connector.connid, self()),
     {ok, ConnPid} =
         case ConnUri of
             {http, _UserInfo, HostName, Port, _Path, _Query} ->
@@ -27,31 +27,32 @@ init([ConnUri, Conn=#connector{published=Pub, name=Name, pass=Pass}]) ->
                 gun:open(HostName, Port, #{transport=>ssl})
         end,
     monitor(process, ConnPid),
-    {ok, #state{conn=ConnPid, published=lorawan_connector_pattern:prepare_filling(Pub),
+    {ok, #state{connid=Conn#connector.connid, pid=ConnPid,
+        published=lorawan_connector_pattern:prepare_filling(Pub),
         auth={Name, Pass}, nc=1, streams=#{}}}.
 
 handle_call({resubscribe, _Sub2}, _From, State) ->
     % TODO: do something about subscriptions
     {reply, ok, State};
-handle_call(disconnect, _From, State=#state{conn=undefined}) ->
-    % already disconnected
-    {stop, normal, ok, State};
-handle_call(disconnect, _From, State=#state{conn=C}) ->
-    gun:close(C),
-    {stop, normal, ok, State};
 handle_call(_Request, _From, State) ->
-    {stop, {error, unknownmsg}, State}.
+    {reply, {error, unknownmsg}, State}.
 
 handle_cast({publish, Message}, State) ->
-    handle_publish(Message, State).
+    handle_publish(Message, State);
+handle_cast(disconnect, State=#state{pid=undefined}) ->
+    % already disconnected
+    {stop, normal, State};
+handle_cast(disconnect, State=#state{pid=C}) ->
+    gun:close(C),
+    {stop, normal, State}.
 
-handle_info({gun_up, C, http}, State=#state{conn=C}) ->
+handle_info({gun_up, C, http}, State=#state{pid=C}) ->
     {noreply, State};
 handle_info({gun_down, C, _Proto, _Reason, Killed, Unprocessed},
-        State=#state{conn=C, streams=Streams}) ->
+        State=#state{pid=C, streams=Streams}) ->
     {noreply, State#state{streams=remove_list(remove_list(Streams, Killed), Unprocessed)}};
 handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
-        State=#state{conn=C, streams=Streams}) ->
+        State=#state{pid=C, streams=Streams}) ->
     State3 =
         case proplists:get_value(<<"www-authenticate">>, Headers) of
             undefined ->
@@ -74,7 +75,7 @@ handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
                 end
         end,
     {noreply, fin_stream(StreamRef, Fin, State3)};
-handle_info({gun_response, C, StreamRef, Fin, Status, _Headers}, State=#state{conn=C}) ->
+handle_info({gun_response, C, StreamRef, Fin, Status, _Headers}, State=#state{pid=C}) ->
     if
         Status < 300 ->
             ok;
@@ -83,16 +84,23 @@ handle_info({gun_response, C, StreamRef, Fin, Status, _Headers}, State=#state{co
             ok
     end,
     {noreply, fin_stream(StreamRef, Fin, State)};
-handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{conn=C}) ->
+handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{pid=C}) ->
     {noreply, fin_stream(StreamRef, Fin, State)};
-handle_info({'DOWN', _MRef, process, C, Reason}, State=#state{conn=C}) ->
+handle_info({'DOWN', _MRef, process, C, {gone, Error}}, State=#state{connid=ConnId, pid=C}) ->
+    lager:warning("Connector ~s failed to reconnect: ~p", [ConnId, Error]),
+    lorawan_connector_factory:disable_connector(ConnId),
+    {stop, normal, State};
+handle_info({'DOWN', _MRef, process, C, Reason}, State=#state{pid=C}) ->
     {stop, Reason, State};
 handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
 
-terminate(Reason, _State) ->
-    lager:debug("HTTP connector terminated: ~p", [Reason]),
+terminate(normal, #state{connid=ConnId}) ->
+    lager:debug("Connector ~s terminated: normal", [ConnId]),
+    ok;
+terminate(Reason, #state{connid=ConnId}) ->
+    lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -106,7 +114,7 @@ handle_publish({ContentType, Body, Vars}, State=#state{published=Pattern}) ->
             ContentType, Body},
         [], State)}.
 
-do_publish({_Type, URI, ContentType, Body}=Msg, Headers, State=#state{conn=C, streams=Streams}) ->
+do_publish({_Type, URI, ContentType, Body}=Msg, Headers, State=#state{pid=C, streams=Streams}) ->
     StreamRef = gun:post(C, URI,
         [{<<"content-type">>, ContentType} | Headers], Body),
     State#state{streams=maps:put(StreamRef, Msg, Streams)}.

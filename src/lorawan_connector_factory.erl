@@ -6,12 +6,10 @@
 -module(lorawan_connector_factory).
 -behaviour(gen_server).
 
--export([start_link/0, publish/2]).
+-export([start_link/0, publish/2, disable_connector/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include("lorawan.hrl").
-
--define(TABLE_ID, ?MODULE).
 
 start_link() ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
@@ -28,8 +26,6 @@ ensure_connected(ConnId) ->
     gen_server:call({global, ?MODULE}, {ensure_connected, ConnId}).
 
 init([]) ->
-    process_flag(trap_exit, true),
-    _Table = ets:new(?TABLE_ID, [set, named_table]),
     % start connectors that need to subscribe
     lists:foreach(
         fun(Conn) ->
@@ -50,15 +46,6 @@ handle_call(_Request, _From, State) ->
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
-
-handle_info({'EXIT', Pid, Reason}, State) ->
-    case ets:match(?TABLE_ID, {'$1', Pid}) of
-        [[ConnId]] ->
-            handle_exit(ConnId, Reason),
-            {noreply, State};
-        [] ->
-            {noreply, State}
-    end;
 
 handle_info({mnesia_table_event, {write, Record0, _Trans}}, State) ->
     case setelement(1, Record0, connector) of
@@ -84,11 +71,11 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 get_or_init_connector_id(ConnId) ->
-    case ets:lookup(?TABLE_ID, ConnId) of
-        [{ConnId, Pid}] ->
-            {ok, Pid};
-        [] ->
-            init_connector_id(ConnId)
+    case syn:find_by_key(ConnId) of
+        undefined ->
+            init_connector_id(ConnId);
+        Pid ->
+            {ok, Pid}
     end.
 
 init_connector_id(ConnId) ->
@@ -104,50 +91,47 @@ init_connector_id(ConnId) ->
 get_or_init_subscription(#connector{connid=ConnId, enabled=false}) ->
     {error, {connector_disabled, ConnId}};
 get_or_init_subscription(#connector{connid=ConnId, subscribe=Topic} = Conn) ->
-    case ets:lookup(?TABLE_ID, ConnId) of
-        [{ConnId, Pid}] ->
+    case syn:find_by_key(ConnId) of
+        undefined ->
+            init_connector(Conn);
+        Pid ->
             gen_server:call(Pid, {resubscribe, Topic}),
-            {ok, Pid};
-        [] ->
-            init_connector(Conn)
+            {ok, Pid}
     end.
 
 init_connector(Conn) ->
-    case lorawan_connector_sup:start_child(Conn) of
-        {ok, Pid} ->
-            init_connector0(Conn, Pid);
-        {error, {already_started, Pid}} ->
-            % the process got rested by its supervisor
-            init_connector0(Conn, Pid);
-        Error ->
-            lager:error("Cannot connect ~p: ~p", [Conn#connector.connid, Error]),
-            Error
+    case parse_uri(Conn#connector.uri) of
+        {ok, {http, _, _, _, _, _} = ConnUri} ->
+            lorawan_connector_sup_http:start_child(ConnUri, Conn);
+        {ok, {https, _, _, _, _, _} = ConnUri} ->
+            lorawan_connector_sup_http:start_child(ConnUri, Conn);
+        {ok, {mqtt, _, _, _, _, _} = ConnUri} ->
+            lorawan_connector_sup_mqtt:start_child(ConnUri, Conn);
+        {ok, {mqtts, _, _, _, _, _} = ConnUri} ->
+            lorawan_connector_sup_mqtt:start_child(ConnUri, Conn);
+        {ok, {Other, _, _, _, _, _}} ->
+            {error, {unknown_scheme, Other}};
+        {error, Error} ->
+            {error, Error}
     end.
-
-init_connector0(Conn, Pid) ->
-    link(Pid),
-    ets:insert(?TABLE_ID, {Conn#connector.connid, Pid}),
-    {ok, Pid}.
 
 maybe_terminate_connector_id(ConnId) ->
-    case ets:lookup(?TABLE_ID, ConnId) of
-        [{ConnId, Pid}] ->
-            gen_server:call(Pid, disconnect);
-        [] ->
-            ok
+    case syn:find_by_key(ConnId) of
+        undefined ->
+            ok;
+        Pid ->
+            gen_server:cast(Pid, disconnect)
     end.
 
-handle_exit(ConnId, Reason) ->
-    ok = lorawan_connector_sup:delete_child(ConnId),
-    ets:delete(?TABLE_ID, ConnId),
-    handle_exit2(ConnId, Reason).
-
-handle_exit2(_ConnId, normal) ->
-    ok;
-handle_exit2(ConnId, Error) ->
-    lager:error("Connector ~s terminated: ~p", [ConnId, Error]),
-    % make sure we don't start it again
+disable_connector(ConnId) ->
     [Conn] = mnesia:dirty_read(connectors, ConnId),
-    mnesia:dirty_write(connectors, Conn#connector{enabled=false}).
+    ok = mnesia:dirty_write(connectors, Conn#connector{enabled=false}).
+
+parse_uri(Uri) when is_binary(Uri) ->
+    parse_uri(binary_to_list(Uri));
+
+parse_uri(Uri) when is_list(Uri) ->
+    http_uri:parse(Uri, [{scheme_defaults, [{http, 80}, {https, 443},
+        {mqtt, 1883}, {mqtts, 8883}]}]).
 
 % end of file

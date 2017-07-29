@@ -42,7 +42,6 @@ value_or_default(Num, _Def) when is_number(Num) -> Num;
 value_or_default(_Num, Def) -> Def.
 
 init([]) ->
-    process_flag(trap_exit, true),
     {ok, #state{pulladdr=dict:new(), recent=dict:new()}}.
 
 handle_call(_Request, _From, State) ->
@@ -107,13 +106,7 @@ handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
     % lager:debug("--> datr ~s, codr ~s, tmst ~B, size ~B", [RxQ#rxq.datr, RxQ#rxq.codr, RxQ#rxq.tmst, byte_size(PHYPayload)]),
     wpool:cast(handler_pool, {Req, MAC, RxQ, PHYPayload}, available_worker),
     Recent2 = dict:erase(PHYPayload, Recent),
-    {noreply, State#state{recent=Recent2}};
-% handler termination
-handle_info({'EXIT', _FromPid, normal}, State) ->
-    {noreply, State};
-handle_info({'EXIT', _FromPid, Reason}, State) ->
-    lager:error("Hanler terminated: ~p", [Reason]),
-    {noreply, State}.
+    {noreply, State#state{recent=Recent2}}.
 
 terminate(Reason, _State) ->
     % record graceful shutdown in the log

@@ -18,6 +18,7 @@ start() ->
 start(_Type, _Args) ->
     ok = ensure_erlang_version(19),
     lorawan_db:ensure_tables(),
+    syn:init(),
     {ok, _} = timer:apply_interval(3600*1000, lorawan_db, trim_tables, []),
 
     {ok, Handlers} = lorawan_handler:init(),

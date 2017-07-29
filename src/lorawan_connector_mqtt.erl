@@ -11,7 +11,7 @@
 
 -include("lorawan.hrl").
 
--record(state, {cargs, phase, mqttc, last_connect, connect_count,
+-record(state, {connid, cargs, phase, mqttc, last_connect, connect_count,
     ping_timer, subscribe, published, consumed}).
 
 start_link(ConnUri, Conn) ->
@@ -21,6 +21,7 @@ init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
     process_flag(trap_exit, true),
     {_Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
     lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
+    ok = syn:register(Conn#connector.connid, self()),
     CArgs = lists:append([
         [{host, HostName},
         {port, Port},
@@ -30,7 +31,8 @@ init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
         ssl_args(ConnUri, Conn)
     ]),
     % initially use MQTT 3.1.1
-    {ok, connect(attempt311, #state{cargs=CArgs, connect_count=0, subscribe=Sub,
+    {ok, connect(attempt311, #state{connid=Conn#connector.connid,
+        cargs=CArgs, connect_count=0, subscribe=Sub,
         published=lorawan_connector_pattern:prepare_filling(Pub),
         consumed=lorawan_connector_pattern:prepare_matching(Cons)})}.
 
@@ -74,21 +76,21 @@ handle_call({resubscribe, Sub2}, _From, State=#state{mqttc=C, subscribe=Sub1})
 handle_call({resubscribe, Sub2}, _From, State) ->
     % nothing to do
     {reply, ok, State#state{subscribe=Sub2}};
-handle_call(disconnect, _From, State=#state{mqttc=undefined}) ->
-    % already disconnected
-    {stop, normal, ok, State};
-handle_call(disconnect, _From, State=#state{mqttc=C}) ->
-    % the disconnected event will not be delivered
-    emqttc:disconnect(C),
-    {stop, normal, ok, State};
 handle_call(_Request, _From, State) ->
-    {stop, {error, unknownmsg}, State}.
+    {reply, {error, unknownmsg}, State}.
 
 handle_cast({publish, _Message}, State=#state{mqttc=undefined}) ->
     lager:warning("MQTT broker disconnected, message lost"),
     {noreply, State};
 handle_cast({publish, Message}, State) ->
-    handle_publish(Message, State).
+    handle_publish(Message, State);
+handle_cast(disconnect, State=#state{mqttc=undefined}) ->
+    % already disconnected
+    {stop, normal, State};
+handle_cast(disconnect, State=#state{mqttc=C}) ->
+    % the disconnected event will not be delivered
+    emqttc:disconnect(C),
+    {stop, normal, State}.
 
 handle_info({connect, Phase}, State) ->
     {noreply, connect(Phase, State)};
@@ -110,7 +112,11 @@ handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(normal, #state{connid=ConnId}) ->
+    lager:debug("Connector ~s terminated: normal", [ConnId]),
+    ok;
+terminate(Reason, #state{connid=ConnId}) ->
+    lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -120,13 +126,15 @@ handle_reconnect(Error, Phase, #state{ping_timer=Timer} = State) ->
     maybe_cancel_timer(Timer),
     handle_reconnect0(Error, Phase, State#state{mqttc=undefined, ping_timer=undefined}).
 
-handle_reconnect0(Error, Phase, #state{phase=OldPhase, last_connect=Last, connect_count=Count} = State) ->
-    lager:debug("Connector ~w ~w reconnect ~B", [OldPhase, Error, Count]),
+handle_reconnect0(Error, Phase, #state{connid=ConnId, phase=OldPhase, last_connect=Last, connect_count=Count} = State) ->
+    lager:debug("Connector ~s(~s) failed: ~p, reconnect ~B", [ConnId, OldPhase, Error, Count]),
     case calendar:datetime_to_gregorian_seconds(calendar:universal_time())
             - calendar:datetime_to_gregorian_seconds(Last) of
         Diff when Diff < 30, Count > 120 ->
+            lager:warning("Connector ~s failed to reconnect: ~p", [ConnId, Error]),
             % give up after 2 hours
-            {stop, Error, State};
+            lorawan_connector_factory:disable_connector(ConnId),
+            {stop, normal, State};
         Diff when Diff < 30, Count > 0 ->
             % wait, then wait even longer, but no longer than 30 sec
             {ok, _} = timer:send_after(erlang:min(Count*5000, 30000), {connect, Phase}),

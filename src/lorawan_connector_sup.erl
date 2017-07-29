@@ -6,48 +6,24 @@
 -module(lorawan_connector_sup).
 -behaviour(supervisor).
 
--export([start_link/0, start_child/1, delete_child/1]).
+-export([start_link/0]).
 -export([init/1]).
 
--include("lorawan.hrl").
-
--define(SERVER, ?MODULE).
-
+-spec start_link() -> {ok, pid()}.
 start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
-
-start_child(Conn) ->
-    case parse_uri(Conn#connector.uri) of
-        {ok, {http, _, _, _, _, _} = ConnUri} ->
-            connect(lorawan_connector_http, ConnUri, Conn);
-        {ok, {https, _, _, _, _, _} = ConnUri} ->
-            connect(lorawan_connector_http, ConnUri, Conn);
-        {ok, {mqtt, _, _, _, _, _} = ConnUri} ->
-            connect(lorawan_connector_mqtt, ConnUri, Conn);
-        {ok, {mqtts, _, _, _, _, _} = ConnUri} ->
-            connect(lorawan_connector_mqtt, ConnUri, Conn);
-        {ok, _Else} ->
-            {error, not_supported};
-        {error, Error} ->
-            {error, Error}
-    end.
-
-connect(Module, ConnUri, Conn) ->
-    supervisor:start_child(?SERVER, {Conn#connector.connid,
-        {Module, start_link, [ConnUri, Conn]},
-        transient, 5000, worker, [Module]}).
-
-delete_child(ConnId) ->
-    supervisor:delete_child(?SERVER, ConnId).
+    supervisor:start_link(?MODULE, []).
 
 init([]) ->
-    {ok, {{one_for_one, 10, 10}, []}}.
-
-parse_uri(Uri) when is_binary(Uri) ->
-    parse_uri(binary_to_list(Uri));
-
-parse_uri(Uri) when is_list(Uri) ->
-    http_uri:parse(Uri, [{scheme_defaults, [{http, 80}, {https, 443},
-        {mqtt, 1883}, {mqtts, 8883}]}]).
+    {ok, {{one_for_one, 10, 10}, [
+        {mqtt,
+            {lorawan_connector_sup_mqtt, start_link, []},
+            permanent, infinity, supervisor, [lorawan_connector_sup_mqtt]},
+        {http,
+            {lorawan_connector_sup_http, start_link, []},
+            permanent, infinity, supervisor, [lorawan_connector_sup_http]},
+        {factory,
+            {lorawan_connector_factory, start_link, []},
+            permanent, 5000, worker, [lorawan_connector_factory]}
+    ]}}.
 
 % end of file
