@@ -70,12 +70,14 @@ get_gateway(Req, #state{format=tgraph}=State) ->
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
                 [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
-                [{id, <<"dwell">>}, {label, <<"Dwell Time [ms]">>}, {type, <<"number">>}]
+                [{id, <<"dwell">>}, {label, <<"Tx Time [ms]">>}, {type, <<"number">>}],
+                [{id, <<"sum">>}, {label, <<"Tx in Hour [ms]">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:filtermap(
-                fun ({Date, {_, _, Sum}}) ->
+                fun ({Date, {_, Duration, Sum}}) ->
                     {true,  [{c, [
                                 [{v, encode_timestamp(Date)}],
+                                [{v, Duration}],
                                 [{v, Sum}]
                             ]}]};
                 (_Else) ->
