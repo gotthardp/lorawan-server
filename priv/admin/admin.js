@@ -1008,11 +1008,10 @@ return {
             $scope.txChartObject.type = "LineChart";
             $scope.txChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Delay [ms]', "minValue": 0, "maxValue": 1500},
+                    0: {"title": 'Dwell Time [ms]', "minValue": 0, "maxValue": 36000},
                 },
                 "series": {
-                    0: {"targetAxisIndex": 0},
-                    1: {"targetAxisIndex": 0}
+                    0: {"targetAxisIndex": 0}
                 },
                 "chartArea": {
                     "top": 0, "bottom": "10%",

@@ -5,6 +5,7 @@ This is useful for application providers that operate their own LoRa network,
 or for device and application developers.
 
 The server:
+ * Implements the LoRaWAN Specification v1.0.1
  * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
    * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
      such as the Semtech LoRa demo kit,

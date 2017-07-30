@@ -19,7 +19,7 @@ ms_diff({MSecs1, Secs1, USecs1}, {MSecs2, Secs2, USecs2}) when MSecs1 =< MSecs2 
 precise_universal_time() ->
     {Date, {Hours, Min, Secs}} = calendar:universal_time(),
     {_, _, USecs} = erlang:timestamp(),
-    {Date, {Hours, Min, Secs + USecs div 1000}}.
+    {Date, {Hours, Min, Secs + (USecs div 1000)/1000}}.
 
 datetime_to_timestamp({Date, {Hours, Min, Secs}}) ->
     TotalSecs =
