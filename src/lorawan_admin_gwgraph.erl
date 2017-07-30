@@ -15,9 +15,10 @@
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
+-record(state, {format}).
 
-init(Req, Opts) ->
-    {cowboy_rest, Req, Opts}.
+init(Req, [Format]) ->
+    {cowboy_rest, Req, #state{format=Format}}.
 
 is_authorized(Req, State) ->
     lorawan_admin:handle_authorization(Req, State).
@@ -30,9 +31,13 @@ content_types_provided(Req, State) ->
         {{<<"application">>, <<"json">>, []}, get_gateway}
     ], Req, State}.
 
-get_gateway(Req, State) ->
+get_gateway(Req, #state{format=pgraph}=State) ->
     MAC = cowboy_req:binding(mac, Req),
-    [#gateway{delays=Delays}] = mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)),
+    Delays =
+        case mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)) of
+            [#gateway{delays=D}] when D /= undefined -> D;
+            _Else -> []
+        end,
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
@@ -52,7 +57,34 @@ get_gateway(Req, State) ->
                 end, Delays)
             }
         ],
+    {jsx:encode([{mac, MAC}, {array, Array}]), Req, State};
+
+get_gateway(Req, #state{format=tgraph}=State) ->
+    MAC = cowboy_req:binding(mac, Req),
+    Dwell =
+        case mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)) of
+            [#gateway{dwell=D}] when D /= undefined -> D;
+            _Else -> []
+        end,
+    % construct Google Chart DataTable
+    % see https://developers.google.com/chart/interactive/docs/reference#dataparam
+    Array = [{cols, [
+                [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
+                [{id, <<"dwell">>}, {label, <<"Dwell Time [ms]">>}, {type, <<"number">>}]
+                ]},
+            {rows, lists:filtermap(
+                fun ({Date, {_, _, Sum}}) ->
+                    {true,  [{c, [
+                                [{v, encode_timestamp(Date)}],
+                                [{v, Sum}]
+                            ]}]};
+                (_Else) ->
+                    false
+                end, Dwell)
+            }
+        ],
     {jsx:encode([{mac, MAC}, {array, Array}]), Req, State}.
+
 
 encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
     list_to_binary(
@@ -64,7 +96,6 @@ resource_exists(Req, State) ->
     case mnesia:dirty_read(gateways,
             lorawan_mac:hex_to_binary(cowboy_req:binding(mac, Req))) of
         [] -> {false, Req, State};
-        [#gateway{delays=undefined}] -> {false, Req, State};
         [_Gateway] -> {true, Req, State}
     end.
 

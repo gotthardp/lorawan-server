@@ -62,8 +62,16 @@ parse(Key, Value) when Key == time ->
     iso8601:parse_exact(Value);
 parse(Key, Value) when Key == devstat ->
     parse_devstat(Value);
+parse(Key, Value) when Key == dwell ->
+    lists:map(
+        fun(#{time:=Time, freq:=Freq, duration:=Duration, hoursum:=Sum}) ->
+            {iso8601:parse_exact(Time), {Freq, Duration, Sum}}
+        end, Value);
 parse(Key, Value) when Key == delays ->
-    lists:map(fun(#{date:=Date, srvdelay:=SDelay, nwkdelay:=NDelay}) -> {iso8601:parse(Date), SDelay, NDelay} end, Value);
+    lists:map(
+        fun(#{date:=Date, srvdelay:=SDelay, nwkdelay:=NDelay}) ->
+            {iso8601:parse(Date), SDelay, NDelay}
+        end, Value);
 parse(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> parse_qs(Item) end, Value);
 parse(Key, Value) when Key == average_qs ->
@@ -112,6 +120,10 @@ build(Key, Value) when Key == last_join; Key == last_reset; Key == datetime;
     iso8601:format(Value);
 build(Key, Value) when Key == devstat ->
     build_devstat(Value);
+build(Key, Value) when Key == dwell ->
+    lists:map(fun({Time, {Freq, Duration, Sum}}) ->
+                #{time=>iso8601:format(Time), freq=>Freq, duration=>Duration, hoursum=>Sum}
+              end, Value);
 build(Key, Value) when Key == delays ->
     lists:map(fun({Date, SDelay, NDelay}) -> #{date=>iso8601:format(Date), srvdelay=>SDelay, nwkdelay=>NDelay};
                 ({Date, NDelay}) -> #{date=>iso8601:format(Date), srvdelay=>undefined, nwkdelay=>NDelay}

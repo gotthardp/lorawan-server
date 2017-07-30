@@ -28,12 +28,43 @@ uplinks(PkList) ->
     gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
 downlink(Req, MAC, DevAddr, TxQ, PHYPayload) ->
-    {EIRPdef, EIRPmax} = lorawan_mac_region:eirp_limits(TxQ#txq.region),
-    [Gateway] = mnesia:dirty_read(gateways, MAC),
+    {atomic, ok} = mnesia:transaction(
+        fun() ->
+            [Gateway] = mnesia:read(gateways, MAC, write),
+            downlink0(Req, Gateway, DevAddr, TxQ, PHYPayload)
+        end).
+
+downlink0(Req, Gateway, DevAddr, TxQ, PHYPayload) ->
+    Power = limit_power(Gateway, lorawan_mac_region:eirp_limits(TxQ#txq.region)),
+    Time = lorawan_mac_region:tx_time(byte_size(PHYPayload), TxQ),
+    Dwell0 =
+        case Gateway#gateway.dwell of
+            undefined -> [];
+            List -> List
+        end,
+    % summarize transmissions in the past hour
+    Now = lorawan_utils:precise_universal_time(),
+    HourAgo = lorawan_utils:apply_offset(Now, {-1,0,0}),
+    Relevant = lists:filter(fun({ITime, _}) -> ITime > HourAgo end, Dwell0),
+    Sum =
+        lists:foldl(
+            fun({_, {_, Duration, _}}, Acc) ->
+                Acc + Duration
+            end, 0, Relevant),
+    Dwell =
+        if
+            length(HourAgo) >= 20 -> HourAgo;
+            true -> lists:sublist(Dwell0, 20)
+        end,
+    ok = mnesia:write(gateways,
+        Gateway#gateway{dwell=[{Now, {TxQ#txq.freq, Time, Sum+Time}} | Dwell]}, write),
+    gen_server:cast({global, ?MODULE}, {downlink, Req, Gateway#gateway.mac, DevAddr,
+        TxQ#txq{powe=Power}, Gateway#gateway.tx_rfch, PHYPayload}).
+
+limit_power(Gateway, {EIRPdef, EIRPmax}) ->
     Power = value_or_default(Gateway#gateway.tx_powe, EIRPdef),
     Gain = value_or_default(Gateway#gateway.ant_gain, 0),
-    gen_server:cast({global, ?MODULE}, {downlink, Req, MAC, DevAddr,
-        TxQ#txq{powe=erlang:min(Power, EIRPmax-Gain)}, Gateway#gateway.tx_rfch, PHYPayload}).
+    erlang:min(Power, EIRPmax-Gain).
 
 downlink_error(MAC, Opaque, Error) ->
     gen_server:cast({global, ?MODULE}, {downlink_error, MAC, Opaque, Error}).

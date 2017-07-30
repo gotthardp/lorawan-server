@@ -192,7 +192,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('gpsalt', 'number').label('Altitude'),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('mac', 'template').label('Delays')
-            .template('<gwgraph value="value"></gwgraph>')
+            .template('<pgraph value="value"></pgraph>'),
+        nga.field('mac', 'template').label('Transmissions')
+            .template('<tgraph value="value"></tgraph>')
     ]);
     gateways.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:10}
@@ -200,7 +202,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.editionView().fields(gateways.creationView().fields());
     gateways.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:10},
-        {name:"Status", min:10, max:12}
+        {name:"Status", min:10, max:13}
     ]));
     // add to the admin application
     admin.addEntity(gateways);
@@ -939,7 +941,7 @@ myApp.config(function (uiGmapGoogleMapApiProvider) {
     });
 });
 
-myApp.directive('gwgraph', ['$http', '$interval', function($http, $interval) {
+myApp.directive('pgraph', ['$http', '$interval', function($http, $interval) {
 return {
     restrict: 'E',
     scope: {
@@ -947,15 +949,15 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/gwgraph/'.concat($scope.value)})
+                $http({method: 'GET', url: '/pgraph/'.concat($scope.value)})
                     .then(function(response) {
-                        $scope.gwChartObject.data = response.data.array;
-                        $scope.gwChartObject.options.vAxes[1] = response.data.band;
+                        $scope.prChartObject.data = response.data.array;
+                        $scope.prChartObject.options.vAxes[1] = response.data.band;
                     });
             }
-            $scope.gwChartObject = {};
-            $scope.gwChartObject.type = "LineChart";
-            $scope.gwChartObject.options = {
+            $scope.prChartObject = {};
+            $scope.prChartObject.type = "LineChart";
+            $scope.prChartObject.options = {
                 "vAxes": {
                     0: {"title": 'Delay [ms]', "minValue": 0, "maxValue": 1500},
                 },
@@ -985,7 +987,56 @@ return {
                 $interval.cancel($scope.stopTime);
             });
     },
-    template: '<div google-chart chart="gwChartObject"></div>'
+    template: '<div google-chart chart="prChartObject"></div>'
+};}]);
+
+myApp.directive('tgraph', ['$http', '$interval', function($http, $interval) {
+return {
+    restrict: 'E',
+    scope: {
+        value: '=',
+    },
+    link: function($scope) {
+            function updateData() {
+                $http({method: 'GET', url: '/tgraph/'.concat($scope.value)})
+                    .then(function(response) {
+                        $scope.txChartObject.data = response.data.array;
+                        $scope.txChartObject.options.vAxes[1] = response.data.band;
+                    });
+            }
+            $scope.txChartObject = {};
+            $scope.txChartObject.type = "LineChart";
+            $scope.txChartObject.options = {
+                "vAxes": {
+                    0: {"title": 'Delay [ms]', "minValue": 0, "maxValue": 1500},
+                },
+                "series": {
+                    0: {"targetAxisIndex": 0},
+                    1: {"targetAxisIndex": 0}
+                },
+                "chartArea": {
+                    "top": 0, "bottom": "10%",
+                    "left": 0, "right": 0
+                },
+                "legend": {
+                    "position": "none"
+                },
+                "pointSize": 3,
+                "hAxis": {
+                    "format": 'kk:mm'
+                },
+                "vAxis": {
+                    "textPosition": "in",
+                    "gridlines": {"count": -1}
+                }
+            };
+            updateData();
+            $scope.stopTime = $interval(updateData, 5000);
+            $scope.$on('$destroy', function() {
+                $interval.cancel($scope.stopTime);
+            });
+    },
+    template: '<div google-chart chart="txChartObject"></div>'
 };}]);
 
 myApp.directive('rgraph', ['$http', '$interval', function($http, $interval) {
