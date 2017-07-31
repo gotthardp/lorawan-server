@@ -952,7 +952,6 @@ return {
                 $http({method: 'GET', url: '/pgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.prChartObject.data = response.data.array;
-                        $scope.prChartObject.options.vAxes[1] = response.data.band;
                     });
             }
             $scope.prChartObject = {};
@@ -1001,7 +1000,6 @@ return {
                 $http({method: 'GET', url: '/tgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.txChartObject.data = response.data.array;
-                        $scope.txChartObject.options.vAxes[1] = response.data.band;
                     });
             }
             $scope.txChartObject = {};
