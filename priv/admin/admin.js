@@ -1007,7 +1007,7 @@ return {
             $scope.txChartObject.options = {
                 "vAxes": {
                     0: {"title": 'Tx Time [ms]', "minValue": 0, "maxValue": 5000},
-                    1: {"title": 'Tx in Hour [ms]', "minValue": 0, "maxValue": 36000}
+                    1: {"title": 'Tx in Hour [ms]', "minValue": 0, "maxValue": 1}
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},
