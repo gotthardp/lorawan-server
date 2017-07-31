@@ -58,7 +58,8 @@ end.
 ```
 
 Once you have the matched variables, you put them in a structure that gets encoded in JSON.
-The `#{name1 => A, name2 => B, name3 => C}` creates a JSON `{"name1":A, "name2":B, "name3":C}`.
+The `#{name1 => A, name2 => B, name3 => C}` creates a `fields` attribute with
+the JSON `{"name1":A, "name2":B, "name3":C}`.
 
 ### Build Downlink
 
@@ -77,9 +78,9 @@ fun(_Port, #{led := LED}) ->
 end.
 ```
 
-The `#{name1 := A, name2 := B, name3 := C}` matches a JSON structure
-`{"name1":A, "name2":B, "name3":C}`. The order is not significant, but all
-fields are mandatory.
+The `#{name1 := A, name2 := B, name3 := C}` matches the `fields` attribute containing
+a JSON structure `{"name1":A, "name2":B, "name3":C}`. The order is not significant,
+but all fields are mandatory.
 
 The binary is then built using similar approach as the pattern matching
 explained above. For example, `<<A, B, C>>` builds a binary of three 1-byte integers.
