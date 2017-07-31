@@ -98,8 +98,9 @@ end.
 To create a new connector you set:
  * *Connector Name*
  * *Enabled* flag that allows you to temporarily disable an existing connector.
- * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
-   if SSL shall be used.
+ * *URI* defines the target host, which can be
+   * For MQTT `mqtt://host:port` or `mqtts://host:port` if SSL shall be used
+   * For HTTP POST `http://host:port` or `https://host:port`
  * *Published Topic*, which is a server pattern for constructing the publication
    topic, e.g. `out/{devaddr}`.
  * *Subscribe*, which is a topic to be subscribed, e.g. `in/#`. It may include
