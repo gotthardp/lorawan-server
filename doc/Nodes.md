@@ -45,7 +45,7 @@ frames.
 ## Status
 
 Device status indicates the recent device *Battery* level (0-255) and the
-Signal-to-Noise-Ratio (*SNR*) of received downlinks.
+Signal-to-Noise-Ratio of received downlinks (*D/L SNR*).
 
 The *Status Time* and *Status FCnt* indicate when was the status last
 received by the server.

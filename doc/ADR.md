@@ -61,6 +61,6 @@ requested ADR parameters depending on the signal quality.
 
 The server calculates an average RSSI and SNR for the last 20 frames received.
  * The *Data Rate* (Spreading Factor) is defined so that the LoRa demodulator SNR
-   for the target *Data Rate* matches the observed average SNR.
+   for the target *Data Rate* matches the observed average uplink SNR.
  * When the highest *Data Rate* is reached, the *Power* is decreased, so the
    RSSI stays above -100 dbB, which is an expected sensitivity for the highest rate.

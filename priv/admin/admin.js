@@ -346,7 +346,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('devstat.battery', 'number').label('Battery'),
-        nga.field('devstat.margin', 'number').label('SNR (dB)'),
+        nga.field('devstat.margin', 'number').label('D/L SNR (dB)'),
         nga.field('last_rx', 'datetime').label('Last RX')
     ])
     .sortField('devaddr')
@@ -505,7 +505,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('request_devstat', 'boolean').label('Request Status?')
             .defaultValue(true),
         nga.field('devstat.battery', 'number').label('Battery'),
-        nga.field('devstat.margin', 'number').label('SNR (dB)'),
+        nga.field('devstat.margin', 'number').label('D/L SNR (dB)'),
         nga.field('devstat_time', 'datetime').label('Status Time'),
         nga.field('devstat_fcnt', 'number').label('Status FCnt'),
         nga.field('devaddr', 'template').label('Device Status')
@@ -553,7 +553,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('devaddr')),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group'),
-        nga.field('rxq.lsnr').label('SNR'),
+        nga.field('rxq.lsnr').label('U/L SNR'),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('confirm', 'boolean'),
         nga.field('port', 'number'),
@@ -759,7 +759,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('devaddr', 'reference').label('DevAddr')
                     .targetEntity(nodes)
                     .targetField(nga.field('devaddr')),
-                nga.field('rxq.lsnr').label('SNR')
+                nga.field('rxq.lsnr').label('U/L SNR')
             ])
             .sortField('datetime')
             .perPage(7)
@@ -1108,7 +1108,7 @@ return {
             $scope.rxqChartObject.options = {
                 "vAxes": {
                     0: {"title": 'RSSI (dBm)'},
-                    1: {"title": 'SNR (dB)'}
+                    1: {"title": 'U/L SNR (dB)'}
                 },
                 "series": {
                     0: {"targetAxisIndex": 0, "pointsVisible": false},
@@ -1159,7 +1159,7 @@ return {
             $scope.rxdChartObject.options = {
                 "vAxes": {
                     0: {"title": 'Battery'},
-                    1: {"title": 'SNR (dB)'}
+                    1: {"title": 'D/L SNR (dB)'}
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},
