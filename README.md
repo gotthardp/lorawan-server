@@ -6,26 +6,14 @@ or for device and application developers.
 
 The server:
  * Implements the LoRaWAN Specification v1.0.1
- * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
-   * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
-     such as the Semtech LoRa demo kit,
-     [LoRa Lite Gateway](https://wireless-solutions.de/products/long-range-radio/lora_lite_gateway.html),
-     [LORANK-8](http://webshop.ideetron.nl/LORANK-8),
-     or [MultiConnect Conduit](http://www.multitech.com/brands/multiconnect-conduit).
+ * Communicates with (any number of) remote LoRaWAN gateways. It currently supports
+   gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder).
  * Performs all required encryption and integrity checks.
    * Supports relaxed frame-counter check for simple ABP devices.
- * Invokes internal modules with application logic. It provides examples for:
-   * [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
-   * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
- * Invokes external applications. It currently supports connections via:
-   * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
-   * [MQTT v3.1/v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html),
-     including applications hosted in
-     [Amazon AWS IoT](https://aws.amazon.com/iot/),
-     [IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things),
-     [MathWorks ThingSpeak](https://thingspeak.com/),
-     [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
-     or [Adafruit IO](https://io.adafruit.com/)
+ * Invokes internal modules with application logic.
+ * Invokes external applications. It currently supports connections via
+   WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt) and
+   [MQTT v3.1/v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html).
  * Handles (any number of) Class A or Class C devices.
    * Supports both the node activation by personalization (ABP) and the over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
