@@ -64,18 +64,27 @@ sort(Req, List) ->
         #{'_sortField' := undefined} ->
             List;
         #{'_sortDir' := <<"ASC">>, '_sortField' := Field} ->
-            Field2 = binary_to_existing_atom(Field, latin1),
             lists:sort(
                 fun(A,B) ->
-                    maps:get(Field2, A, undefined) =< maps:get(Field2, B, undefined)
+                    get_field(Field, A) =< get_field(Field, B)
                 end, List);
         #{'_sortDir' := <<"DESC">>, '_sortField' := Field} ->
-            Field2 = binary_to_existing_atom(Field, latin1),
             lists:sort(
                 fun(A,B) ->
-                    maps:get(Field2, A, undefined) >= maps:get(Field2, B, undefined)
+                    get_field(Field, A) >= get_field(Field, B)
                 end, List)
     end.
+
+get_field(Field, Value) ->
+    get_fields(binary:split(Field, <<$.>>), Value).
+
+get_fields(_Any, undefined) ->
+    undefined;
+get_fields([Field | Rest], Value) ->
+    AField = binary_to_existing_atom(Field, latin1),
+    get_fields(Rest, maps:get(AField, Value, undefined));
+get_fields([], Value) ->
+    Value.
 
 read_records(Req, #state{table=Table, record=Record, fields=Fields, module=Module}=State) ->
     Filter = apply(Module, parse, [get_filters(Req)]),
