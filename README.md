@@ -23,6 +23,7 @@ The server:
      including applications hosted in
      [Amazon AWS IoT](https://aws.amazon.com/iot/),
      [IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things),
+     [MathWorks ThingSpeak](https://thingspeak.com/),
      [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
      or [Adafruit IO](https://io.adafruit.com/)
  * Handles (any number of) Class A or Class C devices.

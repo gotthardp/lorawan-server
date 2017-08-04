@@ -111,10 +111,16 @@ Open the lorawan-server web-administration and create an Backend Connector:
 Then, create a new Handler:
  * *Group* shall correspond to a Group attribute of some [Nodes](Nodes.md).
  * *Format* shall be *Web Form*.
- * *Parse Uplink* shall include a data parsing function. See the [Backends](Backends.md).
-   guide for more information.
+ * *Parse Uplink* shall include a data parsing function. See the [Backends](Backends.md)
+   guide for more information, but make sure the values are named "field1", "field2" etc.
  * *Connector* shall link to the Backend Connector you just created.
 
+For example, a *Parse Uplink* for the Semtech LoRaMote could be:
+```erlang
+fun(_Port, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
+  #{field1 => LED, field2 => Press, field3 => Temp/100, field4 => AltBar, field5 => Batt}
+end.
+```
 
 ## Microsoft Azure IoT Hub
 

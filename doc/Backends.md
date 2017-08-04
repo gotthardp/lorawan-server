@@ -135,4 +135,4 @@ openssl rsa -in privkey.pem -out key.pem
 
 Please read the [Integration Guide](Integration.md) for detailed information on
 how to connect to a generic MQTT server like RabbitMQ or an IoT Platform like
-AWS IoT, IBM Watson IoT, Azure IoT Hub or Adafruit IO.
+AWS IoT, IBM Watson IoT, MathWorks ThingSpeak, Azure IoT Hub or Adafruit IO.
