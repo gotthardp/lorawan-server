@@ -125,7 +125,7 @@ The server is configured to use a connector, which is disabled. Set the
 This is reported when a [Backend](Backends.md) connector doesn't know to what
 device a downlink shall be sent. You have two options:
  * Define a "devaddr" or "deveui" field in the JSON structure, or
- * Define the "Consumed Topic" as a template "in/{devaddr}", which causes the
+ * Define the "Received Topic" as a template "in/{devaddr}", which causes the
    server to parse the topic and extract the DevAddr from there.
 
 ### Unknown element in JSON received from the Lorank8 gateway

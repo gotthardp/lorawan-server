@@ -10,7 +10,7 @@ Open the lorawan-server web-administration and create a Backend Connector:
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
  * *Published Topic* is a pattern for constructing the message topic, e.g. `out/{devaddr}`.
  * *Subscribe* is a topic to be subscribed, e.g. `in/#`.
- * *Consumed Topic* is a pattern for parsing the message topic, e.g. `in/{devaddr}`.
+ * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
  * *Auth* shall be set to *Username+Password*, even when the *Name* and
@@ -45,7 +45,7 @@ Then, open the lorawan-server web-administration and create an Backend Connector
  * *URI* is the AWS *Endpoint* with the `mqtts://` prefix
  * *Published Topic* is a pattern for the publication topic, e.g. `out/{devaddr}`.
  * *Subscribe* is a topic to be subscribed, e.g. `in/#`.
- * *Consumed Topic* is a pattern for the subscribed topic, e.g. `in/{devaddr}`.
+ * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
  * *Client ID* is the AWS *Account Id*
@@ -79,7 +79,7 @@ Then, open the lorawan-server web-administration and create an Backend Connector
    e.g. `iot-2/type/loramote/id/{deveui}/evt/status/fmt/json`, where loramote is
    the *device type* you created.
  * *Subscribe* is a topic to be subscribed, e.g. `iot-2/type/loramote/id/+/cmd/+/fmt/+`.
- * *Consumed Topic* is a pattern for the subscribed topic,
+ * *Received Topic* is a template for parsing the topic of received messages,
    e.g. `iot-2/type/loramote/id/{deveui}/cmd/status/fmt/json`.
 
 On the Authentication tab:
@@ -106,7 +106,7 @@ Open the lorawan-server web-administration and create an Backend Connector:
  * *Published Topic* shall be `channels/<channelID>/publish/<apikey>`, where
    * `<channelID>` is the numeric *Channel ID*
    * `<apikey>` is the *Write API Key*
- * *Subscribe* and *Consumed Topic* shall be left empty.
+ * *Subscribe* and *Received Topic* shall be left empty.
 
 Then, create a new Handler:
  * *Group* shall correspond to a Group attribute of some [Nodes](Nodes.md).
@@ -138,7 +138,7 @@ Then, open the lorawan-server web-administration and create an Backend Connector
  * *Published Topic* shall be `devices/{devaddr}/messages/events/`.
    The trailing slash is mandatory.
  * *Subscribe* shall be `devices/xxxxxxxx/messages/devicebound/#`.
- * *Consumed Topic* shall be `devices/{devaddr}/messages/devicebound/#`.
+ * *Received Topic* shall be `devices/{devaddr}/messages/devicebound/#`.
 
 On the Authentication tab:
  * *Client ID* is the *Device ID*

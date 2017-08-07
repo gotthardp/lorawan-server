@@ -237,6 +237,8 @@ rand_bitstring(Num) when Num rem 8 == 0 ->
     crypto:strong_rand_bytes(Num div 8).
 
 txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, DevAddr) ->
+    lager:debug("Join-Accept ~p, ~p, netid ~p, rx1droff ~p, rx2dr ~p, appkey ~p, appnce ~p",
+        [binary_to_hex(DevAddr), TxQ, NetID, RX1DROffset, RX2DataRate, binary_to_hex(AppKey), binary_to_hex(AppNonce)]),
     MHDR = <<2#001:3, 0:3, 0:2>>,
     MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1, RX1DROffset:3, RX2DataRate:4, 1>>,
     MIC = aes_cmac:aes_cmac(AppKey, <<MHDR/binary, MACPayload/binary>>, 4),

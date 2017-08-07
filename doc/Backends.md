@@ -103,11 +103,14 @@ To create a new connector you set:
    * For MQTT `mqtt://host:port` or `mqtts://host:port` if SSL shall be used
    * For HTTP POST `http://host:port` or `https://host:port`
  * *Published Topic*, which is a server pattern for constructing the publication
-   topic, e.g. `out/{devaddr}`.
- * *Subscribe*, which is a topic to be subscribed, e.g. `in/#`. It may include
-   broker specific wilcards.
- * *Consumed Topic*, which is is a server pattern for parsing topics of consumed
-   messages, e.g. `in/{devaddr}`.
+   topic, e.g. `out/{devaddr}`. This can be used to include the actual DevEUI,
+   DevAddr or device Group in the message topic.
+ * *Subscribe*, which is a topic to be subscribed. It may include broker specific
+   wilcards, e.g. `in/#`. The MQTT broker will then send messages with a matching
+   topic to this connector.
+ * *Received Topic*, which is a template for parsing the topic of received
+   messages, e.g. `in/{devaddr}`. This can be used to obtain a DevEUI, DevAddr or
+   a device Group that shall receive a given downlink.
 
 On the Authentication tab:
  * *Client ID* is the MQTT parameter

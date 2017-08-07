@@ -581,7 +581,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('uri').label('URI'),
         nga.field('published').label('Published Topic'),
         nga.field('subscribe').label('Subscribe'),
-        nga.field('consumed').label('Consumed Topic')
+        nga.field('consumed').label('Received Topic')
     ]);
     connectors.creationView().fields([
         nga.field('connid').label('Connector Name')
@@ -593,7 +593,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true, pattern: '^(http|mqtt)s?:\/\/[^\/?#]+[^?#]*' }),
         nga.field('published').label('Published Topic'),
         nga.field('subscribe').label('Subscribe'),
-        nga.field('consumed').label('Consumed Topic'),
+        nga.field('consumed').label('Received Topic'),
         nga.field('client_id').label('Client ID'),
         nga.field('auth', 'choice')
             .choices([
