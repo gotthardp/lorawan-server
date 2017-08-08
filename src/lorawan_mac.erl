@@ -206,6 +206,8 @@ join_rxwin(_, JoinCnt) ->
     JoinCnt band 1.
 
 % join response allows to send initial rx1offset and rx2dr
+initial_rxwin(undefined, Default) ->
+    Default;
 initial_rxwin({A1, A2, _}, {B1, B2, B3}) ->
     {apply_default(A1, B1), apply_default(A2, B2), B3}.
 
