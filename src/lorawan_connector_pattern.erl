@@ -36,7 +36,7 @@ prepare_matching(undefined) ->
     undefined;
 prepare_matching(Pattern) ->
     EPattern0 = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
-    EPattern = binary:replace(EPattern0, <<"*">>, <<".*">>, [global]),
+    EPattern = binary:replace(EPattern0, <<"#">>, <<".*">>, [global]),
     case re:run(EPattern, "{[^}]+}", [global]) of
         {match, Match} ->
             Regex = lists:foldr(
@@ -86,8 +86,8 @@ pattern_test_()-> [
     matchtst(#{devaddr => <<"00112233">>}, <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>),
     matchtst(#{group => <<"test">>, devaddr => <<"00112233">>}, <<"{group}-{devaddr}">>, <<"test-00112233">>),
     ?_assertEqual(#{devaddr => <<"00112233">>},
-        match_pattern(<<"00112233/trailing/data">>, prepare_matching(<<"{devaddr}/*">>))),
+        match_pattern(<<"00112233/trailing/data">>, prepare_matching(<<"{devaddr}/#">>))),
     ?_assertEqual(#{devaddr => <<"00112233">>},
-        match_pattern(<<"/leading/data/00112233">>, prepare_matching(<<"*/{devaddr}">>)))].
+        match_pattern(<<"/leading/data/00112233">>, prepare_matching(<<"#/{devaddr}">>)))].
 
 % end of file

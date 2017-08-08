@@ -120,11 +120,15 @@ On the Authentication tab:
  * *Name* and *Password/Key* for plain authentication
  * *User Certificate* and *Private Key* if SSL authentication is needed
 
-To include node-specific attributes the published and consumed topic may include
+To include node-specific attributes the Published and Received Topic may include
 following patterns:
  * `{deveui}` that matches the DevEUI of the node
  * `{devaddr}` that matches the DevAddr of the node
  * `{group}` that matches the node group
+
+The Received Topic may also include the `#` (hash), which matches zero or more
+characters, including any '/' delimiters. It can be used to ignore the leading
+or training characters in the topic.
 
 If the Connector is *Enabled* and a *Subscribe* topic is defined the server will
 automatically connect to the MQTT broker and subscribe this topic.
