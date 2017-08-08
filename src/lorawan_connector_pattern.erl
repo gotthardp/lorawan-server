@@ -43,7 +43,7 @@ prepare_matching(Pattern) ->
                     <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
                     <<Prefix/binary, "([a-zA-z0-9]*)", Suffix/binary>>
                 end, EPattern, Match),
-            {ok, MP} = re:compile(<<"^", Regex/binary, "$">>),
+            {ok, MP} = re:compile(<<"^", Regex/binary>>),
             {MP, [binary_to_existing_atom(binary:part(EPattern, Start+1, Len-2), latin1) || [{Start, Len}] <- Match]};
         nomatch ->
             {Pattern, []}
