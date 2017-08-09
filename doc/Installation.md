@@ -59,7 +59,7 @@ This will put the database and the logs into `/var/lib/lorawan-server`.
 Install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads) of
 Erlang/OTP 19 or later.
 
-Unpack the release binary release
+Unpack the binary release
 [lorawan-server-*.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
 using the [7-Zip](http://www.7-zip.org) to a new folder
 (e.g. `lorawan-server`) and then run the server by double-clicking `lorawan-server.bat`
