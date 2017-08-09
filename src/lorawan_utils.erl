@@ -5,12 +5,20 @@
 %
 -module(lorawan_utils).
 
+-export([index_of/2]).
 -export([precise_universal_time/0, ms_diff/2, datetime_to_timestamp/1, apply_offset/2]).
 -export([throw_info/2, throw_warning/2, throw_error/2]).
 
 -include("lorawan.hrl").
 
 -define(MEGA, 1000000).
+
+index_of(Item, List) -> index_of(Item, List, 1).
+
+index_of(_, [], _)  -> undefined;
+index_of(Item, [Item|_], Index) -> Index;
+index_of(Item, [_|Tl], Index) -> index_of(Item, Tl, Index+1).
+
 
 ms_diff({MSecs1, Secs1, USecs1}, {MSecs2, Secs2, USecs2}) when MSecs1 =< MSecs2 ->
     1000*(?MEGA*(MSecs2-MSecs1)+(Secs2-Secs1))

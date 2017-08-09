@@ -3,7 +3,7 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_admin_database).
+-module(lorawan_admin_db_record).
 
 -export([init/2]).
 -export([is_authorized/2]).

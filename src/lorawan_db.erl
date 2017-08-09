@@ -94,7 +94,7 @@ ensure_indexes(Name, TabDef) ->
     NewIndexes =
         lists:sort(
             lists:map(fun(Key) ->
-                index_of(Key, NewAttrs)+1
+                lorawan_utils:index_of(Key, NewAttrs)+1
             end, proplists:get_value(index, TabDef, []))),
     if
         OldIndexes == NewIndexes ->
@@ -193,11 +193,5 @@ purge_txframes(DevAddr) ->
             ok = mnesia:dirty_delete_object(txframes, Obj)
         end,
         mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})).
-
-index_of(Item, List) -> index_of(Item, List, 1).
-
-index_of(_, [], _)  -> not_found;
-index_of(Item, [Item|_], Index) -> Index;
-index_of(Item, [_|Tl], Index) -> index_of(Item, Tl, Index+1).
 
 % end of file
