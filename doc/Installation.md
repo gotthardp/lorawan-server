@@ -26,7 +26,7 @@ If your Linux distribution includes some older version of Erlang/OTP, try instal
 an update from [Erlang Solutions](https://www.erlang-solutions.com/resources/download.html).
 
 Then download the latest binary release
-[lorawan-server-<VERSION>.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
+[lorawan-server-*.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
 and (on Linux) unpack it by:
 ```bash
 mkdir lorawan-server
@@ -59,7 +59,9 @@ This will put the database and the logs into `/var/lib/lorawan-server`.
 Install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads) of
 Erlang/OTP 19 or later.
 
-Unpack the release using the [7-Zip](http://www.7-zip.org) to a new folder
+Unpack the release binary release
+[lorawan-server-*.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
+using the [7-Zip](http://www.7-zip.org) to a new folder
 (e.g. `lorawan-server`) and then run the server by double-clicking `lorawan-server.bat`
 in the `lorawan-server/bin` folder.
 
@@ -75,11 +77,12 @@ The service can be managed from a Command Prompt (`cmd`) using
 
 Install Erlang by `brew install erlang`.
 
-Unpack and run the release
+Unpack and run the binary release
 ```bash
-unzip lorawan-server-<VERSION>.zip
-mv lorawan-server-<VERSION> lorawan-server
+mkdir lorawan-server
+mv lorawan-server-<VERSION>.tar.gz lorawan-server/
 cd lorawan-server
+tar -zxvf lorawan-server-<VERSION>.tar.gz
 bin/lorawan-server
 ```
 
