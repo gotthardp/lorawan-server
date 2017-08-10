@@ -296,7 +296,7 @@ check_link_fcnt(DevAddr, FCnt) ->
                 1 ->
                     {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, 1)}};
                 N when N < ?MAX_FCNT_GAP ->
-                    lorawan_utils:throw_warning({node, DevAddr}, {uplinks_lost, N-1}),
+                    lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
                     {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, N)}};
                 _BigN ->
                     {error, {fcnt_gap_too_large, FCnt}}
@@ -307,7 +307,7 @@ check_link_fcnt(DevAddr, FCnt) ->
                 1 ->
                     {ok, new, L#link{fcntup = FCnt}};
                 N when N < ?MAX_FCNT_GAP ->
-                    lorawan_utils:throw_warning({node, DevAddr}, {uplinks_lost, N-1}),
+                    lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
                     {ok, new, L#link{fcntup = FCnt}};
                 _BigN ->
                     {error, {fcnt_gap_too_large, FCnt}}
