@@ -94,7 +94,10 @@ transmit_and_delete(DefPort, TxFrame, Pending) ->
         true -> TxData#txdata.port
     end,
     % add the pending flag
-    OutPending = TxData#txdata.pending or Pending,
+    OutPending = if
+        TxData#txdata.pending == undefined -> Pending;
+        true -> TxData#txdata.pending
+    end,
     {send, TxData#txdata{port=OutPort, pending=OutPending}}.
 
 downlink(Link, Time, TxData) ->

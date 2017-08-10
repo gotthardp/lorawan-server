@@ -231,7 +231,7 @@ build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
                     confirmed = maps:get(confirmed, Struct, false),
                     port = Port,
                     data = fields_to_data(Build, Port, maps:get(fields, Struct, undefined), Data),
-                    pending = maps:get(pending, Struct, false)
+                    pending = maps:get(pending, Struct, undefined)
                 }};
         _Else ->
             {error, json_syntax_error}

@@ -526,7 +526,7 @@ encode_multicast(MType, DevAddr, TxData) ->
         G#multicast_group.fcntdown, 0, 0, <<>>, TxData).
 
 encode_frame(MType, DevAddr, NwkSKey, _AppSKey, FCnt, ADR, ACK, FOpts, #txdata{port=0, data=Data, pending=FPending}) ->
-    FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_bit(FPending)):1, 0:4,
+    FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_pending(FPending)):1, 0:4,
         FCnt:16/little-unsigned-integer>>,
     FRMPayload = cipher(FOpts, NwkSKey, 1, DevAddr, FCnt),
     MACPayload = <<FHDR/binary, 0:8, (reverse(FRMPayload))/binary>>,
@@ -537,7 +537,7 @@ encode_frame(MType, DevAddr, NwkSKey, _AppSKey, FCnt, ADR, ACK, FOpts, #txdata{p
     sign_frame(MType, DevAddr, NwkSKey, FCnt, MACPayload);
 
 encode_frame(MType, DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts, #txdata{port=FPort, data=Data, pending=FPending}) ->
-    FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_bit(FPending)):1, (byte_size(FOpts)):4,
+    FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_pending(FPending)):1, (byte_size(FOpts)):4,
         FCnt:16/little-unsigned-integer, FOpts/binary>>,
     MACPayload = case FPort of
         undefined when Data == undefined; Data == <<>> ->
@@ -556,8 +556,9 @@ sign_frame(MType, DevAddr, NwkSKey, FCnt, MACPayload) ->
     MIC = aes_cmac:aes_cmac(NwkSKey, <<(b0(1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4),
     <<Msg/binary, MIC/binary>>.
 
-bool_to_bit(true) -> 1;
-bool_to_bit(false) -> 0.
+bool_to_pending(true) -> 1;
+bool_to_pending(false) -> 0;
+bool_to_pending(undefined) -> 0.
 
 bit_to_bool(0) -> true;
 bit_to_bool(1) -> false.

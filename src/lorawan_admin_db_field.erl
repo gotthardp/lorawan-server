@@ -28,7 +28,6 @@ init(Req, [Table, Fields, Module]) ->
 init0(Req, Table, Fields, Module) ->
     Key = lorawan_admin:parse(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
     Field = binary_to_existing_atom(cowboy_req:binding(field, Req), latin1),
-    lager:debug(">>> ~p", [Field]),
     {cowboy_rest, Req, #state{table=Table, key=Key,
         field=Field, fidx=lorawan_utils:index_of(Field, Fields), module=Module}}.
 
