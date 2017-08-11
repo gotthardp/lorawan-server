@@ -155,9 +155,14 @@ filter_group_responses(_AppID, List) ->
         end,
         ok, List).
 
-parse_uplink(#handler{appid = AppID, format = <<"raw">>},
-        _Gateway, #link{devaddr=DevAddr}, #rxdata{data=Data}, _RxQ) ->
-    {<<"application/octet-stream">>, Data,
+parse_uplink(#handler{appid = AppID, format = <<"raw">>, parse = Parse},
+        _Gateway, #link{devaddr=DevAddr}, #rxdata{port=Port, data=Data}, _RxQ) ->
+    Data2 =
+        case data_to_fields(Parse, Port, Data) of
+            undefined -> Data;
+            B when is_binary(B) -> B
+        end,
+    {<<"application/octet-stream">>, Data2,
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
 parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse = Parse},
         #gateway{mac=MAC}, #link{devaddr=DevAddr, appargs=AppArgs},
@@ -230,17 +235,16 @@ build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
                 #txdata{
                     confirmed = maps:get(confirmed, Struct, false),
                     port = Port,
-                    data = fields_to_data(Build, Port, maps:get(fields, Struct, undefined), Data),
+                    data = fields_to_data(Build, Port, maps:get(fields, Struct, #{}), Data),
                     pending = maps:get(pending, Struct, undefined)
                 }};
         _Else ->
             {error, json_syntax_error}
     end;
-build_downlink(_Else, Msg) ->
-    {ok, #{}, undefined, #txdata{data=Msg}}.
+build_downlink(#handler{build = Build}, Data) ->
+    {ok, #{}, undefined,
+        #txdata{data = fields_to_data(Build, undefined, #{}, Data)}}.
 
-fields_to_data(_, _, undefined, Data) ->
-    Data;
 fields_to_data({_, Fun}, Port, Fields, Data) when is_function(Fun) ->
     try Fun(Port, Fields)
     catch
