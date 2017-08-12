@@ -14,7 +14,9 @@ init(StreamId, Req, Opts) ->
     {Command, Next} = cowboy_stream:init(StreamId, Req, Opts),
     {Command, #state{next=Next, path=path(Req)}}.
 
-path(#{path:=Path, qs:=Qs}) ->
+path(#{path := Path, qs := <<>>}) ->
+    Path;
+path(#{path := Path, qs := Qs}) ->
     <<Path/binary, "?", Qs/binary>>.
 
 data(StreamId, IsFin, Data, #state{next=Next0}=State) ->

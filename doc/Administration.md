@@ -46,6 +46,7 @@ The following REST resources are made available:
 
   Resource                  | Methods          | Explanation
  ---------------------------|------------------| ------------------------------------------------
+  /servers                  | GET              | Server status information
   /applications             | GET              | Supported LoRaWAN applications
   /users                    | GET, POST        | Users of the admin interface
   /users/*ABC*              | GET, PUT, DELETE | User *ABC*
@@ -53,12 +54,12 @@ The following REST resources are made available:
   /gateways/*123*           | GET, PUT, DELETE | Gateway with MAC=*123*
   /multicast_channels       | GET, POST        | Class C multicast channels
   /multicast_channels/*123* | GET, PUT, DELETE | Multicast channel with DevAddr=*123*
-  /ignored_nodes            | GET, POST        | Nodes ignored by the server
-  /ignored_nodes/*123*      | GET, PUT, DELETE | Ignored node with DevAddr=*123*
   /devices                  | GET, POST        | Devices registered for over-the-air activation (OTAA)
   /devices/*123*            | GET, PUT, DELETE | Device with DevEUI=*123*
   /nodes                    | GET, POST        | Active network nodes, both ABP and activated OTAA
   /nodes/*123*              | GET, PUT, DELETE | Active network node with DevAddr=*123*
+  /ignored_nodes            | GET, POST        | Nodes ignored by the server
+  /ignored_nodes/*123*      | GET, PUT, DELETE | Ignored node with DevAddr=*123*
   /txframes                 | GET              | Frames scheduled for transmission
   /txframes/*123*           | GET, DELETE      | Frame with ID=*123*
   /rxframes                 | GET              | Recent received frames
@@ -67,6 +68,7 @@ The following REST resources are made available:
   /connectors               | GET              | Backend connectors
   /connectors/*ABC*         | GET, DELETE      | Backend connector *ABC*
   /events                   | GET              | Recent errors and warnings
+  /upload                   | PUT              | Uploads (certificate) files to the server
 
 There is a 1:1 mapping between the REST API and the Web Admin. Parameters
 that are in the Web Admin indicated as optional doesn't need to be provided in
