@@ -137,7 +137,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- servers
     servers.listView().fields([
         nga.field('node'),
-        nga.field('modules.lorawan_server').label('Version')
+        nga.field('modules.lorawan_server').label('Version'),
+        nga.field('memory').label('Free Memory')
+            .map(map_memstats),
+        nga.field('disk').label('Free Disk')
+            .map(map_diskstats)
     ])
     .batchActions([]);
     // add to the admin application
@@ -724,7 +728,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(servers)
             .fields([
                 nga.field('node'),
-                nga.field('modules.lorawan_server').label('Version')
+                nga.field('modules.lorawan_server').label('Version'),
+                nga.field('memory').label('Free Memory')
+                    .map(map_memstats),
+                nga.field('disk').label('Free Disk')
+                    .map(map_diskstats)
             ])
         )
         .addCollection(nga.collection(gateways)
@@ -828,6 +836,25 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // attach the admin application to the DOM and execute it
     nga.configure(admin);
 }]);
+
+function map_memstats(value, entry) {
+    var free = 100 * entry['memory.free_memory'] / entry['memory.total_memory'];
+    return (free.toFixed(1) + "% of " + bytesToSize(entry['memory.total_memory']));
+}
+
+function map_diskstats(value, entry) {
+    var root = entry['disk'].filter(function(obj) {
+        return (obj.id === "/");
+    });
+    return ((100-root[0].percent_used) + "% of " + bytesToSize(1024*root[0].size_kb));
+}
+
+function bytesToSize(bytes) {
+   var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+   if (bytes == 0) return '0 Byte';
+   var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+}
 
 function timeyoung(value, delta_ms) {
     var x1 = new Date();

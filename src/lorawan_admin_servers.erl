@@ -29,7 +29,9 @@ content_types_provided(Req, State) ->
 
 get_stats(Req, State) ->
     {jsx:encode([[{node, node()},
-        {modules, get_modules()}]]), Req, State}.
+        {modules, get_modules()},
+        {memory, memsup:get_system_memory_data()},
+        {disk, get_disk_data()}]]), Req, State}.
 
 get_modules() ->
     lists:map(
@@ -37,6 +39,13 @@ get_modules() ->
             {App, list_to_binary(Vsn)}
         end,
         application:which_applications()).
+
+get_disk_data() ->
+    lists:map(
+        fun({Id, KByte, Capacity}) ->
+            [{id, list_to_binary(Id)}, {size_kb, KByte}, {percent_used, Capacity}]
+        end,
+        disksup:get_disk_data()).
 
 resource_exists(Req, State) ->
     {true, Req, State}.

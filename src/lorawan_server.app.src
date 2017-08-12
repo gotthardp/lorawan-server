@@ -62,7 +62,7 @@
         {deduplication_delay, 150},
         {event_lifetime, 86400}
     ]},
-    {applications, [kernel, stdlib, sasl, lager, mnesia, syn, worker_pool, cowboy,
-        gun, jsx, iso8601, emqttc, lorawan_server_api]}]}.
+    {applications, [kernel, stdlib, sasl, os_mon, mnesia, lager, syn, worker_pool,
+        cowboy, gun, jsx, iso8601, emqttc, lorawan_server_api]}]}.
 
 % end of file
