@@ -24,6 +24,7 @@ start(_Type, _Args) ->
     {ok, Handlers} = lorawan_handler:init(),
     Dispatch = cowboy_router:compile([
         {'_', [
+            {"/servers", lorawan_admin_servers, []},
             {"/applications/[:name]", lorawan_admin_applications, []},
             {"/users/[:name]", lorawan_admin_db_record,
                 [users, user, record_info(fields, user)]},

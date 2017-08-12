@@ -7,6 +7,9 @@ var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlecha
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/');
 
+    var servers = nga.entity('servers')
+        .identifier(nga.field('node'))
+        .readOnly();
     var applications = nga.entity('applications')
         .identifier(nga.field('name'));
     var users = nga.entity('users')
@@ -130,6 +133,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 'json', label: 'JSON' },
         { value: 'www-form', label: 'Web Form' }
     ];
+
+    // ---- servers
+    servers.listView().fields([
+        nga.field('node'),
+        nga.field('modules.lorawan_server').label('Version')
+    ])
+    .batchActions([]);
+    // add to the admin application
+    admin.addEntity(servers);
 
     // ---- users
     users.listView().fields([
@@ -709,6 +721,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     // ---- dashboard
     admin.dashboard(nga.dashboard()
+        .addCollection(nga.collection(servers)
+            .fields([
+                nga.field('node'),
+                nga.field('modules.lorawan_server').label('Version')
+            ])
+        )
         .addCollection(nga.collection(gateways)
             .fields([
                 nga.field('mac').label('MAC').isDetailLink(true),
@@ -722,6 +740,25 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                     })
             ])
             .sortField('mac')
+            .sortDir('ASC')
+            .perPage(7)
+        )
+        .addCollection(nga.collection(devices)
+            .fields([
+                nga.field('deveui').label('DevEUI').isDetailLink(true),
+                nga.field('last_join', 'datetime').label('Last Join')
+            ])
+            .sortField('deveui')
+            .sortDir('ASC')
+            .perPage(7)
+        )
+        .addCollection(nga.collection(nodes)
+            .fields([
+                nga.field('devaddr').label('DevAddr').isDetailLink(true),
+                nga.field('devstat.battery', 'number').label('Battery'),
+                nga.field('last_rx', 'datetime').label('Last RX')
+            ])
+            .sortField('devaddr')
             .sortDir('ASC')
             .perPage(7)
         )
@@ -741,15 +778,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .sortField('last_rx')
             .perPage(7)
         )
-        .addCollection(nga.collection(devices)
-            .fields([
-                nga.field('deveui').label('DevEUI').isDetailLink(true),
-                nga.field('last_join', 'datetime').label('Last Join')
-            ])
-            .sortField('deveui')
-            .sortDir('ASC')
-            .perPage(7)
-        )
         .addCollection(nga.collection(rxframes).title('Received Frames')
             .fields([
                 nga.field('datetime', 'datetime').label('Received'),
@@ -764,16 +792,37 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .sortField('datetime')
             .perPage(7)
         )
-        .addCollection(nga.collection(nodes)
-            .fields([
-                nga.field('devaddr').label('DevAddr').isDetailLink(true),
-                nga.field('devstat.battery', 'number').label('Battery'),
-                nga.field('last_rx', 'datetime').label('Last RX')
-            ])
-            .sortField('devaddr')
-            .sortDir('ASC')
-            .perPage(7)
-        )
+        .template(`
+<div class="row">
+    <div class="col-lg-12">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+        </div>
+    </div>
+</div>
+<div class="row dashboard-content">
+    <div class="col-lg-12">
+        <div class="panel panel-default" ng-repeat="name in ['servers']">
+            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
+                datastore="dashboardController.datastore"></ma-dashboard-panel>
+        </div>
+    </div>
+</div>
+<div class="row dashboard-content">
+    <div class="col-lg-6">
+        <div class="panel panel-default" ng-repeat="name in ['gateways', 'devices', 'nodes']">
+            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
+                datastore="dashboardController.datastore"></ma-dashboard-panel>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="panel panel-default" ng-repeat="name in ['events', 'rxframes']">
+            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
+                datastore="dashboardController.datastore"></ma-dashboard-panel>
+        </div>
+    </div>
+</div>
+        `)
     );
 
     // attach the admin application to the DOM and execute it
