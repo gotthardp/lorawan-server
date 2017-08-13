@@ -52,6 +52,9 @@
             ]},
             {<<"KR920-923">>, [
                 {rx2_rf, {921.9, <<"SF12BW125">>, <<"4/5">>}}
+            ]},
+            {<<"AS923-JP">>, [
+                {rx2_rf, {923.2, <<"SF10BW125">>, <<"4/5">>}}
             ]}
         ]},
         % {sec, fcnt} after which the device status should be request
