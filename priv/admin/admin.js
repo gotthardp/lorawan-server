@@ -63,16 +63,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 'EU433', label: 'EU 433MHz' },
         { value: 'AU915-928', label: 'Australia 915-928MHz' },
         { value: 'CN470-510', label: 'China 470-510MHz' },
-        { value: 'KR920-923', label: 'South Korea 920-923MHz' }
+        { value: 'KR920-923', label: 'South Korea 920-923MHz' },
+        { value: 'AS923-JP', label: 'Japan 920.6-923.4MHz' }
     ];
 
     data_rate_choices = [
-        { value: 0, label: 'SF12 125 kHz (250 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923'] },
-        { value: 1, label: 'SF11 125 kHz (440 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923'] },
-        { value: 2, label: 'SF10 125 kHz (980 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923'] },
-        { value: 3, label: 'SF9 125 kHz (1760 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923'] },
-        { value: 4, label: 'SF8 125 kHz (3125 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923'] },
-        { value: 5, label: 'SF7 125 kHz (5470 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923'] },
+        { value: 0, label: 'SF12 125 kHz (250 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923', 'AS923-JP'] },
+        { value: 1, label: 'SF11 125 kHz (440 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923', 'AS923-JP'] },
+        { value: 2, label: 'SF10 125 kHz (980 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923', 'AS923-JP'] },
+        { value: 3, label: 'SF9 125 kHz (1760 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923', 'AS923-JP'] },
+        { value: 4, label: 'SF8 125 kHz (3125 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923', 'AS923-JP'] },
+        { value: 5, label: 'SF7 125 kHz (5470 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433', 'CN470-510', 'KR920-923', 'AS923-JP'] },
         { value: 6, label: 'SF7 250 kHz (11000 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433'] },
         { value: 7, label: '50 kbps (50000 bit/s)', regions: ['EU863-870', 'CN779-787', 'EU433'] },
 
@@ -125,7 +126,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 3, label: '8 dBm', regions: ['KR920-923'] },
         { value: 4, label: '5 dBm', regions: ['KR920-923'] },
         { value: 5, label: '2 dBm', regions: ['KR920-923'] },
-        { value: 6, label: '0 dBm', regions: ['KR920-923'] }
+        { value: 6, label: '0 dBm', regions: ['KR920-923'] },
+
+        { value: 0, label: '13 dBm', regions: ['AS923-JP'] },
+        { value: 1, label: '12 dBm', regions: ['AS923-JP'] },
+        { value: 2, label: '10 dBm', regions: ['AS923-JP'] },
+        { value: 3, label: '8 dBm', regions: ['AS923-JP'] },
+        { value: 4, label: '6 dBm', regions: ['AS923-JP'] },
+        { value: 5, label: '4 dBm', regions: ['AS923-JP'] },
+        { value: 6, label: '0 dBm', regions: ['AS923-JP'] }
     ];
 
     format_choices = [
