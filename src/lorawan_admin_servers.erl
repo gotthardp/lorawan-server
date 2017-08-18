@@ -31,7 +31,8 @@ get_stats(Req, State) ->
     {jsx:encode([[{node, node()},
         {modules, get_modules()},
         {memory, memsup:get_system_memory_data()},
-        {disk, get_disk_data()}]]), Req, State}.
+        {disk, get_disk_data()},
+        {alarms, get_alarms()}]]), Req, State}.
 
 get_modules() ->
     lists:map(
@@ -46,6 +47,13 @@ get_disk_data() ->
             [{id, list_to_binary(Id)}, {size_kb, KByte}, {percent_used, Capacity}]
         end,
         disksup:get_disk_data()).
+
+get_alarms() ->
+    lists:map(
+        fun({Id, _Desc}) ->
+            Id
+        end,
+        alarm_handler:get_alarms()).
 
 resource_exists(Req, State) ->
     {true, Req, State}.

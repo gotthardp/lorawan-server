@@ -133,3 +133,16 @@ device a downlink shall be sent. You have two options:
 The problem is the Lorank8 proprietary message format. In your gateway config
 you likely have `stat_format` set to `idee_concise` or `idee_verbose`. You need
 to change `stat_format` to `semtech` to get this working.
+
+
+## Alarms
+
+Server alarms are indicated in the web-admin Dashboard.
+
+### system_memory_high_watermark
+
+This indicates that the system has less than 20% of free memory.
+
+### disk_almost_full
+
+This indicates there is less than 20% of free disk space.

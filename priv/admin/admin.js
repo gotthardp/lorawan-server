@@ -154,7 +154,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('memory').label('Free Memory')
             .map(map_memstats),
         nga.field('disk').label('Free Disk')
-            .map(map_diskstats)
+            .map(map_diskstats),
+        nga.field('alarms', 'choices')
     ])
     .batchActions([]);
     // add to the admin application
@@ -749,7 +750,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('memory').label('Free Memory')
                     .map(map_memstats),
                 nga.field('disk').label('Free Disk')
-                    .map(map_diskstats)
+                    .map(map_diskstats),
+                nga.field('alarms', 'choices')
             ])
         )
         .addCollection(nga.collection(gateways)
