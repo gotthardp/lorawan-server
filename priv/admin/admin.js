@@ -36,6 +36,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var events = nga.entity('events')
         .identifier(nga.field('evid'));
 
+    role_choices = [
+        { value: 'admin', label: 'admin' }
+    ];
+
     adr_choices = [
         { value: 0, label: 'OFF' },
         { value: 1, label: 'ON' },
@@ -158,11 +162,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     // ---- users
     users.listView().fields([
-        nga.field('name').isDetailLink(true)
+        nga.field('name').isDetailLink(true),
+        nga.field('roles', 'choices').label('Roles')
+            .choices(role_choices)
     ]);
     users.creationView().fields([
         nga.field('name'),
-        nga.field('pass', 'password')
+        nga.field('pass', 'password'),
+        nga.field('roles', 'choices').label('Roles')
+            .choices(role_choices)
     ]);
     users.editionView().fields(users.creationView().fields());
     // add to the admin application

@@ -14,18 +14,23 @@
 handle_authorization(Req, State) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {basic, User, Pass} ->
-            case user_password(User) of
-                Pass -> {true, Req, State};
-                _ -> {{false, <<"Basic realm=\"lorawan-server\"">>}, Req, State}
+            case authorized_password(<<"admin">>, User, Pass) of
+                true -> {true, Req, State};
+                false -> {{false, <<"Basic realm=\"lorawan-server\"">>}, Req, State}
             end;
         _ ->
             {{false, <<"Basic realm=\"lorawan-server\"">>}, Req, State}
     end.
 
-user_password(User) ->
+authorized_password(Role, User, Pass) ->
     case mnesia:dirty_read(users, User) of
-        [] -> undefined;
-        [U] -> U#user.pass
+        [] ->
+            false;
+        % temporary provisions for backward compatibility
+        [#user{pass=Pass, roles=undefined}] ->
+            true;
+        [#user{pass=Pass, roles=Roles}] ->
+            lists:member(Role, Roles)
     end.
 
 parse(Object) when is_map(Object) ->
