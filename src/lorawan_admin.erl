@@ -24,13 +24,13 @@ handle_authorization(Req, State) ->
 
 authorized_password(Role, User, Pass) ->
     case mnesia:dirty_read(users, User) of
-        [] ->
-            false;
         % temporary provisions for backward compatibility
         [#user{pass=Pass, roles=undefined}] ->
             true;
         [#user{pass=Pass, roles=Roles}] ->
-            lists:member(Role, Roles)
+            lists:member(Role, Roles);
+        _Else ->
+            false
     end.
 
 parse(Object) when is_map(Object) ->
