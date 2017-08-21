@@ -119,6 +119,10 @@ Review the `lorawan-server/releases/<VERSION>/sys.config` with the server config
  * To enable/disable applications, modify the `plugins` section. For more details
    see the [Custom Application Guide](Applications.md).
 
+Note that during the manual installation the `sys.config` is created
+automatically by the release tool (`make release`) based on the
+[lorawan_server.config](/lorawan_server.config).
+
 For example:
 ```erlang
 [{lorawan_server, [
