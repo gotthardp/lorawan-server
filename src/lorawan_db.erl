@@ -5,8 +5,8 @@
 %
 -module(lorawan_db).
 
--export([ensure_tables/0, ensure_table/2, trim_tables/0]).
--export([get_rxframes/1, purge_txframes/1]).
+-export([ensure_tables/0, ensure_table/2]).
+-export([get_rxframes/1, get_last_rxframes/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -141,9 +141,6 @@ set_defaults(users) ->
 set_defaults(_Else) ->
     ok.
 
-trim_tables() ->
-    [trim_rxframes(R) || R <- mnesia:dirty_all_keys(links)],
-    [mnesia:dirty_delete(events, E) || E <- expired_events()].
 
 get_rxframes(DevAddr) ->
     {_, Frames} = get_last_rxframes(DevAddr, 50),
@@ -157,6 +154,9 @@ get_rxframes(DevAddr) ->
             Frames
     end.
 
+occured_rxframe_after(StartDate, #rxframe{datetime = FrameDate}) ->
+    StartDate =< FrameDate.
+
 get_last_rxframes(DevAddr, Count) ->
     Rec = mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr),
     SRec = lists:sort(fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A < B end, Rec),
@@ -165,33 +165,5 @@ get_last_rxframes(DevAddr, Count) ->
         length(SRec) > Count -> lists:split(length(SRec)-Count, SRec);
         true -> {[], SRec}
     end.
-
-occured_rxframe_after(StartDate, #rxframe{datetime = FrameDate}) ->
-    StartDate =< FrameDate.
-
-trim_rxframes(DevAddr) ->
-    {ok, Count} = application:get_env(lorawan_server, retained_rxframes),
-    case get_last_rxframes(DevAddr, Count) of
-        {[], _} ->
-            ok;
-        {ExpRec, _} ->
-            lager:debug("Expired ~w rxframes from ~w", [length(ExpRec), DevAddr]),
-            lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
-                ExpRec)
-    end.
-
-expired_events() ->
-    {ok, AgeSeconds} = application:get_env(lorawan_server, event_lifetime),
-    ETime = calendar:gregorian_seconds_to_datetime(
-        calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - AgeSeconds),
-    mnesia:dirty_select(events,
-        [{#event{evid='$1', last_rx='$2', _='_'}, [{'=<', '$2', {const, ETime}}], ['$1']}]).
-
-purge_txframes(DevAddr) ->
-    lists:foreach(
-        fun(Obj) ->
-            ok = mnesia:dirty_delete_object(txframes, Obj)
-        end,
-        mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})).
 
 % end of file

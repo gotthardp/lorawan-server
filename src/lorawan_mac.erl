@@ -334,7 +334,7 @@ fcnt32_inc(FCntUp, N) ->
 reset_link(DevAddr) ->
     ok = mnesia:dirty_delete(pending, DevAddr),
     % delete previously stored TX frames
-    lorawan_db:purge_txframes(DevAddr).
+    lorawan_db_guard:purge_txframes(DevAddr).
 
 build_rxframe(Gateway, Link, RxQ, Confirm, Frame) ->
     TXPower = case Link#link.adr_use of

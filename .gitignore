@@ -14,4 +14,6 @@ priv/admin/angular-simple-logger.min.js
 priv/admin/ng-google-chart.min.js
 priv/admin/ng-admin.min.css
 priv/admin/ng-admin.min.js
+priv/admin/bootstrap-colorpicker-module.min.js
+priv/admin/colorpicker.min.css
 log/

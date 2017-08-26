@@ -16,6 +16,9 @@ start_link() ->
 init([]) ->
     lorawan_utils:throw_info(server, started),
     {ok, {{one_for_one, 10, 10}, [
+        {db_guard,
+            {lorawan_db_guard, start_link, []},
+            permanent, 5000, worker, [lorawan_db_guard]},
         {gateways,
             {lorawan_gw_sup, start_link, []},
             permanent, infinity, supervisor, [lorawan_gw_sup]},
