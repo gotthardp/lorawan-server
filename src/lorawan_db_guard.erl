@@ -18,6 +18,7 @@ start_link() ->
     gen_server:start_link(?MODULE, [], []).
 
 init([]) ->
+    {ok, _} = mnesia:subscribe({table, links, simple}),
     {ok, _} = timer:send_interval(3600*1000, trim_tables),
     {ok, undefined}.
 
@@ -27,9 +28,14 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+handle_info({mnesia_table_event, {delete, {Tab, Key}, _Id}}, State) ->
+    handle_delete(Tab, Key),
+    {noreply, State};
 handle_info(trim_tables, State) ->
     [trim_rxframes(R) || R <- mnesia:dirty_all_keys(links)],
     [mnesia:dirty_delete(events, E) || E <- expired_events()],
+    {noreply, State};
+handle_info(_Other, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -38,6 +44,21 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+handle_delete(links, DevAddr) ->
+    lager:debug("Node ~p deleted", [lorawan_mac:binary_to_hex(DevAddr)]),
+    % delete linked records
+    ok = mnesia:dirty_delete(pending, DevAddr),
+    delete_matched(rxframes, #rxframe{frid='$1', devaddr=DevAddr, _='_'}),
+    delete_matched(txframes, #txframe{frid='$1', devaddr=DevAddr, _='_'});
+handle_delete(_Other, _Any) ->
+    ok.
+
+delete_matched(Table, Record) ->
+    lists:foreach(
+        fun(Id) ->
+            ok = mnesia:dirty_delete(Table, Id)
+        end,
+        mnesia:dirty_select(Table, [{Record, [], ['$1']}])).
 
 trim_rxframes(DevAddr) ->
     {ok, Count} = application:get_env(lorawan_server, retained_rxframes),
