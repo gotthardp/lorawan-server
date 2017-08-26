@@ -11,7 +11,8 @@ The server:
      such as the Semtech LoRa demo kit,
      [LoRa Lite Gateway](https://wireless-solutions.de/products/long-range-radio/lora_lite_gateway.html),
      [LORANK-8](http://webshop.ideetron.nl/LORANK-8),
-     or [MultiConnect Conduit](http://www.multitech.com/brands/multiconnect-conduit).
+     [MultiConnect Conduit](http://www.multitech.com/brands/multiconnect-conduit),
+     or [Kerlink Wirnet Stations](http://www.kerlink.fr/en/products/lora-iot-station-2/wirnet-station-868)
  * Performs all required encryption and integrity checks.
    * Supports relaxed frame-counter check for simple ABP devices.
  * Invokes internal modules with application logic. It provides examples for:
@@ -97,6 +98,7 @@ as described in the [Administration Guide](doc/Administration.md) and in the
 
 By default you can access the administration at http://*server*:8080, using
 "admin" as both username and password. After the installation you have to:
+ * Change the default password to something more secure.
  * Add LoRaWAN gateways you want to use.
  * Configure each device you want to use, either as a personalized device (ABP) or
    as an over-the-air activated (OTAA) device.
