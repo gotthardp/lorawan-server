@@ -3,7 +3,7 @@
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
-var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart']);
+var myApp = angular.module('myApp', ['ng-admin', 'colorpicker.module', 'uiGmapgoogle-maps', 'googlechart']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/');
 

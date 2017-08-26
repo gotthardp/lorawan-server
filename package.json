@@ -3,6 +3,7 @@
   "dependencies": {
     "jquery": ">=1.0",
     "ng-admin": ">=1.0.6",
+    "angular-bootstrap-colorpicker": "v3.0.31",
     "angular-simple-logger": ">=0.0.1",
     "angular-google-maps": "2.4.1",
     "angular-google-chart": "0.1.0"
