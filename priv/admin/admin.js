@@ -186,13 +186,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('group'),
         nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
-        nga.field('alive', 'boolean').label('Alive')
-            .map(function timediff(value, entry) {
-                return timeyoung(entry.last_rx, 60*1000);
-            })
+        nga.field('health_decay', 'number').label('Status')
+            .template(function(entry){ return healthIndicator(entry.values) })
     ])
-    .sortField('mac')
-    .sortDir('ASC');
+    .sortField('health_decay')
+    .sortDir('DESC');
 
     gateways.creationView().fields([
         nga.field('mac').label('MAC')
@@ -224,6 +222,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .label('Location')
             .template('<map location="value"></map>'),
         nga.field('gpsalt', 'number').label('Altitude'),
+        // Status
+        nga.field('health_alerts', 'choices').label('Alerts')
+            .editable(false),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('mac', 'template').label('Delays')
             .template('<pgraph value="value"></pgraph>'),
@@ -236,7 +237,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.editionView().fields(gateways.creationView().fields());
     gateways.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:10},
-        {name:"Status", min:10, max:13}
+        {name:"Status", min:10, max:14}
     ]));
     // add to the admin application
     admin.addEntity(gateways);
@@ -380,11 +381,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('devstat.battery', 'number').label('Battery'),
-        nga.field('devstat.margin', 'number').label('D/L SNR (dB)'),
-        nga.field('last_rx', 'datetime').label('Last RX')
+        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('health_decay', 'number').label('Status')
+            .template(function(entry){ return healthIndicator(entry.values) })
     ])
-    .sortField('devaddr')
-    .sortDir('ASC');
+    .sortField('health_decay')
+    .sortDir('DESC');
     nodes.listView().filters([
         nga.field('devaddr').label('DevAddr'),
         nga.field('app').label('Application'),
@@ -536,6 +538,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devaddr', 'template').label('RX Quality')
             .template('<qgraph value="value"></qgraph>'),
         // Status
+        nga.field('health_alerts', 'choices').label('Alerts')
+            .editable(false),
         nga.field('request_devstat', 'boolean').label('Request Status?')
             .defaultValue(true),
         nga.field('devstat.battery', 'number').label('Battery'),
@@ -548,7 +552,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     nodes.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:15},
         {name:"ADR", min:15, max:25},
-        {name:"Status", min:25, max:31}
+        {name:"Status", min:25, max:32}
     ]));
     // add to the admin application
     admin.addEntity(nodes);
@@ -718,29 +722,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(events);
 
-    // ---- menu
-    admin.menu(nga.menu()
-        .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
-        .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
-            .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
-            .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
-            .addChild(nga.menu(ignored_nodes).icon('<span class="fa fa-ban fa-fw"></span>'))
-            .addChild(nga.menu(events).icon('<span class="fa fa-exclamation-triangle fa-fw"></span>'))
-        )
-        .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
-        .addChild(nga.menu(nodes).icon('<span class="fa fa-rss fa-fw"></span>'))
-    );
-    if (typeof addPrivateMenu === "function") {
-        addPrivateMenu(nga, admin);
-    }
-    admin.menu()
-        .addChild(nga.menu().title('Backends').icon('<span class="fa fa-industry fa-fw"></span>')
-          .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
-          .addChild(nga.menu(connectors).icon('<span class="fa fa-bolt fa-fw"></span>'))
-        )
-        .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
-        .autoClose(false);
-
     // ---- dashboard
     admin.dashboard(nga.dashboard()
         .addCollection(nga.collection(servers)
@@ -761,13 +742,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('subid').label('SubID')
                     .map(format_bitstring),
                 nga.field('last_rx', 'datetime').label('Last RX'),
-                nga.field('alive', 'boolean').label('Alive')
-                    .map(function timediff(value, entry) {
-                        return timeyoung(entry.last_rx, 60*1000);
-                    })
+                nga.field('health_decay', 'number').label('Status')
+                    .template(function(entry){ return healthIndicator(entry.values) })
             ])
-            .sortField('mac')
-            .sortDir('ASC')
+            .sortField('health_decay')
+            .sortDir('DESC')
             .perPage(7)
         )
         .addCollection(nga.collection(devices)
@@ -783,10 +762,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .fields([
                 nga.field('devaddr').label('DevAddr').isDetailLink(true),
                 nga.field('devstat.battery', 'number').label('Battery'),
-                nga.field('last_rx', 'datetime').label('Last RX')
+                nga.field('last_rx', 'datetime').label('Last RX'),
+                nga.field('health_decay', 'number').label('Status')
+                    .template(function(entry){ return healthIndicator(entry.values) })
             ])
-            .sortField('devaddr')
-            .sortDir('ASC')
+            .sortField('health_decay')
+            .sortDir('DESC')
             .perPage(7)
         )
         .addCollection(nga.collection(events)
@@ -819,38 +800,35 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .sortField('datetime')
             .perPage(7)
         )
-        .template(`
-<div class="row">
-    <div class="col-lg-12">
-        <div class="page-header">
-            <h1>Dashboard</h1>
-        </div>
-    </div>
-</div>
-<div class="row dashboard-content">
-    <div class="col-lg-12">
-        <div class="panel panel-default" ng-repeat="name in ['servers']">
-            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
-                datastore="dashboardController.datastore"></ma-dashboard-panel>
-        </div>
-    </div>
-</div>
-<div class="row dashboard-content">
-    <div class="col-lg-6">
-        <div class="panel panel-default" ng-repeat="name in ['gateways', 'devices', 'nodes']">
-            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
-                datastore="dashboardController.datastore"></ma-dashboard-panel>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="panel panel-default" ng-repeat="name in ['events', 'rxframes']">
-            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
-                datastore="dashboardController.datastore"></ma-dashboard-panel>
-        </div>
-    </div>
-</div>
-        `)
     );
+    var dashLeft = ['gateways', 'devices', 'nodes'];
+    var dashRight = ['events', 'rxframes'];
+
+    // ---- menu
+    admin.menu(nga.menu()
+        .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
+        .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
+            .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
+            .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
+            .addChild(nga.menu(ignored_nodes).icon('<span class="fa fa-ban fa-fw"></span>'))
+            .addChild(nga.menu(events).icon('<span class="fa fa-exclamation-triangle fa-fw"></span>'))
+        )
+        .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
+        .addChild(nga.menu(nodes).icon('<span class="fa fa-rss fa-fw"></span>'))
+    );
+    if (typeof addPrivateMenu === "function") {
+        addPrivateMenu(nga, admin, dashLeft, dashRight);
+    }
+    admin.menu()
+        .addChild(nga.menu().title('Backends').icon('<span class="fa fa-industry fa-fw"></span>')
+          .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
+          .addChild(nga.menu(connectors).icon('<span class="fa fa-bolt fa-fw"></span>'))
+        )
+        .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
+        .autoClose(false);
+
+    admin.dashboard()
+        .template(dashboardTemplate(dashLeft, dashRight));
 
     // attach the admin application to the DOM and execute it
     nga.configure(admin);
@@ -873,12 +851,6 @@ function bytesToSize(bytes) {
    if (bytes == 0) return '0 Byte';
    var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
    return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
-}
-
-function timeyoung(value, delta_ms) {
-    var x1 = new Date();
-    var x2 = new Date(value);
-    return x1.getTime() - x2.getTime() < delta_ms;
 }
 
 function hextoascii(val) {
@@ -908,6 +880,47 @@ function parse_bitstring(value, entry) {
     }
     else
         return null;
+}
+
+function enquote(items) {
+    return items.map(function(item) { return "'" + item + "'" }).join(',');
+}
+
+function dashboardTemplate(leftPanel, rightPanel) {
+    var left = enquote(leftPanel);
+    var right = enquote(rightPanel);
+
+    return `
+<div class="row">
+    <div class="col-lg-12">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+        </div>
+    </div>
+</div>
+<div class="row dashboard-content">
+    <div class="col-lg-12">
+        <div class="panel panel-default" ng-repeat="name in ['servers']">
+            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
+                datastore="dashboardController.datastore"></ma-dashboard-panel>
+        </div>
+    </div>
+</div>
+<div class="row dashboard-content">
+    <div class="col-lg-6">
+        <div class="panel panel-default" ng-repeat="name in [${left}]">
+            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
+                datastore="dashboardController.datastore"></ma-dashboard-panel>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="panel panel-default" ng-repeat="name in [${right}]">
+            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
+                datastore="dashboardController.datastore"></ma-dashboard-panel>
+        </div>
+    </div>
+</div>
+    `;
 }
 
 function createWithTabsTemplate(list) {
@@ -988,6 +1001,19 @@ function editWithTabsTemplate(list) {
 </div>
     `;
     return R;
+}
+
+function healthIndicator(values) {
+    if (values.health_decay != null) {
+        if(values.health_decay > 50)
+            return '<span style="color:red" class="fa fa-exclamation-circle fa-fw" title="' + values.health_alerts + '"></span>';
+        else if(values.health_decay > 0)
+            return '<span style="color:orange" class="fa fa-exclamation-triangle fa-fw" title="' + values.health_alerts + '"></span>';
+        else
+            return '<span style="color:yellowgreen" class="fa fa-check fa-fw" title="ok"></span>';
+    }
+    else
+        return '';
 }
 
 // http://stackoverflow.com/questions/35895411/ng-admin-and-google-maps

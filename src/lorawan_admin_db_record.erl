@@ -26,7 +26,7 @@ init(Req, [Table, Record, Fields, Module]) ->
     init0(Req, Table, Record, Fields, Module).
 
 init0(Req, Table, Record, Fields, Module) ->
-    Key = lorawan_admin:parse(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
+    Key = lorawan_admin:parse_field(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
     {cowboy_rest, Req, #state{table=Table, record=Record, fields=Fields, key=Key, module=Module}}.
 
 is_authorized(Req, State) ->
@@ -100,14 +100,17 @@ get_filters(Req) ->
     end.
 
 build_record(Rec, #state{fields=Fields, module=Module}) ->
-    apply(Module, build, [
-        maps:from_list(
-            lists:filter(
-                fun ({_, undefined}) -> false;
-                    (_) -> true
-                end,
-                lists:zip(Fields, tl(tuple_to_list(Rec)))))
-        ]).
+    maps:merge(
+        apply(Module, build, [
+            maps:from_list(
+                lists:filter(
+                    % TODO: isn't this removed twice (see admin:build)
+                    fun ({_, undefined}) -> false;
+                        (_) -> true
+                    end,
+                    lists:zip(Fields, tl(tuple_to_list(Rec)))))
+            ]),
+        apply(Module, check_health, [Rec])).
 
 content_types_accepted(Req, State) ->
     {[
@@ -134,7 +137,8 @@ import_records(Object, State) when is_map(Object) ->
     ok.
 
 write_record(List, #state{table=Table, record=Record, fields=Fields, module=Module}) ->
-    Rec = list_to_tuple([Record|[maps:get(X, apply(Module, parse, [List]), undefined) || X <- Fields]]),
+    List2 = apply(Module, parse, [List]),
+    Rec = list_to_tuple([Record | [maps:get(X, List2, undefined) || X <- Fields]]),
     % make sure there is a primary key
     case element(2, Rec) of
         undefined ->

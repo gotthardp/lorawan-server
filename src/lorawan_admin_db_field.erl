@@ -26,7 +26,7 @@ init(Req, [Table, Fields, Module]) ->
     init0(Req, Table, Fields, Module).
 
 init0(Req, Table, Fields, Module) ->
-    Key = lorawan_admin:parse(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
+    Key = lorawan_admin:parse_field(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
     Field = binary_to_existing_atom(cowboy_req:binding(field, Req), latin1),
     {cowboy_rest, Req, #state{table=Table, key=Key,
         field=Field, fidx=lorawan_utils:index_of(Field, Fields), module=Module}}.
@@ -44,7 +44,7 @@ content_types_provided(Req, State) ->
 
 handle_get(Req, #state{table=Table, key=Key, field=Field, fidx=Idx, module=Module}=State) ->
     [Rec] = mnesia:dirty_read(Table, Key),
-    Value = apply(Module, build, [Field, element(Idx+1, Rec)]),
+    Value = apply(Module, build_field, [Field, element(Idx+1, Rec)]),
     {jsx:encode(#{Field => Value}), Req, State}.
 
 content_types_accepted(Req, State) ->
@@ -56,7 +56,7 @@ handle_write(Req, #state{field=Field, module=Module}=State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
         Struct when is_map(Struct) ->
-            Value = apply(Module, parse, [Field, maps:get(Field, Struct, undefined)]),
+            Value = apply(Module, parse_field, [Field, maps:get(Field, Struct, undefined)]),
             {atomic, ok} = update_record(Value, State),
             {true, Req2, State};
         _Else ->
