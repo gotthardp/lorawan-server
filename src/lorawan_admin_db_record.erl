@@ -65,13 +65,21 @@ sort(Req, List) ->
             List;
         #{'_sortDir' := <<"ASC">>, '_sortField' := Field} ->
             lists:sort(
-                fun(A,B) ->
-                    get_field(Field, A) =< get_field(Field, B)
+                fun(A0,B0) ->
+                    case {get_field(Field, A0), get_field(Field, B0)} of
+                        {null, _B} -> true;
+                        {_A, null} -> false;
+                        {A, B} -> A =< B
+                    end
                 end, List);
         #{'_sortDir' := <<"DESC">>, '_sortField' := Field} ->
             lists:sort(
-                fun(A,B) ->
-                    get_field(Field, A) >= get_field(Field, B)
+                fun(A0,B0) ->
+                    case {get_field(Field, A0), get_field(Field, B0)} of
+                        {_A, null} -> true;
+                        {null, _B} -> false;
+                        {A, B} -> A >= B
+                    end
                 end, List)
     end.
 
@@ -79,10 +87,10 @@ get_field(Field, Value) ->
     get_fields(binary:split(Field, <<$.>>), Value).
 
 get_fields(_Any, undefined) ->
-    undefined;
+    null;
 get_fields([Field | Rest], Value) ->
     AField = binary_to_existing_atom(Field, latin1),
-    get_fields(Rest, maps:get(AField, Value, undefined));
+    get_fields(Rest, maps:get(AField, Value, null));
 get_fields([], Value) ->
     Value.
 
