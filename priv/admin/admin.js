@@ -380,7 +380,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appargs').label('Arguments'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
-        nga.field('devstat.battery', 'number').label('Battery'),
+        nga.field('battery', 'number').label('Battery')
+            .map(function first(value, entry) {
+                if(Array.isArray(entry.devstat))
+                    return entry.devstat[0].battery;
+            }),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
@@ -542,8 +546,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false),
         nga.field('request_devstat', 'boolean').label('Request Status?')
             .defaultValue(true),
-        nga.field('devstat.battery', 'number').label('Battery'),
-        nga.field('devstat.margin', 'number').label('D/L SNR (dB)'),
         nga.field('devstat_time', 'datetime').label('Status Time'),
         nga.field('devstat_fcnt', 'number').label('Status FCnt'),
         nga.field('devaddr', 'template').label('Device Status')
@@ -761,7 +763,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(nodes)
             .fields([
                 nga.field('devaddr').label('DevAddr').isDetailLink(true),
-                nga.field('devstat.battery', 'number').label('Battery'),
+                nga.field('battery', 'number').label('Battery')
+                    .map(function first(value, entry) {
+                        if(Array.isArray(entry.devstat))
+                            return entry.devstat[0].battery;
+                    }),
                 nga.field('last_rx', 'datetime').label('Last RX'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
@@ -1294,6 +1300,9 @@ return {
                     "position": "none"
                 },
                 "pointSize": 3,
+                "hAxis": {
+                    "format": 'kk:mm'
+                },
                 "vAxis": {
                     "textPosition": "in",
                     "gridlines": {"count": -1}

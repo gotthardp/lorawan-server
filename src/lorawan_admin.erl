@@ -79,7 +79,8 @@ check_reset(#link{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
 check_reset(#link{}) ->
     ok.
 
-check_battery(#link{devstat={Battery, _Margin}}) when Battery < 50 ->
+check_battery(#link{devstat=[{Battery, _Margin}|_]}) when Battery < 50 ->
+    % TODO: should estimate trend instead
     {100-2*Battery, battery_low};
 check_battery(#link{}) ->
     ok.
@@ -253,11 +254,20 @@ build_rxwin({RX1DROffset, RX2DataRate, Frequency}) ->
     #{rx1_dr_offset => build_opt(RX1DROffset),
         rx2_dr => build_opt(RX2DataRate), rx2_freq => build_opt(Frequency)}.
 
-parse_devstat(List) ->
-    {parse_opt(battery, List), parse_opt(margin, List)}.
+parse_devstat(Value) ->
+    lists:map(
+        fun(#{datetime := DateTime, battery := Battery, margin := Margin}) ->
+            {iso8601:parse(DateTime), Battery, Margin}
+        end, Value).
 
+% backward compatibility
 build_devstat({Battery, Margin}) ->
-    #{battery => build_opt(Battery), margin => build_opt(Margin)}.
+    #{battery => build_opt(Battery), margin => build_opt(Margin)};
+build_devstat(Value) ->
+    lists:map(
+        fun({Timestamp, Battery, Margin}) ->
+            #{datetime => iso8601:format(Timestamp), battery => Battery, margin => Margin}
+        end, Value).
 
 parse_qs(List) ->
     {parse_opt(rssi, List), parse_opt(snr, List)}.

@@ -341,12 +341,12 @@ build_rxframe(Gateway, Link, RxQ, Confirm, Frame) ->
         {Power, _, _} when is_integer(Power) -> Power;
         _Else -> undefined
     end,
-    % #rxframe{frid, mac, rxq, average_qs, app, appid, region, devaddr, fcnt, port, data, datetime, devstat}
+    % #rxframe{frid, mac, rxq, average_qs, app, appid, region, devaddr, fcnt, port, data, datetime}
     #rxframe{frid= <<(erlang:system_time()):64>>,
         mac=Gateway#gateway.mac, powe=TXPower, rxq=RxQ, app=Link#link.app, appid=Link#link.appid,
         region=Link#link.region, devaddr=Link#link.devaddr, fcnt=Link#link.fcntup,
         confirm=bit_to_bool(Confirm), port=Frame#frame.fport, data=Frame#frame.data,
-        datetime=calendar:universal_time(), devstat=Link#link.devstat}.
+        datetime=calendar:universal_time()}.
 
 handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         when MType == 2#010; MType == 2#100 ->

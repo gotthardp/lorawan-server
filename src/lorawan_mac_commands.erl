@@ -139,10 +139,19 @@ handle_status(FOptsIn, Link) ->
     case find_status(FOptsIn) of
         {Battery, Margin} ->
             lager:debug("DevStatus: battery ~B, margin: ~B", [Battery, Margin-32]),
-            Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup, devstat={Battery, Margin-32}};
+            Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup,
+                devstat=append_status({calendar:universal_time(), Battery, Margin-32}, Link#link.devstat)};
         undefined ->
             Link
     end.
+
+append_status(Status, undefined) ->
+    [Status];
+% backward compatibility
+append_status(Status, {Battery, Margin}) ->
+    [Status, {calendar:universal_time(), Battery, Margin}];
+append_status(Status, List) ->
+    lists:sublist([Status | List], 50).
 
 find_status(FOptsIn) ->
     lists:foldl(

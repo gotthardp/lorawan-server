@@ -32,34 +32,40 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    [#link{devstat=DevStat}] = mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
-                [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
+                [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
                 [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
                 [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
                 ]},
-            {rows, lists:filtermap(
-                fun (#rxframe{devstat=undefined}) ->
-                    false;
-                (#rxframe{fcnt=FCnt, devstat={Batt, Margin}}) ->
-                    {true,  [{c, [
-                                [{v, FCnt}],
-                                [{v, Batt}],
-                                % what the standard calls "margin" is simply the SNR
-                                [{v, Margin}]
-                            ]}]}
-                end, ActRec)
+            {rows, lists:map(
+                fun({Timestamp, Batt, Margin}) ->
+                    [{c, [
+                        [{v, encode_timestamp(Timestamp)}],
+                        [{v, Batt}],
+                        % what the standard calls "margin" is simply the SNR
+                        [{v, Margin}]
+                    ]}]
+                end, DevStat)
             }
         ],
     {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.
 
+encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
+    list_to_binary(
+        lists:concat(["Date(",
+            integer_to_list(Yr), ",", integer_to_list(Mh), ",", integer_to_list(Dy), ",",
+            integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(Sc), ")"])).
+
 resource_exists(Req, State) ->
-    case mnesia:dirty_index_read(rxframes,
-            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req)), #rxframe.devaddr) of
-        [] -> {false, Req, State};
-        [_First|_Rest] -> {true, Req, State}
+    case mnesia:dirty_read(links,
+            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
+        [#link{devstat=DevStat}] when is_list(DevStat) ->
+            {true, Req, State};
+        _Else ->
+            {false, Req, State}
     end.
 
 % end of file
