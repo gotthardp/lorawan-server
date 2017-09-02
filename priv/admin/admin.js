@@ -3,7 +3,7 @@
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
-var myApp = angular.module('myApp', ['ng-admin', 'colorpicker.module', 'uiGmapgoogle-maps', 'googlechart']);
+var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart', 'ngVis', 'colorpicker.module']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/');
 
@@ -152,10 +152,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('node'),
         nga.field('modules.lorawan_server').label('Version'),
         nga.field('memory').label('Free Memory')
-            .map(map_memstats),
+            .map(map_memstats_p),
         nga.field('disk').label('Free Disk')
-            .map(map_diskstats),
-        nga.field('alarms', 'choices')
+            .map(map_diskstats_p),
+        nga.field('health_alerts', 'choices').label('Alerts')
     ])
     .batchActions([]);
     // add to the admin application
@@ -730,11 +730,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .fields([
                 nga.field('node'),
                 nga.field('modules.lorawan_server').label('Version'),
-                nga.field('memory').label('Free Memory')
+                nga.field('memory').label('Memory')
                     .map(map_memstats),
-                nga.field('disk').label('Free Disk')
+                nga.field('disk').label('Disk')
                     .map(map_diskstats),
-                nga.field('alarms', 'choices')
+                nga.field('health_decay', 'number').label('Status')
+                    .template(function(entry){ return healthIndicator(entry.values) })
             ])
         )
         .addCollection(nga.collection(gateways)
@@ -807,13 +808,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .perPage(7)
         )
     );
-    var dashLeft = ['gateways', 'devices', 'nodes'];
+    var dashLeft = ['servers', 'gateways', 'devices', 'nodes'];
     var dashRight = ['events', 'rxframes'];
 
     // ---- menu
     admin.menu(nga.menu()
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
         .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
+            .addChild(nga.menu(servers).icon('<span class="fa fa-server fa-fw"></span>'))
             .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
             .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
             .addChild(nga.menu(ignored_nodes).icon('<span class="fa fa-ban fa-fw"></span>'))
@@ -841,15 +843,27 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 }]);
 
 function map_memstats(value, entry) {
+    return bytesToSize(entry['memory.free_memory']);
+}
+
+function map_memstats_p(value, entry) {
     var free = 100 * entry['memory.free_memory'] / entry['memory.total_memory'];
-    return (free.toFixed(1) + "% of " + bytesToSize(entry['memory.total_memory']));
+    return bytesToSize(entry['memory.free_memory']) + " (" + free.toFixed(0) + "%)";
 }
 
 function map_diskstats(value, entry) {
     var root = entry['disk'].filter(function(obj) {
         return (obj.id === "/");
     });
-    return ((100-root[0].percent_used) + "% of " + bytesToSize(1024*root[0].size_kb));
+    return bytesToSize(1024*root[0].size_kb * (100-root[0].percent_used)/100);
+}
+
+function map_diskstats_p(value, entry) {
+    var root = entry['disk'].filter(function(obj) {
+        return (obj.id === "/");
+    });
+    var free = 100-root[0].percent_used;
+    return bytesToSize(1024*root[0].size_kb * free/100)  + " (" + free.toFixed(0) + "%)";
 }
 
 function bytesToSize(bytes) {
@@ -906,9 +920,8 @@ function dashboardTemplate(leftPanel, rightPanel) {
 </div>
 <div class="row dashboard-content">
     <div class="col-lg-12">
-        <div class="panel panel-default" ng-repeat="name in ['servers']">
-            <ma-dashboard-panel collection="dashboardController.collections[name]" entries="dashboardController.entries[name]"
-                datastore="dashboardController.datastore"></ma-dashboard-panel>
+        <div class="panel panel-default">
+            <timeline/>
         </div>
     </div>
 </div>
@@ -1021,6 +1034,56 @@ function healthIndicator(values) {
     else
         return '';
 }
+
+myApp.directive('timeline', ['$http', '$interval', 'VisDataSet', function($http, $interval, VisDataSet) {
+return {
+    restrict: 'E',
+    scope: {
+    },
+    link: function($scope) {
+        var now = new Date();
+        $scope.time_start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString();
+        $scope.time_end = null;
+        $http({method: 'GET', url: '/timeline',
+                params: {start: $scope.time_start, end: $scope.time_end}})
+            .then(function(response) {
+                $scope.data = {items: VisDataSet(response.data.items)};
+            });
+        $scope.options = {
+            selectable: false,
+            zoomMax: 2592000000,
+            zoomMin: 1000
+        };
+        $scope.events = {
+            onload: function(timeline) {
+                $scope.timeline = timeline;
+            },
+            rangechanged: function(event) {
+                $scope.time_start = event.start.toISOString();
+                $scope.time_end = event.end.toISOString();
+                updateData();
+            }
+        };
+
+        function updateData() {
+            $http({method: 'GET', url: '/timeline',
+                    params: {start: $scope.time_start, end: $scope.time_end}})
+                .then(function(response) {
+
+                    var newIds = response.data.items.map(function(a) {return a.id;});
+                    $scope.data.items.getIds().forEach(function(id) {
+                        if(!newIds.includes(id)) $scope.data.items.remove(id);
+                    });
+                    $scope.data.items.update(response.data.items);
+                });
+        }
+        $scope.stopTime = $interval(updateData, 5000);
+        $scope.$on('$destroy', function() {
+            $interval.cancel($scope.stopTime);
+        });
+    },
+    template: '<vis-timeline data="data" options="options" events="events"></vis-timeline>'
+};}]);
 
 // http://stackoverflow.com/questions/35895411/ng-admin-and-google-maps
 myApp.directive('map', [function () {

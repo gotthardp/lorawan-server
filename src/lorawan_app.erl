@@ -48,6 +48,7 @@ start(_Type, _Args) ->
             {"/events/[:evid]", lorawan_admin_db_record,
                 [events, event, record_info(fields, event)]},
             {"/upload", lorawan_admin_upload, []},
+            {"/timeline", lorawan_admin_timeline, []},
             {"/pgraph/:mac", lorawan_admin_gwgraph, [pgraph]},
             {"/tgraph/:mac", lorawan_admin_gwgraph, [tgraph]},
             {"/rgraph/:devaddr", lorawan_admin_rxgraph, [rgraph]},
