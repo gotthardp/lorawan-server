@@ -1,4 +1,8 @@
 language: erlang
+addons:
+  apt:
+    packages:
+      - fakeroot
 otp_release:
   - 19.3
   - 20.0
