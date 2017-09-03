@@ -2,8 +2,10 @@ language: erlang
 otp_release:
   - 19.3
   - 20.0
+install:
+  - rebar3 get-deps
 script:
-  - REBAR3=./rebar3 make test dist dpkg
+  - make test dist dpkg
 deploy:
   provider: releases
   api_key:
