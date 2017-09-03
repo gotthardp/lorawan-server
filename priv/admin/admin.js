@@ -1041,33 +1041,33 @@ return {
     scope: {
     },
     link: function($scope) {
-        var now = new Date();
-        $scope.time_start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString();
-        $scope.time_end = null;
-        $http({method: 'GET', url: '/timeline',
-                params: {start: $scope.time_start, end: $scope.time_end}})
-            .then(function(response) {
-                $scope.data = {items: VisDataSet(response.data.items)};
-            });
+        $scope.data = {items: VisDataSet([])};
         $scope.options = {
+            start: new Date(Date.now() - 43200*1000), // 12 hours ago
+            end: new Date(),
+            rollingMode: {follow: true, offset: 0.95},
             selectable: false,
+            maxHeight: "300px",
             zoomMax: 2592000000,
             zoomMin: 1000
         };
         $scope.events = {
             onload: function(timeline) {
                 $scope.timeline = timeline;
+                updateData();
             },
             rangechanged: function(event) {
-                $scope.time_start = event.start.toISOString();
-                $scope.time_end = event.end.toISOString();
-                updateData();
+                if(event.byUser)
+                    updateData();
             }
         };
 
         function updateData() {
+            var start = new Date($scope.timeline.range.start);
+            var end = new Date($scope.timeline.range.end);
+
             $http({method: 'GET', url: '/timeline',
-                    params: {start: $scope.time_start, end: $scope.time_end}})
+                    params: {start: start.toISOString(), end: end.toISOString()}})
                 .then(function(response) {
 
                     var newIds = response.data.items.map(function(a) {return a.id;});

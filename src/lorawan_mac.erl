@@ -158,22 +158,24 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         NewD
     end),
 
-    JoinCnt =
+    Link0 =
         case mnesia:dirty_read(links, Device#device.link) of
-            [#link{reset_count=Cnt, last_rx=undefined}] when is_integer(Cnt) ->
+            [#link{reset_count=Cnt, last_rx=undefined, devstat=Stats}] when is_integer(Cnt) ->
                 lorawan_utils:throw_warning({node, Device#device.link}, {repeated_reset, Cnt+1}),
-                Cnt+1;
-            _Else ->
-                0
+                #link{reset_count=Cnt+1, devstat=Stats};
+            [#link{devstat=Stats}] ->
+                #link{reset_count=0, devstat=Stats};
+            [] ->
+                #link{reset_count=0, devstat=[]}
         end,
 
     lager:info("JOIN REQUEST ~s ~s -> ~s",
         [binary_to_hex(AppEUI), binary_to_hex(DevEUI), binary_to_hex(Device#device.link)]),
-    Link = #link{devaddr=Device#device.link, region=Device#device.region,
+    Link = Link0#link{devaddr=Device#device.link, region=Device#device.region,
         app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0,
         fcnt_check=Device#device.fcnt_check, txwin=Device#device.txwin,
-        reset_count=JoinCnt, last_mac=Gateway#gateway.mac, last_rxq=RxQ,
+        last_mac=Gateway#gateway.mac, last_rxq=RxQ,
         adr_flag_use=0, adr_flag_set=Device#device.adr_flag_set,
         adr_use=lorawan_mac_region:default_adr(Device#device.region),
         adr_set=Device#device.adr_set,
@@ -185,7 +187,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
     reset_link(Link#link.devaddr),
     case lorawan_handler:handle_join(Gateway, Device, Link) of
         ok ->
-            TxQ = case join_rxwin(Link, JoinCnt) of
+            TxQ = case join_rxwin(Link) of
                 0 ->
                     lager:debug("Join-Accept in RX1: ~w", [Link#link.rxwin_use]),
                     lorawan_mac_region:join1_window(Link, RxQ);
@@ -198,11 +200,11 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         {error, Error} -> {error, {{node, Link#link.devaddr}, Error}}
     end.
 
-join_rxwin(#link{txwin=1}, _) ->
+join_rxwin(#link{txwin=1}) ->
     0;
-join_rxwin(#link{txwin=2}, _) ->
+join_rxwin(#link{txwin=2}) ->
     1;
-join_rxwin(_, JoinCnt) ->
+join_rxwin(#link{reset_count=JoinCnt}) ->
     JoinCnt band 1.
 
 % join response allows to send initial rx1offset and rx2dr
