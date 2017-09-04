@@ -9,7 +9,7 @@
 -export([precise_universal_time/0, ms_diff/2, datetime_to_timestamp/1, apply_offset/2]).
 -export([throw_info/2, throw_warning/2, throw_error/2]).
 
--include("lorawan.hrl").
+-include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 -define(MEGA, 1000000).
 

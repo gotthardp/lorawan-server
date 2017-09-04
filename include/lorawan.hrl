@@ -13,7 +13,6 @@
 -record(ignored_link, {devaddr, mask}).
 -record(connector, {connid, enabled, uri, published, subscribe, consumed, client_id, auth, name, pass, certfile, keyfile}).
 -record(handler, {appid, format, fields, parse, build, connid}).
--record(event, {evid, severity, first_rx, last_rx, count, entity, eid, text}).
 
 -define(to_record(Record, Object, Default),
     list_to_tuple([Record|[maps:get(X, Object, Default) || X <- record_info(fields, Record)]])).
