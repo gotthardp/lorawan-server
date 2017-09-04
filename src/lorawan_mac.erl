@@ -26,7 +26,7 @@ process_frame(MAC, RxQ, PHYPayload) ->
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
-            {error, {{gateway, MAC}, unknown_mac}};
+            lorawan_utils:throw_error({gateway, MAC}, unknown_mac, [aggregated]);
         [Gateway] ->
             process_frame1(Gateway, RxQ, Msg, MIC)
     end.
@@ -42,7 +42,7 @@ process_status(MAC, S) ->
     end,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
-            {error, {{gateway, MAC}, unknown_mac}};
+            lorawan_utils:throw_error({gateway, MAC}, unknown_mac, [aggregated]);
         [G] ->
             ok = mnesia:dirty_write(gateways,
                 store_status(G#gateway{last_rx=calendar:universal_time()}, S)),
@@ -84,18 +84,18 @@ process_frame1(Gateway, RxQ, <<2#000:3, _:5,
 
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
-            {error, {{device, DevEUI}, unknown_deveui}};
+            lorawan_utils:throw_error({device, DevEUI}, unknown_deveui, [aggregated]);
         [D] when D#device.can_join == false ->
             lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
             ok;
         [D] when D#device.appeui /= undefined, D#device.appeui /= AppEUI ->
-            {error, {{device, DevEUI}, {bad_appeui, AppEUI}}};
+            lorawan_utils:throw_error({device, DevEUI}, {bad_appeui, AppEUI}, [aggregated]);
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
                     handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, D#device.appkey);
                 _MIC2 ->
-                    {error, {{device, DevEUI}, bad_mic}}
+                    lorawan_utils:throw_error({device, DevEUI}, bad_mic)
             end
     end;
 process_frame1(Gateway, RxQ, <<MType:3, _:5,
@@ -117,19 +117,17 @@ process_frame1(Gateway, RxQ, <<MType:3, _:5,
                             handle_rxpk(Gateway, RxQ, MType, L, Fresh,
                                 Frame#frame{fopts=reverse(Data), data= <<>>});
                         0 ->
-                            {error, {{node, DevAddr}, double_fopts}};
+                            lorawan_utils:throw_error({node, DevAddr}, double_fopts);
                         _N ->
                             Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, L#link.fcntup),
                             handle_rxpk(Gateway, RxQ, MType, L, Fresh,
                                 Frame#frame{fopts=FOpts, data=reverse(Data)})
                     end;
                 _MIC2 ->
-                    {error, {{node, DevAddr}, bad_mic}}
+                    lorawan_utils:throw_error({node, DevAddr}, bad_mic)
             end;
         ignore ->
-            ok;
-        {error, Error} ->
-            {error, {{node, DevAddr}, Error}}
+            ok
     end;
 process_frame1(_Gateway, _RxQ, Msg, _MIC) ->
     lager:debug("Bad frame: ~p", [Msg]),
@@ -197,7 +195,8 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
             end,
             {RX1DROffset, RX2DataRate, _} = Link#link.rxwin_use,
             txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, Link#link.devaddr);
-        {error, Error} -> {error, {{node, Link#link.devaddr}, Error}}
+        {error, Error} ->
+            lorawan_utils:throw_error({node, Link#link.devaddr}, Error)
     end.
 
 join_rxwin(#link{txwin=1}) ->
@@ -278,7 +277,8 @@ check_link_fcnt(DevAddr, FCnt) ->
     {ok, MaxLost} = application:get_env(lorawan_server, max_lost_after_reset),
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
-            {error, unknown_devaddr};
+            lorawan_utils:throw_error({node, DevAddr}, unknown_devaddr, [aggregated]),
+            ignore;
         [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < MaxLost ->
             lager:debug("~s fcnt reset", [binary_to_hex(DevAddr)]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
@@ -301,7 +301,8 @@ check_link_fcnt(DevAddr, FCnt) ->
                     lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
                     {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, N)}};
                 _BigN ->
-                    {error, {fcnt_gap_too_large, FCnt}}
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, [aggregated]),
+                    ignore
             end;
         [L] ->
             % strict 16-bit (default)
@@ -312,7 +313,8 @@ check_link_fcnt(DevAddr, FCnt) ->
                     lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
                     {ok, new, L#link{fcntup = FCnt}};
                 _BigN ->
-                    {error, {fcnt_gap_too_large, FCnt}}
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, [aggregated]),
+                    ignore
             end
     end.
 
@@ -435,8 +437,10 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
             send_unicast(Link, choose_tx(Link, RxQ), Confirm, FOptsOut, #txdata{});
-        ok -> ok;
-        {error, Error} -> {error, {{node, Link#link.devaddr}, Error}}
+        ok ->
+            ok;
+        {error, Error} ->
+            lorawan_utils:throw_error({node, Link#link.devaddr}, Error)
     end.
 
 handle_downlink(Link, Time, TxData) ->

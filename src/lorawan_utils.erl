@@ -7,7 +7,7 @@
 
 -export([index_of/2]).
 -export([precise_universal_time/0, ms_diff/2, datetime_to_timestamp/1, apply_offset/2]).
--export([throw_info/2, throw_warning/2, throw_error/2]).
+-export([throw_info/2, throw_info/3, throw_warning/2, throw_warning/3, throw_error/2, throw_error/3]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -47,31 +47,47 @@ apply_offset({Date, {Hours, Min, Secs}}, {OHours, OMin, OSecs}) ->
     {Date2, {Hours2, Min2, Secs2}} = calendar:gregorian_seconds_to_datetime(TotalSecs),
     {Date2, {Hours2, Min2, Secs2+(Secs-trunc(Secs))}}.
 
-throw_info({Entity, EID}, Text) ->
-    throw_event(info, Entity, EID, Text);
 throw_info(Entity, Text) ->
-    throw_event(info, Entity, undefined, Text).
+    throw_info(Entity, Text, []).
 
-throw_warning({Entity, EID}, Text) ->
-    throw_event(warning, Entity, EID, Text);
+throw_info({Entity, EID}, Text, Opts) ->
+    throw_event(info, Entity, EID, Text, Opts);
+throw_info(Entity, Text, Opts) ->
+    throw_event(info, Entity, undefined, Text, Opts).
+
 throw_warning(Entity, Text) ->
-    throw_event(warning, Entity, undefined, Text).
+    throw_warning(Entity, Text, []).
 
-throw_error({Entity, EID}, Text) ->
-    throw_event(error, Entity, EID, Text);
+throw_warning({Entity, EID}, Text, Opts) ->
+    throw_event(warning, Entity, EID, Text, Opts);
+throw_warning(Entity, Text, Opts) ->
+    throw_event(warning, Entity, undefined, Text, Opts).
+
 throw_error(Entity, Text) ->
-    throw_event(error, Entity, undefined, Text).
+    throw_error(Entity, Text, []).
+
+throw_error({Entity, EID}, Text, Opts) ->
+    throw_event(error, Entity, EID, Text, Opts);
+throw_error(Entity, Text, Opts) ->
+    throw_event(error, Entity, undefined, Text, Opts).
 
 
-throw_event(Severity, Entity, undefined, Event) ->
+throw_event(Severity, Entity, undefined, Event, Opts) ->
     lager:log(Severity, self(), "~s ~p", [Entity, Event]),
-    write_event(Severity, Entity, undefined, Event);
+    write_event(Severity, Entity, undefined, Event, Opts);
 
-throw_event(Severity, Entity, EID, Event) ->
+throw_event(Severity, Entity, EID, Event, Opts) ->
     lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_mac:binary_to_hex(EID), Event]),
-    write_event(Severity, Entity, EID, Event).
+    write_event(Severity, Entity, EID, Event, Opts).
 
-write_event(Severity, Entity, EID, Event) ->
+write_event(Severity, Entity, EID, Event, []) ->
+    Text = list_to_binary(io_lib:print(Event)),
+    % first_rx and last_rx shall be identical
+    Time = calendar:universal_time(),
+    EvId = crypto:hash(md4, term_to_binary({Entity, EID, Event, Time})),
+    mnesia:dirty_write(events, #event{evid=EvId, severity=Severity,
+        first_rx=Time, last_rx=Time, count=1, entity=Entity, eid=EID, text=Text});
+write_event(Severity, Entity, EID, Event, [aggregated]) ->
     Text = list_to_binary(io_lib:print(Event)),
     EvId = crypto:hash(md4, term_to_binary({Entity, EID,
         case Event of
@@ -85,9 +101,10 @@ write_event(Severity, Entity, EID, Event) ->
                     mnesia:write(events, E#event{last_rx=calendar:universal_time(),
                         count=inc(E#event.count), text=Text}, write);
                 [] ->
+                    % first_rx and last_rx shall be identical
+                    Time = calendar:universal_time(),
                     mnesia:write(events, #event{evid=EvId, severity=Severity,
-                        first_rx=calendar:universal_time(), last_rx=calendar:universal_time(),
-                        count=1, entity=Entity, eid=EID, text=Text}, write)
+                        first_rx=Time, last_rx=Time, count=1, entity=Entity, eid=EID, text=Text}, write)
             end
         end),
     ok.

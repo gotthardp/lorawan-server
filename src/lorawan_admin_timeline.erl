@@ -34,14 +34,15 @@ get_timeline(Req, State) ->
     #{'start' := Start, 'end' := End} =
         cowboy_req:match_qs([{'start', [], <<>>}, {'end', [], <<>>}], Req),
     Events = lists:map(
-        fun({Id, Text, DateTime, Severity}) ->
+        fun({Id, StartTime, EndTime, Severity, Text}) ->
             [{id, lorawan_mac:binary_to_hex(Id)},
                 {className, Severity},
                 {content, Text},
-                {start, DateTime}]
+                {start, StartTime}]
+            %    {'end', EndTime}]
         end,
-        mnesia:dirty_select(events, [{#event{evid='$1', text='$2', last_rx='$3', severity='$4', _='_'},
-            select_datetime(Start, End), [{{'$1', '$2', '$3', '$4'}}]}])),
+        mnesia:dirty_select(events, [{#event{evid='$1', first_rx='$2', last_rx='$3', severity='$4', text='$5', _='_'},
+            select_datetime(Start, End, '$2', '$3'), [{{'$1', '$2', '$3', '$4', '$5'}}]}])),
     RxFrames = lists:map(
         fun({Id, DevAddr, DateTime, Port}) ->
             [{id, lorawan_mac:binary_to_hex(Id)},
@@ -50,17 +51,17 @@ get_timeline(Req, State) ->
                 {start, DateTime}]
         end,
         mnesia:dirty_select(rxframes, [{#rxframe{frid='$1', devaddr='$2', datetime='$3', port='$4', _='_'},
-            select_datetime(Start, End), [{{'$1', '$2', '$3', '$4'}}]}])),
+            select_datetime(Start, End, '$3', '$3'), [{{'$1', '$2', '$3', '$4'}}]}])),
     {jsx:encode([{items, Events++RxFrames}]), Req, State}.
 
-select_datetime(<<>>, <<>>) ->
+select_datetime(<<>>, <<>>, _, _) ->
     [];
-select_datetime(Start, <<>>) ->
-    [{'>=', '$3', {const, iso8601:parse(Start)}}];
-select_datetime(<<>>, End) ->
-    [{'=<', '$3', {const, iso8601:parse(End)}}];
-select_datetime(Start, End) ->
-    [{'>=', '$3', {const, iso8601:parse(Start)}}, {'=<', '$3', {const, iso8601:parse(End)}}].
+select_datetime(WStart, <<>>, _, EEnd) ->
+    [{'>=', EEnd, {const, iso8601:parse(WStart)}}];
+select_datetime(<<>>, WEnd, EStart, _) ->
+    [{'=<', EStart, {const, iso8601:parse(WEnd)}}];
+select_datetime(WStart, WEnd, EStart, EEnd) ->
+    [{'>=', EEnd, {const, iso8601:parse(WStart)}}, {'=<', EStart, {const, iso8601:parse(WEnd)}}].
 
 resource_exists(Req, State) ->
     {true, Req, State}.
