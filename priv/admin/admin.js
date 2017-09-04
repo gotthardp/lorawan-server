@@ -382,7 +382,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('battery', 'number').label('Battery')
             .map(function first(value, entry) {
-                if(Array.isArray(entry.devstat))
+                if(Array.isArray(entry.devstat) && entry.devstat.length > 0)
                     return entry.devstat[0].battery;
             }),
         nga.field('last_rx', 'datetime').label('Last RX'),
@@ -766,7 +766,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('devaddr').label('DevAddr').isDetailLink(true),
                 nga.field('battery', 'number').label('Battery')
                     .map(function first(value, entry) {
-                        if(Array.isArray(entry.devstat))
+                        if(Array.isArray(entry.devstat) && entry.devstat.length > 0)
                             return entry.devstat[0].battery;
                     }),
                 nga.field('last_rx', 'datetime').label('Last RX'),
@@ -1043,7 +1043,7 @@ return {
     link: function($scope) {
         $scope.data = {items: VisDataSet([])};
         $scope.options = {
-            start: new Date(Date.now() - 43200*1000), // 12 hours ago
+            start: new Date(Date.now() - 600*1000), // 10 minutes ago
             end: new Date(),
             rollingMode: {follow: true, offset: 0.95},
             selectable: false,
