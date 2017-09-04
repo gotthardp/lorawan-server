@@ -562,8 +562,8 @@ bool_to_pending(true) -> 1;
 bool_to_pending(false) -> 0;
 bool_to_pending(undefined) -> 0.
 
-bit_to_bool(0) -> true;
-bit_to_bool(1) -> false.
+bit_to_bool(0) -> false;
+bit_to_bool(1) -> true.
 
 get_adr_flag(#link{adr_flag_set=ADR}) when ADR == undefined; ADR == 0 -> 0;
 get_adr_flag(#link{adr_flag_set=ADR}) when ADR > 0 -> 1.
