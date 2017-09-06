@@ -58,7 +58,8 @@
             ]}
         ]},
         % {sec, fcnt} after which the device status should be request
-        {devstat_gap, {86400, 24}},
+        % by default: 5 days or 4*24 frames
+        {devstat_gap, {432000, 96}},
         {max_lost_after_reset, 10},
         % packet_forwarder's push_timeout_ms + transport + deduplication_delay
         {preprocessing_delay, 300},

@@ -79,11 +79,16 @@ check_reset(#link{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
 check_reset(#link{}) ->
     ok.
 
-check_battery(#link{devstat=[{Battery, _Margin}|_]}) when Battery < 50 ->
-    % TODO: should estimate trend instead
-    {100-2*Battery, battery_low};
+check_battery(#link{devstat=[{TimeStamp, Battery, _Margin}|_]}) ->
+    if
+        Battery < 50 ->
+            % TODO: should estimate trend instead
+            {100-2*Battery, battery_low};
+        true ->
+            ok
+    end;
 check_battery(#link{}) ->
-    ok.
+    undefined.
 
 parse(Object) when is_map(Object) ->
     maps:map(fun(Key, Value) -> parse_field(Key, Value) end,

@@ -719,7 +719,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'device', label: 'device' },
                 { value: 'node', label: 'node' }
             ]),
-        nga.field('eid')
+        nga.field('eid'),
+        nga.field('text', 'wysiwyg')
     ]);
     // add to the admin application
     admin.addEntity(events);
