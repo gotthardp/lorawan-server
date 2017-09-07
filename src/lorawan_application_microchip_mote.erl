@@ -24,7 +24,7 @@ handle_join(_Gateway, _Device, _Link) ->
 % Lora_Legacy_Mote_Firmware/Includes/Board/MOTEapp.c:520
 handle_rx(_Gateway, #link{devaddr=DevAddr},
         #rxdata{data= <<Light:5/binary, Temp:3/binary>>}, _RxQ) ->
-    lager:debug("PUSH_DATA ~s ~s",[DevAddr, Light, Temp]),
+    lager:debug("PUSH_DATA ~w ~p ~p", [DevAddr, Light, Temp]),
     % display actual time
     {H, M, S} = time(),
     Time = lists:flatten(io_lib:format('~2..0b:~2..0b:~2..0b', [H, M, S])),
