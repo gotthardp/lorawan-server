@@ -267,7 +267,8 @@ parse_devstat(Value) ->
 
 % backward compatibility
 build_devstat({Battery, Margin}) ->
-    #{battery => build_opt(Battery), margin => build_opt(Margin)};
+    [#{datetime => iso8601:format(calendar:universal_time()),
+        battery => build_opt(Battery), margin => build_opt(Margin)}];
 build_devstat(Value) ->
     lists:map(
         fun({Timestamp, Battery, Margin}) ->
