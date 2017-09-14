@@ -1,6 +1,9 @@
 Mnesia.*
 erl_crash.dump
 
+.idea/
+*.iml
+
 rebar3
 _build
 rebar.lock
