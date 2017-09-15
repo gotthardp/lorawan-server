@@ -8,6 +8,16 @@ This document describes how to build, install and configure the lorawan-server.
 
 On the Debian Linux and its clones like Raspbian you can use the .deb package.
 
+Install the Erlang/OTP 19 or later from
+[Erlang Solutions](https://www.erlang-solutions.com/resources/download.html) first:
+```bash
+wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
+sudo dpkg -i erlang-solutions_1.0_all.deb
+
+sudo apt-get update
+sudo apt-get install erlang
+```
+
 Download the Debian package
 [lorawan-server-*.deb](https://github.com/gotthardp/lorawan-server/releases)
 and install it by:
@@ -22,8 +32,9 @@ Then start the server by `systemctl start lorawan-server`.
 You will need the Erlang/OTP 19 or later. Try typing `yum install erlang` or
 `apt-get install erlang`.
 
-If your Linux distribution includes some older version of Erlang/OTP, try installing
-an update from [Erlang Solutions](https://www.erlang-solutions.com/resources/download.html).
+Check your Erlang/OTP version by typing `erl`. If your Linux distribution
+includes some older version of Erlang/OTP, install an update from
+[Erlang Solutions](https://www.erlang-solutions.com/resources/download.html).
 
 Then download the latest binary release
 [lorawan-server-*.tar.gz](https://github.com/gotthardp/lorawan-server/releases)

@@ -79,7 +79,7 @@ check_reset(#link{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
 check_reset(#link{}) ->
     ok.
 
-check_battery(#link{devstat=[{TimeStamp, Battery, _Margin}|_]}) ->
+check_battery(#link{devstat=[{_TimeStamp, Battery, _Margin}|_]}) ->
     if
         Battery < 50 ->
             % TODO: should estimate trend instead
