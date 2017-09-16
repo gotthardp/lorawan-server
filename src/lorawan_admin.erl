@@ -9,7 +9,7 @@
 -export([check_health/1, check_health/3, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
 
--export([check_reception/1, check_reset/1, check_battery/1]).
+-export([check_reception/1, check_reset/1, check_battery/1, check_margin/1]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -39,7 +39,7 @@ authorized_password(Role, User, Pass) ->
 check_health(#gateway{} = Gateway) ->
     check_health(Gateway, ?MODULE, [check_reception]);
 check_health(#link{} = Link) ->
-    check_health(Link, ?MODULE, [check_reset, check_battery]);
+    check_health(Link, ?MODULE, [check_reset, check_battery, check_margin]);
 check_health(_Other) ->
     #{}.
 
@@ -79,7 +79,7 @@ check_reset(#link{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
 check_reset(#link{}) ->
     ok.
 
-check_battery(#link{devstat=[{_TimeStamp, Battery, _Margin}|_]}) ->
+check_battery(#link{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
     if
         Battery < 50 ->
             % TODO: should estimate trend instead
@@ -88,6 +88,16 @@ check_battery(#link{devstat=[{_TimeStamp, Battery, _Margin}|_]}) ->
             ok
     end;
 check_battery(#link{}) ->
+    undefined.
+
+check_margin(#link{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
+    if
+        Margin =< MaxSNR+10 ->
+            {100-10*(Margin-MaxSNR), downlink_noise};
+        true ->
+            ok
+    end;
+check_margin(#link{}) ->
     undefined.
 
 parse(Object) when is_map(Object) ->
@@ -263,18 +273,22 @@ build_rxwin({RX1DROffset, RX2DataRate, Frequency}) ->
 
 parse_devstat(Value) ->
     lists:map(
-        fun(#{datetime := DateTime, battery := Battery, margin := Margin}) ->
-            {iso8601:parse(DateTime), Battery, Margin}
+        fun(#{datetime := DateTime, battery := Battery, margin := Margin, max_snr := MaxSNR}) ->
+            {iso8601:parse(DateTime), Battery, Margin, MaxSNR}
         end, Value).
 
 % backward compatibility
 build_devstat({Battery, Margin}) ->
     [#{datetime => iso8601:format(calendar:universal_time()),
-        battery => build_opt(Battery), margin => build_opt(Margin)}];
+        battery => build_opt(Battery), margin => build_opt(Margin), max_snr => 0}];
 build_devstat(Value) ->
     lists:map(
-        fun({Timestamp, Battery, Margin}) ->
-            #{datetime => iso8601:format(Timestamp), battery => Battery, margin => Margin}
+        fun({Timestamp, Battery, Margin, MaxSNR}) ->
+            #{datetime => iso8601:format(Timestamp), battery => Battery, margin => Margin, max_snr => MaxSNR};
+        % backward compatibility
+        % REMOVE BEFORE RELEASING 0.4.11
+        ({Timestamp, Battery, Margin}) ->
+            #{datetime => iso8601:format(Timestamp), battery => Battery, margin => Margin, max_snr => 0}
         end, Value).
 
 parse_qs(List) ->

@@ -138,9 +138,16 @@ find_rxwin(FOptsIn) ->
 handle_status(FOptsIn, Link) ->
     case find_status(FOptsIn) of
         {Battery, Margin} ->
-            lager:debug("DevStatus: battery ~B, margin: ~B", [Battery, Margin-32]),
+            % compute a maximal D/L SNR
+            {_, DataRate, _} = Link#link.adr_use,
+            OffUse = case Link#link.rxwin_use of
+                {Num2, _, _} when is_number(Num2) -> Num2;
+                _Else2 -> 0
+            end,
+            MaxSNR = lorawan_mac_region:max_downlink_snr(Link#link.region, DataRate, OffUse),
+            lager:debug("DevStatus: battery ~B, margin: ~B (max ~B)", [Battery, Margin-32, MaxSNR]),
             Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup,
-                devstat=append_status({calendar:universal_time(), Battery, Margin-32}, Link#link.devstat)};
+                devstat=append_status({calendar:universal_time(), Battery, Margin-32, MaxSNR}, Link#link.devstat)};
         undefined ->
             Link
     end.
@@ -162,7 +169,7 @@ find_status(FOptsIn) ->
 
 send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
     {SF, _} = lorawan_mac_region:datar_to_tuple(DataRate),
-    Margin = trunc(SNR - max_snr(SF)),
+    Margin = trunc(SNR - lorawan_mac_region:max_snr(SF)),
     lager:debug("LinkCheckAns: margin: ~B", [Margin]),
     {link_check_ans, Margin, 1}.
 
@@ -187,7 +194,7 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
     {TxPower, DataRate, _} = Link#link.adr_use,
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
-    MaxSNR = max_snr(Link#link.region, DataRate)+10,
+    MaxSNR = lorawan_mac_region:max_uplink_snr(Link#link.region, DataRate)+10,
     StepsDR = trunc((AvgSNR-MaxSNR)/3),
     DataRate2 = if
             DataRate == undefined ->
@@ -228,14 +235,6 @@ average0(List) ->
     Avg = lists:sum(List)/length(List),
     Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- List])/length(List)),
     Avg-Sigma.
-
-max_snr(Region, DataRate) ->
-    {SF, _} = lorawan_mac_region:dr_to_tuple(Region, DataRate),
-    max_snr(SF).
-
-% from SX1272 DataSheet, Table 13
-max_snr(SF) ->
-    -5-2.5*(SF-6). % dB
 
 send_adr(Link, FOptsOut) ->
     IsIncomplete = has_undefined_field(Link#link.adr_set),

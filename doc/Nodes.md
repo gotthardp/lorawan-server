@@ -47,6 +47,7 @@ frames.
 Shows:
  - *Alerts* that may need your attention:
    * `battery_low` when the device battery is below 20% its capacity;
+   * `downlink_noise` when the indicated D/L SNR is close to the sensitivity limit;
    * `many_resets` when the device sent multiple Join requests without sending
      any other frames.
  - *Request Status* flag, which can be used to disable the status requests for

@@ -380,11 +380,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appargs').label('Arguments'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
-        nga.field('battery', 'number').label('Battery')
-            .map(function first(value, entry) {
-                if(Array.isArray(entry.devstat) && entry.devstat.length > 0)
-                    return entry.devstat[0].battery;
-            }),
+        nga.field('battery', 'number')
+            .map(function(value, entry) { return first(entry.devstat, 'battery') }),
+        nga.field('margin', 'number').label('D/L SNR')
+            .map(function(value, entry) { return first(entry.devstat, 'margin') }),
         nga.field('last_rx', 'datetime').label('Last RX'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
@@ -767,10 +766,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .fields([
                 nga.field('devaddr').label('DevAddr').isDetailLink(true),
                 nga.field('battery', 'number').label('Battery')
-                    .map(function first(value, entry) {
-                        if(Array.isArray(entry.devstat) && entry.devstat.length > 0)
-                            return entry.devstat[0].battery;
-                    }),
+                    .map(function(value, entry) { return first(entry.devstat, 'battery') }),
+                nga.field('margin', 'number').label('D/L SNR')
+                    .map(function(value, entry) { return first(entry.devstat, 'margin') }),
                 nga.field('last_rx', 'datetime').label('Last RX'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
@@ -907,6 +905,11 @@ function parse_bitstring(value, entry) {
 
 function enquote(items) {
     return items.map(function(item) { return "'" + item + "'" }).join(',');
+}
+
+function first(array, element) {
+    if(Array.isArray(array) && array.length > 0)
+        return array[0][element];
 }
 
 function dashboardTemplate(leftPanel, rightPanel) {
@@ -1356,7 +1359,8 @@ return {
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},
-                    1: {"targetAxisIndex": 1}
+                    1: {"targetAxisIndex": 1},
+                    2: {"targetAxisIndex": 1}
                 },
                 "chartArea": {
                     "top": 0, "bottom": "10%",

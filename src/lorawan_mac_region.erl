@@ -6,7 +6,7 @@
 -module(lorawan_mac_region).
 
 -export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx1_rf/2, rx2_rf/2, rf_fixed/1]).
--export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1, tx_time/2]).
+-export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1, max_snr/1, max_uplink_snr/2, max_downlink_snr/3, tx_time/2]).
 -export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
@@ -95,10 +95,13 @@ tx_time(Window, Stamp, TxQ) ->
     TxQ#txq{tmst=Stamp+Delay}.
 
 datar_to_down(Region, DataRate, Offset) ->
-    Down = dr_to_down(Region, datar_to_dr(Region, DataRate)),
-    dr_to_datar(Region, lists:nth(Offset+1, Down)).
+    DR2 = dr_to_down(Region, datar_to_dr(Region, DataRate), Offset),
+    dr_to_datar(Region, DR2).
 
-dr_to_down(Region, DR)
+dr_to_down(Region, DR, Offset) ->
+    lists:nth(Offset+1, drs_to_down(Region, DR)).
+
+drs_to_down(Region, DR)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>;
              Region == <<"CN470-510">>; Region == <<"KR920-923">>; Region == <<"AS923-JP">> ->
     case DR of
@@ -111,7 +114,7 @@ dr_to_down(Region, DR)
         6 -> [6, 5, 4, 3, 2, 1];
         7 -> [7, 6, 5, 4, 3, 2]
     end;
-dr_to_down(Region, DR)
+drs_to_down(Region, DR)
         when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
     case DR of
         0 -> [10, 9,  8,  8];
@@ -296,6 +299,18 @@ freq_range(<<"AU915-928">>) -> {915, 928};
 freq_range(<<"CN470-510">>) -> {470, 510};
 freq_range(<<"KR920-923">>) -> {920, 923};
 freq_range(<<"AS923-JP">>) -> {920.6, 923.4}.
+
+max_uplink_snr(Region, DataRate) ->
+    {SF, _} = dr_to_tuple(Region, DataRate),
+    max_snr(SF).
+
+max_downlink_snr(Region, DataRate, Offset) ->
+    {SF, _} = dr_to_tuple(Region, dr_to_down(Region, DataRate, Offset)),
+    max_snr(SF).
+
+% from SX1272 DataSheet, Table 13
+max_snr(SF) ->
+    -5-2.5*(SF-6). % dB
 
 tx_time(#txdata{data=Data}, TxQ) ->
     tx_time(byte_size(Data), TxQ);

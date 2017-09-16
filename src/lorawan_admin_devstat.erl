@@ -38,16 +38,22 @@ get_rxframe(Req, State) ->
     Array = [{cols, [
                 [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
                 [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
-                [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
+                [{id, <<"snr">>}, {label, <<"D/L SNR (dB)">>}, {type, <<"number">>}],
+                [{id, <<"max_snr">>}, {label, <<"Max SNR (dB)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
-                fun({Timestamp, Batt, Margin}) ->
+                fun({Timestamp, Batt, Margin, MaxSNR}) ->
                     [{c, [
                         [{v, encode_timestamp(Timestamp)}],
                         [{v, Batt}],
                         % what the standard calls "margin" is simply the SNR
-                        [{v, Margin}]
-                    ]}]
+                        [{v, Margin}],
+                        [{v, MaxSNR}]
+                    ]}];
+                % backwards compatibility
+                % REMOVE BEFORE RELEASING 0.4.11
+                ({Timestamp, Batt, Margin}) ->
+                    []
                 end, DevStat)
             }
         ],
