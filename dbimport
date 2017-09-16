@@ -1,4 +1,13 @@
-wget --user=admin --password=admin --header=Content-Type:application/json --post-file=dbusers.json http://localhost:8080/users
-wget --user=admin --password=admin --header=Content-Type:application/json --post-file=dbgateways.json http://localhost:8080/gateways
-wget --user=admin --password=admin --header=Content-Type:application/json --post-file=dbdevices.json http://localhost:8080/devices
-wget --user=admin --password=admin --header=Content-Type:application/json --post-file=dbnodes.json http://localhost:8080/nodes
+#!/bin/bash
+SERVER="localhost:8080"
+AUTH="--user=admin --password=admin"
+
+if [ -z "$1" ]; then
+    DIR="."
+else
+    DIR=$1
+fi
+
+for f in $DIR/*.json; do
+    wget -nv $AUTH --header=Content-Type:application/json --post-file=$f http://$SERVER/$(basename $f .json)
+done

@@ -183,9 +183,9 @@ the proxy configuration as follows.
 
 ## Backup and Restore
 
-Use the `dbexport` script to backup your list of users, gateways, devices and nodes.
-This will create several `db*.json` files. Use the `dbimport` script to write these
-files back to the server database.
+Use the `./dbexport` script to backup your database. This will create a `backup-xxx`
+directory with several `*.json` files. Use the `./dbimport backup-xxx` script to
+write these files back to the server database.
 
 The database is stored in the `Mnesia.lorawan@localhost` directory. To upgrade
 the database structure or recover from database errors you should do `dbexport`,

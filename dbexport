@@ -1,4 +1,10 @@
-wget --user=admin --password=admin --output-document=dbusers.json http://localhost:8080/users
-wget --user=admin --password=admin --output-document=dbgateways.json http://localhost:8080/gateways
-wget --user=admin --password=admin --output-document=dbdevices.json http://localhost:8080/devices
-wget --user=admin --password=admin --output-document=dbnodes.json http://localhost:8080/nodes
+#!/bin/bash
+SERVER="localhost:8080"
+AUTH="--user=admin --password=admin"
+
+DIR=backup-$(date +"%Y%m%d-%H%M%S")
+mkdir -p $DIR
+
+for db in users gateways multicast_channels devices nodes ignored_nodes handlers connectors; do
+    wget -nv $AUTH --output-document=$DIR/$db.json http://$SERVER/$db
+done

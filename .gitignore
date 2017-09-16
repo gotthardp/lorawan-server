@@ -7,7 +7,6 @@ erl_crash.dump
 rebar3
 _build
 rebar.lock
-db*.json
 
 scripts/dpkg-deb/control
 node_modules/
@@ -23,4 +22,5 @@ priv/admin/img/
 priv/admin/angular-vis.js
 priv/admin/bootstrap-colorpicker-module.min.js
 priv/admin/colorpicker.min.css
+backup-*/*.json
 log/
