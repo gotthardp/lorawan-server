@@ -19,6 +19,7 @@ The server Dashboard shows:
  * Rolling timeline displaying recent Frames and [Events](Events.md).
  * Server information and a list of [Gateways](Infrastructure.md),
    [Devices](Devices.md) and [Nodes](Nodes.md) that may need your attention.
+   The lines are sorted by severity.
  * Seven most recent [Events](Events.md) and seven most recent frames received.
 
 The following configuration pages are available:
