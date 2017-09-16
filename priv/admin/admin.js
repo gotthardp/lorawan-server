@@ -702,7 +702,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                         entry.values.eid + "</a>";
                 }
             }),
-        nga.field('text', 'wysiwyg')
+        nga.field('text', 'wysiwyg'),
+        nga.field('args', 'wysiwyg')
     ])
     .sortField('last_rx');
     events.listView().filters([
@@ -789,7 +790,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                                 entry.values.eid + "</a>";
                         }
                     }),
-                nga.field('text', 'wysiwyg')
+                nga.field('text', 'wysiwyg'),
+                nga.field('args', 'wysiwyg')
             ])
             .sortField('last_rx')
             .perPage(7)

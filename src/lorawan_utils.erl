@@ -51,64 +51,68 @@ throw_info(Entity, Text) ->
     throw_info(Entity, Text, unique).
 
 throw_info({Entity, EID}, Text, Mark) ->
-    throw_event(info, Entity, EID, Text, Mark);
+    throw_event(info, {Entity, EID}, Text, Mark);
 throw_info(Entity, Text, Mark) ->
-    throw_event(info, Entity, undefined, Text, Mark).
+    throw_event(info, {Entity, undefined}, Text, Mark).
 
 throw_warning(Entity, Text) ->
     throw_warning(Entity, Text, unique).
 
 throw_warning({Entity, EID}, Text, Mark) ->
-    throw_event(warning, Entity, EID, Text, Mark);
+    throw_event(warning, {Entity, EID}, Text, Mark);
 throw_warning(Entity, Text, Mark) ->
-    throw_event(warning, Entity, undefined, Text, Mark).
+    throw_event(warning, {Entity, undefined}, Text, Mark).
 
 throw_error(Entity, Text) ->
     throw_error(Entity, Text, unique).
 
 throw_error({Entity, EID}, Text, Mark) ->
-    throw_event(error, Entity, EID, Text, Mark);
+    throw_event(error, {Entity, EID}, Text, Mark);
 throw_error(Entity, Text, Mark) ->
-    throw_event(error, Entity, undefined, Text, Mark).
+    throw_event(error, {Entity, undefined}, Text, Mark).
 
 
-throw_event(Severity, Entity, undefined, Event, Mark) ->
-    lager:log(Severity, self(), "~s ~p", [Entity, Event]),
-    write_event(Severity, Entity, undefined, Event, Mark);
+throw_event(Severity, {Entity, undefined}, Text, Mark) ->
+    lager:log(Severity, self(), "~s ~p", [Entity, Text]),
+    write_event(Severity, {Entity, undefined}, Text, Mark);
 
-throw_event(Severity, Entity, EID, Event, Mark) ->
-    lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_mac:binary_to_hex(EID), Event]),
-    write_event(Severity, Entity, EID, Event, Mark).
+throw_event(Severity, {Entity, EID}, Text, Mark) ->
+    lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_mac:binary_to_hex(EID), Text]),
+    write_event(Severity, {Entity, EID}, Text, Mark).
 
-write_event(Severity, Entity, EID, Event, unique) ->
+write_event(Severity, {Entity, EID}, Text, unique) ->
     % first_rx and last_rx shall be identical
     Time = calendar:universal_time(),
-    EvId = evid(Entity, EID, Event, Time),
-    Text = list_to_binary(io_lib:print(Event)),
+    {Event, Args} = event_args(Text),
+    EvId = evid({Entity, EID}, Event, Time),
     mnesia:dirty_write(events, #event{evid=EvId, severity=Severity,
-        first_rx=Time, last_rx=Time, count=1, entity=Entity, eid=EID, text=Text});
-write_event(Severity, Entity, EID, Event, Mark) ->
-    EvId = evid(Entity, EID, Event, Mark),
-    Text = list_to_binary(io_lib:print(Event)),
+        first_rx=Time, last_rx=Time, count=1, entity=Entity, eid=EID, text=Event, args=Args});
+write_event(Severity, {Entity, EID}, Text, Mark) ->
+    {Event, Args} = event_args(Text),
+    EvId = evid({Entity, EID}, Event, Mark),
     {atomic, ok} =
         mnesia:transaction(fun() ->
             case mnesia:read(events, EvId, write) of
                 [E] ->
                     mnesia:write(events, E#event{last_rx=calendar:universal_time(),
-                        count=inc(E#event.count), text=Text}, write);
+                        count=inc(E#event.count), text=Event, args=Args}, write);
                 [] ->
                     % first_rx and last_rx shall be identical
                     Time = calendar:universal_time(),
                     mnesia:write(events, #event{evid=EvId, severity=Severity,
-                        first_rx=Time, last_rx=Time, count=1, entity=Entity, eid=EID, text=Text}, write)
+                        first_rx=Time, last_rx=Time, count=1,
+                        entity=Entity, eid=EID, text=Event, args=Args}, write)
             end
         end),
     ok.
 
-evid(Entity, EID, {First, _}, Mark) ->
-    evid(Entity, EID, First, Mark);
-evid(Entity, EID, Event, Mark) ->
-    crypto:hash(md4, term_to_binary({Entity, EID, Event, Mark})).
+evid(EntityID, Event, Mark) ->
+    crypto:hash(md4, term_to_binary({EntityID, Event, Mark})).
+
+event_args({Event, Args}) ->
+    {atom_to_binary(Event, latin1), list_to_binary(io_lib:print(Args))};
+event_args(Event) ->
+    {atom_to_binary(Event, latin1), undefined}.
 
 inc(undefined) -> 1;
 inc(Num) -> Num+1.

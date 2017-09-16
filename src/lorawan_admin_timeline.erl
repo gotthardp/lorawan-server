@@ -34,20 +34,22 @@ get_timeline(Req, State) ->
     #{'start' := Start, 'end' := End} =
         cowboy_req:match_qs([{'start', [], <<>>}, {'end', [], <<>>}], Req),
     Events = lists:map(
-        fun ({Id, Time, Time, Severity, Text}) ->
+        fun (#event{evid=Id, first_rx=Time, last_rx=Time, severity=Severity, text=Text}=Event) ->
                 [{id, lorawan_mac:binary_to_hex(Id)},
                     {className, Severity},
                     {content, Text},
+                    {title, list_to_binary(title(Event))},
                     {start, Time}];
-            ({Id, StartTime, EndTime, Severity, Text}) ->
+            (#event{evid=Id, first_rx=StartTime, last_rx=EndTime, severity=Severity, text=Text}=Event) ->
                 [{id, lorawan_mac:binary_to_hex(Id)},
                     {className, Severity},
                     {content, Text},
+                    {title, list_to_binary(title(Event))},
                     {start, StartTime},
                     {'end', EndTime}]
         end,
-        mnesia:dirty_select(events, [{#event{evid='$1', first_rx='$2', last_rx='$3', severity='$4', text='$5', _='_'},
-            select_datetime(Start, End, '$2', '$3'), [{{'$1', '$2', '$3', '$4', '$5'}}]}])),
+        mnesia:dirty_select(events, [{#event{evid='$1', first_rx='$2', last_rx='$3', _='_'},
+            select_datetime(Start, End, '$2', '$3'), ['$_']}])),
     RxFrames = lists:map(
         fun({Id, DevAddr, DateTime, Port}) ->
             [{id, lorawan_mac:binary_to_hex(Id)},
@@ -67,6 +69,16 @@ select_datetime(<<>>, WEnd, EStart, _) ->
     [{'=<', EStart, {const, iso8601:parse(WEnd)}}];
 select_datetime(WStart, WEnd, EStart, EEnd) ->
     [{'>=', EEnd, {const, iso8601:parse(WStart)}}, {'=<', EStart, {const, iso8601:parse(WEnd)}}].
+
+title(#event{entity=Entity, eid=undefined}=Event) ->
+    [io_lib:print(Entity), "<br\>", title0(Event)];
+title(#event{entity=Entity, eid=EID}=Event) ->
+    [io_lib:print(Entity), " ", EID, "<br\>", title0(Event)].
+
+title0(#event{text=Text, args=undefined}) ->
+    Text;
+title0(#event{text=Text, args=Args}) ->
+    [Text, " ", Args].
 
 resource_exists(Req, State) ->
     {true, Req, State}.
