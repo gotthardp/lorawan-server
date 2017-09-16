@@ -34,12 +34,17 @@ get_timeline(Req, State) ->
     #{'start' := Start, 'end' := End} =
         cowboy_req:match_qs([{'start', [], <<>>}, {'end', [], <<>>}], Req),
     Events = lists:map(
-        fun({Id, StartTime, EndTime, Severity, Text}) ->
-            [{id, lorawan_mac:binary_to_hex(Id)},
-                {className, Severity},
-                {content, Text},
-                {start, StartTime},
-                {'end', EndTime}]
+        fun ({Id, Time, Time, Severity, Text}) ->
+                [{id, lorawan_mac:binary_to_hex(Id)},
+                    {className, Severity},
+                    {content, Text},
+                    {start, Time}];
+            ({Id, StartTime, EndTime, Severity, Text}) ->
+                [{id, lorawan_mac:binary_to_hex(Id)},
+                    {className, Severity},
+                    {content, Text},
+                    {start, StartTime},
+                    {'end', EndTime}]
         end,
         mnesia:dirty_select(events, [{#event{evid='$1', first_rx='$2', last_rx='$3', severity='$4', text='$5', _='_'},
             select_datetime(Start, End, '$2', '$3'), [{{'$1', '$2', '$3', '$4', '$5'}}]}])),
