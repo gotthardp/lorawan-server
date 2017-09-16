@@ -19,6 +19,8 @@ the device joins the network:
  - **Set Data Rate** defines the data rate;
  - **Set Channels** defines the set of channels to be used. The channels are given
    as a comma-separated list of interfaces, e.g. `0-2` (for EU) or `0-71` (for US).
+ - **Set RX1 DR offset** defines the offset between the uplink and the RX1 slot
+   downlink data rates
 
 See the [Device Administration](Devices.md) guide for more details on the
 server administration.
@@ -34,8 +36,10 @@ Note that the requested Node parameters are not affected by an ABP device reset.
 
 The server administration also displays the currently used ADR settings:
  - **Used ADR** indicates whether the node can do ADR;
- - **Used Channels** indicates the set of channels to be used;
- - **RX** graph indicates the device Power (dBm), Data Rate and Frequency (MHz).
+ - **Used Channels** indicates the set of channels used;
+ - **Used RX1 DR offset** indicates the offset used;
+ - **RX** graph indicates the device Power (dBm), Data Rate and Frequency (MHz);
+ - **RX Quality** graph indicates the SNR (dB) and RSSI (dBm).
 
 After a join or a reset of an ABP device the effective parameters are reverted to
 their standard defaults.

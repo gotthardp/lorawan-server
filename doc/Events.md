@@ -6,11 +6,12 @@ listing of errors and warnings is in the server logs.
 
 Each record contains
  * *Severity* of the issue: error, warning or info.
+ * *First Occurred* timestamp
  * *Last Occurred* timestamp, which gets updated everytime this event occurs.
  * *Count* of occurrences, which gets increased by 1.
  * *Entity* concerned by the event: server, gateway, device or node.
  * *EId*, which is an identifier of the concerned entity.
- * *Text* of the event.
+ * *Text* and *Args* of the event.
 
 Description of the various errors and warnings is provided in the
 [Troubleshooting Guide](Troubleshooting.md).

@@ -1,5 +1,20 @@
 # Infrastructure Administration
 
+## Servers
+
+Shows a single line describing the current server instance:
+ * *Node* name, which is useful for [debugging](Development.md#debugging)
+ * *Version* of the server
+ * *Free Memory* and *Free Disk*
+ * *Alerts* that may need your attention:
+   * `system_memory_high_watermark` when more than 80% of available system memory
+     is allocated
+   * `process_memory_high_watermark` when any Erlang process has allocated more
+     than 5% of total system memory
+   * `disk_almost_full` if any disk partition uses more than 80% of the available
+     space
+
+
 ## Gateways
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-gateway.png)
 
@@ -15,15 +30,21 @@ For each LoRaWAN gateway you can set and view:
  * *Antenna Gain (dBi)* can be set to ensure the *TX Power* + *Antenna Gain*
    is below the maximal allowed Equivalent Isotropic Radiated Power (EIRP)
    for the given region.
+ * *Group*, which is an opaque string with application-specific settings.
  * *Description* for your convenience.
  * *Location* and *Altitude* of the gateway
 
 For the status:
+ * *Alerts* that may need your attention:
+   * `disconnected` when no UDP packet has been received from the gateway for
+     more than 20 sec
  * *Last RX* contains a timestamp of the last received packet. A gateway is
    considered dead if it didn't sent anything for more than 60 seconds.
  * *Delays* graph shows network (LAN) delay between the gateway and the server
    measured during the [`PULL_RESP`](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT#L274)
    sequence. Note this requires packet_forwarder v3.0 or higher.
+ * *Transmissions* graph shows how much did the gateway transmit in past hour.
+   This is useful to monitor regulatory compliance.
 
 The *NetID* and *SubID* are used to create DevAddr of OTAA devices. Each DevAddr
 is composed of 7 LSB of NetID, followed by *X* *SubID* bits, followed by 25-*X*
@@ -46,8 +67,6 @@ To define a multicast channel you need to set:
  * *Region* that determines the LoRaWAN regional parameters.
  * *Application* identifier corresponding to one of the [Applications](Applications.md) configured.
  * *Group* denotes application-specific device group or behaviour.
- * *Channel* determines the frequency.
- * *Data rate* and *Coding rate* determine the radio signal encoding.
  * *NwkSKey* and *AppSKey*
  * *Gateway* indicates MAC of the gateway that shall transmit the broadcast
  * *FCnt Down* is the broadcast frame counter.

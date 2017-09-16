@@ -44,3 +44,10 @@ Once the device joins the network, the *Node* field will contain a reference to 
 
 Optionally, you can also define a set of [ADR](ADR.md) parameters. Once the device
 joins the network, the server will attempt to configure the device accordingly.
+
+
+## Status
+
+You can set:
+ - *Request Status* flag, which can be used to disable the status requests for
+   simple devices that do not support it (by default true).

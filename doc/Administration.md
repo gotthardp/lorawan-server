@@ -16,8 +16,9 @@ The management web-pages are available under `/admin`. It is a wrapper around
 the REST API described below.
 
 The server Dashboard shows:
- * List of [Gateways](Infrastructure.md), [Devices](Devices.md) and
-   [Nodes](Nodes.md).
+ * Rolling timeline displaying recent Frames and [Events](Events.md).
+ * Server information and a list of [Gateways](Infrastructure.md),
+   [Devices](Devices.md) and [Nodes](Nodes.md) that may need your attention.
  * Seven most recent [Events](Events.md) and seven most recent frames received.
 
 The following configuration pages are available:
