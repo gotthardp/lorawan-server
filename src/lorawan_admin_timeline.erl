@@ -73,7 +73,7 @@ select_datetime(WStart, WEnd, EStart, EEnd) ->
 title(#event{entity=Entity, eid=undefined}=Event) ->
     [io_lib:print(Entity), "<br\>", title0(Event)];
 title(#event{entity=Entity, eid=EID}=Event) ->
-    [io_lib:print(Entity), " ", EID, "<br\>", title0(Event)].
+    [io_lib:print(Entity), " ", lorawan_mac:binary_to_hex(EID), "<br\>", title0(Event)].
 
 title0(#event{text=Text, args=undefined}) ->
     Text;
