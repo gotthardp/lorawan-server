@@ -48,52 +48,48 @@ apply_offset({Date, {Hours, Min, Secs}}, {OHours, OMin, OSecs}) ->
     {Date2, {Hours2, Min2, Secs2+(Secs-trunc(Secs))}}.
 
 throw_info(Entity, Text) ->
-    throw_info(Entity, Text, []).
+    throw_info(Entity, Text, unique).
 
-throw_info({Entity, EID}, Text, Opts) ->
-    throw_event(info, Entity, EID, Text, Opts);
-throw_info(Entity, Text, Opts) ->
-    throw_event(info, Entity, undefined, Text, Opts).
+throw_info({Entity, EID}, Text, Mark) ->
+    throw_event(info, Entity, EID, Text, Mark);
+throw_info(Entity, Text, Mark) ->
+    throw_event(info, Entity, undefined, Text, Mark).
 
 throw_warning(Entity, Text) ->
-    throw_warning(Entity, Text, []).
+    throw_warning(Entity, Text, unique).
 
-throw_warning({Entity, EID}, Text, Opts) ->
-    throw_event(warning, Entity, EID, Text, Opts);
-throw_warning(Entity, Text, Opts) ->
-    throw_event(warning, Entity, undefined, Text, Opts).
+throw_warning({Entity, EID}, Text, Mark) ->
+    throw_event(warning, Entity, EID, Text, Mark);
+throw_warning(Entity, Text, Mark) ->
+    throw_event(warning, Entity, undefined, Text, Mark).
 
 throw_error(Entity, Text) ->
-    throw_error(Entity, Text, []).
+    throw_error(Entity, Text, unique).
 
-throw_error({Entity, EID}, Text, Opts) ->
-    throw_event(error, Entity, EID, Text, Opts);
-throw_error(Entity, Text, Opts) ->
-    throw_event(error, Entity, undefined, Text, Opts).
+throw_error({Entity, EID}, Text, Mark) ->
+    throw_event(error, Entity, EID, Text, Mark);
+throw_error(Entity, Text, Mark) ->
+    throw_event(error, Entity, undefined, Text, Mark).
 
 
-throw_event(Severity, Entity, undefined, Event, Opts) ->
+throw_event(Severity, Entity, undefined, Event, Mark) ->
     lager:log(Severity, self(), "~s ~p", [Entity, Event]),
-    write_event(Severity, Entity, undefined, Event, Opts);
+    write_event(Severity, Entity, undefined, Event, Mark);
 
-throw_event(Severity, Entity, EID, Event, Opts) ->
+throw_event(Severity, Entity, EID, Event, Mark) ->
     lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_mac:binary_to_hex(EID), Event]),
-    write_event(Severity, Entity, EID, Event, Opts).
+    write_event(Severity, Entity, EID, Event, Mark).
 
-write_event(Severity, Entity, EID, Event, []) ->
-    Text = list_to_binary(io_lib:print(Event)),
+write_event(Severity, Entity, EID, Event, unique) ->
     % first_rx and last_rx shall be identical
     Time = calendar:universal_time(),
-    EvId = crypto:hash(md4, term_to_binary({Entity, EID, Event, Time})),
+    EvId = evid(Entity, EID, Event, Time),
+    Text = list_to_binary(io_lib:print(Event)),
     mnesia:dirty_write(events, #event{evid=EvId, severity=Severity,
         first_rx=Time, last_rx=Time, count=1, entity=Entity, eid=EID, text=Text});
-write_event(Severity, Entity, EID, Event, [aggregated]) ->
+write_event(Severity, Entity, EID, Event, Mark) ->
+    EvId = evid(Entity, EID, Event, Mark),
     Text = list_to_binary(io_lib:print(Event)),
-    EvId = crypto:hash(md4, term_to_binary({Entity, EID,
-        case Event of
-            {First, _} -> First;
-            Only -> Only
-        end})),
     {atomic, ok} =
         mnesia:transaction(fun() ->
             case mnesia:read(events, EvId, write) of
@@ -108,6 +104,11 @@ write_event(Severity, Entity, EID, Event, [aggregated]) ->
             end
         end),
     ok.
+
+evid(Entity, EID, {First, _}, Mark) ->
+    evid(Entity, EID, First, Mark);
+evid(Entity, EID, Event, Mark) ->
+    crypto:hash(md4, term_to_binary({Entity, EID, Event, Mark})).
 
 inc(undefined) -> 1;
 inc(Num) -> Num+1.

@@ -26,7 +26,7 @@ process_frame(MAC, RxQ, PHYPayload) ->
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
-            lorawan_utils:throw_error({gateway, MAC}, unknown_mac, [aggregated]);
+            lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated);
         [Gateway] ->
             process_frame1(Gateway, RxQ, Msg, MIC)
     end.
@@ -42,7 +42,7 @@ process_status(MAC, S) ->
     end,
     case mnesia:dirty_read(gateways, MAC) of
         [] ->
-            lorawan_utils:throw_error({gateway, MAC}, unknown_mac, [aggregated]);
+            lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated);
         [G] ->
             ok = mnesia:dirty_write(gateways,
                 store_status(G#gateway{last_rx=calendar:universal_time()}, S)),
@@ -84,12 +84,12 @@ process_frame1(Gateway, RxQ, <<2#000:3, _:5,
 
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
-            lorawan_utils:throw_error({device, DevEUI}, unknown_deveui, [aggregated]);
+            lorawan_utils:throw_error({device, DevEUI}, unknown_deveui, aggregated);
         [D] when D#device.can_join == false ->
             lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
             ok;
         [D] when D#device.appeui /= undefined, D#device.appeui /= AppEUI ->
-            lorawan_utils:throw_error({device, DevEUI}, {bad_appeui, AppEUI}, [aggregated]);
+            lorawan_utils:throw_error({device, DevEUI}, {bad_appeui, AppEUI}, aggregated);
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
@@ -158,13 +158,14 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
 
     Link0 =
         case mnesia:dirty_read(links, Device#device.link) of
-            [#link{reset_count=Cnt, last_rx=undefined, devstat=Stats}] when is_integer(Cnt) ->
-                lorawan_utils:throw_warning({node, Device#device.link}, {repeated_reset, Cnt+1}),
+            [#link{first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
+                    when is_integer(Cnt) ->
+                lorawan_utils:throw_warning({node, Device#device.link}, {repeated_reset, Cnt+1}, First),
                 #link{reset_count=Cnt+1, devstat=Stats};
             [#link{devstat=Stats}] ->
-                #link{reset_count=0, devstat=Stats};
+                #link{first_reset=calendar:universal_time(), reset_count=0, devstat=Stats};
             [] ->
-                #link{reset_count=0, devstat=[]}
+                #link{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
 
     lager:info("JOIN REQUEST ~s ~s -> ~s",
@@ -277,7 +278,7 @@ check_link_fcnt(DevAddr, FCnt) ->
     {ok, MaxLost} = application:get_env(lorawan_server, max_lost_after_reset),
     case mnesia:dirty_read(links, DevAddr) of
         [] ->
-            lorawan_utils:throw_error({node, DevAddr}, unknown_devaddr, [aggregated]),
+            lorawan_utils:throw_error({node, DevAddr}, unknown_devaddr, aggregated),
             ignore;
         [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < MaxLost ->
             lager:debug("~s fcnt reset", [binary_to_hex(DevAddr)]),
@@ -301,7 +302,7 @@ check_link_fcnt(DevAddr, FCnt) ->
                     lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
                     {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, N)}};
                 _BigN ->
-                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, [aggregated]),
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#link.last_rx),
                     ignore
             end;
         [L] ->
@@ -313,7 +314,7 @@ check_link_fcnt(DevAddr, FCnt) ->
                     lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
                     {ok, new, L#link{fcntup = FCnt}};
                 _BigN ->
-                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, [aggregated]),
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#link.last_rx),
                     ignore
             end
     end.

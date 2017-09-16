@@ -38,8 +38,8 @@ get_timeline(Req, State) ->
             [{id, lorawan_mac:binary_to_hex(Id)},
                 {className, Severity},
                 {content, Text},
-                {start, StartTime}]
-            %    {'end', EndTime}]
+                {start, StartTime},
+                {'end', EndTime}]
         end,
         mnesia:dirty_select(events, [{#event{evid='$1', first_rx='$2', last_rx='$3', severity='$4', text='$5', _='_'},
             select_datetime(Start, End, '$2', '$3'), [{{'$1', '$2', '$3', '$4', '$5'}}]}])),

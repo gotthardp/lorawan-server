@@ -35,7 +35,7 @@ info(StreamId, Response, #state{next=Next0, path=Path}=State) ->
 log_error(Status, _Path) when Status div 100 == 2; Status == 304; Status == 401 ->
     ok;
 log_error(Status, Path) ->
-    lager:error("HTTP ~B ~s", [Status, Path]).
+    lorawan_utils:throw_warning(server, {http_error, {Status, binary_to_list(Path)}}).
 
 terminate(StreamId, Reason, #state{next=Next0}) ->
     cowboy_stream:terminate(StreamId, Reason, Next0).

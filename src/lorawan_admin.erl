@@ -126,8 +126,9 @@ parse_field(Key, Value) when Key == rxq; Key == last_rxq ->
     ?to_record(rxq, parse(Value));
 parse_field(Key, Value) when Key == txdata ->
     ?to_record(txdata, parse(Value));
-parse_field(Key, Value) when Key == last_join; Key == last_reset; Key == datetime;
-                        Key == devstat_time; Key == first_rx; Key == last_rx ->
+parse_field(Key, Value) when Key == last_join; Key == first_reset; Key == last_reset;
+                        Key == datetime; Key == devstat_time;
+                        Key == first_rx; Key == last_rx ->
     iso8601:parse(Value);
 parse_field(Key, <<"immediately">>) when Key == time ->
     immediately;
@@ -177,8 +178,9 @@ build_field(Key, Value) when Key == txdata ->
     build(?to_map(txdata, Value));
 build_field(Key, immediately) when Key == time ->
     <<"immediately">>;
-build_field(Key, Value) when Key == last_join; Key == last_reset; Key == datetime;
-                        Key == devstat_time; Key == time; Key == first_rx; Key == last_rx ->
+build_field(Key, Value) when Key == last_join; Key == first_reset; Key == last_reset;
+                        Key == datetime; Key == devstat_time; Key == time;
+                        Key == first_rx; Key == last_rx ->
     iso8601:format(Value);
 build_field(Key, Value) when Key == devstat ->
     build_devstat(Value);
