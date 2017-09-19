@@ -93,7 +93,7 @@ check_battery(#link{}) ->
 check_margin(#link{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
     if
         Margin =< MaxSNR+10 ->
-            {100-10*(Margin-MaxSNR), downlink_noise};
+            {5*(Margin-MaxSNR), downlink_noise};
         true ->
             ok
     end;
