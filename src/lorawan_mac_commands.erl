@@ -145,7 +145,7 @@ handle_status(FOptsIn, Link) ->
                 _Else2 -> 0
             end,
             MaxSNR = lorawan_mac_region:max_downlink_snr(Link#link.region, DataRate, OffUse),
-            lager:debug("DevStatus: battery ~B, margin: ~B (max ~B)", [Battery, Margin-32, MaxSNR]),
+            lager:debug("DevStatus: battery ~B, margin: ~B (max ~.1f)", [Battery, Margin-32, MaxSNR]),
             Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup,
                 devstat=append_status({calendar:universal_time(), Battery, Margin-32, MaxSNR}, Link#link.devstat)};
         undefined ->
