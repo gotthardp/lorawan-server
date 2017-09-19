@@ -89,7 +89,7 @@ process_frame1(Gateway, RxQ, <<2#000:3, _:5,
             lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
             ok;
         [D] when D#device.appeui /= undefined, D#device.appeui /= AppEUI ->
-            lorawan_utils:throw_error({device, DevEUI}, {bad_appeui, AppEUI}, aggregated);
+            lorawan_utils:throw_error({device, DevEUI}, {bad_appeui, binary_to_hex(AppEUI)}, aggregated);
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
