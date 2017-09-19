@@ -53,7 +53,7 @@ get_rxframe(Req, State) ->
                 % backwards compatibility
                 % REMOVE BEFORE RELEASING 0.4.11
                 ({Timestamp, Batt, Margin}) ->
-                    []
+                    [{c, []}]
                 end, DevStat)
             }
         ],
