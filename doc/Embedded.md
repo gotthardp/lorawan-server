@@ -21,13 +21,13 @@ git checkout 3.3.9
 ROOT_PASSWORD="root" ./setup.sh
 ```
 
-Then, download the Erlang metalayer:
+Then, download the required metalayers:
 ```bash
 cd layers
 git clone https://github.com/joaohf/meta-erlang.git
 git clone https://github.com/gotthardp/meta-lorawan.git
 ```
-and to `conf/bblayers.conf` add:
+add them to the `conf/bblayers.conf`:
 
 ```bash
 BBLAYERS ?= " \
