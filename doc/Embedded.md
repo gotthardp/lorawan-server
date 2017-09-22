@@ -59,6 +59,11 @@ Make sure your LoRa card was correctly detected by
 mts-io-sysfs show lora/hw-version
 ```
 
+Set `ENABLED="yes"` in `/etc/default/lorawan-server`.
+
+Edit server configuration in `/usr/lib/lorawan-server/releases/<version>/sys.config`
+and set `{disksup_posix_only, true}` since mLinux uses stripped-down Unix tools.
+
 
 ## OpenWRT
 

@@ -52,8 +52,9 @@ get_disk_data() ->
 
 get_alarms() ->
     lists:map(
-        fun({Id, _Desc}) ->
-            Id
+        fun
+            ({Id, _Desc}) when is_atom(Id) -> Id;
+            ({{Id, _}, _Desc}) when is_atom(Id) -> Id
         end,
         alarm_handler:get_alarms()).
 

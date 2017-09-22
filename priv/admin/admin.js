@@ -856,15 +856,19 @@ function map_diskstats(value, entry) {
     var root = entry['disk'].filter(function(obj) {
         return (obj.id === "/");
     });
-    return bytesToSize(1024*root[0].size_kb * (100-root[0].percent_used)/100);
+    if(root.length > 0)
+        return bytesToSize(1024*root[0].size_kb * (100-root[0].percent_used)/100);
 }
 
 function map_diskstats_p(value, entry) {
     var root = entry['disk'].filter(function(obj) {
         return (obj.id === "/");
     });
-    var free = 100-root[0].percent_used;
-    return bytesToSize(1024*root[0].size_kb * free/100)  + " (" + free.toFixed(0) + "%)";
+    if(root.length > 0)
+    {
+        var free = 100-root[0].percent_used;
+        return bytesToSize(1024*root[0].size_kb * free/100) + " (" + free.toFixed(0) + "%)";
+    }
 }
 
 function bytesToSize(bytes) {

@@ -129,6 +129,8 @@ To upgrade your server binaries:
 Review the `lorawan-server/releases/<VERSION>/sys.config` with the server configuration:
  * To enable/disable applications, modify the `plugins` section. For more details
    see the [Custom Application Guide](Applications.md).
+ * Set `{disksup_posix_only, true}` when your embedded system uses stripped-down
+   Unix tools
 
 Note that during the manual installation the `sys.config` is created
 automatically by the release tool (`make release`) based on the
@@ -148,8 +150,15 @@ For example:
     {http_admin_listen, [{port, 8080}]},
     % default username and password for the admin interface
     {http_admin_credentials, {<<"admin">>, <<"admin">>}},
+    % amount of rxframes retained for each device/node
+    {retained_rxframes, 50},
     % websocket expiration if client sends no data
     {websocket_timeout, 3600000} % ms
+]},
+{os_mon, [
+    % Setting this parameter to true can be necessary on embedded systems with
+    % stripped-down versions of Unix tools like df.
+    {disksup_posix_only, false}
 ]}].
 ```
 
