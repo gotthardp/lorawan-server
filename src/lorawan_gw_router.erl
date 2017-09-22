@@ -32,7 +32,8 @@ downlink(Req, MAC, DevAddr, TxQ, PHYPayload) ->
         fun() ->
             [Gateway] = mnesia:read(gateways, MAC, write),
             downlink0(Req, Gateway, DevAddr, TxQ, PHYPayload)
-        end).
+        end),
+    ok.
 
 downlink0(Req, Gateway, DevAddr, TxQ, PHYPayload) ->
     Power = limit_power(Gateway, lorawan_mac_region:eirp_limits(TxQ#txq.region)),
