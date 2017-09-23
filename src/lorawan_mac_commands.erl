@@ -52,7 +52,7 @@ parse_fopts(<<16#04, Rest/binary>>) ->
     [duty_cycle_ans | parse_fopts(Rest)];
 parse_fopts(<<16#05, _RFU:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, Rest/binary>>) ->
     [{rx_param_setup_ans, RX1DROffsetACK, RX2DataRateACK, ChannelACK} | parse_fopts(Rest)];
-parse_fopts(<<16#06, Battery:8, _RFU:2, Margin:6, Rest/binary>>) ->
+parse_fopts(<<16#06, Battery:8, _RFU:2, Margin:6/signed, Rest/binary>>) ->
     [{dev_status_ans, Battery, Margin} | parse_fopts(Rest)];
 parse_fopts(<<16#07, _RFU:6, DataRateRangeOK:1, ChannelFreqOK:1, Rest/binary>>) ->
     [{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | parse_fopts(Rest)];
@@ -145,9 +145,9 @@ handle_status(FOptsIn, Link) ->
                 _Else2 -> 0
             end,
             MaxSNR = lorawan_mac_region:max_downlink_snr(Link#link.region, DataRate, OffUse),
-            lager:debug("DevStatus: battery ~B, margin: ~B (max ~.1f)", [Battery, Margin-32, MaxSNR]),
+            lager:debug("DevStatus: battery ~B, margin: ~B (max ~.1f)", [Battery, Margin, MaxSNR]),
             Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup,
-                devstat=append_status({calendar:universal_time(), Battery, Margin-32, MaxSNR}, Link#link.devstat)};
+                devstat=append_status({calendar:universal_time(), Battery, Margin, MaxSNR}, Link#link.devstat)};
         undefined ->
             Link
     end.
