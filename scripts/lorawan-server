@@ -17,8 +17,13 @@ elif [ -L "$__possible_sys".orig ]; then
     SYS_CONFIG="$__possible_sys"
 fi
 
+if [ ! -z $LORAWAN_LOG_ROOT ]; then
+    ERL_ARGS="-lager log_root \"$LORAWAN_LOG_ROOT\""
+else
+    ERL_ARGS="-lager log_root \"log\""
+fi
 if [ ! -z $GOOGLE_MAPS_KEY ]; then
     sed -i "s/GoogleMapsKey = \"[-a-zA-Z0-9]*\"/GoogleMapsKey = \"$GOOGLE_MAPS_KEY\"/g" $ROOT_DIR/lib/lorawan_server-*/priv/admin/admin-config.js
 fi
 
-cd $LORAWAN_HOME && erl -noinput +Bd -sname lorawan -pa $ROOT_DIR/lib/*/ebin -s lorawan_app -config $SYS_CONFIG $@
+cd $LORAWAN_HOME && erl -noinput +Bd -sname lorawan -pa $ROOT_DIR/lib/*/ebin -s lorawan_app $ERL_ARGS -config $SYS_CONFIG $@

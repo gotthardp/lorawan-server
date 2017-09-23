@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Type=simple
 Environment=LORAWAN_HOME=/var/lib/lorawan-server
+Environment=LORAWAN_LOG_ROOT=/var/log/lorawan-server
 ExecStart=/usr/lib/lorawan-server/bin/lorawan-server
 ExecStop=/usr/lib/lorawan-server/bin/lorawanctl stop
 User=lorawan

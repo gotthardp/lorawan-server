@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 for /D %%A in ("%PROGRAMFILES%\erl*" "%PROGRAMFILES(x86)%\erl*") do (
     for /D %%B in ("%%A\erts*") do (
         for /D %%C in ("%%B\bin\erl.exe") do (
-            set "ERLDIR=%%C"
+            set "ERL_DIR=%%C"
         )
     )
 )
@@ -18,4 +18,5 @@ for /D %%A in ("%ROOT_DIR%\lib\*") do (
     set FILES=!FILES! "%%A\ebin"
 )
 
-cd %ROOT_DIR% && %ERLDIR% -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app -config releases/{{release_version}}/sys.config
+set "ERL_ARGS=-lager log_root "log""
+cd %ROOT_DIR% && %ERL_DIR% -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app %ERL_ARGS% -config releases/{{release_version}}/sys.config

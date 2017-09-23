@@ -51,10 +51,12 @@ You can run the server by:
 bin/lorawan-server
 ```
 
-By default the database directory `Mnesia.lorawan@*` and the `log` files are
-stored in the `lorawan-server` directory you created. If you want to store the
-run-time information to another directory, set the `LORAWAN_HOME` environment
-variable.
+By default the database directory `Mnesia.lorawan@*` is stored in
+the `lorawan-server` directory you created. If you want to store the run-time
+information to another directory, set the `LORAWAN_HOME` environment variable.
+
+The `log` files are by default stored in the same directory. If you want to
+store the log files elsewhere, set the `LORAWAN_LOG_ROOT` variable.
 
 The lorawan-server can be started in background as a daemon.
 On Linux systems with systemd you should:
@@ -63,7 +65,8 @@ On Linux systems with systemd you should:
  * Create a dedicated user by `useradd --home-dir /var/lib/lorawan-server --create-home lorawan`
  * Start the server by `systemctl start lorawan-server`
 
-This will put the database and the logs into `/var/lib/lorawan-server`.
+This will put the database into `/var/lib/lorawan-server` and server logs into
+`/var/log/lorawan-server`.
 
 ### Using the Binary Release on Windows
 
