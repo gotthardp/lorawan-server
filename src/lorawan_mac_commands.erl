@@ -258,7 +258,7 @@ set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
             [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 6, 0} | FOptsOut];
         false ->
             [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 7, 0} |
-                append_mask(4, {TXPower, DataRate, Chans}, FOptsOut)]
+                append_mask(3, {TXPower, DataRate, Chans}, FOptsOut)]
     end;
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"CN470-510">> ->
@@ -385,9 +385,12 @@ bits_test_()-> [
     ?_assertEqual(true, some_bit({0, 15}, [{0,2}])),
     ?_assertEqual(false, all_bit({0, 15}, [{0,2}])),
     ?_assertEqual(false, none_bit({0, 15}, [{0,2}])),
-    ?_assertEqual([{link_adr_req,<<"SF12BW250">>,14,7,0,0}], set_channels(<<"EU863-870">>, {14, <<"SF12BW250">>, [{0, 2}]}, [])),
-    ?_assertEqual([{link_adr_req,<<"SF12BW500">>,20,0,7,0},
-        {link_adr_req,<<"SF12BW500">>,20,255,0,0}], set_channels(<<"US902-928">>, {20, <<"SF12BW500">>, [{0, 7}]}, []))
+    ?_assertEqual([{link_adr_req,<<"SF12BW250">>,14,7,0,0}],
+        set_channels(<<"EU863-870">>, {14, <<"SF12BW250">>, [{0, 2}]}, [])),
+    ?_assertEqual([{link_adr_req,<<"SF12BW500">>,20,0,7,0}, {link_adr_req,<<"SF12BW500">>,20,255,0,0}],
+        set_channels(<<"US902-928">>, {20, <<"SF12BW500">>, [{0, 7}]}, [])),
+    ?_assertEqual([{link_adr_req,<<"SF12BW500">>,20,2,7,0}, {link_adr_req,<<"SF12BW500">>,20,65280,0,0}],
+        set_channels(<<"US902-928">>, {20, <<"SF12BW500">>, [{8, 15}, {65, 65}]}, []))
 ].
 
 % end of file
