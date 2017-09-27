@@ -62,8 +62,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     region_choices = [
         { value: 'EU863-870', label: 'EU 863-870MHz' },
         { value: 'US902-928', label: 'US 902-928MHz' },
-        { value: 'US902-928-PU', label: 'US 902-928MHz (Private Hybrid)' },
-        { value: 'US902-928-PR', label: 'US 902-928MHz (Public Hybrid)' },
+        { value: 'US902-928-PU', label: 'US 902-928MHz (Public Hybrid)' },
+        { value: 'US902-928-PR', label: 'US 902-928MHz (Private Hybrid)' },
         { value: 'CN779-787', label: 'China 779-787MHz' },
         { value: 'EU433', label: 'EU 433MHz' },
         { value: 'AU915-928', label: 'Australia 915-928MHz' },
