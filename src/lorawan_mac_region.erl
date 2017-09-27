@@ -12,16 +12,16 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
 join1_window(Link, RxQ) ->
-    tx_time(join1_delay, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, 0)).
+    tx_window(Link#link.region, join1_delay, RxQ#rxq.tmst, rx1_rf(Link#link.region, RxQ, 0)).
 
 join2_window(Link, RxQ) ->
-    tx_time(join2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
+    tx_window(Link#link.region, join2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
 
 rx1_window(Link, RxQ) ->
-    tx_time(rx1_delay, RxQ#rxq.tmst, rx1_rf(Link, RxQ)).
+    tx_window(Link#link.region, rx1_delay, RxQ#rxq.tmst, rx1_rf(Link, RxQ)).
 
 rx2_window(Link, RxQ) ->
-    tx_time(rx2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
+    tx_window(Link#link.region, rx2_delay, RxQ#rxq.tmst, rx2_rf(Link#link.region, RxQ)).
 
 rx1_rf(Link, RxQ) ->
     Offset = case Link#link.rxwin_use of
@@ -37,7 +37,8 @@ rx1_rf(Region, RxQ, Offset)
 rx1_rf(<<"US902-928">> = Region, RxQ, Offset) ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
     rf_same(Region, RxQ, ch2f(Region, RxCh rem 8), Offset);
-rx1_rf(<<"US902-928-PR">> = Region, RxQ, Offset) ->
+rx1_rf(Region, RxQ, Offset)
+        when Region == <<"US902-928-PU">>; Region == <<"US902-928-PR">> ->
     RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
     rf_same(Region, RxQ, ch2f(Region, RxCh div 8), Offset);
 rx1_rf(<<"AU915-928">> = Region, RxQ, Offset) ->
@@ -75,7 +76,7 @@ ch2f(<<"CN779-787">>, Ch) ->
 ch2f(<<"EU433">>, Ch) ->
     ch2fi(Ch, {4331.75, 2});
 ch2f(Region, Ch)
-        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
+        when Region == <<"US902-928">>; Region == <<"US902-928-PU">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
     ch2fi(Ch, {9233, 6});
 ch2f(<<"CN470-510">>, Ch) ->
     ch2fi(Ch, {5003, 2}).
@@ -90,7 +91,10 @@ rf_same(Region, RxQ, Freq, Offset) ->
     DataRate = datar_to_down(Region, RxQ#rxq.datr, Offset),
     #txq{region=Region, freq=Freq, datr=DataRate, codr=RxQ#rxq.codr}.
 
-tx_time(Window, Stamp, TxQ) ->
+tx_window(<<"US902-928-PR">>=Region, Window, Stamp, TxQ) ->
+    Delay = regional_config(Window, Region),
+    TxQ#txq{tmst=Stamp+Delay};
+tx_window(_Region, Window, Stamp, TxQ) ->
     {ok, Delay} = application:get_env(lorawan_server, Window),
     TxQ#txq{tmst=Stamp+Delay}.
 
@@ -115,7 +119,7 @@ drs_to_down(Region, DR)
         7 -> [7, 6, 5, 4, 3, 2]
     end;
 drs_to_down(Region, DR)
-        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
+        when Region == <<"US902-928">>; Region == <<"US902-928-PU">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
     case DR of
         0 -> [10, 9,  8,  8];
         1 -> [11, 10, 9,  8];
@@ -138,7 +142,7 @@ datars(Region)
     {6, {7, 250}},
     {7, 50000}]; % FSK
 datars(Region)
-        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> -> [
+        when Region == <<"US902-928">>; Region == <<"US902-928-PU">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> -> [
     {0,  {10, 125}},
     {1,  {9, 125}},
     {2,  {8, 125}},
@@ -190,7 +194,7 @@ powers(Region)
     {4, 5},
     {5, 2}];
 powers(Region)
-        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>;
+        when Region == <<"US902-928">>; Region == <<"US902-928-PU">>; Region == <<"US902-928-PR">>;
              Region == <<"AU915-928">> -> [
     {0, 30},
     {1, 28},
@@ -254,6 +258,7 @@ regional_config(Param, Region) ->
 % {TXPower, DataRate, Chans}
 default_adr(<<"EU863-870">>) -> {1, 0, [{0,2}]};
 default_adr(<<"US902-928">>) -> {5, 0, [{0,71}]};
+default_adr(<<"US902-928-PU">>) -> {5, 0, [{0,7}]};
 default_adr(<<"US902-928-PR">>) -> {5, 0, [{0,7}]};
 default_adr(<<"CN779-787">>) -> {1, 0, [{0,2}]};
 default_adr(<<"EU433">>) -> {0, 0, [{0,2}]};
@@ -270,6 +275,7 @@ default_rxwin(Region) ->
 % {TXPower, DataRate}
 max_adr(<<"EU863-870">>) -> {5, 6};
 max_adr(<<"US902-928">>) -> {10, 4};
+max_adr(<<"US902-928-PU">>) -> {10, 4};
 max_adr(<<"US902-928-PR">>) -> {10, 4};
 max_adr(<<"CN779-787">>) -> {5, 6};
 max_adr(<<"EU433">>) -> {5, 6};
@@ -281,6 +287,7 @@ max_adr(<<"AS923-JP">>) -> {6, 5}.
 % {default, maximal} power for downlinks (dBm)
 eirp_limits(<<"EU863-870">>) -> {14, 20};
 eirp_limits(<<"US902-928">>) -> {20, 26};
+eirp_limits(<<"US902-928-PU">>) -> {20, 26};
 eirp_limits(<<"US902-928-PR">>) -> {20, 26};
 eirp_limits(<<"CN779-787">>) -> {10, 10};
 eirp_limits(<<"EU433">>) -> {10, 10};
@@ -292,6 +299,7 @@ eirp_limits(<<"AS923-JP">>) -> {13, 13}.
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};
 freq_range(<<"US902-928">>) -> {902, 928};
+freq_range(<<"US902-928-PU">>) -> {902, 928};
 freq_range(<<"US902-928-PR">>) -> {902, 928};
 freq_range(<<"CN779-787">>) -> {779, 787};
 freq_range(<<"EU433">>) -> {433, 435};
