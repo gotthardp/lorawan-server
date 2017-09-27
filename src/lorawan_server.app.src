@@ -33,11 +33,8 @@
             {<<"US902-928">>, [
                 {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
             ]},
-            % Multitech Public and Private Hybrid Modes
+            % Multitech Private Hybrid Mode
             % http://www.multitech.net/developer/software/lora/introduction-to-lora
-            {<<"US902-928-PU">>, [
-                {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
-            ]},
             {<<"US902-928-PR">>, [
                 {join1_delay, 1000000},
                 {join2_delay, 2000000},
