@@ -19,7 +19,7 @@ For each active network Node you can set:
  * *FCnt Check* to be used for this device (see the Devices section for more explanation).
  * *TX Window* to be used for downlinks to this device.
 
-The *US 902-928MHz* region allows a private *hybrid* mode introduced by
+The *US 902-928MHz* region allows a *Private Hybrid* mode introduced by
 [Multitech](www.multitech.net/developer/software/lora/introduction-to-lora).
 This is useful when you want to split the radio spectrum to 8 different sub-bands,
 but it requires custom device firmware.

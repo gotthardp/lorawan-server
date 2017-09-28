@@ -28,15 +28,19 @@ The server:
      [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
      or [Adafruit IO](https://io.adafruit.com/)
  * Handles (any number of) Class A or Class C devices.
-   * Supports both the node activation by personalization (ABP) and the over-the-air activation (OTAA).
+   * Supports both the node activation by personalization (ABP) and the
+     over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
    * Supports multicast to user-defined groups.
-   * Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928, CN 470-510 and KR 920-923 band.
+   * Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928, CN 470-510,
+     KR 920-923 and AS923-JP bands.
  * Provides a network management interface.
-   * Displays device battery and connectivity status.
+   * Monitors the server, gateways and node health status and displays device
+     battery and connection quality indicators.
    * Supports both manual and automatic configuration of TX power and data rate (ADR).
  * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,
-   even on embedded systems like OpenWrt or in a [Docker container](doc/Docker.md).
+   even on embedded systems like Raspbian, mLinux and other Yocto/OpenEmbedded systems,
+   OpenWrt or in a [Docker container](doc/Docker.md).
  * Does not crash as it's implemented in [Erlang](https://www.erlang.org/), which is
    designed for building fault-tolerant systems.
  * Is free, distributed under the MIT license.

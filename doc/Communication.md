@@ -53,6 +53,11 @@ RX2 parameters you need to add a `regions` section into your
 default values are:
 
 ```erlang
+{join1_delay, 5000000}, % us
+{join2_delay, 6000000}, % us
+{rx1_delay, 1000000}, % us
+{rx2_delay, 2000000}, % us
+
 {regions, [
     {<<"EU863-870">>, [
         % default RX2 frequency (MHz) and data rate (DRx)
@@ -64,6 +69,10 @@ default values are:
     % Multitech Private Hybrid Mode
     % http://www.multitech.net/developer/software/lora/introduction-to-lora
     {<<"US902-928-PR">>, [
+        {join1_delay, 1000000},
+        {join2_delay, 2000000},
+        {rx1_delay, 1000000},
+        {rx2_delay, 2000000},
         {rx2_rf, {undefined, <<"SF12BW500">>}}
     ]},
     {<<"CN779-787">>, [
