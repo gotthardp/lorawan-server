@@ -172,7 +172,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
         [binary_to_hex(AppEUI), binary_to_hex(DevEUI), binary_to_hex(Device#device.link)]),
     Link = Link0#link{devaddr=Device#device.link, region=Device#device.region,
         app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
-        nwkskey=NwkSKey, appskey=AppSKey, fcntup=0, fcntdown=0,
+        nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
         fcnt_check=Device#device.fcnt_check, txwin=Device#device.txwin,
         last_mac=Gateway#gateway.mac, last_rxq=RxQ,
         adr_flag_use=0, adr_flag_set=Device#device.adr_flag_set,
@@ -280,6 +280,19 @@ check_link_fcnt(DevAddr, FCnt) ->
         [] ->
             lorawan_utils:throw_error({node, DevAddr}, unknown_devaddr, aggregated),
             ignore;
+        [L] when L#link.fcntup == undefined ->
+            % first frame after join
+            case FCnt of
+                N when N == 0; N == 1 ->
+                    % some device start with 0, some with 1
+                    {ok, new, L#link{fcntup = N}};
+                N when N < ?MAX_FCNT_GAP ->
+                    lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
+                    {ok, new, L#link{fcntup = N}};
+                _BigN ->
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#link.last_rx),
+                    ignore
+            end;
         [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < MaxLost ->
             lager:debug("~s fcnt reset", [binary_to_hex(DevAddr)]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
