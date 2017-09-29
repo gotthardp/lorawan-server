@@ -32,19 +32,28 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    [#link{devstat=DevStat}] = mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)),
+    [#link{last_reset=Reset, devstat=DevStat}] = mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
                 [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
+                [{type, <<"string">>}, {role, <<"annotation">>}],
                 [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
                 [{id, <<"snr">>}, {label, <<"D/L SNR (dB)">>}, {type, <<"number">>}],
                 [{id, <<"max_snr">>}, {label, <<"Max SNR (dB)">>}, {type, <<"number">>}]
                 ]},
-            {rows, lists:map(
+            {rows,
+                [[{c, [
+                    [{v, encode_timestamp(Reset)}],
+                    [{v, <<"Last Reset">>}],
+                    [{v, null}],
+                    [{v, null}],
+                    [{v, null}]
+                ]}] | lists:map(
                 fun({Timestamp, Batt, Margin, MaxSNR}) ->
                     [{c, [
                         [{v, encode_timestamp(Timestamp)}],
+                        [{v, null}],
                         [{v, Batt}],
                         % what the standard calls "margin" is simply the SNR
                         [{v, Margin}],
@@ -54,7 +63,7 @@ get_rxframe(Req, State) ->
                 % REMOVE BEFORE RELEASING 0.4.11
                 ({Timestamp, Batt, Margin}) ->
                     [{c, []}]
-                end, DevStat)
+                end, DevStat)]
             }
         ],
     {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.

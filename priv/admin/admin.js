@@ -1168,6 +1168,7 @@ return {
                     "top": 0, "bottom": "10%",
                     "left": 0, "right": 0
                 },
+                "focusTarget": "category",
                 "legend": {
                     "position": "none"
                 },
@@ -1217,6 +1218,7 @@ return {
                     "top": 0, "bottom": "10%",
                     "left": 0, "right": 0
                 },
+                "focusTarget": "category",
                 "legend": {
                     "position": "none"
                 },
@@ -1268,6 +1270,7 @@ return {
                     "top": 0, "bottom": "10%",
                     "left": 0, "right": 0
                 },
+                "focusTarget": "category",
                 "legend": {
                     "position": "none"
                 },
@@ -1320,6 +1323,7 @@ return {
                     "top": 0, "bottom": "10%",
                     "left": 0, "right": 0
                 },
+                "focusTarget": "category",
                 "legend": {
                     "position": "none"
                 },
@@ -1370,12 +1374,13 @@ return {
                     "top": 0, "bottom": "10%",
                     "left": 0, "right": 0
                 },
+                "focusTarget": "category",
                 "legend": {
                     "position": "none"
                 },
                 "pointSize": 3,
                 "hAxis": {
-                    "format": 'kk:mm'
+                    "format": 'M-d'
                 },
                 "vAxis": {
                     "textPosition": "in",
@@ -1384,6 +1389,9 @@ return {
                 "vAxes": {
                     0: {"minValue":0, "maxValue": 255},
                     1: {"minValue":-32, "maxValue": 31}
+                },
+                "annotations": {
+                    "style": "line"
                 }
             };
             updateData();
