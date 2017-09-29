@@ -92,7 +92,8 @@ get_gateway(Req, #state{format=tgraph}=State) ->
 encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
     list_to_binary(
         lists:concat(["Date(",
-            integer_to_list(Yr), ",", integer_to_list(Mh), ",", integer_to_list(Dy), ",",
+            % javascript counts months 0-11
+            integer_to_list(Yr), ",", integer_to_list(Mh-1), ",", integer_to_list(Dy), ",",
             integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(trunc(Sc)), ")"])).
 
 resource_exists(Req, State) ->

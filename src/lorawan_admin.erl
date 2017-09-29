@@ -81,9 +81,14 @@ check_reset(#link{}) ->
 
 check_battery(#link{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
     if
+        Battery == 0 ->
+            % connected to external power
+            ok;
         Battery < 50 ->
             % TODO: should estimate trend instead
             {100-2*Battery, battery_low};
+        Battery == 255 ->
+            {25, cannot_measure_battery};
         true ->
             ok
     end;
