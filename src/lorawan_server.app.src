@@ -40,7 +40,8 @@
                 {join2_delay, 2000000},
                 {rx1_delay, 1000000},
                 {rx2_delay, 2000000},
-                {rx2_rf, {undefined, <<"SF12BW500">>, <<"4/5">>}}
+                % although the frequency is not used for this region, it is sent in RXParamSetupReq
+                {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
             ]},
             {<<"CN779-787">>, [
                 {rx2_rf, {786, <<"SF12BW125">>, <<"4/5">>}}
