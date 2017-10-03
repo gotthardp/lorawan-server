@@ -302,6 +302,8 @@ parse_qs(List) ->
 build_qs({RSSI, SNR}) ->
     #{rssi => build_opt(RSSI), snr => build_opt(SNR)}.
 
+parse_fun(<<>>) ->
+    undefined;
 parse_fun(Code) ->
     % try to parse the function
     {ok, Ts, _} = erl_scan:string(binary_to_list(Code)),

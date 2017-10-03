@@ -1045,6 +1045,21 @@ function healthIndicator(values) {
         return '';
 }
 
+myApp.decorator('HttpErrorService', ['$delegate', '$translate', 'notification',
+function($delegate, $translate, notification) {
+    $delegate.handleDefaultError = function(error) {
+        switch (error.status) {
+            case 412:
+                $delegate.displayError('Data has changed. Please reload and repeat the action.');
+                throw error;
+            default:
+                $translate('STATE_CHANGE_ERROR', { message: error.data.message }).then(this.displayError);
+                throw error;
+        }
+    }
+    return $delegate;
+}]);
+
 myApp.directive('timeline', ['$http', '$interval', 'VisDataSet', function($http, $interval, VisDataSet) {
 return {
     restrict: 'E',

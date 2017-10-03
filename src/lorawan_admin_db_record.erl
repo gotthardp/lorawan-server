@@ -10,7 +10,7 @@
 -export([allowed_methods/2]).
 -export([content_types_provided/2]).
 -export([content_types_accepted/2]).
--export([resource_exists/2]).
+-export([resource_exists/2, generate_etag/2]).
 -export([delete_resource/2]).
 
 -export([handle_get/2, handle_write/2]).
@@ -162,6 +162,17 @@ resource_exists(Req, #state{table=Table, key=Key}=State) ->
     case mnesia:dirty_read(Table, Key) of
         [] -> {false, Req, State};
         [_] -> {true, Req, State}
+    end.
+
+generate_etag(Req, #state{key=undefined}=State) ->
+    {undefined, Req, State};
+generate_etag(Req, #state{table=Table, key=Key}=State) ->
+    case mnesia:dirty_read(Table, Key) of
+        [] ->
+            {undefined, Req, State};
+        [Rec] ->
+            Hash = base64:encode(crypto:hash(sha256, term_to_binary(Rec))),
+            {<<$", Hash/binary, $">>, Req, State}
     end.
 
 delete_resource(Req, #state{table=Table, key=Key}=State) ->
