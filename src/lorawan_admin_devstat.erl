@@ -9,7 +9,7 @@
 -export([is_authorized/2]).
 -export([allowed_methods/2]).
 -export([content_types_provided/2]).
--export([resource_exists/2]).
+-export([resource_exists/2, generate_etag/2]).
 
 -export([get_rxframe/2]).
 
@@ -76,12 +76,22 @@ encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
             integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(Sc), ")"])).
 
 resource_exists(Req, State) ->
-    case mnesia:dirty_read(links,
-            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
+    DevAddr = cowboy_req:binding(devaddr, Req),
+    case mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)) of
         [#link{devstat=DevStat}] when is_list(DevStat) ->
             {true, Req, State};
         _Else ->
             {false, Req, State}
+    end.
+
+generate_etag(Req, State) ->
+    DevAddr = cowboy_req:binding(devaddr, Req),
+    case mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)) of
+        [] ->
+            {undefined, Req, State};
+        [#link{last_reset=Reset, devstat=DevStat}] ->
+            Hash = base64:encode(crypto:hash(sha256, term_to_binary({Reset, DevStat}))),
+            {<<$", Hash/binary, $">>, Req, State}
     end.
 
 % end of file
