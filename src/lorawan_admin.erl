@@ -41,26 +41,24 @@ check_health(#gateway{} = Gateway) ->
 check_health(#link{} = Link) ->
     check_health(Link, ?MODULE, [check_reset, check_battery, check_margin]);
 check_health(_Other) ->
-    #{}.
+    undefined.
 
 check_health(Rec, Module, Funs) ->
-    {Decay2, Alerts2} =
-        lists:foldl(
-            fun
-                (_Fun, {null, _}) ->
-                    {null, null};
-                (Fun, {Decay, Alerts}) ->
-                    case apply(Module, Fun, [Rec]) of
-                        {DecayInc, AlertInc} ->
-                            {Decay + DecayInc, [AlertInc | Alerts]};
-                        ok ->
-                            {Decay, Alerts};
-                        undefined ->
-                            {null, null}
-                    end
-            end,
-            {0, []}, Funs),
-    #{health_decay => Decay2, health_alerts => Alerts2}.
+    lists:foldl(
+        fun
+            (_Fun, undefined) ->
+                undefined;
+            (Fun, {Decay, Alerts}) ->
+                case apply(Module, Fun, [Rec]) of
+                    {DecayInc, AlertInc} ->
+                        {Decay + DecayInc, [AlertInc | Alerts]};
+                    ok ->
+                        {Decay, Alerts};
+                    undefined ->
+                        undefined
+                end
+        end,
+        {0, []}, Funs).
 
 check_reception(#gateway{last_rx=undefined}) ->
     {100, disconnected};

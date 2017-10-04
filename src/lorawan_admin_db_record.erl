@@ -108,7 +108,7 @@ get_filters(Req) ->
     end.
 
 build_record(Rec, #state{fields=Fields, module=Module}) ->
-    maps:merge(
+    Record =
         apply(Module, build, [
             maps:from_list(
                 lists:filter(
@@ -118,7 +118,12 @@ build_record(Rec, #state{fields=Fields, module=Module}) ->
                     end,
                     lists:zip(Fields, tl(tuple_to_list(Rec)))))
             ]),
-        apply(Module, check_health, [Rec])).
+    case apply(Module, check_health, [Rec]) of
+        {Decay, Alerts} ->
+            Record#{health_decay => Decay, health_alerts => Alerts};
+        undefined ->
+            Record
+    end.
 
 content_types_accepted(Req, State) ->
     {[
@@ -166,12 +171,13 @@ resource_exists(Req, #state{table=Table, key=Key}=State) ->
 
 generate_etag(Req, #state{key=undefined}=State) ->
     {undefined, Req, State};
-generate_etag(Req, #state{table=Table, key=Key}=State) ->
+generate_etag(Req, #state{table=Table, key=Key, module=Module}=State) ->
     case mnesia:dirty_read(Table, Key) of
         [] ->
             {undefined, Req, State};
         [Rec] ->
-            Hash = base64:encode(crypto:hash(sha256, term_to_binary(Rec))),
+            Health = apply(Module, check_health, [Rec]),
+            Hash = base64:encode(crypto:hash(sha256, term_to_binary({Rec, Health}))),
             {<<$", Hash/binary, $">>, Req, State}
     end.
 
