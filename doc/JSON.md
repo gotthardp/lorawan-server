@@ -29,10 +29,10 @@ Additional *Uplink Fields* may be enabled in the [Backend](Backends.md) configur
   gateway.mac | Hex String  | MAC address of the gateway.
   deveui      | Hex String  | DevEUI of the device.
   datetime    | ISO 8601    | Timestamp using the server clock.
-  rxq         | Object      | Indicators of the reception quality.
+  rxq         | Object      | Indicators of the reception quality as indicated in the `rxpk` structure by the gateway (see Section 4 of the [packet_forwarder protocol](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT).
   rxq.lsnr    | Number      | LoRa uplink SNR ratio in dB (signed float, 0.1 dB precision)
   rxq.rssi    | Number      | RSSI in dBm (signed integer, 1 dB precision)
-  rxq.tmst    | Number      | Internal timestamp of "RX finished" event (32b unsigned)
+  rxq.tmst    | Number      | Internal timestamp of "RX finished" event (32b unsigned) used for response scheduling; it doesn't indicate any calendar date.
   rxq.codr    | String      | LoRa ECC coding rate identifier
   rxq.datr    | String      | LoRa datarate identifier (eg. SF12BW500)
   rxq.freq    | Number      | RX central frequency in MHz (unsigned float, Hz precision)
