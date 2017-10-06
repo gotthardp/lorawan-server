@@ -236,17 +236,28 @@ average0(List) ->
     Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- List])/length(List)),
     Avg-Sigma.
 
-send_adr(Link, FOptsOut) ->
-    IsIncomplete = has_undefined_field(Link#link.adr_set),
-    if
-        Link#link.adr_flag_use == 1,
-        ((Link#link.adr_flag_set == 1 andalso length(Link#link.last_qs) >= 20) orelse Link#link.adr_flag_set == 2),
-        not IsIncomplete, Link#link.adr_use /= Link#link.adr_set ->
+send_adr(#link{adr_flag_use=1}=Link, FOptsOut) ->
+    case Link of
+        #link{adr_set=NotChanged, adr_use=NotChanged} ->
+            FOptsOut;
+        #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans1}, adr_use={TxPower, DataRate, _Chans2}}
+                when (Flag == 1 orelse Flag == 2),
+                is_integer(TxPower), is_integer(DataRate), is_list(Chans1) ->
+            % only the channels changed
             lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
             set_channels(Link#link.region, Link#link.adr_set, FOptsOut);
-        true ->
+        #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}, last_qs=LastQs}
+                when ((Flag == 1 andalso length(LastQs) >= 20) orelse Flag == 2),
+                is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
+            % the ADR parameters changed
+            lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
+            set_channels(Link#link.region, Link#link.adr_set, FOptsOut);
+        _Else ->
             FOptsOut
-    end.
+    end;
+send_adr(_Link, FOptsOut) ->
+    % the device has disabled ADR
+    FOptsOut.
 
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"KR920-923">>; Region == <<"AS923-JP">> ->
@@ -314,11 +325,6 @@ request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOu
         true ->
             FOptsOut
     end.
-
-has_undefined_field(undefined) ->
-    true;
-has_undefined_field(Tuple) ->
-    lists:member(undefined, tuple_to_list(Tuple)).
 
 % bits handling
 
