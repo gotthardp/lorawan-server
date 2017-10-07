@@ -1,1 +1,4 @@
 theme: jekyll-theme-minimal
+title: lorawan-server
+description: Compact server for private LoRa networks
+show_downloads: true
