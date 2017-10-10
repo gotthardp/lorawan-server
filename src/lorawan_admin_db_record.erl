@@ -43,11 +43,13 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 handle_get(Req, #state{key=undefined}=State) ->
-    paginate(Req, State,
-        sort(Req, read_records(Req, State)));
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
+    paginate(Req2, State,
+        sort(Req2, read_records(Req2, State)));
 handle_get(Req, #state{table=Table, key=Key}=State) ->
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
     [Rec] = mnesia:dirty_read(Table, Key),
-    {jsx:encode(build_record(Rec, State)), Req, State}.
+    {jsx:encode(build_record(Rec, State)), Req2, State}.
 
 paginate(Req, State, List) ->
     case cowboy_req:match_qs([{'_page', [], <<"1">>}, {'_perPage', [], undefined}], Req) of

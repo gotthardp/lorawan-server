@@ -66,7 +66,8 @@ get_rxframe(Req, State) ->
                 end, DevStat)]
             }
         ],
-    {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
+    {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req2, State}.
 
 encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
     list_to_binary(
