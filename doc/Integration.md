@@ -2,21 +2,40 @@
 
 ## Generic MQTT Server
 
-You can integrate with generic MQTT server, e.g. the
+You can integrate with generic MQTT server (message broker), e.g. the
 [RabbitMQ](https://www.rabbitmq.com/mqtt.html) or
 [Mosquitto](https://mosquitto.org).
 
+First of all, make sure you understand the
+[terminology and principles of messaging](http://www.rabbitmq.com/tutorials/tutorial-one-php.html)
+and that the MQTT protocol [is enabled](https://www.rabbitmq.com/mqtt.html)
+in your broker.
+
 Open the lorawan-server web-administration and create a Backend Connector:
  * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
- * *Published Topic* is a pattern for constructing the message topic, e.g. `out/{devaddr}`.
- * *Subscribe* is a topic to be subscribed, e.g. `in/#`.
- * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
+ * *Published Topic* is a pattern for constructing the message topic
+   of uplinks, e.g. `out/{devaddr}`.
+ * *Subscribe* is a downlink topic to be subscribed by the lorawan-server,
+   e.g. `in/#`.
+ * *Received Topic* is a template for parsing the topic of received downlink
+   messages, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
  * *Auth* shall be set to *Username+Password*, even when the *Name* and
    *Password/Key* are empty.
 
-To send a downlink message do e.g.
+In order to consume the uplink messages sent by your devices you have to subscribe
+at the message broker for the *Published Topic*, e.g. for `out/#` (or even just `#`) by:
+```bash
+mosquitto_sub -h 127.0.0.1 -p 1883 -t 'out/#' -u 'user' -P 'pass'
+```
+
+When using RabbitMQ, create a queue and then bind it to the `amq.topic` exchange
+using the `out.#` (or `#`) binding key. Note that while MQTT uses slashes ("/") for
+topic segment separators, RabbitMQ uses dots. RabbitMQ internally translates the two,
+so for example the MQTT topic `cities/london` becomes in RabbitMQ `cities.london`.
+
+To send a downlink message to one of your devices do e.g.
 ```bash
 mosquitto_pub -h 127.0.0.1 -p 1883 -t 'in/00112233' -m '{"data":"00"}' -u 'user' -P 'pass'
 ```
@@ -44,7 +63,7 @@ First, follow the AWS IoT guidelines to configure your IoT device:
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the AWS *Endpoint* with the `mqtts://` prefix
  * *Published Topic* is a pattern for the publication topic, e.g. `out/{devaddr}`.
- * *Subscribe* is a topic to be subscribed, e.g. `in/#`.
+ * *Subscribe* is a topic to be subscribed by the lorawan-server, e.g. `in/#`.
  * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
@@ -78,7 +97,8 @@ Then, open the lorawan-server web-administration and create an Backend Connector
  * *Published Topic* is a pattern for the publication topic,
    e.g. `iot-2/type/loramote/id/{deveui}/evt/status/fmt/json`, where loramote is
    the *device type* you created.
- * *Subscribe* is a topic to be subscribed, e.g. `iot-2/type/loramote/id/+/cmd/+/fmt/+`.
+ * *Subscribe* is a topic to be subscribed by the lorawan-server,
+   e.g. `iot-2/type/loramote/id/+/cmd/+/fmt/+`.
  * *Received Topic* is a template for parsing the topic of received messages,
    e.g. `iot-2/type/loramote/id/{deveui}/cmd/status/fmt/json`.
 
