@@ -195,6 +195,36 @@ On the Authentication tab:
    * *Name* - Your Adafruit account name (see the last article in the list above).
    * *Password/Key* - Your Adafruit Key, NOT your account password (see above).
 
+Adafruit supports only a single value feeds, so it is a _limitation_, if your mote sends multiple values in one packet. Also, Adafruit
+IO expects the payload of the MQTT message to be a proper JSON of the form { "value": data } (ex. {"value": 23.5}). To achieve that
+you need to create a Handler with the `Format` field set to `Raw Data`, `Connector` field set to your Connector and `Parse Uplink`
+function with the code to parse your sensor data and create a JSON string expected by Adafruit.
+
+This example function expects that the sensor is sending 16 bits of humidity, 16 bits of temperature (in tenths of a degree) and 1 byte checksum. It uses only temperature, because, as stated above, Adafruit feeds are single value. Temperature sign is encoded in the 16th bit.
+
+```
+fun(_Port, <<_Humid:16, Temp0:16, _Csum>>) -> # Point 1
+TSign = Temp0 band 16#8000, # Point 2
+TVal = Temp0 band 16#7FFF, # Point 3
+case TSign of # Point 4
+  0 -> Temp = TVal / 10;
+  _ -> Temp = -(TVal / 10)
+end,
+[H|_] = io_lib:format("~w", [Temp]), # Point 5
+ <<"{\"value\":", (list_to_binary(H))/bytes, "}">> # Point 6
+end.
+```
+
+What this code does:
+1. Parse the data packet from the sensor into three fields: Humid, Temp0 and Csum. 16-bit, big-endian. Humid and Csum are not used,
+so their names are prefixed with _ sign.
+2. Get the sign indication (+/-) from the temperature value.
+3. Strip off the sign indication from the temperature value.
+4. According to the sign indication, get the temperature value in degrees instead of their tenths.
+5. io_lib:format() function converts a given value into text representation, but returns a list. So, as we have only one value, we
+take the first element of its result and drop everything else, resulting our value being a proper stringlist (H).
+6. Build the resulting binary value to be sent to Adafruit IO: `{"value": temperature}`.
+
 After all of this is ready, you need to select this Handler as a *Group* on your
 *Devices* or *Nodes* configuration page. And **don't forget** to set your *Application*
 field to **backend** there.
