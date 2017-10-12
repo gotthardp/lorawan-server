@@ -159,6 +159,7 @@ and institutions. It was mentioned by the following blogs and articles:
  * [Three reasons for creating an Open Source LoRaWan server](http://research.konicaminolta.eu/three-reasons-for-creating-an-open-source-lorawan-server)
  * [LoraWAN server running on OpenWrt/LEDE](http://matchx.io/community/box/5-lorawan-server-running-on-the-box)
  * [Espruino RN2483 LoRa Modules](http://www.espruino.com/RN2483)
+ * [1-Gate LoRaWAN Gateway COMPACT](http://www.1-gate.com/english/lorawan-gateways)
 
 Please let me know if you use the lorawan-server and want to be listed here.
 
