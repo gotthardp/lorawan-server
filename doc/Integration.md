@@ -202,16 +202,16 @@ function with the code to parse your sensor data and create a JSON string expect
 
 This example function expects that the sensor is sending 16 bits of humidity, 16 bits of temperature (in tenths of a degree) and 1 byte checksum. It uses only temperature, because, as stated above, Adafruit feeds are single value. Temperature sign is encoded in the 16th bit.
 
-```
-fun(_Port, <<_Humid:16, Temp0:16, _Csum>>) -> # Point 1
-TSign = Temp0 band 16#8000, # Point 2
-TVal = Temp0 band 16#7FFF, # Point 3
-case TSign of # Point 4
+```erlang
+fun(_Port, <<_Humid:16, Temp0:16, _Csum>>) -> % Point 1
+TSign = Temp0 band 16#8000, % Point 2
+TVal = Temp0 band 16#7FFF, % Point 3
+case TSign of % Point 4
   0 -> Temp = TVal / 10;
   _ -> Temp = -(TVal / 10)
 end,
-[H|_] = io_lib:format("~w", [Temp]), # Point 5
- <<"{\"value\":", (list_to_binary(H))/bytes, "}">> # Point 6
+[H|_] = io_lib:format("~w", [Temp]), % Point 5
+ <<"{\"value\":", (list_to_binary(H))/bytes, "}">> % Point 6
 end.
 ```
 
