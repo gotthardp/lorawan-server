@@ -203,15 +203,15 @@ function with the code to parse your sensor data and create a JSON string expect
 This example function expects that the sensor is sending 16 bits of humidity, 16 bits of temperature (in tenths of a degree) and 1 byte checksum. It uses only temperature, because, as stated above, Adafruit feeds are single value. Temperature sign is encoded in the 16th bit.
 
 ```
-fun(_Port, <<_Humid:16, Temp0:16, _Csum>>) -> # Line 1
-TSign = Temp0 band 16#8000, # Line 2
-TVal = Temp0 band 16#7FFF, # Line 3
-case TSign of # Line 4
+fun(_Port, <<_Humid:16, Temp0:16, _Csum>>) -> # Point 1
+TSign = Temp0 band 16#8000, # Point 2
+TVal = Temp0 band 16#7FFF, # Point 3
+case TSign of # Point 4
   0 -> Temp = TVal / 10;
   _ -> Temp = -(TVal / 10)
 end,
-[H|_] = io_lib:format("~w", [Temp]), # Line 8
- <<"{\"value\":", (list_to_binary(H))/bytes, "}">> # Line 9
+[H|_] = io_lib:format("~w", [Temp]), # Point 5
+ <<"{\"value\":", (list_to_binary(H))/bytes, "}">> # Point 6
 end.
 ```
 
@@ -221,9 +221,9 @@ so their names are prefixed with _ sign.
 2. Get the sign indication (+/-) from the temperature value.
 3. Strip off the sign indication from the temperature value.
 4. According to the sign indication, get the temperature value in degrees instead of their tenths.
-8. io_lib:format() function converts a given value into text representation, but returns a list. So, as we have only one value, we
+5. io_lib:format() function converts a given value into text representation, but returns a list. So, as we have only one value, we
 take the first element of its result and drop everything else, resulting our value being a proper stringlist (H).
-9. Build the resulting binary value to be sent to Adafruit IO: `{"value": temperature}`.
+6. Build the resulting binary value to be sent to Adafruit IO: `{"value": temperature}`.
 
 After all of this is ready, you need to select this Handler as a *Group* on your
 *Devices* or *Nodes* configuration page. And **don't forget** to set your *Application*
