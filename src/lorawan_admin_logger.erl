@@ -24,15 +24,33 @@ data(StreamId, IsFin, Data, #state{next=Next0}=State) ->
     {Command, State#state{next=Next}}.
 
 info(StreamId, Response, #state{next=Next0, path=Path}=State) ->
-    case Response of
-        {response, Status, _Headers, _Body} -> log_error(Status, Path);
-        {headers, Status, _Headers} -> log_error(Status, Path);
-        _Else -> ok
-    end,
-    {Command, Next} = cowboy_stream:info(StreamId, Response, Next0),
+    {Command, Next} = cowboy_stream:info(StreamId, handle_response(Response, Path), Next0),
     {Command, State#state{next=Next}}.
 
-log_error(Status, _Path) when Status div 100 == 2; Status == 304; Status == 401 ->
+handle_response({response, Status, Headers, Body}, _Path)
+        when Status div 100 == 2 ->
+    {response, Status, add_security_headers(Headers), Body};
+handle_response({headers, Status, Headers}, _Path)
+        when Status div 100 == 2 ->
+    {headers, Status, add_security_headers(Headers)};
+
+handle_response({response, Status, _Headers, _Body}=Response, Path) ->
+    log_error(Status, Path),
+    Response;
+handle_response({headers, Status, _Headers}=Response, Path) ->
+    log_error(Status, Path),
+    Response;
+
+handle_response(_Else, _Path) ->
+    ok.
+
+add_security_headers(Headers) ->
+    {ok, ContentSecurity} = application:get_env(lorawan_server, http_content_security),
+    Headers#{
+        <<"content-security-policy">> => ContentSecurity
+    }.
+
+log_error(Status, _Path) when Status == 304; Status == 401 ->
     ok;
 log_error(Status, Path) ->
     lorawan_utils:throw_warning(server, {http_error, {Status, binary_to_list(Path)}}).
