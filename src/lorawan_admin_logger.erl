@@ -41,8 +41,8 @@ handle_response({headers, Status, _Headers}=Response, Path) ->
     log_error(Status, Path),
     Response;
 
-handle_response(_Else, _Path) ->
-    ok.
+handle_response(Else, _Path) ->
+    Else.
 
 add_security_headers(Headers) ->
     {ok, ContentSecurity} = application:get_env(lorawan_server, http_content_security),
