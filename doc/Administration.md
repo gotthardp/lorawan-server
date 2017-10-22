@@ -9,6 +9,10 @@ The port and default credentials (which are set when the server database is crea
 can be changed in the [`sys.config`](../lorawan_server.config). The credentials can
 be then altered via the admin interface.
 
+The server administration can be operated offline, except (Google) graphs
+displayed in the Web Admin. Without internet connectivity the graphs will not
+be displayed, but other Web Admin functions and the REST API will work fine.
+
 
 ## Web Admin
 
