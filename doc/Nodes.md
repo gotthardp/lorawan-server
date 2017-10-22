@@ -41,6 +41,9 @@ Below the configuration options you can monitor the performance of the node. You
 can see the assumed ADR parameters and two graphs that display the last 50 received
 frames.
 
+Note that the (Google) graphs will not be displayed when the Internet connectivity
+is not available, e.g. in an isolated network.
+
 
 ## Status
 
