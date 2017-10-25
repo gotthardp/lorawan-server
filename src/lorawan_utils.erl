@@ -111,8 +111,11 @@ evid(EntityID, Event, Mark) ->
 
 event_args({Event, Args}) ->
     {atom_to_binary(Event, latin1), list_to_binary(io_lib:print(Args))};
-event_args(Event) ->
-    {atom_to_binary(Event, latin1), undefined}.
+event_args(Event) when is_atom(Event) ->
+    {atom_to_binary(Event, latin1), undefined};
+% for example gateway errors are sent as binaries
+event_args(Event) when is_binary(Event) ->
+    {Event, undefined}.
 
 inc(undefined) -> 1;
 inc(Num) -> Num+1.
