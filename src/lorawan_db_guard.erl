@@ -44,6 +44,10 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+handle_delete(gateways, MAC) ->
+    lager:debug("Gateway ~p deleted", [lorawan_mac:binary_to_hex(MAC)]),
+    % delete linked records
+    ok = mnesia:dirty_delete(gateway_stats, MAC);
 handle_delete(links, DevAddr) ->
     lager:debug("Node ~p deleted", [lorawan_mac:binary_to_hex(DevAddr)]),
     % delete linked records

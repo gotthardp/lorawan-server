@@ -30,6 +30,9 @@ ensure_tables() ->
             {record_name, gateway},
             {attributes, record_info(fields, gateway)},
             {disc_copies, [node()]}]},
+        {gateway_stats, [
+            {attributes, record_info(fields, gateway_stats)},
+            {disc_copies, [node()]}]},
         {multicast_groups, [
             {record_name, multicast_group},
             {attributes, record_info(fields, multicast_group)},

@@ -86,13 +86,18 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                 {ok, cancel} = timer:cancel(Timer),
                 {atomic, ok} = mnesia:transaction(
                     fun() ->
-                        [G] = mnesia:read(gateways, MAC, write),
+                        Stats =
+                            case mnesia:read(gateway_stats, MAC, write) of
+                                [S] -> S;
+                                [] -> #gateway_stats{mac=MAC, dwell=[], delays=[]}
+                            end,
                         SDelay =
                             case UStamp of
                                 undefined -> undefined;
                                 Num -> DStamp-Num
                             end,
-                        mnesia:write(gateways, store_delay(G, {calendar:universal_time(), SDelay, AStamp-DStamp}), write)
+                        mnesia:write(gateway_stats,
+                            store_delay(Stats, {calendar:universal_time(), SDelay, AStamp-DStamp}), write)
                     end),
                 {Opq, Tkns};
             error ->
@@ -192,9 +197,9 @@ build_txpk(TxQ, RFch, Data) ->
         lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
     ).
 
-store_delay(#gateway{delays=undefined}=Gateway, Delay) ->
-    Gateway#gateway{delays=[Delay]};
-store_delay(#gateway{delays=Past}=Gateway, Delay) ->
-    Gateway#gateway{delays=lists:sublist([Delay | Past], 50)}.
+store_delay(#gateway_stats{delays=undefined}=Stats, Delay) ->
+    Stats#gateway_stats{delays=[Delay]};
+store_delay(#gateway_stats{delays=Past}=Stats, Delay) ->
+    Stats#gateway_stats{delays=lists:sublist([Delay | Past], 50)}.
 
 % end of file

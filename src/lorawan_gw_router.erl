@@ -30,16 +30,21 @@ uplinks(PkList) ->
 downlink(Req, MAC, DevAddr, TxQ, PHYPayload) ->
     {atomic, ok} = mnesia:transaction(
         fun() ->
-            [Gateway] = mnesia:read(gateways, MAC, write),
-            downlink0(Req, Gateway, DevAddr, TxQ, PHYPayload)
+            [Gateway] = mnesia:read(gateways, MAC, read),
+            Stats =
+                case mnesia:read(gateway_stats, MAC, write) of
+                    [S] -> S;
+                    [] -> #gateway_stats{mac=MAC, dwell=[], delays=[]}
+                end,
+            downlink0(Req, Gateway, Stats, DevAddr, TxQ, PHYPayload)
         end),
     ok.
 
-downlink0(Req, Gateway, DevAddr, TxQ, PHYPayload) ->
+downlink0(Req, Gateway, Stats, DevAddr, TxQ, PHYPayload) ->
     Power = limit_power(Gateway, lorawan_mac_region:eirp_limits(TxQ#txq.region)),
     Time = lorawan_mac_region:tx_time(byte_size(PHYPayload), TxQ),
     Dwell0 =
-        case Gateway#gateway.dwell of
+        case Stats#gateway_stats.dwell of
             undefined -> [];
             List -> List
         end,
@@ -57,8 +62,8 @@ downlink0(Req, Gateway, DevAddr, TxQ, PHYPayload) ->
             length(HourAgo) >= 20 -> HourAgo;
             true -> lists:sublist(Dwell0, 20)
         end,
-    ok = mnesia:write(gateways,
-        Gateway#gateway{dwell=[{Now, {TxQ#txq.freq, Time, Sum+Time}} | Dwell]}, write),
+    ok = mnesia:write(gateway_stats,
+        Stats#gateway_stats{dwell=[{Now, {TxQ#txq.freq, Time, Sum+Time}} | Dwell]}, write),
     gen_server:cast({global, ?MODULE}, {downlink, Req, Gateway#gateway.mac, DevAddr,
         TxQ#txq{powe=Power}, Gateway#gateway.tx_rfch, PHYPayload}).
 
