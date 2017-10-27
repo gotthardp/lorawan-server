@@ -587,18 +587,21 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('mac', 'reference').label('MAC')
             .targetEntity(gateways)
             .targetField(nga.field('mac')),
-        nga.field('devaddr', 'reference').label('DevAddr')
-            .targetEntity(nodes)
-            .targetField(nga.field('devaddr')),
+        nga.field('devaddr').label('DevAddr')
+            .template(function(entry) {
+                return "<a href='/admin/#nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
+            }),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group'),
+        nga.field('rxq.rssi').label('U/L RSSI'),
         nga.field('rxq.lsnr').label('U/L SNR'),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('confirm', 'boolean'),
         nga.field('port', 'number'),
         nga.field('data')
             .template(function(entry){
-                return "<div title='[ASCII] " + hextoascii(entry.values.data) + "'>" + entry.values.data + "</div>"
+                if(entry.values.data)
+                    return "<div title='[ASCII] " + hextoascii(entry.values.data) + "'>" + entry.values.data + "</div>"
             })
     ])
     .sortField('datetime');
@@ -800,9 +803,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('mac', 'reference').label('MAC')
                     .targetEntity(gateways)
                     .targetField(nga.field('mac')),
-                nga.field('devaddr', 'reference').label('DevAddr')
-                    .targetEntity(nodes)
-                    .targetField(nga.field('devaddr')),
+                nga.field('devaddr').label('DevAddr')
+                    .template(function(entry) {
+                        return "<a href='/admin/#nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
+                    }),
                 nga.field('rxq.lsnr').label('U/L SNR')
             ])
             .sortField('datetime')

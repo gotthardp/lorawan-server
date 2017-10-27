@@ -33,10 +33,26 @@ process_frame(MAC, RxQ, PHYPayload) ->
 
 process_status(MAC, S) ->
     if
+        S#stat.rxok < S#stat.rxnb ->
+            lager:debug("Gateway ~s had ~B uplink CRC errors", [binary_to_hex(MAC), S#stat.rxnb-S#stat.rxok]);
+        true ->
+            ok
+    end,
+    if
         S#stat.rxfw < S#stat.rxok ->
             lorawan_utils:throw_warning({gateway, MAC}, {uplinks_lost, S#stat.rxok-S#stat.rxfw});
+        true ->
+            ok
+    end,
+    if
         S#stat.txnb < S#stat.dwnb ->
             lorawan_utils:throw_warning({gateway, MAC}, {downlinks_lost, S#stat.dwnb-S#stat.txnb});
+        true ->
+            ok
+    end,
+    if
+        S#stat.ackr < 100 ->
+            lorawan_utils:throw_warning({gateway, MAC}, {ack_lost, 100-S#stat.ackr});
         true ->
             ok
     end,
@@ -127,6 +143,11 @@ process_frame1(Gateway, RxQ, <<MType:3, _:5,
                     lorawan_utils:throw_error({node, DevAddr}, bad_mic)
             end;
         ignore ->
+            <<Confirm:1, _:2>> = <<MType:3>>,
+            ok = mnesia:dirty_write(rxframes,
+                #rxframe{frid= <<(erlang:system_time()):64>>,
+                    mac=Gateway#gateway.mac, rxq=RxQ, devaddr=DevAddr, fcnt=FCnt,
+                    confirm=bit_to_bool(Confirm), port=FPort, datetime=calendar:universal_time()}),
             ok
     end;
 process_frame1(_Gateway, _RxQ, Msg, _MIC) ->

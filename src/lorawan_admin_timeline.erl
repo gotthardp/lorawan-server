@@ -51,14 +51,18 @@ get_timeline(Req, State) ->
         mnesia:dirty_select(events, [{#event{evid='$1', first_rx='$2', last_rx='$3', _='_'},
             select_datetime(Start, End, '$2', '$3'), ['$_']}])),
     RxFrames = lists:map(
-        fun({Id, DevAddr, DateTime, Port}) ->
+        fun({Id, DevAddr, DateTime, Port, Data}) ->
             [{id, lorawan_mac:binary_to_hex(Id)},
-                {className, <<"node">>},
+                {className,
+                    case Data of
+                        undefined -> <<"info">>;
+                        _Else -> <<"node">>
+                    end},
                 {content, <<(lorawan_mac:binary_to_hex(DevAddr))/binary, ":", (integer_to_binary(Port))/binary>>},
                 {start, DateTime}]
         end,
-        mnesia:dirty_select(rxframes, [{#rxframe{frid='$1', devaddr='$2', datetime='$3', port='$4', _='_'},
-            select_datetime(Start, End, '$3', '$3'), [{{'$1', '$2', '$3', '$4'}}]}])),
+        mnesia:dirty_select(rxframes, [{#rxframe{frid='$1', devaddr='$2', datetime='$3', port='$4', data='$5', _='_'},
+            select_datetime(Start, End, '$3', '$3'), [{{'$1', '$2', '$3', '$4', '$5'}}]}])),
     {jsx:encode([{items, Events++RxFrames}]), Req, State}.
 
 select_datetime(<<>>, <<>>, _, _) ->
