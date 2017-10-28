@@ -196,9 +196,12 @@ On the Authentication tab:
    * *Password/Key* - Your Adafruit Key, NOT your account password (see above).
 
 Adafruit supports only a single value feeds, so it is a _limitation_, if your mote sends multiple values in one packet. Also, Adafruit
-IO expects the payload of the MQTT message to be a proper JSON of the form { "value": data } (ex. {"value": 23.5}). To achieve that
-you need to create a Handler with the `Format` field set to `Raw Data`, `Connector` field set to your Connector and `Parse Uplink`
-function with the code to parse your sensor data and create a JSON string expected by Adafruit.
+IO expects the payload of the MQTT message to be either a simple string value, like "17" or "string", or a proper formatted JSON of the form { "value": data } (ex. {"value": 23.5}, {"value": "sometext"}, etc). It should be noted, that if the source of data, especially
+string data, is not really trustworthy or predictable it is safer to wrap the message into JSON packing, then to rely on the fact that
+normally the messages are not JSON-like.
+
+To achieve that you need to create a Handler with the `Format` field set to `Raw Data`, `Connector` field set to your Connector and `Parse Uplink`
+function with the code to parse your sensor data and create a simple string or a JSON string expected by Adafruit.
 
 This example function expects that the sensor is sending 16 bits of humidity, 16 bits of temperature (in tenths of a degree) and 1 byte checksum. It uses only temperature, because, as stated above, Adafruit feeds are single value. Temperature sign is encoded in the 16th bit.
 
