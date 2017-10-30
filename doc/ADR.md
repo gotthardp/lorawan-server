@@ -38,11 +38,11 @@ and the server will wait for 20 frames more before any adjustment will be made.
 
 ### Maintain
 
-In this mode the server maintains for each connected node the requested ADR
-parameters.
+In this mode the server maintains for the given node the requested ADR
+parameters. The device is not allowed to use a different *Data Rate*.
 
-If the user changes a parameter, the ADR request will be sent to the node with
-the next downlink frame.
+If the user changes an ADR parameter, the ADR request will be sent to the node
+with the next downlink frame.
 
 If the device decreases the used Data Rate, the server will send an ADR request
 to set this back to the requested value.
