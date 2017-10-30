@@ -71,10 +71,10 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
 
 % PULL DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket}=State) ->
-    lorawan_gw_router:register(MAC, {global, ?MODULE}, {Host, Port, Version}),
-    lorawan_gw_router:status(MAC, undefined),
     % PULL ACK
     ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
+    lorawan_gw_router:register(MAC, {global, ?MODULE}, {Host, Port, Version}),
+    lorawan_gw_router:status(MAC, undefined),
     {noreply, State};
 
 % TX ACK
