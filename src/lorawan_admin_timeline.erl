@@ -58,12 +58,17 @@ get_timeline(Req, State) ->
                         undefined -> <<"info">>;
                         _Else -> <<"node">>
                     end},
-                {content, <<(lorawan_mac:binary_to_hex(DevAddr))/binary, ":", (integer_to_binary(Port))/binary>>},
+                {content, addr_port(DevAddr, Port)},
                 {start, DateTime}]
         end,
         mnesia:dirty_select(rxframes, [{#rxframe{frid='$1', devaddr='$2', datetime='$3', port='$4', data='$5', _='_'},
             select_datetime(Start, End, '$3', '$3'), [{{'$1', '$2', '$3', '$4', '$5'}}]}])),
     {jsx:encode([{items, Events++RxFrames}]), Req, State}.
+
+addr_port(DevAddr, undefined) ->
+    DevAddr;
+addr_port(DevAddr, Port) ->
+    <<(lorawan_mac:binary_to_hex(DevAddr))/binary, ":", (integer_to_binary(Port))/binary>>.
 
 select_datetime(<<>>, <<>>, _, _) ->
     [];
