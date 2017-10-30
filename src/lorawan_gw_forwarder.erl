@@ -48,6 +48,9 @@ handle_cast({send, {Host, Port, Version}, #request{tmst=UStamp}, DevAddr, TxQ, R
 
 % PUSH DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
+    % PUSH ACK
+    ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>),
+    % process packets after ack
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
         Data2 when is_map(Data2) ->
             % lager:debug("---> ~p", [Data2]),
@@ -64,8 +67,6 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
         _Else ->
             lager:error("Ignored PUSH_DATA: JSON syntax error: ~s", [Data])
     end,
-    % PUSH ACK
-    ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 1>>),
     {noreply, State};
 
 % PULL DATA
