@@ -41,9 +41,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ];
 
     adr_choices = [
-        { value: 0, label: 'OFF' },
-        { value: 1, label: 'ON' },
-        { value: 2, label: 'Manual' },
+        { value: 0, label: 'Disabled' },
+        { value: 1, label: 'Auto-Adjust' },
+        { value: 2, label: 'Maintain' },
+        { value: 3, label: 'Set, then Auto-Adjust' },
+        { value: 4, label: 'Set, then Disable' },
     ];
 
     fcnt_choices = [
@@ -335,7 +337,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('link').label('Node')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
-        nga.field('adr_flag_set', 'choice').label('Set ADR')
+        nga.field('adr_flag_set', 'choice').label('ADR mode')
             .choices(adr_choices)
             .defaultValue(1),
         nga.field('adr_set.power', 'choice').label('Set power')
@@ -434,9 +436,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(gateways)
             .targetField(nga.field('mac')),
         // ADR
-        nga.field('adr_flag_set', 'choice').label('Set ADR')
+        nga.field('adr_flag_set', 'choice').label('ADR mode')
             .choices(adr_choices)
-            .defaultValue(1), // ON
+            .defaultValue(1), // Set, then Auto-Adjust
         nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
                 return power_choices.filter(function(item) {
@@ -510,9 +512,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             ])
             .listActions(['delete']),
         // ADR
-        nga.field('adr_flag_set', 'choice').label('Set ADR')
+        nga.field('adr_flag_set', 'choice').label('ADR mode')
             .choices(adr_choices)
-            .defaultValue(1), // ON
+            .defaultValue(1), // Set, then Auto-Adjust
         nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
                 return power_choices.filter(function(item) {
@@ -530,7 +532,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset'),
         nga.field('adr_flag_use', 'choice').label('Used ADR')
-            .choices(adr_choices)
+            .choices([
+                { value: 0, label: 'OFF' },
+                { value: 1, label: 'ON' }
+            ])
             .editable(false),
         nga.field('adr_use.chans').label('Used channels')
             .editable(false),

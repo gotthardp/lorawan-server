@@ -84,15 +84,24 @@ encode_fopts([]) ->
 
 handle_adr(FOptsIn, Link) ->
     case find_adr(FOptsIn) of
+        {1, 1, 1} when Link#link.adr_set == Link#link.adr_use ->
+            lager:debug("LinkADRReq ~s succeeded (enforcement only)",
+                [lorawan_mac:binary_to_hex(Link#link.devaddr)]),
+            % the desired ADR is already used
+            Link#link{adr_flag_set=update_flag_set(Link#link.adr_flag_set)};
         {1, 1, 1} ->
-            lager:debug("LinkADRReq ~s succeeded", [lorawan_mac:binary_to_hex(Link#link.devaddr)]),
-            Link#link{adr_use=Link#link.adr_set, devstat_fcnt=undefined, last_qs=[]};
+            lager:debug("LinkADRReq ~s succeeded",
+                [lorawan_mac:binary_to_hex(Link#link.devaddr)]),
+            Link#link{adr_flag_set=update_flag_set(Link#link.adr_flag_set),
+                adr_use=Link#link.adr_set, devstat_fcnt=undefined, last_qs=[]};
         {PowerACK, DataRateACK, ChannelMaskACK} ->
-            lorawan_utils:throw_warning({node, Link#link.devaddr}, {adr_req_failed, {PowerACK, DataRateACK, ChannelMaskACK}}),
+            lorawan_utils:throw_warning({node, Link#link.devaddr},
+                {adr_req_failed, {PowerACK, DataRateACK, ChannelMaskACK}}),
             {TXPower, DataRate, Chans} = Link#link.adr_set,
             % clear the settings that failed
-            Link#link{adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
-                clear_when_zero(ChannelMaskACK, Chans)}};
+            Link#link{adr_flag_set=update_flag_set(Link#link.adr_flag_set),
+                adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
+                    clear_when_zero(ChannelMaskACK, Chans)}};
         undefined ->
             Link
     end.
@@ -108,6 +117,10 @@ find_adr(FOptsIn) ->
             (_Else, Last) -> Last
         end,
         undefined, FOptsIn).
+
+update_flag_set(3) -> 1; % Set, then Auto-Adjust
+update_flag_set(4) -> 0; % Set, then Disable
+update_flag_set(Else) -> Else.
 
 handle_rxwin(FOptsIn, Link) ->
     case find_rxwin(FOptsIn) of
@@ -175,7 +188,7 @@ send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
 
 
 auto_adr(RxQ, #link{adr_flag_use=1, adr_flag_set=1}=Link, RxFrame) ->
-    % ADR is ON, so maintain quality statistics
+    % ADR is Auto-Adjust, so maintain quality statistics
     LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Link#link.last_qs),
     auto_adr0(Link#link{last_qs=LastQs}, RxFrame);
 auto_adr(_RxQ, Link, RxFrame) ->
@@ -238,26 +251,33 @@ average0(List) ->
 
 send_adr(#link{adr_flag_use=1}=Link, FOptsOut) ->
     case Link of
+        #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}}
+                when (Flag == 3 orelse Flag == 4),
+                is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
+            % the ADR parameters will be enforced
+            send_adr0(Link, FOptsOut);
         #link{adr_set=NotChanged, adr_use=NotChanged} ->
             FOptsOut;
         #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans1}, adr_use={TxPower, DataRate, _Chans2}}
-                when (Flag == 1 orelse Flag == 2),
+                when Flag >= 1,
                 is_integer(TxPower), is_integer(DataRate), is_list(Chans1) ->
             % only the channels changed
-            lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
-            set_channels(Link#link.region, Link#link.adr_set, FOptsOut);
+            send_adr0(Link, FOptsOut);
         #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}, last_qs=LastQs}
                 when ((Flag == 1 andalso length(LastQs) >= 20) orelse Flag == 2),
                 is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
             % the ADR parameters changed
-            lager:debug("LinkADRReq ~w", [Link#link.adr_set]),
-            set_channels(Link#link.region, Link#link.adr_set, FOptsOut);
+            send_adr0(Link, FOptsOut);
         _Else ->
             FOptsOut
     end;
 send_adr(_Link, FOptsOut) ->
     % the device has disabled ADR
     FOptsOut.
+
+send_adr0(#link{region=Region, adr_set=Set}, FOptsOut) ->
+    lager:debug("LinkADRReq ~w", [Set]),
+    set_channels(Region, Set, FOptsOut).
 
 set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"KR920-923">>; Region == <<"AS923-JP">> ->
@@ -299,8 +319,7 @@ set_rxwin(Link, FOptsOut) ->
         _Else2 -> undefined
     end,
     if
-        Link#link.adr_flag_use == 1,
-        (Link#link.adr_flag_set == 1 orelse Link#link.adr_flag_set == 2),
+        Link#link.adr_flag_use == 1, Link#link.adr_flag_set >= 1,
         OffSet /= undefined, OffSet /= OffUse ->
             {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
             lager:debug("RXParamSetupReq ~w", [OffSet]),
