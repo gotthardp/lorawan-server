@@ -301,7 +301,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .sortField('deveui')
     .sortDir('ASC');
     devices.listView().filters([
-        nga.field('deveui').label('DevEUI'),
+        nga.field('deveui').label('DevEUI')
+            .validation({ pattern: '[A-Fa-f0-9]{16}' }),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group')
     ]);
@@ -393,7 +394,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .sortField('health_decay')
     .sortDir('DESC');
     nodes.listView().filters([
-        nga.field('devaddr').label('DevAddr'),
+        nga.field('devaddr').label('DevAddr')
+            .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group')
     ]);
@@ -614,7 +616,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('mac', 'reference').label('MAC')
             .targetEntity(gateways)
             .targetField(nga.field('mac')),
-        nga.field('devaddr').label('DevAddr'),
+        nga.field('devaddr').label('DevAddr')
+            .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('app').label('Application'),
         nga.field('appid').label('Group')
     ]);
@@ -727,7 +730,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'device', label: 'device' },
                 { value: 'node', label: 'node' }
             ]),
-        nga.field('eid'),
+        nga.field('eid')
+            .validation({ pattern: '([A-Fa-f0-9]{2})+' }),
         nga.field('text', 'wysiwyg')
     ]);
     // add to the admin application
