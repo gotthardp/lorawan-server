@@ -66,7 +66,7 @@ get_timeline(Req, State) ->
     {jsx:encode([{items, Events++RxFrames}]), Req, State}.
 
 addr_port(DevAddr, undefined) ->
-    DevAddr;
+    lorawan_mac:binary_to_hex(DevAddr);
 addr_port(DevAddr, Port) ->
     <<(lorawan_mac:binary_to_hex(DevAddr))/binary, ":", (integer_to_binary(Port))/binary>>.
 
