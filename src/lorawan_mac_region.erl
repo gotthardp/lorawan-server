@@ -325,6 +325,9 @@ tx_time(Length, #txq{datr=DataRate, codr=CodingRate}) ->
 tx_time(PL, SF, CR, 125000) when SF == 11; SF == 12 ->
     % Optimization is mandated with spreading factors of 11 and 12 at 125 kHz bandwidth
     tx_time(PL, SF, CR, 125000, 1);
+tx_time(PL, SF, CR, 250000) when SF == 12 ->
+    % The firmware uses also optimization for SF 12 at 250 kHz bandwidth
+    tx_time(PL, SF, CR, 250000, 1);
 tx_time(PL, SF, CR, BW) ->
     tx_time(PL, SF, CR, BW, 0).
 
@@ -333,7 +336,8 @@ tx_time(PL, SF, CR, BW, DE) ->
     % lorawan uses an explicit header
     PayloadSymbNb = 8 + max(ceiling((8*PL-4*SF+28+16)/(4*(SF-2*DE)))*CR, 0),
     % lorawan uses 8 symbols preamble
-    1000*((8 + 4.25) + PayloadSymbNb)*TSym.
+    % the last +1 is a correction based on practical experiments
+    1000*((8 + 4.25) + PayloadSymbNb + 1)*TSym.
 
 ceiling(X) ->
     T = erlang:trunc(X),
