@@ -61,7 +61,7 @@ get_rxframe(Req, State) ->
                     ]}];
                 % backwards compatibility
                 % REMOVE BEFORE RELEASING 0.4.11
-                ({Timestamp, Batt, Margin}) ->
+                ({_Timestamp, _Batt, _Margin}) ->
                     [{c, []}]
                 end, DevStat)]
             }
@@ -74,7 +74,9 @@ encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
         lists:concat(["Date(",
             % javascript counts months 0-11
             integer_to_list(Yr), ",", integer_to_list(Mh-1), ",", integer_to_list(Dy), ",",
-            integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(Sc), ")"])).
+            integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(Sc), ")"]));
+encode_timestamp(_Else) ->
+    null.
 
 resource_exists(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
