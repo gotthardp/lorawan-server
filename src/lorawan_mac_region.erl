@@ -353,14 +353,19 @@ region_test_()-> [
     ?_assertEqual({12,125}, datar_to_tuple(<<"SF12BW125">>)),
     ?_assertEqual({4,6}, codr_to_tuple(<<"4/6">>)),
     % values [ms] verified using the LoRa Calculator, +1 chirp correction based on experiments
-    ?_assertEqual(1024, round(tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF12BW125">>, codr= <<"4/5">>}))),
-    ?_assertEqual(297, round(tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF10BW125">>, codr= <<"4/5">>}))),
-    ?_assertEqual(21, round(tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF7BW250">>, codr= <<"4/5">>}))),
-    ?_assertEqual(11, round(tx_time(#txdata{data= <<"0123456789">>}, #txq{datr= <<"SF7BW500">>, codr= <<"4/5">>}))),
+    ?_assertEqual(1024, test_tx_time(<<"0123456789">>, <<"SF12BW125">>, <<"4/5">>)),
+    ?_assertEqual(297, test_tx_time(<<"0123456789">>, <<"SF10BW125">>, <<"4/5">>)),
+    ?_assertEqual(21, test_tx_time(<<"0123456789">>, <<"SF7BW250">>, <<"4/5">>)),
+    ?_assertEqual(11, test_tx_time(<<"0123456789">>, <<"SF7BW500">>, <<"4/5">>)),
     ?_assertEqual(dr_to_datar(<<"EU863-870">>, 0), <<"SF12BW125">>),
     ?_assertEqual(dr_to_datar(<<"US902-928">>, 8), <<"SF12BW500">>),
     ?_assertEqual(datar_to_dr(<<"EU863-870">>, <<"SF9BW125">>), 3),
     ?_assertEqual(datar_to_dr(<<"US902-928">>, <<"SF7BW500">>), 13),
     ?_assertEqual(<<"SF10BW500">>, datar_to_down(<<"US902-928">>, <<"SF10BW125">>, 0))].
+
+test_tx_time(Packet, DataRate, CodingRate) ->
+    round(tx_time(#txdata{data=Packet},
+        % the constants are only to make Dialyzer happy
+        #txq{region= <<"EU863-870">>, freq=869.525, datr=DataRate, codr=CodingRate})).
 
 % end of file
