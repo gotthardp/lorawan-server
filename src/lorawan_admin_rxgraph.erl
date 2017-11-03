@@ -53,7 +53,8 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
                 [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
-                fun(#rxframe{fcnt=FCnt, region=Region, powe=TXPower, rxq=#rxq{datr=DatR, freq=Freq}}) ->
+                fun(#rxframe{fcnt=FCnt, region=Region, powe=TXPower, rxq=#rxq{datr=DatR, freq=Freq}})
+                        when is_binary(Region) ->
                     [{c, [
                         [{v, FCnt}],
                         [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
