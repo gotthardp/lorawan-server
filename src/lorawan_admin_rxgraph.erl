@@ -39,7 +39,7 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
     ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % guess which frequency band the device is using
     {Min, Max} = case ActRec of
-        [#rxframe{region=Region} | _] ->
+        [#rxframe{region=Region} | _] when is_binary(Region) ->
             lorawan_mac_region:freq_range(Region);
         _Else ->
             ?DEFAULT_RANGE
