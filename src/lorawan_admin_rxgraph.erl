@@ -41,7 +41,7 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
     {Min, Max} = case ActRec of
         [#rxframe{region=Region} | _] ->
             lorawan_mac_region:freq_range(Region);
-        [] ->
+        _Else ->
             ?DEFAULT_RANGE
     end,
     % construct Google Chart DataTable

@@ -116,7 +116,8 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                         undefined -> ok;
                         <<"NONE">> -> ok;
                         Error ->
-                            lorawan_gw_router:downlink_error(MAC, Opaque, Error)
+                            lorawan_gw_router:downlink_error(MAC, Opaque,
+                                list_to_binary(string:to_lower(binary_to_list(Error))))
                     end;
                 Else ->
                     lager:error("Ignored PUSH_DATA: JSON syntax error: ~w", [Else])
