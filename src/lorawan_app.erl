@@ -68,7 +68,7 @@ start(_Type, _Args) ->
         {ok, HttpOpts} ->
             {ok, _} = cowboy:start_clear(http, HttpOpts,
                 #{env => #{dispatch => Dispatch},
-                stream_handlers => [lorawan_admin_logger, cowboy_stream_h]})
+                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
     end,
     case application:get_env(http_admin_listen_ssl) of
         undefined ->
@@ -77,7 +77,8 @@ start(_Type, _Args) ->
             ok;
         {ok, SslOpts} ->
             {ok, _} = cowboy:start_tls(https, SslOpts,
-                #{env => #{dispatch => Dispatch}})
+                #{env => #{dispatch => Dispatch},
+                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
     end,
     lorawan_sup:start_link().
 
