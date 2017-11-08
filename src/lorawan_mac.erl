@@ -154,7 +154,7 @@ process_frame1(_Gateway, _RxQ, Msg, _MIC) ->
     lager:debug("Bad frame: ~p", [Msg]),
     {error, bad_frame}.
 
-handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
+handle_join(Gateway, RxQ, _AppEUI, DevEUI, DevNonce, AppKey) ->
     AppNonce = crypto:strong_rand_bytes(3),
     NetID = Gateway#gateway.netid,
     NwkSKey = crypto:block_encrypt(aes_ecb, AppKey,
@@ -189,8 +189,7 @@ handle_join(Gateway, RxQ, AppEUI, DevEUI, DevNonce, AppKey) ->
                 #link{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
 
-    lager:info("JOIN REQUEST ~s ~s -> ~s",
-        [binary_to_hex(AppEUI), binary_to_hex(DevEUI), binary_to_hex(Device#device.link)]),
+    lorawan_utils:throw_info({device, DevEUI}, {join, binary_to_hex(Device#device.link)}),
     Link = Link0#link{devaddr=Device#device.link, region=Device#device.region,
         app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
