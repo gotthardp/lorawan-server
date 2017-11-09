@@ -240,6 +240,18 @@ make release
 
 The release will be created in `lorawan-server/_build/default/rel/lorawan-server`.
 
+If you encounter issues with npm, please try to:
+ * Update your npm with `sudo npm install -g npm`
+ * Make sure github.com is listed in the list of known hosts by running `ssh github.com`,
+   which will fail but will also add github.com to your `.ssh/known_hosts`:
+   ```
+   The authenticity of host 'github.com (192.30.253.113)' can't be established.
+   RSA key fingerprint is SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.
+   Are you sure you want to continue connecting (yes/no)? yes
+   Warning: Permanently added 'github.com,192.30.253.113' (RSA) to the list of known hosts.
+   Permission denied (publickey).
+   ```
+
 According to the above installation instructions the server binaries are under
 `/usr/lib/lorawan-server`. To upgrade your installation you shall **replace** the
 content of the `bin`, `lib` and `releases` sub-directories with the newly created
