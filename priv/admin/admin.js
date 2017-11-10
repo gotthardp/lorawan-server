@@ -896,7 +896,11 @@ function hextoascii(val) {
     var str = '';
     for (var n = 0; n < hex.length; n += 2) {
         var char = parseInt(hex.substr(n, 2), 16);
-        if(char >= 0x20 && char <= 0x7E)
+        if(char == 0x26)
+            str += '&amp;';
+        else if(char == 0x27)
+            str += '&#39;';
+        else if (char >= 0x20 && char <= 0x7E)
             str += String.fromCharCode(char);
         else
             str += '.';
