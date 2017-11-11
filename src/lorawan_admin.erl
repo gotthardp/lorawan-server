@@ -15,26 +15,52 @@
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
 
+-define(REALM, <<"lorawan-server">>).
+
 handle_authorization(Req, State) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
-        {basic, User, Pass} ->
-            case authorized_password(<<"admin">>, User, Pass) of
-                true -> {true, Req, State};
-                false -> {{false, <<"Basic realm=\"lorawan-server\"">>}, Req, State}
+        {digest, Params} ->
+            Method = cowboy_req:method(Req),
+            UserName = proplists:get_value(<<"username">>, Params, <<>>),
+            Realm = proplists:get_value(<<"realm">>, Params, <<>>),
+            Nonce = proplists:get_value(<<"nonce">>, Params, <<>>),
+            URI = proplists:get_value(<<"uri">>, Params, <<>>),
+            Response = proplists:get_value(<<"response">>, Params, <<>>),
+            % retrieve and check password
+            case get_password_hash(<<"admin">>, UserName, Realm) of
+                undefined ->
+                    {{false, digest_header()}, Req, State};
+                HA1 ->
+                    case lorawan_http_digest:response(Method, URI, <<>>, HA1, Nonce) of
+                        Response ->
+                            {true, Req, State};
+                        _Else ->
+                            {{false, digest_header()}, Req, State}
+                    end
             end;
-        _ ->
-            {{false, <<"Basic realm=\"lorawan-server\"">>}, Req, State}
+        _Else ->
+            {{false, digest_header()}, Req, State}
     end.
 
-authorized_password(Role, User, Pass) ->
-    case mnesia:dirty_read(users, User) of
-        % temporary provisions for backward compatibility
+digest_header() ->
+    Nonce = lorawan_http_digest:nonce(16),
+    lorawan_http_digest:header(digest, [
+        {<<"realm">>, ?REALM}, {<<"nonce">>, Nonce}]).
+
+get_password_hash(Role, UserName, Realm) ->
+    case mnesia:dirty_read(users, UserName) of
         [#user{pass=Pass, roles=undefined}] ->
-            true;
+            % temporary provisions for backward compatibility
+            lorawan_http_digest:ha1({UserName, Realm, Pass});
         [#user{pass=Pass, roles=Roles}] ->
-            lists:member(Role, Roles);
+            case lists:member(Role, Roles) of
+                true ->
+                    lorawan_http_digest:ha1({UserName, Realm, Pass});
+                false ->
+                    undefined
+            end;
         _Else ->
-            false
+            undefined
     end.
 
 check_health(#gateway{} = Gateway) ->

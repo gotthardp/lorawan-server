@@ -145,84 +145,26 @@ handle_authenticate0(_Any, _Value, _URI, _Body, State=#state{auth={Name, Pass}})
     {[], State};
 handle_authenticate0(basic, _Value, _URI, _Body, State=#state{auth={Name, Pass}}) ->
     Cred = base64:encode(<<Name/binary, $:, Pass/binary>>),
-    {[authorization_header(basic, Cred)], State};
+    {[lorawan_http_digest:authorization_header(basic, Cred)], State};
 handle_authenticate0(digest, Value, URI, Body, State=#state{auth={Name, Pass}, nc=Nc0}) ->
     Realm = proplists:get_value(<<"realm">>, Value, <<>>),
     Nonce = proplists:get_value(<<"nonce">>, Value, <<>>),
     Opaque = proplists:get_value(<<"opaque">>, Value, <<>>),
     case proplists:get_value(<<"qop">>, Value) of
         undefined ->
-            Response = digest_response(<<"POST">>, URI, Body, Name, Pass, Realm, Nonce),
-            {[authorization_header(digest, [{<<"username">>, Name}, {<<"realm">>, Realm},
+            Response = lorawan_http_digest:response(<<"POST">>, URI, Body, {Name, Realm, Pass}, Nonce),
+            {[lorawan_http_digest:authorization_header(digest, [{<<"username">>, Name}, {<<"realm">>, Realm},
                 {<<"nonce">>, Nonce}, {<<"uri">>, URI}, {<<"algorithm">>, <<"MD5">>},
                 {<<"response">>, Response}, {<<"opaque">>, Opaque}])], State};
         Qop0 ->
             [Qop|_] = binary:split(Qop0, [<<",">>], [global]),
-            Nc = integer_to_hex(Nc0, 8),
-            CNonce = binary_to_hex(crypto:strong_rand_bytes(4)),
-            Response = digest_response(<<"POST">>, URI, Body, Name, Pass, Realm, Nonce, Nc, CNonce, Qop),
-            {[authorization_header(digest, [{<<"username">>, Name}, {<<"realm">>, Realm},
+            Nc = lorawan_http_digest:nc(Nc0),
+            CNonce = lorawan_http_digest:nonce(4),
+            Response = lorawan_http_digest:response(<<"POST">>, URI, Body, {Name, Realm, Pass}, Nonce, Nc, CNonce, Qop),
+            {[lorawan_http_digest:authorization_header(digest, [{<<"username">>, Name}, {<<"realm">>, Realm},
                 {<<"nonce">>, Nonce}, {<<"uri">>, URI}, {<<"algorithm">>, <<"MD5">>},
                 {<<"response">>, Response}, {<<"opaque">>, Opaque}, {<<"qop">>, Qop},
                 {<<"nc">>, Nc}, {<<"cnonce">>, CNonce}])], State#state{nc=Nc0+1}}
     end.
-
-authorization_header(Scheme, Cred) ->
-    {<<"authorization">>, authorization_header0(Scheme, Cred)}.
-
-authorization_header0(basic, Cred) ->
-    <<"Basic ", Cred/binary>>;
-authorization_header0(digest, Params) ->
-    <<"Digest ", (encode_params(<<>>, Params))/binary>>.
-
-encode_params(<<>>, [First | Rest]) ->
-    encode_params(encode_param(First), Rest);
-encode_params(Acc, [First | Rest]) ->
-    encode_params(<<Acc/binary, ", ", (encode_param(First))/binary>>, Rest);
-encode_params(Acc, []) ->
-    Acc.
-
-encode_param({Name, Value})
-        when Name == <<"algorithm">>; Name == <<"qop">>; Name == <<"nc">> ->
-    <<Name/binary, $=, Value/binary>>;
-encode_param({Name, Value}) ->
-    <<Name/binary, $=, $", Value/binary, $">>.
-
-digest_response(Method, URI, _Body, User, Password, Realm, Nonce) ->
-    HA1 = binary_to_hex(crypto:hash(md5,
-        <<User/binary, $:, Realm/binary, $:, Password/binary>>)),
-    HA2 = binary_to_hex(crypto:hash(md5,
-        <<Method/binary, $:, URI/binary>>)),
-    binary_to_hex(crypto:hash(md5,
-        <<HA1/binary, $:, Nonce/binary, $:, HA2/binary>>)).
-
-digest_response(Method, URI, Body, User, Password, Realm, Nonce, Nc, CNonce, Qop) ->
-    HA1 = binary_to_hex(crypto:hash(md5,
-        <<User/binary, $:, Realm/binary, $:, Password/binary>>)),
-    HA2 = binary_to_hex(crypto:hash(md5,
-        case Qop of
-            <<"auth-int">> ->
-                BodyHash = binary_to_hex(crypto:hash(md5, Body)),
-                <<Method/binary, $:, URI/binary, $:, BodyHash/binary>>;
-            _Else ->
-                <<Method/binary, $:, URI/binary>>
-        end)),
-    binary_to_hex(crypto:hash(md5,
-        <<HA1/binary, $:, Nonce/binary, $:, Nc/binary, $:, CNonce/binary, $:, Qop/binary, $:, HA2/binary>>)).
-
--include_lib("eunit/include/eunit.hrl").
-
-digest_test_() -> [
-    ?_assertEqual(<<"6629fae49393a05397450978507c4ef1">>,
-        digest_response(<<"GET">>, <<"/dir/index.html">>, <<>>,
-            <<"Mufasa">>, <<"Circle Of Life">>, <<"testrealm@host.com">>,
-            <<"dcd98b7102dd2f0e8b11d0f600bfb0c093">>,
-            <<"00000001">>, <<"0a4f113b">>, <<"auth">>))].
-
-integer_to_hex(Num, Len) ->
-    list_to_binary(string:right(string:to_lower(integer_to_list(Num,16)), Len, $0)).
-
-binary_to_hex(Id) ->
-    << <<Y>> || <<X:4>> <= Id, Y <- string:to_lower(integer_to_list(X,16))>>.
 
 % end of file
