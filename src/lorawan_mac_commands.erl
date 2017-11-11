@@ -189,8 +189,7 @@ find_status(FOptsIn) ->
         undefined, FOptsIn).
 
 send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
-    {SF, _} = lorawan_mac_region:datar_to_tuple(DataRate),
-    Margin = trunc(SNR - lorawan_mac_region:max_snr(SF)),
+    Margin = trunc(SNR - lorawan_mac_region:max_uplink_snr(DataRate)),
     lager:debug("LinkCheckAns: margin: ~B", [Margin]),
     {link_check_ans, Margin, 1}.
 
@@ -228,7 +227,7 @@ auto_adr0(#link{last_qs=LastQs, adr_use={TxPower, DataRate, _}, adr_set={_, _, C
     % receiver sensitivity for maximal DR in all regions is -120 dBm, we try to stay at -100 dBm
     TxPower2 = if
             AvgRSSI > -96, TxPower < MinPower ->
-                PwrStepUp = trunc((AvgRSSI+100)/4), % 2-3dB between levels, go slower
+                PwrStepUp = trunc((AvgRSSI+100)/4), % there are 2 dB between levels, go slower
                 lager:debug("Power ~s: average rssi ~w, power ~w -> up by ~w",
                     [lorawan_mac:binary_to_hex(Link#link.devaddr), round(AvgRSSI), TxPower, PwrStepUp]),
                 min(MinPower, TxPower+PwrStepUp);

@@ -5,10 +5,12 @@
 %
 -module(lorawan_mac_region).
 
--export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx1_rf/2, rx2_rf/2, rf_fixed/1]).
--export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1, max_snr/1, max_uplink_snr/2, max_downlink_snr/3, tx_time/2]).
--export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
+-export([freq_range/1, default_adr/1, max_adr/1, default_rxwin/1, eirp_limits/1]).
+-export([datar_to_dr/2, powe_to_num/2]).
+-export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_fixed/1]).
+-export([max_uplink_snr/1, max_uplink_snr/2, max_downlink_snr/3]).
 -export([set_channels/3]).
+-export([tx_time/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 
@@ -304,6 +306,10 @@ freq_range(<<"AU915-928">>) -> {915, 928};
 freq_range(<<"CN470-510">>) -> {470, 510};
 freq_range(<<"KR920-923">>) -> {920, 923};
 freq_range(<<"AS923-JP">>) -> {920.6, 923.4}.
+
+max_uplink_snr(DataRate) ->
+    {SF, _} = datar_to_tuple(DataRate),
+    max_snr(SF).
 
 max_uplink_snr(Region, DataRate) ->
     {SF, _} = dr_to_tuple(Region, DataRate),
