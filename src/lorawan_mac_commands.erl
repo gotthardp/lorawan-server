@@ -200,18 +200,16 @@ appendq(SNR, undefined) ->
 appendq(SNR, LastSNRs) ->
     lists:sublist([SNR | LastSNRs], 20).
 
-auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
+auto_adr0(#link{last_qs=LastQs, adr_use={TxPower, DataRate, _}, adr_set={_, _, Chans}}=Link, RxFrame)
+        when length(LastQs) >= 20, is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
     {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
     {DefPower, _, _} = lorawan_mac_region:default_adr(Link#link.region),
     {MinPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
-    {TxPower, DataRate, _} = Link#link.adr_use,
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
     MaxSNR = lorawan_mac_region:max_uplink_snr(Link#link.region, DataRate)+10,
     StepsDR = trunc((AvgSNR-MaxSNR)/3),
     DataRate2 = if
-            DataRate == undefined ->
-                DataRate;
             StepsDR > 0, DataRate < MaxDR ->
                 lager:debug("DataRate ~s: average snr ~w ~w = ~w, dr ~w -> step ~w",
                     [lorawan_mac:binary_to_hex(Link#link.devaddr), round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
@@ -221,8 +219,6 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
         end,
     % receiver sensitivity for maximal DR in all regions is -120 dBm, we try to stay at -100 dBm
     TxPower2 = if
-            TxPower == undefined ->
-                TxPower;
             AvgRSSI > -96, TxPower < MinPower ->
                 PwrStepUp = trunc((AvgRSSI+100)/4), % 2-3dB between levels, go slower
                 lager:debug("Power ~s: average rssi ~w, power ~w -> up by ~w",
@@ -236,7 +232,6 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
             true ->
                 TxPower
         end,
-    {_, _, Chans} = Link#link.adr_set,
     {Link#link{adr_set={TxPower2, DataRate2, Chans}}, RxFrame#rxframe{average_qs=AverageQs}};
 auto_adr0(Link, RxFrame) ->
     {Link, RxFrame#rxframe{average_qs=undefined}}.
