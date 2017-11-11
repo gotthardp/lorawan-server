@@ -56,8 +56,12 @@ parse_fopts(<<16#06, Battery:8, _RFU:2, Margin:6/signed, Rest/binary>>) ->
     [{dev_status_ans, Battery, Margin} | parse_fopts(Rest)];
 parse_fopts(<<16#07, _RFU:6, DataRateRangeOK:1, ChannelFreqOK:1, Rest/binary>>) ->
     [{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | parse_fopts(Rest)];
+parse_fopts(<<16#0A, _RFU:6, UplinkFreqExists:1, ChannelFreqOK:1, Rest/binary>>) ->
+    [{di_channel_ans, UplinkFreqExists, ChannelFreqOK} | parse_fopts(Rest)];
 parse_fopts(<<16#08, Rest/binary>>) ->
     [rx_timing_setup_ans | parse_fopts(Rest)];
+parse_fopts(<<16#09, Rest/binary>>) ->
+    [tx_param_setup_ans | parse_fopts(Rest)];
 parse_fopts(<<>>) ->
     [];
 parse_fopts(Unknown) ->
@@ -69,15 +73,19 @@ encode_fopts([{link_check_ans, Margin, GwCnt} | Rest]) ->
 encode_fopts([{link_adr_req, DataRate, TXPower, ChMask, ChMaskCntl, NbRep} | Rest]) ->
     <<16#03, DataRate:4, TXPower:4, ChMask:16/little-unsigned-integer, 0:1, ChMaskCntl:3, NbRep:4, (encode_fopts(Rest))/binary>>;
 encode_fopts([{duty_cycle_req, MaxDCycle} | Rest]) ->
-    <<16#04, MaxDCycle, (encode_fopts(Rest))/binary>>;
+    <<16#04, 0:4, MaxDCycle:4, (encode_fopts(Rest))/binary>>;
 encode_fopts([{rx_param_setup_req, RX1DROffset, RX2DataRate, Frequency} | Rest]) ->
     <<16#05, 0:1, RX1DROffset:3, RX2DataRate:4, Frequency:24/little-unsigned-integer, (encode_fopts(Rest))/binary>>;
 encode_fopts([dev_status_req | Rest]) ->
     <<16#06, (encode_fopts(Rest))/binary>>;
 encode_fopts([{new_channel_req, ChIndex, Freq, MaxDR, MinDR} | Rest]) ->
     <<16#07, ChIndex, Freq:24/little-unsigned-integer, MaxDR:4, MinDR:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{di_channel_req, ChIndex, Freq} | Rest]) ->
+    <<16#0A, ChIndex, Freq:24/little-unsigned-integer, (encode_fopts(Rest))/binary>>;
 encode_fopts([{rx_timing_setup_req, Delay} | Rest]) ->
     <<16#08, 0:4, Delay:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{tx_param_setup_req, DownDwell, UplinkDwell, MaxEIRP} | Rest]) ->
+    <<16#09, 0:2, DownDwell:1, UplinkDwell:1, MaxEIRP:4, (encode_fopts(Rest))/binary>>;
 encode_fopts([]) ->
     <<>>.
 
