@@ -59,7 +59,7 @@ downlink0(Req, Gateway, Stats, DevAddr, TxQ, PHYPayload) ->
             end, 0, Relevant),
     Dwell =
         if
-            length(HourAgo) >= 20 -> HourAgo;
+            length(Relevant) >= 20 -> Relevant;
             true -> lists:sublist(Dwell0, 20)
         end,
     ok = mnesia:write(gateway_stats,
