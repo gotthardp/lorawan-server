@@ -16,7 +16,7 @@
 
 -define(MAX_FCNT_GAP, 16384).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 -record(frame, {devaddr, adr, adr_ack_req, ack, fcnt, fopts, fport, data}).
@@ -125,17 +125,17 @@ process_frame1(Gateway, RxQ, <<MType:3, _:5,
     Frame = #frame{devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort},
     case check_link(Gateway, DevAddr, FCnt) of
         {ok, Fresh, L} ->
-            case aes_cmac:aes_cmac(L#link.nwkskey, <<(b0(MType band 1, DevAddr, L#link.fcntup, byte_size(Msg)))/binary, Msg/binary>>, 4) of
+            case aes_cmac:aes_cmac(L#node.nwkskey, <<(b0(MType band 1, DevAddr, L#node.fcntup, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
                     case FPort of
                         0 when FOptsLen == 0 ->
-                            Data = cipher(FRMPayload, L#link.nwkskey, MType band 1, DevAddr, L#link.fcntup),
+                            Data = cipher(FRMPayload, L#node.nwkskey, MType band 1, DevAddr, L#node.fcntup),
                             handle_rxpk(Gateway, RxQ, MType, L, Fresh,
                                 Frame#frame{fopts=reverse(Data), data= <<>>});
                         0 ->
                             lorawan_utils:throw_error({node, DevAddr}, double_fopts);
                         _N ->
-                            Data = cipher(FRMPayload, L#link.appskey, MType band 1, DevAddr, L#link.fcntup),
+                            Data = cipher(FRMPayload, L#node.appskey, MType band 1, DevAddr, L#node.fcntup),
                             handle_rxpk(Gateway, RxQ, MType, L, Fresh,
                                 Frame#frame{fopts=FOpts, data=reverse(Data)})
                     end;
@@ -165,32 +165,32 @@ handle_join(Gateway, RxQ, _AppEUI, DevEUI, DevNonce, AppKey) ->
     {atomic, Device} = mnesia:transaction(fun() ->
         [D] = mnesia:read(devices, DevEUI, write),
         NewAddr = if
-            D#device.link == undefined;
-            byte_size(D#device.link) < 4 ->
+            D#device.node == undefined;
+            byte_size(D#device.node) < 4 ->
                 create_devaddr(NetID, Gateway#gateway.subid, 3);
             true ->
-                D#device.link
+                D#device.node
         end,
 
-        NewD = D#device{link=NewAddr, last_join=calendar:universal_time()},
+        NewD = D#device{node=NewAddr, last_join=calendar:universal_time()},
         ok = mnesia:write(devices, NewD, write),
         NewD
     end),
 
     Link0 =
-        case mnesia:dirty_read(links, Device#device.link) of
-            [#link{first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
+        case mnesia:dirty_read(nodes, Device#device.node) of
+            [#node{first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
                     when is_integer(Cnt) ->
-                lorawan_utils:throw_warning({node, Device#device.link}, {repeated_reset, Cnt+1}, First),
-                #link{reset_count=Cnt+1, devstat=Stats};
-            [#link{devstat=Stats}] ->
-                #link{first_reset=calendar:universal_time(), reset_count=0, devstat=Stats};
+                lorawan_utils:throw_warning({node, Device#device.node}, {repeated_reset, Cnt+1}, First),
+                #node{reset_count=Cnt+1, devstat=Stats};
+            [#node{devstat=Stats}] ->
+                #node{first_reset=calendar:universal_time(), reset_count=0, devstat=Stats};
             [] ->
-                #link{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
+                #node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
 
-    lorawan_utils:throw_info({device, DevEUI}, {join, binary_to_hex(Device#device.link)}),
-    Link = Link0#link{devaddr=Device#device.link, region=Device#device.region,
+    lorawan_utils:throw_info({device, DevEUI}, {join, binary_to_hex(Device#device.node)}),
+    Link = Link0#node{devaddr=Device#device.node, region=Device#device.region,
         app=Device#device.app, appid=Device#device.appid, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
         fcnt_check=Device#device.fcnt_check, txwin=Device#device.txwin,
@@ -201,30 +201,30 @@ handle_join(Gateway, RxQ, _AppEUI, DevEUI, DevNonce, AppKey) ->
         rxwin_use=initial_rxwin(Device#device.rxwin_set, lorawan_mac_region:default_rxwin(Device#device.region)),
         rxwin_set=Device#device.rxwin_set, last_reset=calendar:universal_time(),
         request_devstat=Device#device.request_devstat, devstat_fcnt=undefined, last_qs=[]},
-    ok = mnesia:dirty_write(links, Link),
+    ok = mnesia:dirty_write(nodes, Link),
 
-    reset_link(Link#link.devaddr),
+    reset_link(Link#node.devaddr),
     case lorawan_handler:handle_join(Gateway, Device, Link) of
         ok ->
             TxQ = case join_rxwin(Link) of
                 0 ->
-                    lager:debug("Join-Accept in RX1: ~w", [Link#link.rxwin_use]),
+                    lager:debug("Join-Accept in RX1: ~w", [Link#node.rxwin_use]),
                     lorawan_mac_region:join1_window(Link, RxQ);
                 1 ->
-                    lager:debug("Join-Accept in RX2: ~w", [Link#link.rxwin_use]),
+                    lager:debug("Join-Accept in RX2: ~w", [Link#node.rxwin_use]),
                     lorawan_mac_region:join2_window(Link, RxQ)
             end,
-            {RX1DROffset, RX2DataRate, _} = Link#link.rxwin_use,
-            txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, Link#link.devaddr);
+            {RX1DROffset, RX2DataRate, _} = Link#node.rxwin_use,
+            txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, Link#node.devaddr);
         {error, Error} ->
-            lorawan_utils:throw_error({node, Link#link.devaddr}, Error)
+            lorawan_utils:throw_error({node, Link#node.devaddr}, Error)
     end.
 
-join_rxwin(#link{txwin=1}) ->
+join_rxwin(#node{txwin=1}) ->
     0;
-join_rxwin(#link{txwin=2}) ->
+join_rxwin(#node{txwin=2}) ->
     1;
-join_rxwin(#link{reset_count=JoinCnt}) ->
+join_rxwin(#node{reset_count=JoinCnt}) ->
     JoinCnt band 1.
 
 % join response allows to send initial rx1offset and rx2dr
@@ -246,10 +246,10 @@ create_devaddr(NetID, SubID, Attempts) ->
                 <<NwkID:7, Bits/bitstring, (rand_bitstring(25-bit_size(Bits)))/bitstring>>
         end,
     % assert uniqueness
-    case mnesia:read(links, DevAddr, read) of
+    case mnesia:read(nodes, DevAddr, read) of
         [] ->
             DevAddr;
-        [#link{}] when Attempts > 0 ->
+        [#node{}] when Attempts > 0 ->
             create_devaddr(NetID, SubID, Attempts-1)
         %% FIXME: do not crash when Attempts == 0
     end.
@@ -273,7 +273,7 @@ txaccept(TxQ, RX1DROffset, RX2DataRate, AppKey, AppNonce, NetID, DevAddr) ->
 
 
 check_link(Gateway, DevAddr, FCnt) ->
-    case is_ignored(DevAddr, mnesia:dirty_all_keys(ignored_links)) of
+    case is_ignored(DevAddr, mnesia:dirty_all_keys(ignored_nodes)) of
         true ->
             ignore;
         false ->
@@ -283,7 +283,7 @@ check_link(Gateway, DevAddr, FCnt) ->
 is_ignored(_DevAddr, []) ->
     false;
 is_ignored(DevAddr, [Key|Rest]) ->
-    [#ignored_link{devaddr=MatchAddr, mask=MatchMask}] = mnesia:dirty_read(ignored_links, Key),
+    [#ignored_node{devaddr=MatchAddr, mask=MatchMask}] = mnesia:dirty_read(ignored_nodes, Key),
     case match(DevAddr, MatchAddr, MatchMask) of
         true -> true;
         false -> is_ignored(DevAddr, Rest)
@@ -296,7 +296,7 @@ match(<<DevAddr:32>>, <<MatchAddr:32>>, <<MatchMask:32>>) ->
 
 check_link_fcnt(#gateway{netid = <<_:17, NwkID:7>>, subid=SubId}, DevAddr, FCnt) ->
     {ok, MaxLost} = application:get_env(lorawan_server, max_lost_after_reset),
-    case mnesia:dirty_read(links, DevAddr) of
+    case mnesia:dirty_read(nodes, DevAddr) of
         [] ->
             {MyPrefix, MyPrefixSize} =
                 case SubId of
@@ -313,54 +313,54 @@ check_link_fcnt(#gateway{netid = <<_:17, NwkID:7>>, subid=SubId}, DevAddr, FCnt)
                     ok
             end,
             ignore;
-        [L] when L#link.fcntup == undefined ->
+        [L] when L#node.fcntup == undefined ->
             % first frame after join
             case FCnt of
                 N when N == 0; N == 1 ->
                     % some device start with 0, some with 1
-                    {ok, new, L#link{fcntup = N}};
+                    {ok, new, L#node{fcntup = N}};
                 N when N < ?MAX_FCNT_GAP ->
                     lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
-                    {ok, new, L#link{fcntup = N}};
+                    {ok, new, L#node{fcntup = N}};
                 _BigN ->
-                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#link.last_rx),
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#node.last_rx),
                     ignore
             end;
-        [L] when (L#link.fcnt_check == 2 orelse L#link.fcnt_check == 3), FCnt < L#link.fcntup, FCnt < MaxLost ->
+        [L] when (L#node.fcnt_check == 2 orelse L#node.fcnt_check == 3), FCnt < L#node.fcntup, FCnt < MaxLost ->
             lager:debug("~s fcnt reset", [binary_to_hex(DevAddr)]),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
-            {ok, reset, L#link{fcntup = FCnt, fcntdown=0,
-                adr_use=lorawan_mac_region:default_adr(L#link.region),
-                rxwin_use=lorawan_mac_region:default_rxwin(L#link.region),
+            {ok, reset, L#node{fcntup = FCnt, fcntdown=0,
+                adr_use=lorawan_mac_region:default_adr(L#node.region),
+                rxwin_use=lorawan_mac_region:default_rxwin(L#node.region),
                 last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
-        [L] when L#link.fcnt_check == 3 ->
+        [L] when L#node.fcnt_check == 3 ->
             % checks disabled
-            {ok, new, L#link{fcntup = FCnt}};
-        [L] when FCnt == L#link.fcntup ->
+            {ok, new, L#node{fcntup = FCnt}};
+        [L] when FCnt == L#node.fcntup ->
             % retransmission
             {ok, retransmit, L};
-        [L] when L#link.fcnt_check == 1 ->
+        [L] when L#node.fcnt_check == 1 ->
             % strict 32-bit
-            case fcnt32_gap(L#link.fcntup, FCnt) of
+            case fcnt32_gap(L#node.fcntup, FCnt) of
                 1 ->
-                    {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, 1)}};
+                    {ok, new, L#node{fcntup = fcnt32_inc(L#node.fcntup, 1)}};
                 N when N < ?MAX_FCNT_GAP ->
                     lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
-                    {ok, new, L#link{fcntup = fcnt32_inc(L#link.fcntup, N)}};
+                    {ok, new, L#node{fcntup = fcnt32_inc(L#node.fcntup, N)}};
                 _BigN ->
-                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#link.last_rx),
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#node.last_rx),
                     ignore
             end;
         [L] ->
             % strict 16-bit (default)
-            case fcnt16_gap(L#link.fcntup, FCnt) of
+            case fcnt16_gap(L#node.fcntup, FCnt) of
                 1 ->
-                    {ok, new, L#link{fcntup = FCnt}};
+                    {ok, new, L#node{fcntup = FCnt}};
                 N when N < ?MAX_FCNT_GAP ->
                     lorawan_utils:throw_warning({node, DevAddr}, {uplinks_missed, N-1}),
-                    {ok, new, L#link{fcntup = FCnt}};
+                    {ok, new, L#node{fcntup = FCnt}};
                 _BigN ->
-                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#link.last_rx),
+                    lorawan_utils:throw_error({node, DevAddr}, {fcnt_gap_too_large, FCnt}, L#node.last_rx),
                     ignore
             end
     end.
@@ -379,7 +379,7 @@ fcnt32_gap(A, B) ->
     end.
 
 fcnt32_inc(FCntUp, N) ->
-    % L#link.fcntup is 32b, but the received FCnt may be 16b only
+    % L#node.fcntup is 32b, but the received FCnt may be 16b only
     (FCntUp + N) band 16#FFFFFFFF.
 
 reset_link(DevAddr) ->
@@ -388,14 +388,14 @@ reset_link(DevAddr) ->
     lorawan_db_guard:purge_txframes(DevAddr).
 
 build_rxframe(Gateway, Link, RxQ, Confirm, Frame) ->
-    TXPower = case Link#link.adr_use of
+    TXPower = case Link#node.adr_use of
         {Power, _, _} when is_integer(Power) -> Power;
         _Else -> undefined
     end,
     % #rxframe{frid, mac, rxq, average_qs, app, appid, region, devaddr, fcnt, port, data, datetime}
     #rxframe{frid= <<(erlang:system_time()):64>>,
-        mac=Gateway#gateway.mac, powe=TXPower, rxq=RxQ, app=Link#link.app, appid=Link#link.appid,
-        region=Link#link.region, devaddr=Link#link.devaddr, fcnt=Link#link.fcntup,
+        mac=Gateway#gateway.mac, powe=TXPower, rxq=RxQ, app=Link#node.app, appid=Link#node.appid,
+        region=Link#node.region, devaddr=Link#node.devaddr, fcnt=Link#node.fcntup,
         confirm=bit_to_bool(Confirm), port=Frame#frame.fport, data=Frame#frame.data,
         datetime=calendar:universal_time()}.
 
@@ -406,20 +406,20 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
         new ->
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
         reset ->
-            reset_link(Link#link.devaddr),
+            reset_link(Link#node.devaddr),
             handle_uplink(Gateway, RxQ, Confirm, Link, Frame);
         retransmit ->
             % we want to see retransmissions too
             ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Confirm, Frame)),
-            case retransmit_downlink(Link#link.devaddr) of
+            case retransmit_downlink(Link#node.devaddr) of
                 {true, LostFrame} ->
                     TxQ = case Link of
-                            #link{txwin=2} ->
+                            #node{txwin=2} ->
                                 lorawan_mac_region:rx2_window(Link, RxQ);
                             _Else ->
                                 lorawan_mac_region:rx1_window(Link, RxQ)
                         end,
-                    {send, Link#link.devaddr, TxQ, LostFrame};
+                    {send, Link#node.devaddr, TxQ, LostFrame};
                 {false, _} ->
                     ok
             end
@@ -428,28 +428,28 @@ handle_rxpk(Gateway, RxQ, MType, Link, Fresh, Frame)
 handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
         adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame) ->
     % store parameters
-    DataRate = lorawan_mac_region:datar_to_dr(Link#link.region, RxQ#rxq.datr),
+    DataRate = lorawan_mac_region:datar_to_dr(Link#node.region, RxQ#rxq.datr),
     ULink =
-        case Link#link.adr_use of
-            {_TXPower, DataRate, _Chans} when Link#link.adr_flag_use == ADR ->
+        case Link#node.adr_use of
+            {_TXPower, DataRate, _Chans} when Link#node.adr_flag_use == ADR ->
                 % device didn't change any settings
                 Link;
             {_TXPower, DataRate, _Chans} ->
                 lager:debug("ADR indicator set to ~w", [ADR]),
-                Link#link{adr_flag_use=ADR, devstat_fcnt=undefined, last_qs=[]};
+                Link#node{adr_flag_use=ADR, devstat_fcnt=undefined, last_qs=[]};
             {TXPower, _OldDataRate, Chans} ->
-                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#link.devaddr), DataRate]),
-                Link#link{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans},
+                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#node.devaddr), DataRate]),
+                Link#node{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans},
                     devstat_fcnt=undefined, last_qs=[]};
             undefined ->
-                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#link.devaddr), DataRate]),
-                Link#link{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined},
+                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#node.devaddr), DataRate]),
+                Link#node{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined},
                     devstat_fcnt=undefined, last_qs=[]}
         end,
     % process commands
     RxFrame = build_rxframe(Gateway, ULink, RxQ, Confirm, Frame),
     {ok, MacConfirm, L2, FOptsOut, RxFrame2} = lorawan_mac_commands:handle(RxQ, ULink, FOpts, RxFrame),
-    ok = mnesia:dirty_write(links, L2#link{last_rx=calendar:universal_time(), last_mac=Gateway#gateway.mac, last_rxq=RxQ}),
+    ok = mnesia:dirty_write(nodes, L2#node{last_rx=calendar:universal_time(), last_mac=Gateway#gateway.mac, last_rxq=RxQ}),
     ok = mnesia:sync_dirty(
         fun() -> mnesia:dirty_write(rxframes, RxFrame2) end),
     % check whether last downlink transmission was lost
@@ -477,8 +477,8 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
     case lorawan_handler:handle_rx(Gateway, Link,
             #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, RxQ) of
         retransmit ->
-            lager:debug("~s retransmitting", [binary_to_hex(Link#link.devaddr)]),
-            {send, Link#link.devaddr, choose_tx(Link, RxQ), LostFrame};
+            lager:debug("~s retransmitting", [binary_to_hex(Link#node.devaddr)]),
+            {send, Link#node.devaddr, choose_tx(Link, RxQ), LostFrame};
         {send, TxData} ->
             send_unicast(Link, choose_tx(Link, RxQ), Confirm, FOptsOut, TxData);
         ok when ShallReply ->
@@ -487,21 +487,21 @@ handle_uplink(Gateway, RxQ, Confirm, Link, #frame{devaddr=DevAddr, adr=ADR,
         ok ->
             ok;
         {error, Error} ->
-            lorawan_utils:throw_error({node, Link#link.devaddr}, Error)
+            lorawan_utils:throw_error({node, Link#node.devaddr}, Error)
     end.
 
 handle_downlink(Link, Time, TxData) ->
-    TxQ = lorawan_mac_region:rx2_rf(Link#link.region, Link#link.last_rxq),
+    TxQ = lorawan_mac_region:rx2_rf(Link#node.region, Link#node.last_rxq),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
     send_unicast(Link, TxQ#txq{time=Time}, 0, lorawan_mac_commands:build_fopts(Link), TxData).
 
 handle_multicast(Group, Time, TxData) ->
-    TxQ = lorawan_mac_region:rf_fixed(Group#multicast_group.region),
-    send_multicast(TxQ#txq{time=Time}, Group#multicast_group.devaddr, TxData).
+    TxQ = lorawan_mac_region:rf_fixed(Group#multicast_channel.region),
+    send_multicast(TxQ#txq{time=Time}, Group#multicast_channel.devaddr, TxData).
 
-choose_tx(#link{txwin=1}=Link, RxQ) ->
+choose_tx(#node{txwin=1}=Link, RxQ) ->
     lorawan_mac_region:rx1_window(Link, RxQ);
-choose_tx(#link{txwin=2}=Link, RxQ) ->
+choose_tx(#node{txwin=2}=Link, RxQ) ->
     lorawan_mac_region:rx2_window(Link, RxQ);
 choose_tx(Link, RxQ) ->
     {ok, Rx1Delay} = application:get_env(lorawan_server, rx1_delay),
@@ -534,11 +534,11 @@ repeat_downlink(DevAddr, ACK) ->
             {false, undefined}
     end.
 
-send_unicast(#link{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=false}=TxData) ->
+send_unicast(#node{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=false}=TxData) ->
     PHYPayload = encode_unicast(2#011, DevAddr, ACK, FOpts, TxData),
     ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=false, phypayload=PHYPayload}),
     {send, DevAddr, TxQ, PHYPayload};
-send_unicast(#link{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=true}=TxData) ->
+send_unicast(#node{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=true}=TxData) ->
     PHYPayload = encode_unicast(2#101, DevAddr, ACK, FOpts, TxData),
     ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=true, phypayload=PHYPayload}),
     {send, DevAddr, TxQ, PHYPayload};
@@ -557,26 +557,26 @@ send_multicast(_TxQ, _DevAddr, #txdata{confirmed=true}) ->
 encode_unicast(MType, DevAddr, ACK, FOpts, TxData) ->
     {atomic, L} = mnesia:transaction(
         fun() ->
-            [D] = mnesia:read(links, DevAddr, write),
-            FCnt = (D#link.fcntdown + 1) band 16#FFFFFFFF,
-            NewD = D#link{fcntdown=FCnt},
-            ok = mnesia:write(links, NewD, write),
+            [D] = mnesia:read(nodes, DevAddr, write),
+            FCnt = (D#node.fcntdown + 1) band 16#FFFFFFFF,
+            NewD = D#node{fcntdown=FCnt},
+            ok = mnesia:write(nodes, NewD, write),
             NewD
         end),
-    encode_frame(MType, DevAddr, L#link.nwkskey, L#link.appskey,
-        L#link.fcntdown, get_adr_flag(L), ACK, FOpts, TxData).
+    encode_frame(MType, DevAddr, L#node.nwkskey, L#node.appskey,
+        L#node.fcntdown, get_adr_flag(L), ACK, FOpts, TxData).
 
 encode_multicast(MType, DevAddr, TxData) ->
     {atomic, G} = mnesia:transaction(
         fun() ->
-            [D] = mnesia:read(multicast_groups, DevAddr, write),
-            FCnt = (D#multicast_group.fcntdown + 1) band 16#FFFFFFFF,
-            NewD = D#multicast_group{fcntdown=FCnt},
-            ok = mnesia:write(multicast_groups, NewD, write),
+            [D] = mnesia:read(multicast_channels, DevAddr, write),
+            FCnt = (D#multicast_channel.fcntdown + 1) band 16#FFFFFFFF,
+            NewD = D#multicast_channel{fcntdown=FCnt},
+            ok = mnesia:write(multicast_channels, NewD, write),
             NewD
         end),
-    encode_frame(MType, DevAddr, G#multicast_group.nwkskey, G#multicast_group.appskey,
-        G#multicast_group.fcntdown, 0, 0, <<>>, TxData).
+    encode_frame(MType, DevAddr, G#multicast_channel.nwkskey, G#multicast_channel.appskey,
+        G#multicast_channel.fcntdown, 0, 0, <<>>, TxData).
 
 encode_frame(MType, DevAddr, NwkSKey, _AppSKey, FCnt, ADR, ACK, FOpts, #txdata{port=0, data=Data, pending=FPending}) ->
     FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_pending(FPending)):1, 0:4,
@@ -616,8 +616,8 @@ bool_to_pending(undefined) -> 0.
 bit_to_bool(0) -> false;
 bit_to_bool(1) -> true.
 
-get_adr_flag(#link{adr_flag_set=ADR}) when ADR == undefined; ADR == 0 -> 0;
-get_adr_flag(#link{adr_flag_set=ADR}) when ADR > 0 -> 1.
+get_adr_flag(#node{adr_flag_set=ADR}) when ADR == undefined; ADR == 0 -> 0;
+get_adr_flag(#node{adr_flag_set=ADR}) when ADR > 0 -> 1.
 
 
 cipher(Bin, Key, Dir, DevAddr, FCnt) ->

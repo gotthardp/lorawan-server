@@ -12,7 +12,7 @@
 -export([check_reception/1]).
 -export([check_reset/1, check_battery/1, check_margin/1, check_adr/1]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 handle_authorization(Req, State) ->
@@ -39,7 +39,7 @@ authorized_password(Role, User, Pass) ->
 
 check_health(#gateway{} = Gateway) ->
     check_health(Gateway, ?MODULE, [check_reception]);
-check_health(#link{} = Link) ->
+check_health(#node{} = Link) ->
     check_health(Link, ?MODULE, [check_reset, check_battery, check_margin, check_adr]);
 check_health(_Other) ->
     undefined.
@@ -72,13 +72,13 @@ check_reception(#gateway{last_rx=LastRx}) ->
             ok
     end.
 
-check_reset(#link{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
+check_reset(#node{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
         when LastRes /= undefined, is_number(Count), Count > 1, (LastRx == undefined orelse LastRes > LastRx) ->
     {20*(Count-1), many_resets};
-check_reset(#link{}) ->
+check_reset(#node{}) ->
     ok.
 
-check_battery(#link{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
+check_battery(#node{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
     if
         Battery == 0 ->
             % connected to external power
@@ -91,32 +91,32 @@ check_battery(#link{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
         true ->
             ok
     end;
-check_battery(#link{}) ->
+check_battery(#node{}) ->
     undefined.
 
-check_margin(#link{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
+check_margin(#node{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
     if
         Margin =< MaxSNR+10 ->
             {5*(Margin-MaxSNR), downlink_noise};
         true ->
             ok
     end;
-check_margin(#link{}) ->
+check_margin(#node{}) ->
     undefined.
 
-check_adr(#link{last_rx=undefined}) ->
-    % no frame arrived yet, so we don't know the #link.adr_flag_use
+check_adr(#node{last_rx=undefined}) ->
+    % no frame arrived yet, so we don't know the #node.adr_flag_use
     undefined;
-check_adr(#link{adr_flag_set=0}) ->
+check_adr(#node{adr_flag_set=0}) ->
     % disabled, so we don't care
     undefined;
-check_adr(#link{adr_flag_use=1, adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}})
+check_adr(#node{adr_flag_use=1, adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}})
         when Flag >= 1, is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
     % everything is correctly configured
     ok;
-check_adr(#link{adr_flag_use=0, adr_flag_set=Flag}) when Flag >= 1 ->
+check_adr(#node{adr_flag_use=0, adr_flag_set=Flag}) when Flag >= 1 ->
     {25, adr_not_supported};
-check_adr(#link{adr_flag_use=1, adr_flag_set=Flag}) when Flag >= 1 ->
+check_adr(#node{adr_flag_use=1, adr_flag_set=Flag}) when Flag >= 1 ->
     {25, adr_misconfigured}.
 
 parse(Object) when is_map(Object) ->
@@ -137,7 +137,7 @@ build(Object) when is_map(Object) ->
 parse_field(_Key, Value) when Value == null; Value == undefined ->
     undefined;
 parse_field(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
-                        Key == deveui; Key == appeui; Key == appkey; Key == link;
+                        Key == deveui; Key == appeui; Key == appkey; Key == node;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:hex_to_binary(Value);
@@ -187,7 +187,7 @@ parse_field(_Key, Value) ->
 build_field(_Key, undefined) ->
     null;
 build_field(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
-                        Key == deveui; Key == appeui; Key == appkey; Key == link;
+                        Key == deveui; Key == appeui; Key == appkey; Key == node;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:binary_to_hex(Value);

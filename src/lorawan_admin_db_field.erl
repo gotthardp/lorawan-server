@@ -15,7 +15,7 @@
 
 -export([handle_get/2, handle_write/2]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 -record(state, {table, key, field, fidx, module}).

@@ -11,7 +11,7 @@
 
 -export([init/1, handle_join/3, handle_rx/4]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 
 init(_App) ->
     ok.
@@ -22,7 +22,7 @@ handle_join(_Gateway, _Device, _Link) ->
 
 % the data structure is explained in
 % Lora_Legacy_Mote_Firmware/Includes/Board/MOTEapp.c:520
-handle_rx(_Gateway, #link{devaddr=DevAddr},
+handle_rx(_Gateway, #node{devaddr=DevAddr},
         #rxdata{data= <<Light:5/binary, Temp:3/binary>>}, _RxQ) ->
     lager:debug("PUSH_DATA ~w ~p ~p", [DevAddr, Light, Temp]),
     % display actual time

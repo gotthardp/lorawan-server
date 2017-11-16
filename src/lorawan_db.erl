@@ -8,7 +8,7 @@
 -export([ensure_tables/0, ensure_table/2]).
 -export([get_rxframes/1, get_last_rxframes/2]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 ensure_tables() ->
@@ -26,29 +26,30 @@ ensure_tables() ->
             {record_name, user},
             {attributes, record_info(fields, user)},
             {disc_copies, [node()]}]},
+        {networks, [
+            {record_name, network},
+            {attributes, record_info(fields, network)},
+            {disc_copies, [node()]}]},
         {gateways, [
             {record_name, gateway},
             {attributes, record_info(fields, gateway)},
             {disc_copies, [node()]}]},
-        {gateway_stats, [
-            {attributes, record_info(fields, gateway_stats)},
-            {disc_copies, [node()]}]},
-        {multicast_groups, [
-            {record_name, multicast_group},
-            {attributes, record_info(fields, multicast_group)},
+        {multicast_channels, [
+            {record_name, multicast_channel},
+            {attributes, record_info(fields, multicast_channel)},
             {disc_copies, [node()]}]},
         {devices, [
             {record_name, device},
             {attributes, record_info(fields, device)},
-            {index, [link]},
+            {index, [node]},
             {disc_copies, [node()]}]},
-        {links, [
-            {record_name, link},
-            {attributes, record_info(fields, link)},
+        {nodes, [
+            {record_name, node},
+            {attributes, record_info(fields, node)},
             {disc_copies, [node()]}]},
-        {ignored_links, [
-            {record_name, ignored_link},
-            {attributes, record_info(fields, ignored_link)},
+        {ignored_nodes, [
+            {record_name, ignored_node},
+            {attributes, record_info(fields, ignored_node)},
             {disc_copies, [node()]}]},
         {pending, [
             {record_name, pending},
@@ -79,16 +80,61 @@ ensure_tables() ->
     ]).
 
 ensure_table(Name, TabDef) ->
-    case lists:member(Name, mnesia:system_info(tables)) of
+    case table_exists(Name) of
         true ->
             ok = mnesia:wait_for_tables([Name], 2000),
             ensure_indexes(Name, TabDef);
         false ->
-            lager:info("Database create ~w", [Name]),
-            {atomic, ok} = mnesia:create_table(Name, TabDef),
-            ok = mnesia:wait_for_tables([Name], 2000),
-            set_defaults(Name)
+            case old_table_for(Name) of
+                undefined ->
+                    create_table(Name, TabDef);
+                OldName ->
+                    rename_table(OldName, Name, TabDef)
+            end
     end.
+
+table_exists(Name) ->
+    lists:member(Name, mnesia:system_info(tables)).
+
+table_if_exists(Name) ->
+    case table_exists(Name) of
+        true -> Name;
+        false -> undefined
+    end.
+
+old_table_for(multicast_channels) ->
+    table_if_exists(multicast_groups);
+old_table_for(nodes) ->
+    table_if_exists(links);
+old_table_for(ignored_nodes) ->
+    table_if_exists(ignored_links);
+old_table_for(_Else) ->
+    undefined.
+
+create_table(Name, TabDef) ->
+    lager:info("Database create ~w", [Name]),
+    {atomic, ok} = mnesia:create_table(Name, TabDef),
+    ok = mnesia:wait_for_tables([Name], 2000),
+    set_defaults(Name).
+
+rename_table(OldName, Name, TabDef) ->
+    {atomic, ok} = mnesia:create_table(Name, TabDef),
+    ok = mnesia:wait_for_tables([OldName, Name], 2000),
+    % copy data
+    OldAttrs = mnesia:table_info(OldName, attributes),
+    NewRec = proplists:get_value(record_name, TabDef),
+    NewAttrs = proplists:get_value(attributes, TabDef),
+    lager:info("Database copy ~w ~w to ~w ~w", [OldName, OldAttrs, Name, NewAttrs]),
+    lists:foreach(
+        fun(Key) ->
+            [Val] = mnesia:dirty_read(OldName, Key),
+            % convert
+            PropList = lists:zip(OldAttrs, tl(tuple_to_list(Val))),
+            ok = mnesia:dirty_write(Name,
+                list_to_tuple([NewRec|[get_value(X, PropList) || X <- NewAttrs]]))
+        end,
+        mnesia:dirty_all_keys(OldName)),
+    {atomic, ok} = mnesia:delete_table(OldName).
 
 ensure_indexes(Name, TabDef) ->
     OldAttrs = mnesia:table_info(Name, attributes),
@@ -131,11 +177,21 @@ ensure_fields(Name, TabDef) ->
                 fun(OldRec) ->
                     [Rec|Values] = tuple_to_list(OldRec),
                     PropList = lists:zip(OldAttrs, Values),
-                    list_to_tuple([Rec|[proplists:get_value(X, PropList) || X <- NewAttrs]])
+                    list_to_tuple([Rec|[get_value(X, PropList) || X <- NewAttrs]])
                 end,
                 NewAttrs),
             ok
     end.
+
+get_value(node, PropList) ->
+    % import data from old structure
+    get_value(link, node, PropList);
+get_value(X, PropList) ->
+    proplists:get_value(X, PropList).
+
+get_value(Old, New, PropList) ->
+    proplists:get_value(New, PropList,
+      proplists:get_value(Old, PropList)).
 
 set_defaults(users) ->
     lager:info("Database create default user:password"),
@@ -148,8 +204,8 @@ set_defaults(_Else) ->
 get_rxframes(DevAddr) ->
     {_, Frames} = get_last_rxframes(DevAddr, 50),
     % return frames received since the last device restart
-    case mnesia:dirty_read(links, DevAddr) of
-        [#link{last_reset=Reset}] when is_tuple(Reset) ->
+    case mnesia:dirty_read(nodes, DevAddr) of
+        [#node{last_reset=Reset}] when is_tuple(Reset) ->
             lists:filter(
                 fun(Frame) -> occured_rxframe_after(Reset, Frame) end,
                 Frames);

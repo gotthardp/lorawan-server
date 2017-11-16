@@ -9,7 +9,7 @@
 -export([start/0]).
 -export([start/2, stop/1]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 start() ->
@@ -27,6 +27,8 @@ start(_Type, _Args) ->
             {"/applications/[:name]", lorawan_admin_applications, []},
             {"/users/[:name]", lorawan_admin_db_record,
                 [users, user, record_info(fields, user)]},
+            {"/networks/[:name]", lorawan_admin_db_record,
+                [networks, network, record_info(fields, network)]},
             {"/gateways/[:mac]", lorawan_admin_db_record,
                 [gateways, gateway, record_info(fields, gateway)]},
             {"/multicast_channels/[:devaddr]", lorawan_admin_db_record,
@@ -34,9 +36,9 @@ start(_Type, _Args) ->
             {"/devices/[:deveui]", lorawan_admin_db_record,
                 [devices, device, record_info(fields, device)]},
             {"/nodes/[:devaddr]", lorawan_admin_db_record,
-                [links, link, record_info(fields, link)]},
+                [nodes, node, record_info(fields, node)]},
             {"/ignored_nodes/[:devaddr]", lorawan_admin_db_record,
-                [ignored_links, ignored_link, record_info(fields, ignored_link)]},
+                [ignored_nodes, ignored_node, record_info(fields, ignored_node)]},
             {"/txframes/[:frid]", lorawan_admin_db_record,
                 [txframes, txframe, record_info(fields, txframe)]},
             {"/rxframes/[:frid]", lorawan_admin_db_record,

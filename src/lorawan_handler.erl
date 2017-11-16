@@ -10,7 +10,7 @@
 
 -define(MAX_DELAY, 250). % milliseconds
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 init() ->
@@ -34,10 +34,10 @@ invoke_init({App, Module}) when is_atom(Module) ->
 handle_join(Gateway, #device{app=App}=Device, Link) ->
     invoke_handler(handle_join, App, [Gateway, Device, Link]).
 
-handle_rx(Gateway, #link{app=App}=Link, RxData, RxQ) ->
+handle_rx(Gateway, #node{app=App}=Link, RxData, RxQ) ->
     invoke_handler(handle_rx, App, [Gateway, Link, RxData, RxQ]).
 
-encode_tx(#link{app=App}=Link, TxQ, FOpts, TxData) ->
+encode_tx(#node{app=App}=Link, TxQ, FOpts, TxData) ->
     invoke_handler(encode_tx, App, [Link, TxQ, FOpts, TxData]).
 
 invoke_handler(Fun, App, Params) ->
@@ -103,15 +103,15 @@ transmit_and_delete(DefPort, TxFrame, Pending) ->
 downlink(Link, Time, TxData) ->
     case lorawan_mac:handle_downlink(Link, Time, TxData) of
         {send, _DevAddr, TxQ, PHYPayload2} ->
-            lorawan_gw_router:downlink(#request{}, Link#link.last_mac, Link#link.devaddr, TxQ, PHYPayload2)
+            lorawan_gw_router:downlink(#request{}, Link#node.last_mac, Link#node.devaddr, TxQ, PHYPayload2)
     end.
 
 multicast(Group, Time, TxData) ->
     case lorawan_mac:handle_multicast(Group, Time, TxData) of
         {send, _DevAddr, TxQ, PHYPayload2} ->
-            lorawan_gw_router:downlink(#request{}, Group#multicast_group.mac, Group#multicast_group.devaddr, TxQ, PHYPayload2);
+            lorawan_gw_router:downlink(#request{}, Group#multicast_channel.mac, Group#multicast_channel.devaddr, TxQ, PHYPayload2);
         {error, Error} ->
-            {error, {{multicast_group, Group#multicast_group.devaddr}, Error}}
+            {error, {{multicast_channel, Group#multicast_channel.devaddr}, Error}}
     end.
 
 % end of file

@@ -9,7 +9,7 @@
 -export([websocket_init/1, websocket_handle/2, websocket_info/2, terminate/3]).
 -export([get_processes/2]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 -record(state, {target, format}).
@@ -23,7 +23,7 @@ init0(Req, <<"devices">>, Format, Opts) ->
     DevEUI = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
     case mnesia:dirty_read(devices, DevEUI) of
         [Dev=#device{app= <<"websocket">>}] ->
-            {cowboy_websocket, Req, #state{target=#{devaddr=>Dev#device.link}, format=Format}, Opts};
+            {cowboy_websocket, Req, #state{target=#{devaddr=>Dev#device.node}, format=Format}, Opts};
         _Else ->
             lager:warning("No WebSocket for DevEUI: ~w", [DevEUI]),
             Req2 = cowboy_req:reply(404, Req),
@@ -31,8 +31,8 @@ init0(Req, <<"devices">>, Format, Opts) ->
     end;
 init0(Req, <<"nodes">>, Format, Opts) ->
     DevAddr = lorawan_mac:hex_to_binary(cowboy_req:binding(name, Req)),
-    case mnesia:dirty_read(links, DevAddr) of
-        [#link{app= <<"websocket">>}] ->
+    case mnesia:dirty_read(nodes, DevAddr) of
+        [#node{app= <<"websocket">>}] ->
             {cowboy_websocket, Req, #state{target=#{devaddr=>DevAddr}, format=Format}, Opts};
         _Else ->
             lager:warning("No WebSocket for DevAddr: ~w", [DevAddr]),
@@ -81,7 +81,7 @@ handle_downlink(Msg, #state{target=Target, format=Format} = State) ->
             {stop, State}
     end.
 
-websocket_info({send, Gateway, #link{appid=AppID}=Link, RxData, RxQ}, #state{format=Format} = State) ->
+websocket_info({send, Gateway, #node{appid=AppID}=Link, RxData, RxQ}, #state{format=Format} = State) ->
     Handler =
         case mnesia:dirty_read(handlers, AppID) of
             [Rec] -> Rec#handler{format=Format};

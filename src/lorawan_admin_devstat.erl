@@ -13,7 +13,7 @@
 
 -export([get_rxframe/2]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 init(Req, Opts) ->
@@ -32,7 +32,7 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    [#link{last_reset=Reset, devstat=DevStat}] = mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)),
+    [#node{last_reset=Reset, devstat=DevStat}] = mnesia:dirty_read(nodes, lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
@@ -80,8 +80,8 @@ encode_timestamp(_Else) ->
 
 resource_exists(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    case mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)) of
-        [#link{devstat=DevStat}] when is_list(DevStat) ->
+    case mnesia:dirty_read(nodes, lorawan_mac:hex_to_binary(DevAddr)) of
+        [#node{devstat=DevStat}] when is_list(DevStat) ->
             {true, Req, State};
         _Else ->
             {false, Req, State}
@@ -89,10 +89,10 @@ resource_exists(Req, State) ->
 
 generate_etag(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    case mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)) of
+    case mnesia:dirty_read(nodes, lorawan_mac:hex_to_binary(DevAddr)) of
         [] ->
             {undefined, Req, State};
-        [#link{last_reset=Reset, devstat=DevStat}] ->
+        [#node{last_reset=Reset, devstat=DevStat}] ->
             Hash = base64:encode(crypto:hash(sha256, term_to_binary({Reset, DevStat}))),
             {<<$", Hash/binary, $">>, Req, State}
     end.

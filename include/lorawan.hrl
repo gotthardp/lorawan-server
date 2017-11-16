@@ -10,7 +10,7 @@
 }).
 -record(request, {tmst, opaque}).
 
--record(ignored_link, {devaddr, mask}).
+-record(ignored_node, {devaddr, mask}).
 -record(connector, {connid, enabled, uri, published, subscribe, consumed, client_id, auth, name, pass, certfile, keyfile}).
 -record(handler, {appid, format, fields, parse, build, connid}).
 

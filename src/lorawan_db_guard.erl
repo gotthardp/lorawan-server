@@ -11,14 +11,14 @@
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 start_link() ->
     gen_server:start_link(?MODULE, [], []).
 
 init([]) ->
-    {ok, _} = mnesia:subscribe({table, links, simple}),
+    {ok, _} = mnesia:subscribe({table, nodes, simple}),
     {ok, _} = timer:send_interval(3600*1000, trim_tables),
     {ok, undefined}.
 
@@ -44,11 +44,7 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-handle_delete(gateways, MAC) ->
-    lager:debug("Gateway ~p deleted", [lorawan_mac:binary_to_hex(MAC)]),
-    % delete linked records
-    ok = mnesia:dirty_delete(gateway_stats, MAC);
-handle_delete(links, DevAddr) ->
+handle_delete(nodes, DevAddr) ->
     lager:debug("Node ~p deleted", [lorawan_mac:binary_to_hex(DevAddr)]),
     % delete linked records
     ok = mnesia:dirty_delete(pending, DevAddr),

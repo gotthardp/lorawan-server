@@ -13,7 +13,7 @@
 
 -export([get_gateway/2]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 -record(state, {format}).
 
@@ -34,8 +34,8 @@ content_types_provided(Req, State) ->
 get_gateway(Req, #state{format=pgraph}=State) ->
     MAC = cowboy_req:binding(mac, Req),
     Delays =
-        case mnesia:dirty_read(gateway_stats, lorawan_mac:hex_to_binary(MAC)) of
-            [#gateway_stats{delays=D}] when D /= undefined -> D;
+        case mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)) of
+            [#gateways{delays=D}] when D /= undefined -> D;
             _Else -> []
         end,
     % construct Google Chart DataTable
@@ -62,7 +62,7 @@ get_gateway(Req, #state{format=pgraph}=State) ->
 get_gateway(Req, #state{format=tgraph}=State) ->
     MAC = cowboy_req:binding(mac, Req),
     Dwell =
-        case mnesia:dirty_read(gateway_stats, lorawan_mac:hex_to_binary(MAC)) of
+        case mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)) of
             [#gateway_stats{dwell=D}] when D /= undefined -> D;
             _Else -> []
         end,
@@ -97,7 +97,7 @@ encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
             integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(trunc(Sc)), ")"])).
 
 resource_exists(Req, State) ->
-    case mnesia:dirty_read(gateway_stats,
+    case mnesia:dirty_read(gateways,
             lorawan_mac:hex_to_binary(cowboy_req:binding(mac, Req))) of
         [] -> {false, Req, State};
         [_Stats] -> {true, Req, State}

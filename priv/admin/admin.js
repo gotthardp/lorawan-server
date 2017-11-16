@@ -14,10 +14,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('name'));
     var users = nga.entity('users')
         .identifier(nga.field('name'));
+    var networks = nga.entity('networks')
+        .identifier(nga.field('name'));
     var gateways = nga.entity('gateways')
         .identifier(nga.field('mac'));
     var multicast_channels = nga.entity('multicast_channels')
         .identifier(nga.field('devaddr'));
+    var profiles = nga.entity('profiles')
+        .identifier(nga.field('name'));
     var devices = nga.entity('devices')
         .identifier(nga.field('deveui'));
     var nodes = nga.entity('nodes')
@@ -179,12 +183,38 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(users);
 
-    // ---- gateways
-    gateways.listView().fields([
-        nga.field('mac').label('MAC').isDetailLink(true),
+    // ---- networks
+    networks.listView().fields([
+        nga.field('name').isDetailLink(true),
         nga.field('netid').label('NetID'),
         nga.field('subid').label('SubID')
             .map(format_bitstring),
+        nga.field('region')
+    ]);
+    networks.creationView().fields([
+        nga.field('name'),
+        nga.field('netid').label('NetID')
+            .attributes({ placeholder: 'e.g. 0123AB' })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
+        nga.field('subid').label('SubID')
+            .map(format_bitstring)
+            .transform(parse_bitstring)
+            .attributes({ placeholder: 'e.g. 0:3' })
+            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+' }),
+        nga.field('region', 'choice')
+            .choices(region_choices)
+            .validation({ required: true }),
+        nga.field('max_eirp', 'number').label('TX Power (dBm)')
+            .attributes({ placeholder: 'e.g. 14' })
+    ]);
+    networks.editionView().fields(networks.creationView().fields());
+    // add to the admin application
+    admin.addEntity(networks);
+
+    // ---- gateways
+    gateways.listView().fields([
+        nga.field('mac').label('MAC').isDetailLink(true),
+        nga.field('network'),
         nga.field('group'),
         nga.field('desc').label('Description'),
         nga.field('last_rx', 'datetime').label('Last RX'),
@@ -201,14 +231,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 return value.replace(/[-:]/g, '')
             })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
-        nga.field('netid').label('NetID')
-            .attributes({ placeholder: 'e.g. 0123AB' })
-            .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
-        nga.field('subid').label('SubID')
-            .map(format_bitstring)
-            .transform(parse_bitstring)
-            .attributes({ placeholder: 'e.g. 0:3' })
-            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+' }),
+        nga.field('network', 'reference')
+            .targetEntity(networks)
+            .targetField(nga.field('name'))
+            .validation({ required: true }),
         nga.field('tx_rfch', 'number').label('TX Chain')
             .attributes({ placeholder: 'e.g. 0' })
             .validation({ required: true })
@@ -294,7 +320,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appid').label('Group'),
         nga.field('appargs').label('Arguments'),
         nga.field('last_join', 'datetime').label('Last Join'),
-        nga.field('link', 'reference').label('Node')
+        nga.field('node', 'reference')
             .targetEntity(nodes)
             .targetField(nga.field('devaddr'))
     ])
@@ -335,7 +361,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('can_join', 'boolean').label('Can Join?')
             .defaultValue(true),
         nga.field('last_join', 'datetime').label('Last Join'),
-        nga.field('link').label('Node')
+        nga.field('node')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('adr_flag_set', 'choice').label('ADR mode')
@@ -830,21 +856,28 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
         .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
             .addChild(nga.menu(servers).icon('<span class="fa fa-server fa-fw"></span>'))
-            .addChild(nga.menu(gateways).icon('<span class="fa fa-cloud fa-fw"></span>'))
+            .addChild(nga.menu(networks).icon('<span class="fa fa-cloud fa-fw"></span>'))
+            .addChild(nga.menu(gateways).icon('<span class="fa fa-wifi fa-fw"></span>'))
             .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
-            .addChild(nga.menu(ignored_nodes).icon('<span class="fa fa-ban fa-fw"></span>'))
             .addChild(nga.menu(events).icon('<span class="fa fa-exclamation-triangle fa-fw"></span>'))
         )
-        .addChild(nga.menu(devices).icon('<span class="fa fa-cube fa-fw"></span>'))
-        .addChild(nga.menu(nodes).icon('<span class="fa fa-rss fa-fw"></span>'))
+        .addChild(nga.menu().title('Devices').icon('<span class="fa fa-cubes fa-fw"></span>')
+            .addChild(nga.menu(devices).title('Profiles').icon('<span class="fa fa-pencil-square-o fa-fw"></span>'))
+            .addChild(nga.menu(devices).title('Commissioned').icon('<span class="fa fa-cube fa-fw"></span>'))
+            .addChild(nga.menu(nodes).title('Activated').icon('<span class="fa fa-rss fa-fw"></span>'))
+            .addChild(nga.menu(ignored_nodes).title('Ignored').icon('<span class="fa fa-ban fa-fw"></span>'))
+        )
     );
     if (typeof addPrivateMenu === "function") {
         addPrivateMenu(nga, admin, dashLeft, dashRight);
     }
     admin.menu()
         .addChild(nga.menu().title('Backends').icon('<span class="fa fa-industry fa-fw"></span>')
-          .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
-          .addChild(nga.menu(connectors).icon('<span class="fa fa-bolt fa-fw"></span>'))
+            .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
+            .addChild(nga.menu(connectors).title('Pub/Sub Connect').icon('<span class="fa fa-bolt fa-fw"></span>'))
+            .addChild(nga.menu(connectors).title('WebSocket Connect').icon('<span class="fa fa-bolt fa-fw"></span>'))
+            .addChild(nga.menu(connectors).title('HTTP Connect').icon('<span class="fa fa-bolt fa-fw"></span>'))
+            .addChild(nga.menu(connectors).title('Database Connect').icon('<span class="fa fa-database fa-fw"></span>'))
         )
         .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
         .autoClose(false);

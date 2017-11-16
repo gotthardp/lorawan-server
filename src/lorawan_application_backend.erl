@@ -9,7 +9,7 @@
 -export([init/1, handle_join/3, handle_rx/4]).
 -export([parse_uplink/5, handle_downlink/3]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
 init(_App) ->
@@ -21,7 +21,7 @@ handle_join(_Gateway, _Device, _Link) ->
 
 handle_rx(_Gateway, _Link, #rxdata{last_lost=true}, _RxQ) ->
     retransmit;
-handle_rx(Gateway, #link{devaddr=DevAddr}=Link, #rxdata{port=Port} = RxData, RxQ) ->
+handle_rx(Gateway, #node{devaddr=DevAddr}=Link, #rxdata{port=Port} = RxData, RxQ) ->
     case send_to_backend(Gateway, Link, RxData, RxQ) of
         ok ->
             lorawan_handler:send_stored_frames(DevAddr, Port);
@@ -29,7 +29,7 @@ handle_rx(Gateway, #link{devaddr=DevAddr}=Link, #rxdata{port=Port} = RxData, RxQ
             {error, Error}
     end.
 
-send_to_backend(Gateway, #link{appid=AppID}=Link, RxData, RxQ) ->
+send_to_backend(Gateway, #node{appid=AppID}=Link, RxData, RxQ) ->
     case mnesia:dirty_read(handlers, AppID) of
         [Handler] ->
             lorawan_connector_factory:publish(Handler#handler.connid,
@@ -68,16 +68,16 @@ get_device_appid(DevEUI, Vars) ->
     end.
 
 get_link_appid(DevAddr, Vars) ->
-    case mnesia:dirty_read(links, DevAddr) of
+    case mnesia:dirty_read(nodes, DevAddr) of
         [] ->
             case mnesia:dirty_read(multicast_groups, DevAddr) of
                 [] ->
                     maps:get(group, Vars, undefined);
                 [Group] ->
-                    Group#multicast_group.appid
+                    Group#multicast_channel.appid
             end;
         [Link] ->
-            Link#link.appid
+            Link#node.appid
     end.
 
 get_handler(AppID, Format) ->
@@ -98,19 +98,19 @@ send_downlink(#{deveui := DevEUI}, undefined, TxData) ->
             {error, {{device, DevEUI}, unknown_deveui}};
         [Device] ->
             % standard downlink to an explicit node
-            lorawan_handler:store_frame(Device#device.link, TxData)
+            lorawan_handler:store_frame(Device#device.node, TxData)
     end;
 send_downlink(#{deveui := DevEUI}, Time, TxData) ->
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
             {error, {{device, DevEUI}, unknown_deveui}};
         [Device] ->
-            [Link] = mnesia:dirty_read(links, Device#device.link),
+            [Link] = mnesia:dirty_read(nodes, Device#device.node),
             % class C downlink to an explicit node
             lorawan_handler:downlink(Link, Time, TxData)
     end;
 send_downlink(#{devaddr := DevAddr}, undefined, TxData) ->
-    case mnesia:dirty_read(links, DevAddr) of
+    case mnesia:dirty_read(nodes, DevAddr) of
         [] ->
             {error, {{node, DevAddr}, unknown_devaddr}};
         [_Link] ->
@@ -118,9 +118,9 @@ send_downlink(#{devaddr := DevAddr}, undefined, TxData) ->
             lorawan_handler:store_frame(DevAddr, TxData)
     end;
 send_downlink(#{devaddr := DevAddr}, Time, TxData) ->
-    case mnesia:dirty_read(links, DevAddr) of
+    case mnesia:dirty_read(nodes, DevAddr) of
         [] ->
-            case mnesia:dirty_read(multicast_groups, DevAddr) of
+            case mnesia:dirty_read(multicast_channels, DevAddr) of
                 [] ->
                     {error, {{node, DevAddr}, unknown_devaddr}};
                 [Group] ->
@@ -135,13 +135,13 @@ send_downlink(#{group := AppID}, undefined, TxData) ->
     % downlink to a group
     filter_group_responses(AppID,
         [lorawan_handler:store_frame(DevAddr, TxData)
-            || DevAddr <- mnesia:dirty_select(links, [{#link{devaddr='$1', appid=AppID, _='_'}, [], ['$1']}])]
+            || DevAddr <- mnesia:dirty_select(nodes, [{#node{devaddr='$1', appid=AppID, _='_'}, [], ['$1']}])]
     );
 send_downlink(#{group := AppID}, Time, TxData) ->
     % class C downlink to a group of devices
     filter_group_responses(AppID,
         [lorawan_handler:downlink(Link, Time, TxData)
-            || Link <- mnesia:dirty_select(links, [{#link{appid=AppID, _='_'}, [], ['$_']}])]
+            || Link <- mnesia:dirty_select(nodes, [{#node{appid=AppID, _='_'}, [], ['$_']}])]
     );
 send_downlink(Else, _Time, _TxData) ->
     lager:error("Unknown downlink target: ~p", [Else]).
@@ -156,7 +156,7 @@ filter_group_responses(_AppID, List) ->
         ok, List).
 
 parse_uplink(#handler{appid = AppID, format = <<"raw">>, parse = Parse},
-        _Gateway, #link{devaddr=DevAddr}, #rxdata{port=Port, data=Data}, _RxQ) ->
+        _Gateway, #node{devaddr=DevAddr}, #rxdata{port=Port, data=Data}, _RxQ) ->
     Data2 =
         case data_to_fields(Parse, Port, Data) of
             undefined -> Data;
@@ -165,7 +165,7 @@ parse_uplink(#handler{appid = AppID, format = <<"raw">>, parse = Parse},
     {<<"application/octet-stream">>, Data2,
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
 parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse = Parse},
-        #gateway{mac=MAC}, #link{devaddr=DevAddr, appargs=AppArgs},
+        #gateway{mac=MAC}, #node{devaddr=DevAddr, appargs=AppArgs},
         RxData=#rxdata{port=Port, data=Data}, RxQ) ->
     Msg = lorawan_admin:build(
         maps:merge(?to_map(rxdata, RxData),
@@ -180,7 +180,7 @@ parse_uplink(#handler{appid = AppID, format = <<"json">>, fields = Fields, parse
     {<<"application/json">>, jsx:encode(Msg),
         #{group => AppID, deveui => get_deveui(DevAddr), devaddr => DevAddr}};
 parse_uplink(#handler{appid = AppID, format = <<"www-form">>, parse = Parse},
-        #gateway{}, #link{devaddr=DevAddr, appargs=AppArgs},
+        #gateway{}, #node{devaddr=DevAddr, appargs=AppArgs},
         #rxdata{port=Port, data=Data}, _RxQ) ->
     Msg = vars_add(appargs, AppArgs,
             vars_from_map(data_to_fields(Parse, Port, Data))),
@@ -210,7 +210,7 @@ vars_from_map(Map) when is_map(Map) ->
     Map.
 
 get_deveui(DevAddr) ->
-    case mnesia:dirty_index_read(devices, DevAddr, #device.link) of
+    case mnesia:dirty_index_read(devices, DevAddr, #device.node) of
         [#device{deveui=DevEUI}|_] -> DevEUI;
         [] -> undefined
     end.

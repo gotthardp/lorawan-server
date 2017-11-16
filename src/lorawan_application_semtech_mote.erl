@@ -11,7 +11,7 @@
 
 -export([init/1, handle_join/3, handle_rx/4]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 
 init(_App) ->
     ok.
@@ -22,7 +22,7 @@ handle_join(_Gateway, _Device, _Link) ->
 
 % the data structure is explained in
 % https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207
-handle_rx(_Gateway, #link{devaddr=DevAddr},
+handle_rx(_Gateway, #node{devaddr=DevAddr},
         #rxdata{port=2, data= <<LED, Press:16, Temp:16, _AltBar:16, Batt, _Lat:24, _Lon:24, _AltGps:16>>}, _RxQ) ->
     lager:debug("PUSH_DATA ~w ~w ~w ~w",[DevAddr, Press, Temp, Batt]),
     % blink with the LED indicator

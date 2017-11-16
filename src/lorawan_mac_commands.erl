@@ -7,13 +7,13 @@
 
 -export([handle/4, build_fopts/1]).
 
--include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan_application.hrl").
 
 handle(RxQ, Link, FOpts, RxFrame) ->
     FOptsIn = parse_fopts(FOpts),
     case FOptsIn of
         [] -> ok;
-        List1 -> lager:debug("~s -> ~w", [lorawan_mac:binary_to_hex(Link#link.devaddr), List1])
+        List1 -> lager:debug("~s -> ~w", [lorawan_mac:binary_to_hex(Link#node.devaddr), List1])
     end,
     % process incoming responses
     {MacConfirm, Link2} = handle_rxwin(FOptsIn,
@@ -39,7 +39,7 @@ build_fopts(Link, FOptsOut0) ->
         request_status(Link, FOptsOut0))),
     case FOptsOut of
         [] -> ok;
-        List2 -> lager:debug("~s <- ~w", [lorawan_mac:binary_to_hex(Link#link.devaddr), List2])
+        List2 -> lager:debug("~s <- ~w", [lorawan_mac:binary_to_hex(Link#node.devaddr), List2])
     end,
     encode_fopts(FOptsOut).
 
@@ -84,22 +84,22 @@ encode_fopts([]) ->
 
 handle_adr(FOptsIn, Link) ->
     case find_adr(FOptsIn) of
-        {1, 1, 1} when Link#link.adr_set == Link#link.adr_use ->
+        {1, 1, 1} when Link#node.adr_set == Link#node.adr_use ->
             lager:debug("LinkADRReq ~s succeeded (enforcement only)",
-                [lorawan_mac:binary_to_hex(Link#link.devaddr)]),
+                [lorawan_mac:binary_to_hex(Link#node.devaddr)]),
             % the desired ADR is already used
-            Link#link{adr_flag_set=update_flag_set(Link#link.adr_flag_set)};
+            Link#node{adr_flag_set=update_flag_set(Link#node.adr_flag_set)};
         {1, 1, 1} ->
             lager:debug("LinkADRReq ~s succeeded",
-                [lorawan_mac:binary_to_hex(Link#link.devaddr)]),
-            Link#link{adr_flag_set=update_flag_set(Link#link.adr_flag_set),
-                adr_use=Link#link.adr_set, devstat_fcnt=undefined, last_qs=[]};
+                [lorawan_mac:binary_to_hex(Link#node.devaddr)]),
+            Link#node{adr_flag_set=update_flag_set(Link#node.adr_flag_set),
+                adr_use=Link#node.adr_set, devstat_fcnt=undefined, last_qs=[]};
         {PowerACK, DataRateACK, ChannelMaskACK} ->
-            lorawan_utils:throw_warning({node, Link#link.devaddr},
+            lorawan_utils:throw_warning({node, Link#node.devaddr},
                 {adr_req_failed, {PowerACK, DataRateACK, ChannelMaskACK}}),
-            {TXPower, DataRate, Chans} = Link#link.adr_set,
+            {TXPower, DataRate, Chans} = Link#node.adr_set,
             % clear the settings that failed
-            Link#link{adr_flag_set=update_flag_set(Link#link.adr_flag_set),
+            Link#node{adr_flag_set=update_flag_set(Link#node.adr_flag_set),
                 adr_set = {clear_when_zero(PowerACK, TXPower), clear_when_zero(DataRateACK, DataRate),
                     clear_when_zero(ChannelMaskACK, Chans)}};
         undefined ->
@@ -125,16 +125,16 @@ update_flag_set(Else) -> Else.
 handle_rxwin(FOptsIn, Link) ->
     case find_rxwin(FOptsIn) of
         {1, 1, 1} ->
-            lager:debug("RXParamSetupAns ~s succeeded", [lorawan_mac:binary_to_hex(Link#link.devaddr)]),
-            {RX1DROffset, _, _} = Link#link.rxwin_set,
-            {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
-            {true, Link#link{rxwin_use={RX1DROffset, RX2DataRate, Frequency},
+            lager:debug("RXParamSetupAns ~s succeeded", [lorawan_mac:binary_to_hex(Link#node.devaddr)]),
+            {RX1DROffset, _, _} = Link#node.rxwin_set,
+            {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#node.region),
+            {true, Link#node{rxwin_use={RX1DROffset, RX2DataRate, Frequency},
                 rxwin_set={RX1DROffset, RX2DataRate, Frequency}}};
         {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
-            lorawan_utils:throw_warning({node, Link#link.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),
-            {RX1DROffset, RX2DataRate, Frequency} = Link#link.rxwin_set,
+            lorawan_utils:throw_warning({node, Link#node.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),
+            {RX1DROffset, RX2DataRate, Frequency} = Link#node.rxwin_set,
             % clear the settings that failed
-            {true, Link#link{rxwin_set = {clear_when_zero(RX1DROffset, RX1DROffsetACK),
+            {true, Link#node{rxwin_set = {clear_when_zero(RX1DROffset, RX1DROffsetACK),
                 clear_when_zero(RX2DataRate, RX2DataRateACK),
                 clear_when_zero(Frequency, ChannelACK)}}};
         undefined ->
@@ -152,15 +152,15 @@ handle_status(FOptsIn, Link) ->
     case find_status(FOptsIn) of
         {Battery, Margin} ->
             % compute a maximal D/L SNR
-            {_, DataRate, _} = Link#link.adr_use,
-            OffUse = case Link#link.rxwin_use of
+            {_, DataRate, _} = Link#node.adr_use,
+            OffUse = case Link#node.rxwin_use of
                 {Num2, _, _} when is_number(Num2) -> Num2;
                 _Else2 -> 0
             end,
-            MaxSNR = lorawan_mac_region:max_downlink_snr(Link#link.region, DataRate, OffUse),
+            MaxSNR = lorawan_mac_region:max_downlink_snr(Link#node.region, DataRate, OffUse),
             lager:debug("DevStatus: battery ~B, margin: ~B (max ~.1f)", [Battery, Margin, MaxSNR]),
-            Link#link{devstat_time=calendar:universal_time(), devstat_fcnt=Link#link.fcntup,
-                devstat=append_status({calendar:universal_time(), Battery, Margin, MaxSNR}, Link#link.devstat)};
+            Link#node{devstat_time=calendar:universal_time(), devstat_fcnt=Link#node.fcntup,
+                devstat=append_status({calendar:universal_time(), Battery, Margin, MaxSNR}, Link#node.devstat)};
         undefined ->
             Link
     end.
@@ -187,10 +187,10 @@ send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
     {link_check_ans, Margin, 1}.
 
 
-auto_adr(RxQ, #link{adr_flag_use=1, adr_flag_set=1}=Link, RxFrame) ->
+auto_adr(RxQ, #node{adr_flag_use=1, adr_flag_set=1}=Link, RxFrame) ->
     % ADR is Auto-Adjust, so maintain quality statistics
-    LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Link#link.last_qs),
-    auto_adr0(Link#link{last_qs=LastQs}, RxFrame);
+    LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Link#node.last_qs),
+    auto_adr0(Link#node{last_qs=LastQs}, RxFrame);
 auto_adr(_RxQ, Link, RxFrame) ->
     % ADR is Manual or OFF
     {Link, RxFrame}.
@@ -200,21 +200,21 @@ appendq(SNR, undefined) ->
 appendq(SNR, LastSNRs) ->
     lists:sublist([SNR | LastSNRs], 20).
 
-auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
+auto_adr0(#node{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
     {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
-    {DefPower, _, _} = lorawan_mac_region:default_adr(Link#link.region),
-    {MinPower, MaxDR} = lorawan_mac_region:max_adr(Link#link.region),
-    {TxPower, DataRate, _} = Link#link.adr_use,
+    {DefPower, _, _} = lorawan_mac_region:default_adr(Link#node.region),
+    {MinPower, MaxDR} = lorawan_mac_region:max_adr(Link#node.region),
+    {TxPower, DataRate, _} = Link#node.adr_use,
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
-    MaxSNR = lorawan_mac_region:max_uplink_snr(Link#link.region, DataRate)+10,
+    MaxSNR = lorawan_mac_region:max_uplink_snr(Link#node.region, DataRate)+10,
     StepsDR = trunc((AvgSNR-MaxSNR)/3),
     DataRate2 = if
             DataRate == undefined ->
                 DataRate;
             StepsDR > 0, DataRate < MaxDR ->
                 lager:debug("DataRate ~s: average snr ~w ~w = ~w, dr ~w -> step ~w",
-                    [lorawan_mac:binary_to_hex(Link#link.devaddr), round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
+                    [lorawan_mac:binary_to_hex(Link#node.devaddr), round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
                 min(DataRate+StepsDR, MaxDR);
             true ->
                 DataRate
@@ -226,18 +226,18 @@ auto_adr0(#link{last_qs=LastQs}=Link, RxFrame) when length(LastQs) >= 20 ->
             AvgRSSI > -96, TxPower < MinPower ->
                 PwrStepUp = trunc((AvgRSSI+100)/4), % 2-3dB between levels, go slower
                 lager:debug("Power ~s: average rssi ~w, power ~w -> up by ~w",
-                    [lorawan_mac:binary_to_hex(Link#link.devaddr), round(AvgRSSI), TxPower, PwrStepUp]),
+                    [lorawan_mac:binary_to_hex(Link#node.devaddr), round(AvgRSSI), TxPower, PwrStepUp]),
                 min(MinPower, TxPower+PwrStepUp);
             AvgRSSI < -102, TxPower > DefPower ->
                 PwrStepDown = trunc((AvgRSSI+98)/2), % go faster
                 lager:debug("Power ~s: average rssi ~w, power ~w -> down by ~w",
-                    [lorawan_mac:binary_to_hex(Link#link.devaddr), round(AvgRSSI), TxPower, PwrStepDown]),
+                    [lorawan_mac:binary_to_hex(Link#node.devaddr), round(AvgRSSI), TxPower, PwrStepDown]),
                 max(DefPower, TxPower+PwrStepDown); % steps are negative
             true ->
                 TxPower
         end,
-    {_, _, Chans} = Link#link.adr_set,
-    {Link#link{adr_set={TxPower2, DataRate2, Chans}}, RxFrame#rxframe{average_qs=AverageQs}};
+    {_, _, Chans} = Link#node.adr_set,
+    {Link#node{adr_set={TxPower2, DataRate2, Chans}}, RxFrame#rxframe{average_qs=AverageQs}};
 auto_adr0(Link, RxFrame) ->
     {Link, RxFrame#rxframe{average_qs=undefined}}.
 
@@ -249,21 +249,21 @@ average0(List) ->
     Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- List])/length(List)),
     Avg-Sigma.
 
-send_adr(#link{adr_flag_use=1}=Link, FOptsOut) ->
+send_adr(#node{adr_flag_use=1}=Link, FOptsOut) ->
     case Link of
-        #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}}
+        #node{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}}
                 when (Flag == 3 orelse Flag == 4),
                 is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
             % the ADR parameters will be enforced
             send_adr0(Link, FOptsOut);
-        #link{adr_set=NotChanged, adr_use=NotChanged} ->
+        #node{adr_set=NotChanged, adr_use=NotChanged} ->
             FOptsOut;
-        #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans1}, adr_use={TxPower, DataRate, _Chans2}}
+        #node{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans1}, adr_use={TxPower, DataRate, _Chans2}}
                 when Flag >= 1,
                 is_integer(TxPower), is_integer(DataRate), is_list(Chans1) ->
             % only the channels changed
             send_adr0(Link, FOptsOut);
-        #link{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}, last_qs=LastQs}
+        #node{adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}, last_qs=LastQs}
                 when ((Flag == 1 andalso length(LastQs) >= 20) orelse Flag == 2),
                 is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
             % the ADR parameters changed
@@ -275,7 +275,7 @@ send_adr(_Link, FOptsOut) ->
     % the device has disabled ADR
     FOptsOut.
 
-send_adr0(#link{region=Region, adr_set=Set}, FOptsOut) ->
+send_adr0(#node{region=Region, adr_set=Set}, FOptsOut) ->
     lager:debug("LinkADRReq ~w", [Set]),
     set_channels(Region, Set, FOptsOut).
 
@@ -310,36 +310,36 @@ append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
         end).
 
 set_rxwin(Link, FOptsOut) ->
-    OffSet = case Link#link.rxwin_set of
+    OffSet = case Link#node.rxwin_set of
         {Num1, _, _} when is_number(Num1) -> Num1;
         _Else1 -> undefined
     end,
-    OffUse = case Link#link.rxwin_use of
+    OffUse = case Link#node.rxwin_use of
         {Num2, _, _} when is_number(Num2) -> Num2;
         _Else2 -> undefined
     end,
     if
-        Link#link.adr_flag_use == 1, Link#link.adr_flag_set >= 1,
+        Link#node.adr_flag_use == 1, Link#node.adr_flag_set >= 1,
         OffSet /= undefined, OffSet /= OffUse ->
-            {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#link.region),
+            {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Link#node.region),
             lager:debug("RXParamSetupReq ~w", [OffSet]),
             [{rx_param_setup_req, OffSet, RX2DataRate, trunc(10000*Frequency)} | FOptsOut];
         true ->
             FOptsOut
     end.
 
-request_status(#link{request_devstat=false}, FOptsOut) ->
+request_status(#node{request_devstat=false}, FOptsOut) ->
     FOptsOut;
-request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}, FOptsOut)
+request_status(#node{devstat_time=LastDate, devstat_fcnt=LastFCnt}, FOptsOut)
         when LastDate == undefined; LastFCnt == undefined ->
     [dev_status_req | FOptsOut];
-request_status(#link{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut) ->
+request_status(#node{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Link, FOptsOut) ->
     {ok, {MaxTime, MaxFCnt}} = application:get_env(lorawan_server, devstat_gap),
     TimeDiff = calendar:datetime_to_gregorian_seconds(calendar:universal_time())
                 - calendar:datetime_to_gregorian_seconds(LastDate),
     if
         TimeDiff > MaxTime;
-        Link#link.fcntup - LastFCnt > MaxFCnt ->
+        Link#node.fcntup - LastFCnt > MaxFCnt ->
             [dev_status_req | FOptsOut];
         true ->
             FOptsOut
