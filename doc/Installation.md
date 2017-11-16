@@ -220,7 +220,17 @@ You will need the following prerequisites:
    * On Windows, install the [Node.js](https://nodejs.org/en/).
    * On Mac OS, run `brew install node`.
 
-Get the latest sources by:
+Note: It is [not recommended](https://www.debian.org/releases/stretch/amd64/release-notes/ch-information.en.html#libv8)
+to install Node.js (and npm) on the latest Debian 9 (Stretch) from the official
+Debian 9 repository. To use an
+[alternate repository](http://linuxbsdos.com/2017/06/26/how-to-install-node-js-lts-on-debian-9-stretch/),
+add the following to your `/etc/apt/sources.list` and run `apt-get update` before installation:
+```
+deb https://deb.nodesource.com/node_6.x stretch main
+deb-src https://deb.nodesource.com/node_6.x stretch main
+```
+
+Get the latest lorawan-server sources by:
 ```bash
 git clone https://github.com/gotthardp/lorawan-server.git
 cd lorawan-server

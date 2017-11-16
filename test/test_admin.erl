@@ -20,9 +20,23 @@ add_node({DevAddr, NwkSKey, AppSKey}) ->
         {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).
 
 post_json(Uri, Body) ->
-    {ok, {{_Version, 204, _ReasonPhrase}, _Headers, _Body}} =
-         httpc:request(post, {"http://localhost:8080/" ++ Uri,
-             [{"Authorization", "Basic " ++ base64:encode_to_string("admin:admin")}],
-             "application/json", jsx:encode(Body)}, [], []).
+    {ok, {{_Version, 401, _ReasonPhrase1}, Headers1, _Body1}} =
+        httpc:request(post, {"http://localhost:8080/" ++ Uri, [],
+            "application/json", jsx:encode(Body)}, [], []),
+
+    WWWAuthenticate = proplists:get_value("www-authenticate", Headers1),
+    [{digest, Params}] = cow_http_hd:parse_www_authenticate(list_to_binary(WWWAuthenticate)),
+    Realm = proplists:get_value(<<"realm">>, Params),
+    Nonce = proplists:get_value(<<"nonce">>, Params),
+    Response = lorawan_http_digest:response(<<"POST">>, list_to_binary(Uri), <<>>,
+        {<<"admin">>, <<"lorawan-server">>, <<"admin">>}, Nonce),
+
+    {ok, {{_Version, 204, _ReasonPhrase2}, _Headers2, _Body2}} =
+        httpc:request(post, {"http://localhost:8080/" ++ Uri,
+            [{"Authorization", binary_to_list(
+                lorawan_http_digest:header(digest, [{<<"username">>, <<"admin">>},
+                    {<<"realm">>, Realm}, {<<"nonce">>, Nonce}, {<<"uri">>, list_to_binary(Uri)},
+                    {<<"response">>, Response}]))}],
+            "application/json", jsx:encode(Body)}, [], []).
 
 % end of file

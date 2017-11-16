@@ -5,11 +5,16 @@
 %
 -module(lorawan_mac_region).
 
--export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx1_rf/2, rx2_rf/2, rf_fixed/1]).
--export([default_adr/1, default_rxwin/1, max_adr/1, eirp_limits/1, max_snr/1, max_uplink_snr/2, max_downlink_snr/3, tx_time/2]).
--export([dr_to_tuple/2, datar_to_dr/2, freq_range/1, datar_to_tuple/1, powe_to_num/2, regional_config/2]).
+-export([freq_range/1, default_adr/1, max_adr/1, default_rxwin/1, eirp_limits/1]).
+-export([datar_to_dr/2, powe_to_num/2]).
+-export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_fixed/1]).
+-export([max_uplink_snr/1, max_uplink_snr/2, max_downlink_snr/3]).
+-export([set_channels/3]).
+-export([tx_time/2]).
 
 -include("lorawan_application.hrl").
+
+% receive windows
 
 join1_window(Link, RxQ) ->
     tx_window(Link#node.region, join1_delay, RxQ#rxq.tmst, rx1_rf(Link#node.region, RxQ, 0)).
@@ -127,7 +132,7 @@ drs_to_down(Region, DR)
         4 -> [13, 13, 12, 11]
     end.
 
-% data rate conversions
+% data rate and end-device output power encoding
 
 datars(Region)
         when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>;
@@ -302,6 +307,10 @@ freq_range(<<"CN470-510">>) -> {470, 510};
 freq_range(<<"KR920-923">>) -> {920, 923};
 freq_range(<<"AS923-JP">>) -> {920.6, 923.4}.
 
+max_uplink_snr(DataRate) ->
+    {SF, _} = datar_to_tuple(DataRate),
+    max_snr(SF).
+
 max_uplink_snr(Region, DataRate) ->
     {SF, _} = dr_to_tuple(Region, DataRate),
     max_snr(SF).
@@ -313,6 +322,86 @@ max_downlink_snr(Region, DataRate, Offset) ->
 % from SX1272 DataSheet, Table 13
 max_snr(SF) ->
     -5-2.5*(SF-6). % dB
+
+% link_adr_req command
+
+set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
+        when Region == <<"EU863-870">>; Region == <<"CN779-787">>; Region == <<"EU433">>; Region == <<"KR920-923">>; Region == <<"AS923-JP">> ->
+    [{link_adr_req, DataRate, TXPower, build_bin(Chans, {0, 15}), 0, 0} | FOptsOut];
+set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
+        when Region == <<"US902-928">>; Region == <<"US902-928-PR">>; Region == <<"AU915-928">> ->
+    case all_bit({0,63}, Chans) of
+        true ->
+            [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 6, 0} | FOptsOut];
+        false ->
+            [{link_adr_req, DataRate, TXPower, build_bin(Chans, {64, 71}), 7, 0} |
+                append_mask(3, {TXPower, DataRate, Chans}, FOptsOut)]
+    end;
+set_channels(Region, {TXPower, DataRate, Chans}, FOptsOut)
+        when Region == <<"CN470-510">> ->
+    case all_bit({0,95}, Chans) of
+        true ->
+            [{link_adr_req, DataRate, TXPower, 0, 6, 0} | FOptsOut];
+        false ->
+            append_mask(5, {TXPower, DataRate, Chans}, FOptsOut)
+    end.
+
+some_bit(MinMax, Chans) ->
+    lists:any(
+        fun(Tuple) -> match_part(MinMax, Tuple) end, Chans).
+
+all_bit(MinMax, Chans) ->
+    lists:any(
+        fun(Tuple) -> match_whole(MinMax, Tuple) end, Chans).
+
+none_bit(MinMax, Chans) ->
+    lists:all(
+        fun(Tuple) -> not match_part(MinMax, Tuple) end, Chans).
+
+match_part(MinMax, {A,B}) when B < A ->
+    match_part(MinMax, {B,A});
+match_part({Min, Max}, {A,B}) ->
+    (A =< Max) and (B >= Min).
+
+match_whole(MinMax, {A,B}) when B < A ->
+    match_whole(MinMax, {B,A});
+match_whole({Min, Max}, {A,B}) ->
+    (A =< Min) and (B >= Max).
+
+build_bin(Chans, {Min, Max}) ->
+    Bits = Max-Min+1,
+    lists:foldl(
+        fun(Tuple, Acc) ->
+            <<Num:Bits>> = build_bin0({Min, Max}, Tuple),
+            Num bor Acc
+        end, 0, Chans).
+
+build_bin0(MinMax, {A, B}) when B < A ->
+    build_bin0(MinMax, {B, A});
+build_bin0({Min, Max}, {A, B}) when B < Min; Max < A ->
+    % out of range
+    <<0:(Max-Min+1)>>;
+build_bin0({Min, Max}, {A, B}) ->
+    C = max(Min, A),
+    D = min(Max, B),
+    Bits = Max-Min+1,
+    % construct the binary
+    Bin = <<-1:(D-C+1), 0:(C-Min)>>,
+    case bit_size(Bin) rem Bits of
+        0 -> Bin;
+        N -> <<0:(Bits-N), Bin/bits>>
+    end.
+
+append_mask(Idx, _, FOptsOut) when Idx < 0 ->
+    FOptsOut;
+append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
+    append_mask(Idx-1, {TXPower, DataRate, Chans},
+        case build_bin(Chans, {16*Idx, 16*(Idx+1)-1}) of
+            0 -> FOptsOut;
+            ChMask -> [{link_adr_req, DataRate, TXPower, ChMask, Idx, 0} | FOptsOut]
+        end).
+
+% transmission time estimation
 
 tx_time(#txdata{data=Data}, TxQ) ->
     tx_time(byte_size(Data), TxQ);
@@ -367,5 +456,23 @@ test_tx_time(Packet, DataRate, CodingRate) ->
     round(tx_time(#txdata{data=Packet},
         % the constants are only to make Dialyzer happy
         #txq{region= <<"EU863-870">>, freq=869.525, datr=DataRate, codr=CodingRate})).
+
+bits_test_()-> [
+    ?_assertEqual(7, build_bin([{0,2}], {0,15})),
+    ?_assertEqual(0, build_bin([{0,2}], {16,31})),
+    ?_assertEqual(65535, build_bin([{0,71}], {0,15})),
+    ?_assertEqual(true, some_bit({0, 71}, [{0,71}])),
+    ?_assertEqual(true, all_bit({0, 71}, [{0,71}])),
+    ?_assertEqual(false, none_bit({0, 71}, [{0,71}])),
+    ?_assertEqual(true, some_bit({0, 15}, [{0,2}])),
+    ?_assertEqual(false, all_bit({0, 15}, [{0,2}])),
+    ?_assertEqual(false, none_bit({0, 15}, [{0,2}])),
+    ?_assertEqual([{link_adr_req,<<"SF12BW250">>,14,7,0,0}],
+        set_channels(<<"EU863-870">>, {14, <<"SF12BW250">>, [{0, 2}]}, [])),
+    ?_assertEqual([{link_adr_req,<<"SF12BW500">>,20,0,7,0}, {link_adr_req,<<"SF12BW500">>,20,255,0,0}],
+        set_channels(<<"US902-928">>, {20, <<"SF12BW500">>, [{0, 7}]}, [])),
+    ?_assertEqual([{link_adr_req,<<"SF12BW500">>,20,2,7,0}, {link_adr_req,<<"SF12BW500">>,20,65280,0,0}],
+        set_channels(<<"US902-928">>, {20, <<"SF12BW500">>, [{8, 15}, {65, 65}]}, []))
+].
 
 % end of file

@@ -366,7 +366,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
         nga.field('adr_flag_set', 'choice').label('ADR mode')
             .choices(adr_choices)
-            .defaultValue(1),
+            .defaultValue(0),
         nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
                 return power_choices.filter(function(item) {
@@ -466,7 +466,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         // ADR
         nga.field('adr_flag_set', 'choice').label('ADR mode')
             .choices(adr_choices)
-            .defaultValue(1), // Set, then Auto-Adjust
+            .defaultValue(0), // Disabled
         nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
                 return power_choices.filter(function(item) {
@@ -542,7 +542,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         // ADR
         nga.field('adr_flag_set', 'choice').label('ADR mode')
             .choices(adr_choices)
-            .defaultValue(1), // Set, then Auto-Adjust
+            .defaultValue(0), // Disabled
         nga.field('adr_set.power', 'choice').label('Set power')
             .choices(function(entry) {
                 return power_choices.filter(function(item) {
