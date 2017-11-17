@@ -56,7 +56,8 @@
     desc :: 'undefined' | string(),
     gpspos :: {number(), number()}, % {latitude, longitude}
     gpsalt :: 'undefined' | number(), % altitude
-    last_rx :: 'undefined' | calendar:datetime(),
+    last_alive :: 'undefined' | calendar:datetime(),
+    last_report :: 'undefined' | calendar:datetime(),
     dwell :: [{calendar:datetime(), {number(), number(), number()}}], % {frequency, duration, hoursum}
     delays :: [{calendar:datetime(), integer()}]}).
 

@@ -38,6 +38,10 @@ ensure_tables() ->
             {record_name, multicast_channel},
             {attributes, record_info(fields, multicast_channel)},
             {disc_copies, [node()]}]},
+        {profiles, [
+            {record_name, profile},
+            {attributes, record_info(fields, profile)},
+            {disc_copies, [node()]}]},
         {devices, [
             {record_name, device},
             {attributes, record_info(fields, device)},

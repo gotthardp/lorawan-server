@@ -217,7 +217,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('network'),
         nga.field('group'),
         nga.field('desc').label('Description'),
-        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
     ])
@@ -253,7 +253,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         // Status
         nga.field('health_alerts', 'choices').label('Alerts')
             .editable(false),
-        nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('last_alive', 'datetime').label('Last Alive'),
+        nga.field('last_report', 'datetime').label('Last Report'),
         nga.field('mac', 'template').label('Delays')
             .template('<pgraph value="value"></pgraph>'),
         nga.field('mac', 'template').label('Transmissions')
