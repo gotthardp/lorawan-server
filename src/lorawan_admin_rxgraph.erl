@@ -36,12 +36,12 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, #state{format=rgraph}=State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % guess which frequency band the device is using
     {Min, Max} = case ActRec of
-        [#rxframe{region=Region} | _] ->
+        [#rxframe{region=Region} | _] when is_binary(Region) ->
             lorawan_mac_region:freq_range(Region);
-        [] ->
+        _Else ->
             ?DEFAULT_RANGE
     end,
     % construct Google Chart DataTable
@@ -49,13 +49,16 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
     Array = [{cols, [
                 [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
                 [{id, <<"datr">>}, {label, <<"Data Rate">>}, {type, <<"number">>}],
+                [{id, <<"powe">>}, {label, <<"Power (dBm)">>}, {type, <<"number">>}],
                 [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
-                fun(#rxframe{fcnt=FCnt, region=Region, rxq=#rxq{datr=DatR, freq=Freq}}) ->
+                fun(#rxframe{fcnt=FCnt, region=Region, powe=TXPower, rxq=#rxq{datr=DatR, freq=Freq}})
+                        when is_binary(Region) ->
                     [{c, [
                         [{v, FCnt}],
                         [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
+                        format_power(TXPower, lorawan_mac_region:powe_to_num(Region, TXPower)),
                         [{v, Freq}]
                     ]}];
                 % if there are some unexpected data, show nothing
@@ -68,7 +71,7 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
 
 get_rxframe(Req, #state{format=qgraph}=State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
@@ -101,6 +104,11 @@ get_rxframe(Req, #state{format=qgraph}=State) ->
             }
         ],
     {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.
+
+format_power(Index, Power) when is_integer(Power) ->
+    [{v, Index}, {f, integer_to_binary(Power)}];
+format_power(Index, _Power) ->
+    [{v, Index}].
 
 resource_exists(Req, State) ->
     case mnesia:dirty_index_read(rxframes,

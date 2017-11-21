@@ -5,12 +5,13 @@
 %
 -module(lorawan_handler).
 
--export([init/0, handle_join/3, handle_rx/5]).
+-export([init/0, handle_join/3, handle_rx/4, encode_tx/4]).
 -export([store_frame/2, send_stored_frames/2, downlink/3, multicast/3]).
 
 -define(MAX_DELAY, 250). % milliseconds
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
+-include("lorawan.hrl").
 
 init() ->
     {ok, Modules} = application:get_env(lorawan_server, plugins),
@@ -30,11 +31,14 @@ invoke_init({App, {AppName, Module}}) ->
 invoke_init({App, Module}) when is_atom(Module) ->
     apply(Module, init, [App]).
 
-handle_join(DevAddr, App, AppArgs) ->
-    invoke_handler(handle_join, App, [DevAddr, App, AppArgs]).
+handle_join(Gateway, #device{app=App}=Device, Link) ->
+    invoke_handler(handle_join, App, [Gateway, Device, Link]).
 
-handle_rx(DevAddr, App, AppArgs, RxData, RxQ) ->
-    invoke_handler(handle_rx, App, [DevAddr, App, AppArgs, RxData, RxQ]).
+handle_rx(Gateway, #link{app=App}=Link, RxData, RxQ) ->
+    invoke_handler(handle_rx, App, [Gateway, Link, RxData, RxQ]).
+
+encode_tx(#link{app=App}=Link, TxQ, FOpts, TxData) ->
+    invoke_handler(encode_tx, App, [Link, TxQ, FOpts, TxData]).
 
 invoke_handler(Fun, App, Params) ->
     {ok, Modules} = application:get_env(lorawan_server, plugins),
@@ -57,10 +61,12 @@ invoke_handler2(Module, Fun, Params) ->
     end.
 
 store_frame(DevAddr, TxData) ->
-    mnesia:transaction(fun() ->
-        mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
-            datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}, write)
-    end).
+    {atomic, ok} =
+        mnesia:transaction(fun() ->
+            mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
+                datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}, write)
+        end),
+    ok.
 
 send_stored_frames(DevAddr, DefPort) ->
     case mnesia:dirty_select(txframes, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]) of
@@ -80,7 +86,7 @@ send_stored_frames(DevAddr, DefPort) ->
     end.
 
 transmit_and_delete(DefPort, TxFrame, Pending) ->
-    mnesia:dirty_delete(txframes, TxFrame#txframe.frid),
+    ok = mnesia:dirty_delete(txframes, TxFrame#txframe.frid),
     TxData = TxFrame#txframe.txdata,
     % raw websocket does not define port
     OutPort = if
@@ -88,23 +94,24 @@ transmit_and_delete(DefPort, TxFrame, Pending) ->
         true -> TxData#txdata.port
     end,
     % add the pending flag
-    OutPending = TxData#txdata.pending or Pending,
+    OutPending = if
+        TxData#txdata.pending == undefined -> Pending;
+        true -> TxData#txdata.pending
+    end,
     {send, TxData#txdata{port=OutPort, pending=OutPending}}.
 
 downlink(Link, Time, TxData) ->
     case lorawan_mac:handle_downlink(Link, Time, TxData) of
-        {send, TxQ, PHYPayload2} ->
-            lorawan_iface_forwarder:txsend(Link#link.last_mac, TxQ, PHYPayload2);
-        {error, Error} ->
-            lager:error("ERROR: ~w", [Error])
+        {send, _DevAddr, TxQ, PHYPayload2} ->
+            lorawan_gw_router:downlink(#request{}, Link#link.last_mac, Link#link.devaddr, TxQ, PHYPayload2)
     end.
 
 multicast(Group, Time, TxData) ->
     case lorawan_mac:handle_multicast(Group, Time, TxData) of
-        {send, TxQ, PHYPayload2} ->
-            lorawan_iface_forwarder:txsend(Group#multicast_group.mac, TxQ, PHYPayload2);
+        {send, _DevAddr, TxQ, PHYPayload2} ->
+            lorawan_gw_router:downlink(#request{}, Group#multicast_group.mac, Group#multicast_group.devaddr, TxQ, PHYPayload2);
         {error, Error} ->
-            lager:error("ERROR: ~w", [Error])
+            {error, {{multicast_group, Group#multicast_group.devaddr}, Error}}
     end.
 
 % end of file

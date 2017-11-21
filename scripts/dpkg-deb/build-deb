@@ -1,20 +1,26 @@
-REL=../../_build/default/rel/lorawan-server
-VERSION=`find ${REL} -type d -name "*.*.*" -printf "%f"`
+SCRIPT=$(readlink $0 || true)
+if [ -z $SCRIPT ]; then
+    SCRIPT=$0
+fi
+SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
+
+REL=${SCRIPT_DIR}/../../_build/default/rel/lorawan-server
+VERSION=`find ${REL}/releases -type d -name "*.*.*" -printf "%f\n" | sort | tail -1`
 REVISION=1
 
 ROOT=/tmp/lorawan-server_${VERSION}-${REVISION}_all
 
 mkdir -p $ROOT/usr/lib/lorawan-server
-rsync -trL --chown=root:root $REL/bin $REL/lib $REL/releases $ROOT/usr/lib/lorawan-server
+rsync -trLp $REL/bin $REL/lib $REL/releases $ROOT/usr/lib/lorawan-server
 
 mkdir -p $ROOT/lib/systemd/system
-rsync -t --chown=root:root $REL/bin/lorawan-server.service $ROOT/lib/systemd/system
+rsync -tp $REL/bin/lorawan-server.service $ROOT/lib/systemd/system
 
-sed "s/<VERSION>/${VERSION}/" < control.template > control
+sed "s/<VERSION>/${VERSION}/" < ${SCRIPT_DIR}/control.template > ${SCRIPT_DIR}/control
 mkdir -p $ROOT/DEBIAN
-rsync -t --chown=root:root control postinst postrm $ROOT/DEBIAN
+rsync -tp ${SCRIPT_DIR}/control ${SCRIPT_DIR}/postinst ${SCRIPT_DIR}/postrm $ROOT/DEBIAN
 
 mkdir -p $ROOT/usr/share/doc/lorawan-server
-rsync -t --chown=root:root ../../LICENSE $ROOT/usr/share/doc/lorawan-server/copyright
+rsync -tp ${SCRIPT_DIR}/../../LICENSE $ROOT/usr/share/doc/lorawan-server/copyright
 
-dpkg-deb --build $ROOT
+fakeroot dpkg-deb --build $ROOT $REL

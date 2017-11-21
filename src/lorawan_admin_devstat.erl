@@ -9,7 +9,7 @@
 -export([is_authorized/2]).
 -export([allowed_methods/2]).
 -export([content_types_provided/2]).
--export([resource_exists/2]).
+-export([resource_exists/2, generate_etag/2]).
 
 -export([get_rxframe/2]).
 
@@ -32,34 +32,69 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    {_, ActRec} = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    [#link{last_reset=Reset, devstat=DevStat}] = mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
-                [{id, <<"fcnt">>}, {label, <<"FCnt">>}, {type, <<"number">>}],
+                [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
+                [{type, <<"string">>}, {role, <<"annotation">>}],
                 [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
-                [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
+                [{id, <<"snr">>}, {label, <<"D/L SNR (dB)">>}, {type, <<"number">>}],
+                [{id, <<"max_snr">>}, {label, <<"Max SNR (dB)">>}, {type, <<"number">>}]
                 ]},
-            {rows, lists:filtermap(
-                fun (#rxframe{devstat=undefined}) ->
-                    false;
-                (#rxframe{fcnt=FCnt, devstat={Batt, Margin}}) ->
-                    {true,  [{c, [
-                                [{v, FCnt}],
-                                [{v, Batt}],
-                                % what the standard calls "margin" is simply the SNR
-                                [{v, Margin}]
-                            ]}]}
-                end, ActRec)
+            {rows,
+                [[{c, [
+                    [{v, encode_timestamp(Reset)}],
+                    [{v, <<"Last Reset">>}],
+                    [{v, null}],
+                    [{v, null}],
+                    [{v, null}]
+                ]}] | lists:map(
+                fun({Timestamp, Batt, Margin, MaxSNR}) ->
+                    [{c, [
+                        [{v, encode_timestamp(Timestamp)}],
+                        [{v, null}],
+                        [{v, Batt}],
+                        % what the standard calls "margin" is simply the SNR
+                        [{v, Margin}],
+                        [{v, MaxSNR}]
+                    ]}];
+                % backwards compatibility
+                % REMOVE BEFORE RELEASING 0.4.11
+                ({_Timestamp, _Batt, _Margin}) ->
+                    [{c, []}]
+                end, DevStat)]
             }
         ],
-    {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
+    {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req2, State}.
+
+encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
+    list_to_binary(
+        lists:concat(["Date(",
+            % javascript counts months 0-11
+            integer_to_list(Yr), ",", integer_to_list(Mh-1), ",", integer_to_list(Dy), ",",
+            integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(Sc), ")"]));
+encode_timestamp(_Else) ->
+    null.
 
 resource_exists(Req, State) ->
-    case mnesia:dirty_index_read(rxframes,
-            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req)), #rxframe.devaddr) of
-        [] -> {false, Req, State};
-        [_First|_Rest] -> {true, Req, State}
+    DevAddr = cowboy_req:binding(devaddr, Req),
+    case mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)) of
+        [#link{devstat=DevStat}] when is_list(DevStat) ->
+            {true, Req, State};
+        _Else ->
+            {false, Req, State}
+    end.
+
+generate_etag(Req, State) ->
+    DevAddr = cowboy_req:binding(devaddr, Req),
+    case mnesia:dirty_read(links, lorawan_mac:hex_to_binary(DevAddr)) of
+        [] ->
+            {undefined, Req, State};
+        [#link{last_reset=Reset, devstat=DevStat}] ->
+            Hash = base64:encode(crypto:hash(sha256, term_to_binary({Reset, DevStat}))),
+            {<<$", Hash/binary, $">>, Req, State}
     end.
 
 % end of file

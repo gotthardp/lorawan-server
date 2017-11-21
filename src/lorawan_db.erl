@@ -5,8 +5,8 @@
 %
 -module(lorawan_db).
 
--export([ensure_tables/0, ensure_table/2, trim_tables/0]).
--export([get_rxframes/1, purge_rxframes/1, purge_txframes/1]).
+-export([ensure_tables/0, ensure_table/2]).
+-export([get_rxframes/1, get_last_rxframes/2]).
 
 -include_lib("lorawan_server_api/include/lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -18,7 +18,7 @@ ensure_tables() ->
         false ->
             stopped = mnesia:stop(),
             lager:info("Database create schema"),
-            mnesia:create_schema([node()]),
+            ok = mnesia:create_schema([node()]),
             ok = mnesia:start()
     end,
     lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef) end, [
@@ -30,6 +30,9 @@ ensure_tables() ->
             {record_name, gateway},
             {attributes, record_info(fields, gateway)},
             {disc_copies, [node()]}]},
+        {gateway_stats, [
+            {attributes, record_info(fields, gateway_stats)},
+            {disc_copies, [node()]}]},
         {multicast_groups, [
             {record_name, multicast_group},
             {attributes, record_info(fields, multicast_group)},
@@ -37,6 +40,7 @@ ensure_tables() ->
         {devices, [
             {record_name, device},
             {attributes, record_info(fields, device)},
+            {index, [link]},
             {disc_copies, [node()]}]},
         {links, [
             {record_name, link},
@@ -59,19 +63,60 @@ ensure_tables() ->
             {record_name, rxframe},
             {attributes, record_info(fields, rxframe)},
             {index, [mac, devaddr]},
+            {disc_copies, [node()]}]},
+        {connectors, [
+            {record_name, connector},
+            {attributes, record_info(fields, connector)},
+            {disc_copies, [node()]}]},
+        {handlers, [
+            {record_name, handler},
+            {attributes, record_info(fields, handler)},
+            {disc_copies, [node()]}]},
+        {events, [
+            {record_name, event},
+            {attributes, record_info(fields, event)},
             {disc_copies, [node()]}]}
     ]).
 
 ensure_table(Name, TabDef) ->
     case lists:member(Name, mnesia:system_info(tables)) of
         true ->
-            mnesia:wait_for_tables([Name], 2000),
-            ensure_fields(Name, TabDef);
+            ok = mnesia:wait_for_tables([Name], 2000),
+            ensure_indexes(Name, TabDef);
         false ->
             lager:info("Database create ~w", [Name]),
-            mnesia:create_table(Name, TabDef),
-            mnesia:wait_for_tables([Name], 2000),
+            {atomic, ok} = mnesia:create_table(Name, TabDef),
+            ok = mnesia:wait_for_tables([Name], 2000),
             set_defaults(Name)
+    end.
+
+ensure_indexes(Name, TabDef) ->
+    OldAttrs = mnesia:table_info(Name, attributes),
+    OldIndexes = lists:sort(mnesia:table_info(Name, index)),
+    NewAttrs = proplists:get_value(attributes, TabDef),
+    NewIndexes =
+        lists:sort(
+            lists:map(fun(Key) ->
+                lorawan_utils:index_of(Key, NewAttrs)+1
+            end, proplists:get_value(index, TabDef, []))),
+    if
+        OldIndexes == NewIndexes ->
+            ensure_fields(Name, TabDef);
+        true ->
+            lager:info("Database index update ~w: ~w to ~w", [Name, OldIndexes, NewIndexes]),
+            lists:foreach(
+                fun (Idx) when Idx =< length(OldAttrs)+1 ->
+                        {atomic, ok} = mnesia:del_table_index(Name, lists:nth(Idx-1, OldAttrs));
+                    (_) ->
+                        ok
+                end, lists:subtract(OldIndexes, NewIndexes)),
+            ensure_fields(Name, TabDef),
+            lists:foreach(
+                fun (Idx) when Idx =< length(NewAttrs)+1 ->
+                        {atomic, ok} = mnesia:add_table_index(Name, lists:nth(Idx-1, NewAttrs));
+                    (_) ->
+                        ok
+                end, lists:subtract(NewIndexes, OldIndexes))
     end.
 
 ensure_fields(Name, TabDef) ->
@@ -81,14 +126,15 @@ ensure_fields(Name, TabDef) ->
         OldAttrs == NewAttrs ->
             ok;
         true ->
-            lager:info("Database update ~w: ~w to ~w", [Name, OldAttrs, NewAttrs]),
+            lager:info("Database fields update ~w: ~w to ~w", [Name, OldAttrs, NewAttrs]),
             {atomic, ok} = mnesia:transform_table(Name,
                 fun(OldRec) ->
                     [Rec|Values] = tuple_to_list(OldRec),
                     PropList = lists:zip(OldAttrs, Values),
                     list_to_tuple([Rec|[proplists:get_value(X, PropList) || X <- NewAttrs]])
                 end,
-                NewAttrs)
+                NewAttrs),
+            ok
     end.
 
 set_defaults(users) ->
@@ -98,35 +144,29 @@ set_defaults(users) ->
 set_defaults(_Else) ->
     ok.
 
-trim_tables() ->
-    lists:foreach(fun(R) -> trim_rxframes(R) end,
-        mnesia:dirty_all_keys(links)).
 
 get_rxframes(DevAddr) ->
+    {_, Frames} = get_last_rxframes(DevAddr, 50),
+    % return frames received since the last device restart
+    case mnesia:dirty_read(links, DevAddr) of
+        [#link{last_reset=Reset}] when is_tuple(Reset) ->
+            lists:filter(
+                fun(Frame) -> occured_rxframe_after(Reset, Frame) end,
+                Frames);
+        _Else ->
+            Frames
+    end.
+
+occured_rxframe_after(StartDate, #rxframe{datetime = FrameDate}) ->
+    StartDate =< FrameDate.
+
+get_last_rxframes(DevAddr, Count) ->
     Rec = mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr),
     SRec = lists:sort(fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A < B end, Rec),
     % split the list into expired and actual records
     if
-        length(SRec) > 50 -> lists:split(length(SRec)-50, SRec);
+        length(SRec) > Count -> lists:split(length(SRec)-Count, SRec);
         true -> {[], SRec}
     end.
-
-trim_rxframes(DevAddr) ->
-    case get_rxframes(DevAddr) of
-        {[], _} ->
-            ok;
-        {ExpRec, _} ->
-            lager:debug("Expired ~w rxframes from ~w", [length(ExpRec), DevAddr]),
-            lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframes, R) end,
-                ExpRec)
-    end.
-
-purge_rxframes(DevAddr) ->
-    [mnesia:dirty_delete_object(rxframes, Rec) ||
-        Rec <- mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr)].
-
-purge_txframes(DevAddr) ->
-    [mnesia:dirty_delete_object(txframes, Obj) ||
-        Obj <- mnesia:dirty_match_object(txframes, #txframe{devaddr=DevAddr, _='_'})].
 
 % end of file

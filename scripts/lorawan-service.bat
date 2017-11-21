@@ -16,17 +16,14 @@ if [%1] == [add] goto ADD
 goto END
 
 :ADD
-set SCRIPT_DIR=%~dp0
+set "SCRIPT_DIR=%~dp0"
 for %%A in ("%SCRIPT_DIR%\..") do (
     set "ROOT_DIR=%%~fA"
 )
 
-for /D %%A in (%ROOT_DIR%\lib\*) do (
-    set FILES=!FILES! %%A\ebin
+for /D %%A in ("%ROOT_DIR%\lib\*") do (
+    set FILES=!FILES! "%%A\ebin"
 )
-
-echo %ROOT_DIR%
-echo !FILES!
 
 %ERLSRV% add "LoRaWAN Server" -w "%ROOT_DIR%" -sname lorawan -ar "+Bd -pa !FILES! -s lorawan_app -config releases\{{release_version}}\sys.config" -c "Handles packets received by LoRaWAN gateways"
 goto END

@@ -1,0 +1,13 @@
+#!/bin/bash
+SERVER="localhost:8080"
+AUTH="--user=admin --password=admin"
+
+if [ -z "$1" ]; then
+    DIR="."
+else
+    DIR=$1
+fi
+
+for f in $DIR/*.json; do
+    wget -nv $AUTH --header=Content-Type:application/json --post-file=$f http://$SERVER/$(basename $f .json)
+done

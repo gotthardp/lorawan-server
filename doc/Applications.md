@@ -1,6 +1,19 @@
-# Building Custom Handlers
+# Building Custom Applications
 
-Each application handler may implement:
+By default you will see 4 different applications. Two wrappers for connecting to
+external applications:
+ * *backend* for connecting to [MQTT Backends](Backends.md).
+ * *websocket* for receiving connections from [WebSocket clients](WebSockets.md).
+
+And two very simple internal applications for existing motes:
+ * *semtech-mote* for
+   [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
+ * *microchip-mote* for
+   [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
+
+You may follow these examples and create your own internal applications.
+
+Each application may implement:
   * LoRaWAN application handlers (see `lorawan_application` behaviour);
   * HTTP server handlers for
 [static files](https://ninenines.eu/docs/en/cowboy/2.0/guide/static_files/),
@@ -53,17 +66,17 @@ The `init/1` will be called upon server initialization. It shall return either
 REST API or WebSockets). For more details see
 [Cowboy Routing](https://github.com/ninenines/cowboy/blob/master/doc/src/guide/routing.asciidoc).
 
-### handle_join(DevAddr, App, AppArgs)
+### handle_join(DevAddr, AppID, AppArgs)
 
 The `handle_join/3` will be called when a new node joins the network. The function
 shall return either `ok` or `{error, error_description}`.
 
-### handle_rx(DevAddr, App, AppArgs, RxData, RxQ)
+### handle_rx(DevAddr, AppID, AppArgs, RxData, RxQ)
 
-The `handle_rx/4` will be called upon reception of a LoRaWAN frame:
+The `handle_rx/5` will be called upon reception of a LoRaWAN frame:
   * *DevAddr* is the 4-byte device address
-  * *App* is the application name defined in the `sys.config`
-  * *AppArgs* is an opaque value assigned to the device
+  * *AppID* is an application-specific device group or behaviour
+  * *AppArgs* is an opaque string with application-specific settings
   * *RxData* is the #rxdata{} record with:
     * *fcnt*
     * *port* number

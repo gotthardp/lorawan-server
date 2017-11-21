@@ -1,9 +1,15 @@
 language: erlang
+addons:
+  apt:
+    packages:
+      - fakeroot
 otp_release:
-  - 18.3
-  - 19.1
+  - 19.3
+  - 20.1
+install:
+  - rebar3 get-deps
 script:
-  - make build test release dist
+  - make test dist dpkg
 deploy:
   provider: releases
   api_key:
@@ -12,7 +18,8 @@ deploy:
   skip_cleanup: true
   file:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
+    - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server_*_all.deb
   on:
-    condition: $TRAVIS_OTP_RELEASE = 18.3
+    condition: $TRAVIS_OTP_RELEASE = 19.3
     tags: true
     repo: gotthardp/lorawan-server

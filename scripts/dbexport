@@ -1,0 +1,10 @@
+#!/bin/bash
+SERVER="localhost:8080"
+AUTH="--user=admin --password=admin"
+
+DIR=backup-$(date +"%Y%m%d-%H%M%S")
+mkdir -p $DIR
+
+for db in users gateways multicast_channels devices nodes ignored_nodes handlers connectors; do
+    wget -nv $AUTH --output-document=$DIR/$db.json http://$SERVER/$db
+done

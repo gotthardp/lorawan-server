@@ -1,0 +1,17 @@
+[Unit]
+Description=LoRaWAN Gateway
+After=network.target
+# Wants=sys-devices-virtual-net-tun0.device
+# After=sys-devices-virtual-net-tun0.device
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/lib/packet_forwarder
+ExecStartPre=/usr/lib/packet_forwarder/reset_lgw.sh start
+ExecStartPre=/usr/lib/packet_forwarder/update_gwid.sh local_conf.json
+ExecStart=/usr/lib/packet_forwarder/lora_pkt_fwd
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
