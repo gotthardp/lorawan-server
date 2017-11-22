@@ -205,7 +205,7 @@ auto_adr(_RxQ, Link, RxFrame) ->
 appendq(SNR, undefined) ->
     [SNR];
 appendq(SNR, LastSNRs) ->
-    lists:sublist([SNR | LastSNRs], 20).
+    lists:sublist([SNR | LastSNRs], 50).
 
 auto_adr0(#node{last_qs=LastQs, adr_use={TxPower, DataRate, _}, adr_set={_, _, Chans}}=Link, RxFrame)
         when length(LastQs) >= 20, is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->

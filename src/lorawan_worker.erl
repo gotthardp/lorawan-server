@@ -18,18 +18,20 @@ init([]) ->
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
 
-handle_cast({Req, MAC, RxQ, PHYPayload}, State) ->
+handle_cast({frame, MAC, PHYPayload, Req}, State) ->
     case catch lorawan_mac:process_frame(MAC, RxQ, PHYPayload) of
-        ok -> ok;
+        ok ->
+            ok;
         {send, DevAddr, TxQ, PHYPayload2} ->
             lorawan_gw_router:downlink(Req, MAC, DevAddr, TxQ, PHYPayload2);
         {error, {Object, Error}} ->
             lorawan_utils:throw_error(Object, Error);
         {error, Error} ->
-            lorawan_utils:throw_error(server, Error);
-        {'EXIT', Error} ->
-            lager:error("~p", [Error])
+            lorawan_utils:throw_error(server, Error)
     end,
+    % the task has been completed
+    {stop, normal, State};
+handle_cast({quality, Gateways, Req}, State) ->
     {noreply, State}.
 
 handle_info(_Info, State) ->

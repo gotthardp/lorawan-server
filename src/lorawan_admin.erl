@@ -9,7 +9,7 @@
 -export([check_health/1, check_health/3, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
 
--export([check_reception/1]).
+-export([check_alive/1, check_dwell/1]).
 -export([check_reset/1, check_battery/1, check_margin/1, check_adr/1]).
 
 -include("lorawan_application.hrl").
@@ -64,7 +64,7 @@ get_password_hash(Role, UserName, Realm) ->
     end.
 
 check_health(#gateway{} = Gateway) ->
-    check_health(Gateway, ?MODULE, [check_reception]);
+    check_health(Gateway, ?MODULE, [check_alive, check_dwell]);
 check_health(#node{} = Link) ->
     check_health(Link, ?MODULE, [check_reset, check_battery, check_margin, check_adr]);
 check_health(_Other) ->
@@ -87,16 +87,29 @@ check_health(Rec, Module, Funs) ->
         end,
         {0, []}, Funs).
 
-check_reception(#gateway{last_rx=undefined}) ->
+check_alive(#gateway{last_alive=undefined}) ->
     {100, disconnected};
-check_reception(#gateway{last_rx=LastRx}) ->
+check_alive(#gateway{last_alive=LastAlive}) ->
     case calendar:datetime_to_gregorian_seconds(calendar:universal_time()) -
-            calendar:datetime_to_gregorian_seconds(LastRx) of
+            calendar:datetime_to_gregorian_seconds(LastAlive) of
         Silent when Silent > 20 ->
             {Silent div 20, disconnected};
         _Else ->
             ok
     end.
+
+check_dwell(#gateway{dwell=Dwell}) when is_list(Dwell) ->
+    MaxSum =
+        lists:foldl(fun({_, _, Sum}, Max) -> max(Sum, Max) end, 0, Dwell),
+    Percent = MaxSum/36000,
+    if
+        Percent > 1 ->
+            {trunc(10*Percent), dwell_time_violated};
+        true ->
+            ok
+    end;
+check_dwell(_Other) ->
+    ok.
 
 check_reset(#node{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
         when LastRes /= undefined, is_number(Count), Count > 1, (LastRx == undefined orelse LastRes > LastRx) ->
@@ -155,8 +168,6 @@ build(Object) when is_map(Object) ->
         maps:filter(
             fun
                 (_Key, undefined) -> false;
-                % hide very internal fields
-                (Key, _Value) when Key == srvtmst -> false;
                 (_, _) -> true
             end, Object)).
 

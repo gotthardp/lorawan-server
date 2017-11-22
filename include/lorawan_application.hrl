@@ -21,7 +21,6 @@
     codr :: binary(),
     time :: calendar:datetime(),
     tmst :: integer(),
-    srvtmst :: integer(), % when received by the server
     rssi :: number(),
     lsnr :: number()}).
 
@@ -38,6 +37,10 @@
     name :: nonempty_string(),
     pass :: string(),
     roles :: [string()]}).
+
+-record(server, {
+    name :: nonempty_string(),
+    router_perf :: [{calendar:datetime(), integer(), integer()}]}).
 
 -record(network, {
     name :: nonempty_string(),
@@ -59,7 +62,7 @@
     last_alive :: 'undefined' | calendar:datetime(),
     last_report :: 'undefined' | calendar:datetime(),
     dwell :: [{calendar:datetime(), {number(), number(), number()}}], % {frequency, duration, hoursum}
-    delays :: [{calendar:datetime(), integer()}]}).
+    delays :: [{calendar:datetime(), {integer(), integer(), integer()}}]}). % {min, avg, max}
 
 -record(multicast_channel, {
     devaddr :: devaddr(), % multicast address

@@ -72,7 +72,7 @@
         {deduplication_delay, 150},
         {event_lifetime, 86400}
     ]},
-    {applications, [kernel, stdlib, sasl, os_mon, mnesia, lager, syn, worker_pool,
+    {applications, [kernel, stdlib, sasl, os_mon, mnesia, lager, syn,
         cowboy, gun, jsx, iso8601, amqp_client, emqttc, mongodb]}]}.
 
 % end of file

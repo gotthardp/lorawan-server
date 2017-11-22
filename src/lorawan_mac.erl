@@ -444,6 +444,7 @@ choose_tx(Link, RxQ) ->
     {ok, Rx1Delay} = application:get_env(lorawan_server, rx1_delay),
     {ok, GwDelay} = application:get_env(lorawan_server, preprocessing_delay),
     % transmit as soon as possible
+!!!!!fixme srvtmst shall be replaced by request.tmst
     case erlang:monotonic_time(milli_seconds) - RxQ#rxq.srvtmst of
         Small when Small < Rx1Delay/1000 - GwDelay ->
             lorawan_mac_region:rx1_window(Link, RxQ);

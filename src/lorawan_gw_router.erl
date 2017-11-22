@@ -7,19 +7,22 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([alive/3, report/2, uplinks/1, downlink/5, downlink_error/3]).
+-export([alive/3, network_delay/2, report/2, uplinks/1, downlink/5, downlink_error/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include("lorawan_application.hrl").
 -include("lorawan.hrl").
 
--record(state, {gateways, recent}).
+-record(state, {gateways, recent, request_cnt, error_cnt}).
 
 start_link() ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 alive(MAC, Process, Target) ->
     gen_server:cast({global, ?MODULE}, {alive, MAC, Process, Target}).
+
+network_delay(MAC, Delay) ->
+    gen_server:cast({global, ?MODULE}, {network_delay, MAC, Delay}).
 
 report(MAC, S) ->
     gen_server:cast({global, ?MODULE}, {report, MAC, S}).
@@ -45,74 +48,81 @@ value_or_default(Num, _Def) when is_number(Num) -> Num;
 value_or_default(_Num, Def) -> Def.
 
 init([]) ->
-    {ok, #state{gateways=dict:new(), recent=dict:new()}}.
+    timer:send_interval(30*60000, submit_stats),
+    {ok, #state{gateways=dict:new(), recent=dict:new(), request_cnt=0, error_cnt=0}}.
 
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
 handle_cast({alive, MAC, Process, {Host, Port, _}=Target}, #state{gateways=Dict}=State) ->
     case dict:find(MAC, Dict) of
-        {ok, {Process, Target, Stats}} ->
-            handle_alive(MAC, Stats);
-        {ok, {_, _, Stats}} ->
+        {ok, {Process, Target, TxTimes, NwkDelays}} ->
+            handle_alive(MAC, TxTimes, NwkDelays);
+        {ok, {_, _, TxTimes, NwkDelays}} ->
             lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
-            handle_alive(MAC, Stats);
+            handle_alive(MAC, TxTimes, NwkDelays);
         error ->
             lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
-            handle_alive(MAC, [])
+            handle_alive(MAC, [], [])
     end,
-    Dict2 = dict:store(MAC, {Process, Target, []}, Dict),
-    {noreply, State#state{gateways=Dict2}}
+    Dict2 = dict:store(MAC, {Process, Target, [], []}, Dict),
+    {noreply, State#state{gateways=Dict2}}.
+
+handle_cast({network_delay, MAC, Delay}, #state{gateways=Dict}=State) ->
+    {ok, {Process, Target, TxTimes, NwkDelays}} = dict:find(MAC, Dict),
+    Dict2 = dict:store(MAC, {Process, Target, TxTimes, [Delay | NwkDelays]}, Dict),
+    {noreply, State#state{gateways=Dict2}}.
 
 handle_cast({report, MAC, S}, State) ->
     handle_report(MAC, S),
     {noreply, State}.
 
-handle_cast({uplinks, PkList}, #state{recent=Recent}=State) ->
+handle_cast({uplinks, PkList}, State) ->
     % due to reflections the gateways may have received the same frame twice
     % reflected frames received by the same gateway are ignored
     Unique = remove_duplicates(PkList, []),
     % wait for packet receptions from other gateways
-    Recent2 =
+    State2 =
         lists:foldl(
-            fun(Frame, Dict) -> store_frame(Frame, Dict) end,
-            Recent, Unique),
-    {noreply, State#state{recent=Recent2}};
+            fun(Frame, St) -> handle_uplink(Frame, St) end,
+            State, Unique),
+    {noreply, State2};
 
 handle_cast({downlink, Req, MAC, DevAddr, TxQ, RFCh, PHYPayload}, #state{gateways=Dict}=State) ->
     % lager:debug("<-- datr ~s, codr ~s, tmst ~B, size ~B", [TxQ#txq.datr, TxQ#txq.codr, TxQ#txq.tmst, byte_size(PHYPayload)]),
     case dict:find(MAC, Dict) of
-        {ok, {Process, Target, Stats}} ->
+        {ok, {Process, Target, TxTimes, NwkDelays}} ->
             % send data to the gateway interface handler
             gen_server:cast(Process, {send, Target, Req, DevAddr, TxQ, RFCh, PHYPayload}),
             % store statistics
             Time = lorawan_mac_region:tx_time(byte_size(PHYPayload), TxQ),
-            Dict2 = dict:store(MAC, {Process, Target, [{TxQ#txq.freq, Time} | Stats]}, Dict),
+            Dict2 = dict:store(MAC, {Process, Target, [{TxQ#txq.freq, Time} | TxTimes], NwkDelays}, Dict),
             {noreply, State#state{gateways=Dict2}}
         error ->
             lager:warning("Downlink request ignored. Gateway ~w not connected.", [MAC]),
             {noreply, State}
     end.
 
-handle_cast({downlink_error, MAC, undefined, Error}, State) ->
+handle_cast({downlink_error, MAC, undefined, Error}, #state{error_cnt=Cnt}=State) ->
     lorawan_utils:throw_error({gateway, MAC}, Error),
-    {noreply, State};
-handle_cast({downlink_error, _MAC, DevAddr, Error}, State) ->
+    {noreply, State#state{error_cnt=Cnt+1}};
+handle_cast({downlink_error, _MAC, DevAddr, Error}, #state{error_cnt=Cnt}=State) ->
     lorawan_utils:throw_error({node, DevAddr}, Error),
-    {noreply, State}.
+    {noreply, State#state{error_cnt=Cnt+1}}.
 
+handle_info({rxq_ready, PHYPayload}, #state{recent=Recent}=State) ->
+    {{Gateways, Req, Handler}, Recent2} = dict:take(PHYPayload, Recent),
+    gen_server:cast(Handler, {quality, Gateways, Req}),
+    {noreply, State#state{recent=Recent2}};
 
-handle_info({process, PHYPayload}, #state{recent=Recent}=State) ->
-    % find the best (for now)
-    [{Req, MAC, RxQ}|_Rest] = lists:sort(
-        fun({_R1, _M1, Q1}, {_R2, _M2, Q2}) ->
-            Q1#rxq.rssi >= Q2#rxq.rssi
-        end,
-        dict:fetch(PHYPayload, Recent)),
-    % lager:debug("--> datr ~s, codr ~s, tmst ~B, size ~B", [RxQ#rxq.datr, RxQ#rxq.codr, RxQ#rxq.tmst, byte_size(PHYPayload)]),
-    wpool:cast(handler_pool, {Req, MAC, RxQ, PHYPayload}, available_worker),
-    Recent2 = dict:erase(PHYPayload, Recent),
-    {noreply, State#state{recent=Recent2}}.
+handle_info(submit_stats, #state{request_cnt=RequestCnt, error_cnt=ErrorCnt}=State) ->
+    {atomic, ok} = mnesia:transaction(
+        fun() ->
+            [#server{router_perf=Perf}=S] = mnesia:read(servers, node(), write),
+            mnesia:write(servers,
+                S#server{router_perf=append_perf(RequestCnt, ErrorCnt, Perf}, write)
+        end).
+    {noreply, State#state{request_cnt=0, error_cnt=0}}.
 
 terminate(Reason, _State) ->
     % record graceful shutdown in the log
@@ -122,24 +132,30 @@ terminate(Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
+append_perf(RequestCnt, ErrorCnt, undefined) ->
+    append_perf(RequestCnt, ErrorCnt, []);
+append_perf(RequestCnt, ErrorCnt, Perf) ->
+    New = {calendar:universal_time(), RequestCnt, ErrorCnt},
+    lists:sublist([New | Perf], 50).
 
-handle_alive(MAC, Stats) ->
+handle_alive(MAC, TxTimes, NwkDelays) ->
     {atomic, ok} = mnesia:transaction(
         fun() ->
             case mnesia:read(gateways, MAC, write) of
-                [#gateway{dwell=Dwell}=G] ->
+                [#gateway{dwell=Dwell, eth_delay=Delay}=G] ->
                     mnesia:write(gateways,
                         G#gateway{last_alive=calendar:universal_time(),
-                            dwell=update_dwell(Dwell, Stats)}, write);
+                            dwell=update_dwell(TxTimes, Dwell),
+                            delays=append_delays(NwkDelays, Delay)}, write);
                 [] ->
                     lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated)
         end).
 
-update_dwell(Dwell, undefined) ->
+update_dwell(undefined, Dwell) ->
     Dwell;
-update_dwell(undefined, Stats) ->
-    update_dwell([], Stats);
-update_dwell(Dwell0, Stats) ->
+update_dwell(TxTimes, undefined) ->
+    update_dwell(TxTimes, []);
+update_dwell(TxTimes, Dwell0) ->
     % summarize transmissions in the past hour
     Now = lorawan_utils:precise_universal_time(),
     HourAgo = lorawan_utils:apply_offset(Now, {-1,0,0}),
@@ -160,9 +176,16 @@ update_dwell(Dwell0, Stats) ->
         lists:foldl(
             fun({_Freq, Time}, Acc) ->
                 Acc + Time
-            end, 0, Stats),
+            end, 0, TxTimes),
     % FIXME: the frequency band should be somehow considered too
     [{Now, {868, Time, Sum+Time}} | Dwell].
+
+append_delays(NwkDelays, undefined) ->
+    append_delays(NwkDelays, []);
+append_delays(NwkDelays, Delay) ->
+    New = {calendar:universal_time(),
+        {lists:min(NwkDelays), round(lists:sum(NwkDelays)/length(NwkDelays)), lists:max(NwkDelays)}},
+    lists:sublist([New | Delay], 50).
 
 handle_report(MAC, S) ->
     if
@@ -224,31 +247,36 @@ store_desc(G, S) ->
     end.
 
 
-remove_duplicates([{Req, MAC, RxQ, PHYPayload} | Tail], Unique) ->
+remove_duplicates([{{MAC, RxQ}, PHYPayload, Req} | Tail], Unique) ->
     % check if the first element is duplicate
-    case lists:keytake(PHYPayload, 4, Tail) of
-        {value, {Req2, MAC2, RxQ2, PHYPayload}, Tail2} ->
+    case lists:keytake(PHYPayload, 2, Tail) of
+        {value, {{MAC2, RxQ2}, PHYPayload, Req2}, Tail2} ->
             % select element of a better quality and re-check for other duplicates
             if
                 RxQ#rxq.rssi >= RxQ2#rxq.rssi ->
-                    remove_duplicates([{Req, MAC, RxQ, PHYPayload} | Tail2], Unique);
+                    remove_duplicates([{{MAC, RxQ}, PHYPayload, Req} | Tail2], Unique);
                 true -> % else
-                    remove_duplicates([{Req2, MAC2, RxQ2, PHYPayload} | Tail2], Unique)
+                    remove_duplicates([{{MAC2, RxQ2}, PHYPayload, Req2} | Tail2], Unique)
             end;
         false ->
-            remove_duplicates(Tail, [{Req, MAC, RxQ, PHYPayload} | Unique])
+            remove_duplicates(Tail, [{{MAC, RxQ}, PHYPayload, Req} | Unique])
     end;
 remove_duplicates([], Unique) ->
     Unique.
 
-store_frame({Req, MAC, RxQ, PHYPayload}, Dict) ->
+handle_uplink({{MAC, RxQ}, PHYPayload, Req}, #state{recent=Recent, request_cnt=Cnt}=State) ->
     case dict:find(PHYPayload, Dict) of
-        {ok, Frames} ->
-            dict:store(PHYPayload, [{Req, MAC, RxQ}|Frames], Dict);
         error ->
+            % we are not yet processing this frame
+            Handler = lorawan_worker_sup:start_child(),
+            % lager:debug("--> datr ~s, codr ~s, tmst ~B, size ~B", [RxQ#rxq.datr, RxQ#rxq.codr, RxQ#rxq.tmst, byte_size(PHYPayload)]),
+            gen_server:cast(Handler, {frame, MAC, PHYPayload, Req}),
+            % schedule signal quality info
             {ok, Delay} = application:get_env(lorawan_server, deduplication_delay),
-            {ok, _} = timer:send_after(Delay, {process, PHYPayload}),
-            dict:store(PHYPayload, [{Req, MAC, RxQ}], Dict)
+            {ok, _} = timer:send_after(Delay, {rxq_ready, PHYPayload}),
+            State#state{recent=dict:store(PHYPayload, {[{MAC, RxQ}], Req, Handler}, Recent), request_cnt=Cnt+1};
+        {ok, {Frames, Req0, Handler}} ->
+            State#state{recent=dict:store(PHYPayload, {[{MAC, RxQ}|Frames], Req0, Handler}, Recent)}
     end.
 
 % end of file

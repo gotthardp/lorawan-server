@@ -35,7 +35,7 @@ init([PktFwdOpts]) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({send, {Host, Port, Version}, #request{tmst=UStamp}, DevAddr, TxQ, RFCh, PHYPayload},
+handle_cast({send, {Host, Port, Version}, #request{}, DevAddr, TxQ, RFCh, PHYPayload},
         #state{sock=Socket, tokens=Tokens}=State) ->
     Pk = [{txpk, build_txpk(TxQ, RFCh, PHYPayload)}],
     % lager:debug("<--- ~p", [Pk]),
@@ -44,7 +44,7 @@ handle_cast({send, {Host, Port, Version}, #request{tmst=UStamp}, DevAddr, TxQ, R
     DStamp = erlang:monotonic_time(milli_seconds),
     % PULL RESP
     ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 3, (jsx:encode(Pk))/binary>>),
-    {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr, UStamp, DStamp}, Tokens)}}.
+    {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr, DStamp}, Tokens)}}.
 
 % PUSH DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
@@ -81,20 +81,10 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
         #state{sock=Socket, tokens=Tokens}=State) ->
     {Opaque, Tokens2} =
         case maps:take(Token, Tokens) of
-            {{Timer, Opq, UStamp, DStamp}, Tkns} ->
+            {{Timer, Opq, DStamp}, Tkns} ->
                 AStamp = erlang:monotonic_time(milli_seconds),
                 {ok, cancel} = timer:cancel(Timer),
-                {atomic, ok} = mnesia:transaction(
-                    fun() ->
-                        [Gateway] = mnesia:read(gateways, MAC, write),
-                        SDelay =
-                            case UStamp of
-                                undefined -> undefined;
-                                Num -> DStamp-Num
-                            end,
-                        mnesia:write(gateways,
-                            store_delay(Gateway, {calendar:universal_time(), SDelay, AStamp-DStamp}), write)
-                    end),
+                lorawan_gw_router:network_delay(MAC, AStamp-DStamp),
                 {Opq, Tkns};
             error ->
                 {undefined, Tokens}
@@ -122,7 +112,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
 
 % something strange
 handle_info({udp, _Socket, _Host, _Port, Msg}, State) ->
-    lager:debug("Weird data ~w", [Msg]),
+    lager:warning("Weird data ~w", [Msg]),
     {noreply, State};
 
 handle_info({no_ack, Token}, #state{tokens=Tokens}=State) ->
@@ -152,7 +142,7 @@ rxpk(MAC, PkList) ->
         lists:map(
             fun(Pk) ->
                 {RxQ, Data} = parse_rxpk(Pk),
-                {#request{tmst=Stamp}, MAC, RxQ#rxq{srvtmst=Stamp}, Data}
+                {{MAC, RxQ}, Data, #request{tmst=Stamp}}
             end, PkList)).
 
 parse_rxpk(Pk) ->
