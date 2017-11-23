@@ -84,9 +84,20 @@ start(_Type, _Args) ->
                 #{env => #{dispatch => Dispatch},
                 stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
     end,
-    lorawan_sup:start_link().
+    ExtList = case application:get_env(extensions) of
+        undefined ->
+            undefined;
+        {ok, undefined} ->
+            undefined;
+        {ok, List} ->
+            List
+    end,
+    ok = start_extensions(ExtList),
+    {ok, SupPid} = lorawan_sup:start_link(),
+    {ok, SupPid, ExtList}.
 
-stop(_State) ->
+stop(ExtList) ->
+    ok = stop_extensions(ExtList),
     ok = cowboy:stop_listener(http),
     ok.
 
@@ -95,5 +106,29 @@ ensure_erlang_version(Min) ->
         Num when Num >= Min -> ok;
         _Else -> {error, prerequisite_failed}
     end.
+
+start_extensions(undefined) ->
+    ok;
+start_extensions([]) ->
+    ok;
+start_extensions([App|Rest]) ->
+    {ok, _} = application:ensure_all_started(App),
+    start_extensions(Rest).
+
+stop_extensions(undefined) ->
+    ok;
+stop_extensions([]) ->
+    ok;
+stop_extensions([App|Rest]) ->
+    try application:stop(App) of    % Errors in stop should not affect the system
+        ok ->
+            ok;
+        {error, Reason} ->
+            lager:error("Plugin ~w failed to stop with reason: ~w", [App, Reason])
+    catch
+        ExcClass:ExcType ->
+            lager:error("Plugin ~w died with exception ~w:~w", [App, ExcClass, ExcType])
+    end,
+    stop_extensions(Rest).
 
 % end of file
