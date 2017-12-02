@@ -9,6 +9,7 @@
     mail, desc % TTN extensions
 }).
 -record(request, {tmst, opaque}).
+-record(frame, {conf, devaddr, adr, adr_ack_req, ack, fcnt, fopts, fport, data}).
 
 -record(ignored_node, {devaddr, mask}).
 -record(connector, {connid, enabled, uri, published, subscribe, consumed, client_id, auth, name, pass, certfile, keyfile}).

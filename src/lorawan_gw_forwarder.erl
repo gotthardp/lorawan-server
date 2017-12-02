@@ -35,7 +35,7 @@ init([PktFwdOpts]) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({send, {Host, Port, Version}, #request{}, DevAddr, TxQ, RFCh, PHYPayload},
+handle_cast({send, {Host, Port, Version}, _GWState, DevAddr, TxQ, RFCh, PHYPayload},
         #state{sock=Socket, tokens=Tokens}=State) ->
     Pk = [{txpk, build_txpk(TxQ, RFCh, PHYPayload)}],
     % lager:debug("<--- ~p", [Pk]),
@@ -137,12 +137,12 @@ status(MAC, Pk) ->
 
 
 rxpk(MAC, PkList) ->
-    Stamp = erlang:monotonic_time(milli_seconds),
     lorawan_gw_router:uplinks(
         lists:map(
             fun(Pk) ->
-                {RxQ, Data} = parse_rxpk(Pk),
-                {{MAC, RxQ}, Data, #request{tmst=Stamp}}
+                {RxQ, PHYPayload} = parse_rxpk(Pk),
+                % the 'undefined' element (GWState) is used by other gateway adaptors
+                {{MAC, RxQ, undefined}, PHYPayload}
             end, PkList)).
 
 parse_rxpk(Pk) ->

@@ -3,7 +3,7 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_worker_sup).
+-module(lorawan_handler_sup).
 -behaviour(supervisor).
 
 -export([start_link/0, start_child/2]).
@@ -12,14 +12,14 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_child() ->
-    supervisor:start_child(?MODULE, []).
+start_child(GWData, PHYPayload) ->
+    supervisor:start_child(?MODULE, [GWData, PHYPayload]).
 
 init([]) ->
     {ok, {{simple_one_for_one, 10, 10}, [
-        {worker,
-            {lorawan_worker, start_link, []},
-            transient, 5000, worker, [lorawan_worker]}
+        {handler,
+            {lorawan_handler, start_link, []},
+            transient, 5000, worker, [lorawan_handler]}
     ]}}.
 
 % end of file

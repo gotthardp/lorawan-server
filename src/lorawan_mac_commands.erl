@@ -5,30 +5,38 @@
 %
 -module(lorawan_mac_commands).
 
--export([handle/4, build_fopts/1]).
+-export([handle_fopts/3, build_fopts/1]).
 
 -include("lorawan_application.hrl").
 
-handle(RxQ, Link, FOpts, RxFrame) ->
+handle_fopts(Gateways, #node{devaddr=DevAddr}, FOpts) ->
     FOptsIn = parse_fopts(FOpts),
     case FOptsIn of
         [] -> ok;
         List1 -> lager:debug("~s -> ~w", [lorawan_mac:binary_to_hex(Link#node.devaddr), List1])
     end,
     % process incoming responses
-    {MacConfirm, Link2} = handle_rxwin(FOptsIn,
-        handle_adr(FOptsIn,
-        handle_status(FOptsIn, Link))),
-    {Link3, RxFrame2} = auto_adr(RxQ, Link2, RxFrame),
+    {atomic, Res} =
+        mnesia:transaction(
+        fun() ->
+            [Link] = mnesia:read(nodes, DevAddr, write),
+            {MacConfirm, Link2} = handle_rxwin(FOptsIn,
+                handle_adr(FOptsIn,
+                handle_status(FOptsIn, Link))),
+            {Link3, AverageQs} = auto_adr(RxQ, Link2),
+            ok = mnesia:write(nodes, L2#node{last_rx=calendar:universal_time(),
+                last_mac=MAC, last_rxq=RxQ}, write),
+            {MacConfirm, Link3, AverageQs}
+        end,
     % process requests
     FOptsOut =
         lists:foldl(
-            fun (link_check_req, Acc) -> [send_link_check(RxQ) | Acc];
+            fun (link_check_req, Acc) -> [send_link_check(Gateways) | Acc];
                 (_Else, Acc) -> Acc
             end,
             [], FOptsIn),
     % check for new requests
-    {ok, MacConfirm, Link3, build_fopts(Link3, FOptsOut), RxFrame2}.
+    {ok, Res, build_fopts(Link3, FOptsOut)}.
 
 build_fopts(Link) ->
     build_fopts(Link, []).
@@ -91,6 +99,26 @@ encode_fopts([]) ->
 
 
 handle_adr(FOptsIn, Link) ->
+    % store parameters
+    DataRate = lorawan_mac_region:datar_to_dr(Link#node.region, RxQ#rxq.datr),
+    ULink =
+        case Link#node.adr_use of
+            {_TXPower, DataRate, _Chans} when Link#node.adr_flag_use == ADR ->
+                % device didn't change any settings
+                Link;
+            {_TXPower, DataRate, _Chans} ->
+                lager:debug("ADR indicator set to ~w", [ADR]),
+                Link#node{adr_flag_use=ADR, devstat_fcnt=undefined, last_qs=[]};
+            {TXPower, _OldDataRate, Chans} ->
+                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#node.devaddr), DataRate]),
+                Link#node{adr_flag_use=ADR, adr_use={TXPower, DataRate, Chans},
+                    devstat_fcnt=undefined, last_qs=[]};
+            undefined ->
+                lager:debug("DataRate ~s switched to dr ~w", [binary_to_hex(Link#node.devaddr), DataRate]),
+                Link#node{adr_flag_use=ADR, adr_use={undefined, DataRate, undefined},
+                    devstat_fcnt=undefined, last_qs=[]}
+        end,
+
     case find_adr(FOptsIn) of
         {1, 1, 1} when Link#node.adr_set == Link#node.adr_use ->
             lager:debug("LinkADRReq ~s succeeded (enforcement only)",
@@ -194,20 +222,20 @@ send_link_check(#rxq{datr=DataRate, lsnr=SNR}) ->
     {link_check_ans, Margin, 1}.
 
 
-auto_adr(RxQ, #node{adr_flag_use=1, adr_flag_set=1}=Link, RxFrame) ->
+auto_adr(RxQ, #node{adr_flag_use=1, adr_flag_set=1}=Link) ->
     % ADR is Auto-Adjust, so maintain quality statistics
     LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Link#node.last_qs),
-    auto_adr0(Link#node{last_qs=LastQs}, RxFrame);
-auto_adr(_RxQ, Link, RxFrame) ->
+    auto_adr0(Link#node{last_qs=LastQs});
+auto_adr(_RxQ, Link) ->
     % ADR is Manual or OFF
-    {Link, RxFrame}.
+    {Link, undefined}.
 
 appendq(SNR, undefined) ->
     [SNR];
 appendq(SNR, LastSNRs) ->
     lists:sublist([SNR | LastSNRs], 50).
 
-auto_adr0(#node{last_qs=LastQs, adr_use={TxPower, DataRate, _}, adr_set={_, _, Chans}}=Link, RxFrame)
+auto_adr0(#node{last_qs=LastQs, adr_use={TxPower, DataRate, _}, adr_set={_, _, Chans}}=Link)
         when length(LastQs) >= 20, is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
     {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
     {DefPower, _, _} = lorawan_mac_region:default_adr(Link#node.region),
@@ -239,9 +267,9 @@ auto_adr0(#node{last_qs=LastQs, adr_use={TxPower, DataRate, _}, adr_set={_, _, C
             true ->
                 TxPower
         end,
-    {Link#node{adr_set={TxPower2, DataRate2, Chans}}, RxFrame#rxframe{average_qs=AverageQs}};
-auto_adr0(Link, RxFrame) ->
-    {Link, RxFrame#rxframe{average_qs=undefined}}.
+    {Link#node{adr_set={TxPower2, DataRate2, Chans}}, AverageQs};
+auto_adr0(Link) ->
+    {Link, undefined}.
 
 average({List1, List2}) ->
     {average0(List1), average0(List2)}.
