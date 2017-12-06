@@ -589,7 +589,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- rxframes
     rxframes.listView().title('Received Frames')
         .batchActions([]);
-    rxframes.listView().fields([
+    rxframes.listView()
+        .reloadPage(5000) // time in milliseconds. .reloadPage function can be used with any page. before using please replace 
+        .fields([
         nga.field('datetime', 'datetime').label('Received'),
         nga.field('mac', 'reference').label('MAC')
             .targetEntity(gateways)
