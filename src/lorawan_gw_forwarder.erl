@@ -35,7 +35,7 @@ init([PktFwdOpts]) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast({send, {Host, Port, Version}, _GWState, DevAddr, TxQ, RFCh, PHYPayload},
+handle_cast({send, {Host, Port, Version}, _GWState, AppState, TxQ, RFCh, PHYPayload},
         #state{sock=Socket, tokens=Tokens}=State) ->
     Pk = [{txpk, build_txpk(TxQ, RFCh, PHYPayload)}],
     % lager:debug("<--- ~p", [Pk]),
@@ -44,7 +44,7 @@ handle_cast({send, {Host, Port, Version}, _GWState, DevAddr, TxQ, RFCh, PHYPaylo
     DStamp = erlang:monotonic_time(milli_seconds),
     % PULL RESP
     ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 3, (jsx:encode(Pk))/binary>>),
-    {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr, DStamp}, Tokens)}}.
+    {noreply, State#state{tokens=maps:put(Token, {Timer, AppState, DStamp}, Tokens)}}.
 
 % PUSH DATA
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data/binary>>}, #state{sock=Socket}=State) ->
@@ -79,13 +79,13 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #
 % TX ACK
 handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, Data/binary>>},
         #state{sock=Socket, tokens=Tokens}=State) ->
-    {Opaque, Tokens2} =
+    {AppState, Tokens2} =
         case maps:take(Token, Tokens) of
-            {{Timer, Opq, DStamp}, Tkns} ->
+            {{Timer, AState, DStamp}, Tkns} ->
                 AStamp = erlang:monotonic_time(milli_seconds),
                 {ok, cancel} = timer:cancel(Timer),
                 lorawan_gw_router:network_delay(MAC, AStamp-DStamp),
-                {Opq, Tkns};
+                {AState, Tkns};
             error ->
                 {undefined, Tokens}
         end,
@@ -101,7 +101,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                         undefined -> ok;
                         <<"NONE">> -> ok;
                         Error ->
-                            lorawan_gw_router:downlink_error(MAC, Opaque,
+                            lorawan_gw_router:downlink_error(MAC, AppState,
                                 list_to_binary(string:to_lower(binary_to_list(Error))))
                     end;
                 Else ->
@@ -183,10 +183,5 @@ build_txpk(TxQ, RFch, Data) ->
         [{modu, Modu}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}],
         lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
     ).
-
-store_delay(#gateway{delays=undefined}=Stats, Delay) ->
-    Stats#gateway{delays=[Delay]};
-store_delay(#gateway{delays=Past}=Stats, Delay) ->
-    Stats#gateway{delays=lists:sublist([Delay | Past], 50)}.
 
 % end of file

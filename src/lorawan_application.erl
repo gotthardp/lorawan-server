@@ -5,8 +5,8 @@
 %
 -module(lorawan_application).
 
--export([init/0, handle_join/3, handle_rx/4, encode_tx/4]).
--export([store_frame/2, send_stored_frames/2, downlink/3, multicast/3]).
+-export([init/0]).
+-export([store_frame/2, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
 
@@ -15,15 +15,19 @@
 
 -callback init(App :: binary()) ->
     ok | {ok, [Path :: cowboy_router:route_path()]}.
--callback handle_join(Gateway :: #gateway{}, Device :: #device{}, Link :: #node{}) ->
+-callback handle_join({Network :: #network{}, Profile :: #profile{}, Device :: #device{}}, {MAC :: binary(), RxQ :: #rxq{}}, DevAddr :: devaddr()) ->
     ok | {error, Error :: term()}.
--callback handle_rx(Gateway :: #gateway{}, Link :: #node{}, RxData :: #rxdata{}, RxQ :: #rxq{}) ->
+-callback handle_uplink({Network :: #network{}, Profile :: #profile{}, Node :: #node{}}, {MAC :: binary(), RxQ :: #rxq{}}, {lost, State :: any()}, Frame :: #frame{}) ->
+    ok | retransmit |
+    {send, Port :: integer(), Data :: #txdata{}} |
+    {error, Error :: term()}.
+-callback handle_rxq({Network :: #network{}, Profile :: #profile{}, Node :: #node{}}, Gateways :: [{MAC :: binary(), RxQ :: #rxq{}}], Frame :: #frame{}, State :: any()) ->
     ok | retransmit |
     {send, Port :: integer(), Data :: #txdata{}} |
     {error, Error :: term()}.
 
 init() ->
-    {ok, Modules} = application:get_env(lorawan_server, plugins),
+    Modules = application:get_env(lorawan_server, plugins, []),
     do_init(Modules, []).
 
 do_init([], Acc) -> {ok, Acc};

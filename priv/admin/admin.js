@@ -47,9 +47,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     adr_choices = [
         { value: 0, label: 'Disabled' },
         { value: 1, label: 'Auto-Adjust' },
-        { value: 2, label: 'Maintain' },
-        { value: 3, label: 'Set, then Auto-Adjust' },
-        { value: 4, label: 'Set, then Disable' },
+        { value: 2, label: 'Maintain' }
     ];
 
     fcnt_choices = [

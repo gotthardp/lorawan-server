@@ -6,7 +6,7 @@
 -module(lorawan_application_websocket).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_rx/4]).
+-export([init/1, handle_join/3, handle_uplink/4, handle_rxq/4]).
 
 -include("lorawan_application.hrl").
 
@@ -17,12 +17,20 @@ init(_App) ->
         {"/ws/:type/:name/www-form", lorawan_ws_frames, [<<"www-form">>]}
     ]}.
 
-handle_join(_Gateway, _Device, _Link) ->
+handle_join({Network, Profile, Device}, {MAC, RxQ}, DevAddr) ->
     % accept any device
     ok.
 
-handle_rx(_Gateway, _Link, #rxdata{last_lost=true}, _RxQ) ->
+handle_uplink({Network, Profile, Node}, {MAC, RxQ}, {lost, State}, Frame) ->
     retransmit;
+handle_uplink({Network, Profile, Node}, {MAC, RxQ}, _LastAcked, Frame) ->
+    % accept any device
+    ok.
+
+handle_rxq({Network, Profile, Node}, Gateways, Frame, State) ->
+    % accept any device
+    ok.
+
 handle_rx(Gateway, #node{devaddr=DevAddr}=Link, #rxdata{port=Port} = RxData, RxQ) ->
     case send_to_sockets(Gateway, Link, RxData, RxQ) of
         [] -> lager:warning("Frame not sent to any process");

@@ -8,6 +8,7 @@
 
 -export([start/0]).
 -export([start/2, stop/1]).
+-export([update_http_dispatch/1]).
 
 -include("lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -20,8 +21,48 @@ start(_Type, _Args) ->
     lorawan_db:ensure_tables(),
     syn:init(),
 
-    {ok, Handlers} = lorawan_handler:init(),
-    Dispatch = cowboy_router:compile([
+    {ok, Routes} = lorawan_application:init(),
+    Dispatch = dispatch(Routes),
+    case application:get_env(http_admin_listen, undefined) of
+        undefined ->
+            ok;
+        HttpOpts ->
+            {ok, _} = cowboy:start_clear(http, HttpOpts,
+                #{env => #{dispatch => Dispatch},
+                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
+    end,
+    case application:get_env(http_admin_listen_ssl, undefined) of
+        undefined ->
+            ok;
+        SslOpts ->
+            {ok, _} = cowboy:start_tls(https, SslOpts,
+                #{env => #{dispatch => Dispatch},
+                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
+    end,
+    lorawan_sup:start_link().
+
+stop(_State) ->
+    ok = cowboy:stop_listener(http),
+    ok.
+
+update_http_dispatch(Routes) ->
+    Dispatch = dispatch(Routes),
+    % live update
+    case application:get_env(http_admin_listen, undefined) of
+        undefined ->
+            ok;
+        _HttpOpts ->
+            cowboy:set_env(http, dispatch, Dispatch)
+    end,
+    case application:get_env(http_admin_listen_ssl, undefined) of
+        undefined ->
+            ok;
+        _SslOpts ->
+            cowboy:set_env(https, dispatch, Dispatch)
+    end.
+
+dispatch(Routes) ->
+    cowboy_router:compile([
         {'_', [
             {"/servers", lorawan_admin_servers, []},
             {"/applications/[:name]", lorawan_admin_applications, []},
@@ -62,33 +103,8 @@ start(_Type, _Args) ->
             {"/favicon.ico", cowboy_static, {priv_file, lorawan_server, "favicon.ico"}},
             {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
             {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
-        ]++Handlers}
-    ]),
-    case application:get_env(http_admin_listen) of
-        undefined ->
-            ok;
-        {ok, undefined} ->
-            ok;
-        {ok, HttpOpts} ->
-            {ok, _} = cowboy:start_clear(http, HttpOpts,
-                #{env => #{dispatch => Dispatch},
-                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
-    end,
-    case application:get_env(http_admin_listen_ssl) of
-        undefined ->
-            ok;
-        {ok, undefined} ->
-            ok;
-        {ok, SslOpts} ->
-            {ok, _} = cowboy:start_tls(https, SslOpts,
-                #{env => #{dispatch => Dispatch},
-                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
-    end,
-    lorawan_sup:start_link().
-
-stop(_State) ->
-    ok = cowboy:stop_listener(http),
-    ok.
+        ]++Routes}
+    ]).
 
 ensure_erlang_version(Min) ->
     case list_to_integer(erlang:system_info(otp_release)) of

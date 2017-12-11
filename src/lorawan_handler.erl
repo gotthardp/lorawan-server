@@ -10,8 +10,6 @@
 -export([init/1, callback_mode/0, terminate/3, code_change/4]).
 -export([idle/3, join/3, uplink/3, retransmit/3, drop/3, log_only/3]).
 
--record(context, {tmst, node, profile, network}).
-
 start_link() ->
     gen_statem:start_link(?MODULE, [], []).
 
@@ -21,14 +19,14 @@ init([]) ->
 callback_mode() ->
     state_functions.
 
-idle(cast, {frame, Gateway, <<2#000:3, _/binary>>=PHYPayload}, Data) ->
-    TimeStamp = erlang:monotonic_time(milli_seconds),
+idle(cast, {frame, {MAC, RxQ, _}, <<2#000:3, _/binary>>=PHYPayload}, Data) ->
     case lorawan_mac:ingest_frame(PHYPayload) of
-        {join, Node, Profile, Network, AppNonce} ->
-            Context = #context{tmst=TimeStamp, node=Node, profile=Profile, network=Network},
-            case invoke_handler(handle_join, App, [Context]) of
+        {join, {Network, Profile, Device}, DevAddr, DevNonce} ->
+            case invoke_handler(handle_join, {Network, Profile, Device}, [{MAC, RxQ}, DevAddr]) of
                 ok ->
-                    {next_state, join, {Context, AppNonce}};
+                    {next_state, join, {{Network, Profile, Device}, DevAddr, DevNonce}};
+                ignore ->
+                    {next_state, drop, Data};
                 {error, Error} ->
                     lorawan_utils:throw_error({node, Link#node.devaddr}, Error),
                     {next_state, drop, Data}
@@ -42,24 +40,44 @@ idle(cast, {frame, Gateway, <<2#000:3, _/binary>>=PHYPayload}, Data) ->
             lorawan_utils:throw_error(Object, Error, Args),
             {next_state, drop, Data}
     end;
-idle(cast, {frame, Gateway, PHYPayload}, Data) ->
+idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
+    TimeStamp = erlang:monotonic_time(milli_seconds),
     case lorawan_mac:ingest_frame(PHYPayload) of
-        {uplink, Node, Profile, Network, Frame} ->
-            Context = #context{tmst=TimeStamp, node=Node, profile=Profile, network=Network},
-            case invoke_handler(handle_uplink, App, [Context,
-                    #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}]) of
+        {uplink, {Network, Profile, Node}, Frame} ->
+            % check whether last downlink transmission was lost
+            {LastAcked, LostFrame} =
+                case mnesia:dirty_read(pending, DevAddr) of
+                    [#pending{confirmed=true, phypayload=OldFrame, state=State}] when ACK == 0 ->
+                        lorawan_utils:throw_warning({node, DevAddr}, downlink_lost),
+                        {{lost, State}, OldFrame};
+                    [#pending{confirmed=true, state=State}] when ACK == 1 ->
+                        ok = mnesia:dirty_delete(pending, DevAddr),
+                        {{ok, State}, undefined};
+                    [_Msg] ->
+                        ok = mnesia:dirty_delete(pending, DevAddr),
+                        {undefined, undefined};
+                    [] ->
+                        {undefined, undefined}
+                end,
+            case invoke_handler(handle_uplink, {Network, Profile, Node}, [{MAC, RxQ}, LastAcked, Frame]) of
+                {ok, AppState} ->
+                    {next_state, uplink, {TimeStamp, {Network, Profile, Node}, Frame, AppState}};
                 retransmit ->
                     % the application decided to retransmit last confirmed downlink
-                    {next_state, retransmit, Frame};
-                {ok, AppState} ->
-                    {next_state, uplink, {Context, Frame, AppState}};
+                    {next_state, retransmit, {TimeStamp, LostFrame}};
                 {error, Error} ->
                     lorawan_utils:throw_error({node, Link#node.devaddr}, Error),
+                    {next_state, log_only, Frame}
+            end;
+        {retransmit, {Network, Profile, Node}, Frame} ->
+            % the server already handled this request
+            case mnesia:dirty_read(pending, Node#node.devaddr) of
+                [#pending{phypayload=LostFrame}] ->
+                    {next_state, retransmit, {TimeStamp, LostFrame}};
+                [] ->
+                    lager:error("Nothing to retransmit for ~p", [Node#node.devaddr]),
                     {next_state, drop, Data}
             end;
-        {retransmit, Frame}
-            % the server already handled this request
-            {next_state, retransmit, Frame};
         {ignore, Frame}
             {next_state, log_only, Frame};
         {error, Object, Error} ->
@@ -70,26 +88,19 @@ idle(cast, {frame, Gateway, PHYPayload}, Data) ->
             {next_state, drop, Data}
     end.
 
-join(cast, {rxq, Gateways}, {#context{}, AppNonce}) ->
-    case lorawan_mac:process_frame2(Gateways, PHYPayload) of
-        ok ->
-            ok;
-        {send, DevAddr, TxQ, PHYPayload2} ->
-            TxQ = case join_rxwin(Link) of
-                0 ->
-                    lager:debug("Join-Accept in RX1: ~w", [Link#node.rxwin_use]),
-                    lorawan_mac_region:join1_window(Link, RxQ);
-                1 ->
-                    lager:debug("Join-Accept in RX2: ~w", [Link#node.rxwin_use]),
-                    lorawan_mac_region:join2_window(Link, RxQ)
-            end,
-            {ok, PHYPayload} = encode_accept(Node, NetID, AppNonce),
-            lorawan_gw_router:downlink(Req, MAC, DevAddr, TxQ, PHYPayload);
-        {error, {Object, Error}} ->
-            lorawan_utils:throw_error(Object, Error);
-        {error, Error} ->
-            lorawan_utils:throw_error(server, Error)
+join(cast, {rxq, Gateways0}, {{Network, Profile, Device}, DevAddr, DevNonce}) ->
+    {MAC, RxQ, GWState} = hd(Gateways0),
+    Gateways = extract_rxq(Gateways0),
+    {ok, PHYPayload} = lorawan_mac:handle_accept(Gateways, Network, Device, DevAddr, DevNonce),
+    TxQ = case join_rxwin(Link) of
+        0 ->
+            lager:debug("Join-Accept in RX1: ~w", [Link#node.rxwin_use]),
+            lorawan_mac_region:join1_window(Network, RxQ);
+        1 ->
+            lager:debug("Join-Accept in RX2: ~w", [Link#node.rxwin_use]),
+            lorawan_mac_region:join2_window(Network, RxQ)
     end,
+    lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload);
     % the task has been completed
     {stop, normal, State}.
 
@@ -100,22 +111,14 @@ join_rxwin(#node{txwin=2}) ->
 join_rxwin(#node{reset_count=JoinCnt}) ->
     JoinCnt band 1.
 
-uplink(cast, {rxq, Gateways}, {#context{}, #frame{conf=Confirm, devaddr=DevAddr, adr=ADR,
-        adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame, AppState}) ->
+uplink(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node},
+        #frame{conf=Confirm, devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK,
+        fcnt=FCnt, fport=FPort, fopts=FOpts, data=RxData}=Frame, AppState}) ->
+    {MAC, RxQ, GWState} = hd(Gateways0),
+    Gateways = extract_rxq(Gateways0),
     % process commands
-    {ok, {MacConfirm, Node2, AverageQs}, FOptsOut} = lorawan_mac_commands:handle_fopts(Gateways, Node, FOpts),
-    % check whether last downlink transmission was lost
-    {LastLost, LostFrame} =
-        case mnesia:dirty_read(pending, DevAddr) of
-            [] ->
-                {false, undefined};
-            [#pending{confirmed=true} = Msg] when ACK == 0 ->
-                lorawan_utils:throw_warning({node, DevAddr}, downlink_lost),
-                {true, Msg#pending.phypayload};
-            [_Msg] ->
-                ok = mnesia:dirty_delete(pending, DevAddr),
-                {false, undefined}
-        end,
+    {MacConfirm, Node2, AverageQs, FOptsOut} =
+        lorawan_mac_commands:handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts),
     % check whether the response is required
     ShallReply = if
         Confirm == 1 ->
@@ -136,56 +139,56 @@ uplink(cast, {rxq, Gateways}, {#context{}, #frame{conf=Confirm, devaddr=DevAddr,
             false
     end,
     mnesia:dirty_write(rxframes, build_rxframe(Gateways, Node2, Frame, AverageQs)),
+    TxQ = choose_tx(Network, Node2, RxQ, TimeStamp),
     % invoke applications
-    case invoke_handler(handle_rxq, App, [Gateways, Node2,
-            #rxdata{fcnt=FCnt, port=FPort, data=RxData, last_lost=LastLost, shall_reply=ShallReply}, AppState]) of
-        retransmit ->
-            lager:debug("~s retransmitting", [binary_to_hex(Link#node.devaddr)]),
-            {send, Link#node.devaddr, choose_tx(Gateways, Context), LostFrame};
+    case invoke_handler(handle_rxq, {Network, Profile, Node2}, [Gateways, Frame, AppState]) of
         {send, TxData} ->
-            send_unicast(Link, choose_tx(Gateways, Context), Confirm, FOptsOut, TxData);
+            send_unicast({MAC, GWState}, Node2, TxQ, Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            send_unicast(Link, choose_tx(Gateways, Context), Confirm, FOptsOut, #txdata{});
+            send_unicast({MAC, GWState}, Node2, TxQ, Confirm, FOptsOut, #txdata{});
         ok ->
             ok;
         {error, Error} ->
             lorawan_utils:throw_error({node, Link#node.devaddr}, Error)
-    end.
+    end,
+    {stop, normal, State}.
 
-choose_tx({}, _TimeStamp, #node{txwin=1}=Node) ->
-    lorawan_mac_region:rx1_window(Link, RxQ);
-choose_tx({}, _TimeStamp, #node{txwin=2}=Node) ->
-    lorawan_mac_region:rx2_window(Link, RxQ);
-choose_tx({}, TimeStamp, Node) ->
+extract_rxq(Gateways) ->
+    lists:map(
+        fun({MAC, RxQ, _}) -> {MAC, RxQ} end,
+        Gateways).
+
+choose_tx(Network, #node{txwin=1}=Node, RxQ, _Timestamp) ->
+    lorawan_mac_region:rx1_window(Network, Node, RxQ);
+choose_tx(Network, #node{txwin=2}=Node, RxQ, _Timestamp) ->
+    lorawan_mac_region:rx2_window(Network, RxQ);
+choose_tx(Network, Node, RxQ, TimeStamp) ->
     {ok, Rx1Delay} = application:get_env(lorawan_server, rx1_delay),
     {ok, GwDelay} = application:get_env(lorawan_server, preprocessing_delay),
     % transmit as soon as possible
     case erlang:monotonic_time(milli_seconds) - TimeStamp of
         Small when Small < Rx1Delay/1000 - GwDelay ->
-            lorawan_mac_region:rx1_window(Link, RxQ);
+            lorawan_mac_region:rx1_window(Network, Link, RxQ);
         _Big ->
-            lorawan_mac_region:rx2_window(Link, RxQ)
+            lorawan_mac_region:rx2_window(Network, RxQ)
     end.
 
-retransmit(cast, {rxq, Gateways}, Frame) ->
+send_unicast({MAC, GWState}, #node{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=Confirmed}=TxData) ->
+    PHYPayload = lorawan_mac:encode_unicast(DevAddr, ACK, FOpts, TxData),
+    ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=Confirmed, phypayload=PHYPayload}),
+    lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload).
+% non #txdata received, invoke the application to perform payload encoding
+send_unicast(Gateway, Node, TxQ, ACK, FOpts, TxData) ->
+    {FOpts2, TxData2} = encode_tx(Link, TxQ, FOpts, TxData),
+    send_unicast(Gateway, Node, TxQ, ACK, FOpts2, TxData2).
+
+retransmit(cast, {rxq, Gateways}, {TimeStamp, LostFrame}) ->
     % we want to see retransmissions too
     ok = mnesia:dirty_write(rxframes, build_rxframe(Gateway, Link, RxQ, Confirm, Frame)),
-
-    case mnesia:dirty_read(pending, Link#node.devaddr) of
-        [#pending{phypayload=LostFrame}] ->
-            TxQ = case Link of
-                    #node{txwin=2} ->
-                        lorawan_mac_region:rx2_window(Link, RxQ);
-                    _Else ->
-                        lorawan_mac_region:rx1_window(Link, RxQ)
-                end,
-            {send, Link#node.devaddr, TxQ, LostFrame};
-        [] ->
-            {error, nothing_to_retransmit}
-    end.
-
-drop(cast, {rxq, _Gateways}, _Data) ->
+    TxQ = choose_tx(Network, Node2, RxQ, TimeStamp),
+    lager:debug("~s retransmitting", [binary_to_hex(Link#node.devaddr)]),
+    lorawan_gw_router:downlink({MAC, GWState}, Network, Node2#node.devaddr, TxQ, LostFrame),
     {stop, normal, State}.
 
 log_only(cast, {rxq, Gateways}, Frame) ->
@@ -196,21 +199,22 @@ log_only(cast, {rxq, Gateways}, Frame) ->
             confirm=bit_to_bool(Confirm), port=FPort, datetime=calendar:universal_time()}),
     {stop, normal, State}.
 
+drop(cast, {rxq, _Gateways}, _Data) ->
+    {stop, normal, State}.
+
 terminate(_Reason, _State, _Data) ->
     ok.
 
 code_change(_OldVsn, State, Data, _Extra) ->
     {ok, State, Data}.
 
-invoke_handler(Fun, App, Params) ->
+invoke_handler(Fun, {_, #profile{app=App}, _}=Subject, Params) ->
     {ok, Modules} = application:get_env(lorawan_server, plugins),
     case proplists:get_value(App, Modules) of
         undefined ->
             {error, {unknown_app, App}};
-        {_, Module} ->
-            invoke_handler2(Module, Fun, Params);
         Module ->
-            invoke_handler2(Module, Fun, Params)
+            invoke_handler2(Module, Fun, [Subject|Params])
     end.
 
 invoke_handler2(Module, Fun, Params) ->
@@ -223,30 +227,41 @@ invoke_handler2(Module, Fun, Params) ->
     end.
 
 % class C
-downlink(Link, Time, TxData) ->
-    TxQ = lorawan_mac_region:rx2_rf(Link#node.region, Link#node.last_rxq),
+downlink({Network, Profile, Node}, Time, TxData) ->
+    {MAC, RxQ} = hd(Link#node.last_gateways),
+    TxQ = lorawan_mac_region:rx2_rf(Link#node.region, RxQ),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
-    send_unicast(Link, TxQ#txq{time=Time}, 0, lorawan_mac_commands:build_fopts(Link), TxData).
-        {send, _DevAddr, TxQ, PHYPayload2} ->
-            lorawan_gw_router:downlink(#request{}, Link#node.last_mac, Link#node.devaddr, TxQ, PHYPayload2)
-    end.
+    send_unicast({MAC, undefined}, Node2, TxQ#txq{time=Time}, 0,
+        lorawan_mac_commands:build_fopts({Network, Profile, Node}, []), TxData).
 
-send_unicast(#node{devaddr=DevAddr}, TxQ, ACK, FOpts, #txdata{confirmed=Confirmed}=TxData) ->
-    PHYPayload = lorawan_mac:encode_unicast(DevAddr, ACK, FOpts, TxData),
-    ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=Confirmed, phypayload=PHYPayload}),
-    {send, DevAddr, TxQ, PHYPayload};
-% non #txdata received, invoke the application to perform payload encoding
-send_unicast(Link, TxQ, ACK, FOpts, TxData) ->
-    {FOpts2, TxData2} = lorawan_handler:encode_tx(Link, TxQ, FOpts, TxData),
-    send_unicast(Link, TxQ, ACK, FOpts2, TxData2).
-
-multicast(Group, Time, #txdata{confirmed=false} = TxData) ->
-    TxQ = lorawan_mac_region:rf_fixed(Group#multicast_channel.region),
+multicast(#multicast_channel{devaddr=DevAddr, profiles=Profiles}, Time, #txdata{confirmed=false} = TxData) ->
     % must be unconfirmed, ACK=0, no MAC commands allowed
     PHYPayload = lorawan_mac:encode_multicast(DevAddr, TxData),
-    lorawan_gw_router:downlink(#request{}, Group#multicast_channel.mac, Group#multicast_channel.devaddr, TxQ, PHYPayload2);
+    lists:foreach(
+        fun(Prof) ->
+            [Profile] = mnesia:dirty_read(profiles, Prof),
+            multicast(DevAddr, Profile, Time, PHYPayload)
+        end,
+        Profiles);
 multicast(_TxQ, _DevAddr, #txdata{confirmed=true}) ->
-    {error, {{multicast_channel, Group#multicast_channel.devaddr}, confirmed_not_allowed}}
+    lorawan_utils:throw_error({{multicast_channel, Group#multicast_channel.devaddr}, confirmed_not_allowed}).
+
+multicast(DevAddr, #profile{name=Prof, network=Net}, Time, PHYPayload) ->
+    [Network] = mnesia:dirty_read(networks, Net),
+    TxQ = lorawan_mac_region:rf_fixed(Network#network.region),
+    lists:foreach(
+        fun(MAC) ->
+            lorawan_gw_router:downlink({MAC, undefined}, Network, DevAddr, TxQ#txq{time=Time}, PHYPayload)
+        end,
+        lists:usort(
+            lists:map(
+                fun(Gateway) ->
+                    {MAC2, _RxQ} = hd(Gateway),
+                    MAC2
+                end,
+                mnesia:dirty_select(nodes, [{#node{profile='$1', last_gateways='$2', _='_'},
+                    [{'==', '$1', Prof}], ['$2']}])
+    ))).
 
 build_rxframe(Gateway, Link, RxQ, Confirm, Frame) ->
     TXPower = case Link#node.adr_use of

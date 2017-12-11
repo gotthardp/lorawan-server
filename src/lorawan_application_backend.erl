@@ -126,7 +126,7 @@ send_downlink(#{devaddr := DevAddr}, Time, TxData) ->
                 [Group] ->
                     % scheduled multicast
                     lorawan_handler:multicast(Group, Time, TxData)
-            end;
+[            end;
         [Link] ->
             % class C downlink to an explicit node
             lorawan_handler:downlink(Link, Time, TxData)

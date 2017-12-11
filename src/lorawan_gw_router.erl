@@ -30,16 +30,13 @@ report(MAC, S) ->
 uplinks(PkList) ->
     gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
-downlink(Req, MAC, DevAddr, TxQ, PHYPayload) ->
-    [Gateway] = mnesia:dirty_read(gateways, MAC),
-    Power = limit_power(Gateway, lorawan_mac_region:eirp_limits(TxQ#txq.region)),
-    gen_server:cast({global, ?MODULE}, {downlink, Req, Gateway#gateway.mac, DevAddr,
-        TxQ#txq{powe=Power}, Gateway#gateway.tx_rfch, PHYPayload}).
-
-limit_power(Gateway, {EIRPdef, EIRPmax}) ->
-    Power = value_or_default(Gateway#gateway.tx_powe, EIRPdef),
-    Gain = value_or_default(Gateway#gateway.ant_gain, 0),
-    erlang:min(Power, EIRPmax-Gain).
+downlink({MAC, GWState}, #network{tx_powe=DefPower, max_eirp=MaxEIRP}, DevAddr, TxQ, PHYPayload) ->
+    [#gateway{tx_rfch=RFCh, ant_gain=Gain}] = mnesia:dirty_read(gateways, MAC),
+    Power = erlang:min(
+        value_or_default(TxQ#txq.powe, DefPower),
+        MaxEIRP-Gain),
+    gen_server:cast({global, ?MODULE}, {downlink, {MAC, GWState}, DevAddr,
+        TxQ#txq{powe=Power}, RFCh, PHYPayload}).
 
 downlink_error(MAC, Opaque, Error) ->
     gen_server:cast({global, ?MODULE}, {downlink_error, MAC, Opaque, Error}).
@@ -66,16 +63,16 @@ handle_cast({alive, MAC, Process, {Host, Port, _}=Target}, #state{gateways=Dict}
             handle_alive(MAC, Target, [], [])
     end,
     Dict2 = dict:store(MAC, {Process, Target, [], []}, Dict),
-    {noreply, State#state{gateways=Dict2}}.
+    {noreply, State#state{gateways=Dict2}};
 
 handle_cast({network_delay, MAC, Delay}, #state{gateways=Dict}=State) ->
     {ok, {Process, Target, TxTimes, NwkDelays}} = dict:find(MAC, Dict),
     Dict2 = dict:store(MAC, {Process, Target, TxTimes, [Delay | NwkDelays]}, Dict),
-    {noreply, State#state{gateways=Dict2}}.
+    {noreply, State#state{gateways=Dict2}};
 
 handle_cast({report, MAC, S}, State) ->
     handle_report(MAC, S),
-    {noreply, State}.
+    {noreply, State};
 
 handle_cast({uplinks, PkList}, State) ->
     % due to reflections the gateways may have received the same frame twice
@@ -88,20 +85,20 @@ handle_cast({uplinks, PkList}, State) ->
             State, Unique),
     {noreply, State2};
 
-handle_cast({downlink, Req, MAC, DevAddr, TxQ, RFCh, PHYPayload}, #state{gateways=Dict}=State) ->
+handle_cast({downlink, {MAC, GWState}, DevAddr, TxQ, RFCh, PHYPayload}, #state{gateways=Dict}=State) ->
     % lager:debug("<-- datr ~s, codr ~s, tmst ~B, size ~B", [TxQ#txq.datr, TxQ#txq.codr, TxQ#txq.tmst, byte_size(PHYPayload)]),
     case dict:find(MAC, Dict) of
         {ok, {Process, Target, TxTimes, NwkDelays}} ->
             % send data to the gateway interface handler
-            gen_server:cast(Process, {send, Target, Req, DevAddr, TxQ, RFCh, PHYPayload}),
+            gen_server:cast(Process, {send, Target, GWState, DevAddr, TxQ, RFCh, PHYPayload}),
             % store statistics
             Time = lorawan_mac_region:tx_time(byte_size(PHYPayload), TxQ),
             Dict2 = dict:store(MAC, {Process, Target, [{TxQ#txq.freq, Time} | TxTimes], NwkDelays}, Dict),
-            {noreply, State#state{gateways=Dict2}}
+            {noreply, State#state{gateways=Dict2}};
         error ->
             lager:warning("Downlink request ignored. Gateway ~w not connected.", [MAC]),
             {noreply, State}
-    end.
+    end;
 
 handle_cast({downlink_error, MAC, undefined, Error}, #state{error_cnt=Cnt}=State) ->
     lorawan_utils:throw_error({gateway, MAC}, Error),
@@ -126,8 +123,8 @@ handle_info(submit_stats, #state{request_cnt=RequestCnt, error_cnt=ErrorCnt}=Sta
         fun() ->
             [#server{router_perf=Perf}=S] = mnesia:read(servers, node(), write),
             mnesia:write(servers,
-                S#server{router_perf=append_perf(RequestCnt, ErrorCnt, Perf}, write)
-        end).
+                S#server{router_perf=append_perf(RequestCnt, ErrorCnt, Perf)}, write)
+        end),
     {noreply, State#state{request_cnt=0, error_cnt=0}}.
 
 terminate(Reason, _State) ->
@@ -148,13 +145,14 @@ handle_alive(MAC, Target, TxTimes, NwkDelays) ->
     {atomic, ok} = mnesia:transaction(
         fun() ->
             case mnesia:read(gateways, MAC, write) of
-                [#gateway{dwell=Dwell, eth_delay=Delay}=G] ->
+                [#gateway{dwell=Dwell, delays=Delay}=G] ->
                     mnesia:write(gateways,
                         G#gateway{target=Target, last_alive=calendar:universal_time(),
                             dwell=update_dwell(TxTimes, Dwell),
                             delays=append_delays(NwkDelays, Delay)}, write);
                 [] ->
                     lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated)
+            end
         end).
 
 update_dwell(undefined, Dwell) ->
@@ -196,7 +194,7 @@ append_delays(NwkDelays, Delay) ->
 handle_report(MAC, S) ->
     if
         S#stat.rxok < S#stat.rxnb ->
-            lager:debug("Gateway ~s had ~B uplink CRC errors", [binary_to_hex(MAC), S#stat.rxnb-S#stat.rxok]);
+            lager:debug("Gateway ~s had ~B uplink CRC errors", [lorawan_mac:binary_to_hex(MAC), S#stat.rxnb-S#stat.rxok]);
         true ->
             ok
     end,
@@ -226,6 +224,7 @@ handle_report(MAC, S) ->
                         store_pos(store_desc(G#gateway{last_report=calendar:universal_time()}, S), S), write);
                 [] ->
                     lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated)
+            end
         end).
 
 store_pos(G, S) ->
@@ -271,7 +270,7 @@ remove_duplicates([], Unique) ->
     Unique.
 
 handle_uplink({GWData, PHYPayload}, #state{recent=Recent, request_cnt=Cnt}=State) ->
-    case dict:find(PHYPayload, Dict) of
+    case dict:find(PHYPayload, Recent) of
         error ->
             % we are not yet processing this frame
             Handler = lorawan_handler_sup:start_child(),

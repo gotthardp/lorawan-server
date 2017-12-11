@@ -35,7 +35,7 @@ get_gateway(Req, #state{format=pgraph}=State) ->
     MAC = cowboy_req:binding(mac, Req),
     Delays =
         case mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)) of
-            [#gateways{delays=D}] when D /= undefined -> D;
+            [#gateway{delays=D}] when D /= undefined -> D;
             _Else -> []
         end,
     % construct Google Chart DataTable

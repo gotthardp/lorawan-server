@@ -47,18 +47,19 @@
     netid :: binary(), % network id
     subid :: 'undefined' | bitstring(), % sub-network id
     region :: binary(),
-    max_eirp :: 'undefined' | integer()}).
+    tx_powe :: integer(),
+    max_eirp :: integer()}).
 
 -record(gateway, {
     mac :: binary(),
     network :: nonempty_string(),
     tx_rfch :: integer(), % rf chain for downlinks
-    tx_powe :: 'undefined' | integer(),
-    ant_gain :: 'undefined' | integer(),
+    ant_gain :: integer(), % antenna gain
     group :: any(),
     desc :: 'undefined' | string(),
     gpspos :: {number(), number()}, % {latitude, longitude}
     gpsalt :: 'undefined' | number(), % altitude
+    target :: {inet:ip_address(), inet:port_number(), integer()},
     last_alive :: 'undefined' | calendar:datetime(),
     last_report :: 'undefined' | calendar:datetime(),
     dwell :: [{calendar:datetime(), {number(), number(), number()}}], % {frequency, duration, hoursum}
@@ -66,22 +67,20 @@
 
 -record(multicast_channel, {
     devaddr :: devaddr(), % multicast address
-    network :: nonempty_string(),
-    app :: binary(),
-    appid :: any(), % application route
+    profiles :: [nonempty_string()],
     nwkskey :: seckey(),
     appskey :: seckey(),
-    mac :: binary(),
     fcntdown :: integer()}). % last downlink fcnt
 
 -record(profile, {
     name :: nonempty_string(),
-    region :: binary(),
+    network :: nonempty_string(),
     app :: binary(),
     appid :: any(), % application route
+    can_join :: boolean(),
     fcnt_check :: integer(),
     txwin :: integer(),
-    adr_flag_set :: 0..4, % server requests
+    adr_mode :: 0..2, % server requests
     adr_set :: adr_config(), % requested after join
     rxwin_set :: rxwin_config(), % requested
     request_devstat :: boolean()}).
@@ -93,24 +92,27 @@
     appeui :: eui(),
     appkey :: seckey(),
     node :: devaddr(),
-    can_join :: boolean(),
     last_join :: calendar:datetime()}).
 
 -record(node, {
     devaddr :: devaddr(),
     profile :: nonempty_string(),
     appargs :: any(), % application arguments
+    nwkskey :: seckey(),
+    appskey :: seckey(),
     fcntup :: integer(), % last uplink fcnt
     fcntdown :: integer(), % last downlink fcnt
     first_reset :: calendar:datetime(),
     last_reset :: calendar:datetime(),
     reset_count :: integer(), % number of resets/joins
     last_rx :: 'undefined' | calendar:datetime(),
-    last_mac :: binary(), % gateway used
-    last_rxq :: #rxq{},
-    adr_flag_use :: 0..1, % device supports
+    last_gateways :: [{binary(), #rxq{}, any()}], % last seen gateways
+    adr_flag :: 0..1, % device supports
+    adr_set :: adr_config(), % auto-calculated
     adr_use :: adr_config(), % used
+    adr_failed=[] :: [atom()], % last request failed
     rxwin_use :: rxwin_config(), % used
+    rxwin_failed=[] :: [atom()], % last request failed
     last_qs :: [{integer(), integer()}], % list of {RSSI, SNR} tuples
     devstat_time :: 'undefined' | calendar:datetime(),
     devstat_fcnt :: 'undefined' | integer(),
@@ -120,7 +122,6 @@
     fcnt :: integer(),
     port :: integer(),
     data :: binary(),
-    last_lost=false :: boolean(),
     shall_reply=false :: boolean()}).
 
 -record(txdata, {
@@ -132,7 +133,8 @@
 -record(pending, {
     devaddr :: devaddr(),
     confirmed :: boolean(),
-    phypayload :: binary()}).
+    phypayload :: binary(),
+    state :: any()}).
 
 -record(txframe, {
     frid :: frid(), % unique identifier

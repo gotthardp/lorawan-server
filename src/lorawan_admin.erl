@@ -10,7 +10,7 @@
 -export([parse_field/2, build_field/2]).
 
 -export([check_alive/1, check_dwell/1]).
--export([check_reset/1, check_battery/1, check_margin/1, check_adr/1]).
+-export([check_reset/1, check_battery/1, check_margin/1, check_adr/1, check_rxwin/1]).
 
 -include("lorawan_application.hrl").
 -include("lorawan.hrl").
@@ -66,7 +66,7 @@ get_password_hash(Role, UserName, Realm) ->
 check_health(#gateway{} = Gateway) ->
     check_health(Gateway, ?MODULE, [check_alive, check_dwell]);
 check_health(#node{} = Link) ->
-    check_health(Link, ?MODULE, [check_reset, check_battery, check_margin, check_adr]);
+    check_health(Link, ?MODULE, [check_reset, check_battery, check_margin, check_adr, check_rxwin]);
 check_health(_Other) ->
     undefined.
 
@@ -143,20 +143,15 @@ check_margin(#node{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
 check_margin(#node{}) ->
     undefined.
 
-check_adr(#node{last_rx=undefined}) ->
-    % no frame arrived yet, so we don't know the #node.adr_flag_use
-    undefined;
-check_adr(#node{adr_flag_set=0}) ->
-    % disabled, so we don't care
-    undefined;
-check_adr(#node{adr_flag_use=1, adr_flag_set=Flag, adr_set={TxPower, DataRate, Chans}})
-        when Flag >= 1, is_integer(TxPower), is_integer(DataRate), is_list(Chans) ->
-    % everything is correctly configured
+check_adr(#node{adr_failed=[]}) ->
     ok;
-check_adr(#node{adr_flag_use=0, adr_flag_set=Flag}) when Flag >= 1 ->
-    {25, adr_not_supported};
-check_adr(#node{adr_flag_use=1, adr_flag_set=Flag}) when Flag >= 1 ->
-    {25, adr_misconfigured}.
+check_adr(#node{}) ->
+    {25, linkadr_failed}.
+
+check_rxwin(#node{rxwin_failed=[]}) ->
+    ok;
+check_rxwin(#node{}) ->
+    {25, rxparamsetup_failed}.
 
 parse(Object) when is_map(Object) ->
     maps:map(fun(Key, Value) -> parse_field(Key, Value) end,
@@ -173,11 +168,16 @@ build(Object) when is_map(Object) ->
 
 parse_field(_Key, Value) when Value == null; Value == undefined ->
     undefined;
-parse_field(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
+parse_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == deveui; Key == appeui; Key == appkey; Key == node;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:hex_to_binary(Value);
+parse_field(Key, Value) when Key == last_gateways ->
+    lists:map(
+        fun(#{mac:=MAC, rxq:=RxQ}) ->
+            {lorawan_mac:hex_to_binary(MAC), ?to_record(rxq, parse(RxQ))}
+        end, Value);
 parse_field(Key, Value) when Key == subid ->
     parse_bitstring(Value);
 parse_field(Key, Value) when Key == severity; Key == entity ->
@@ -188,7 +188,7 @@ parse_field(Key, Value) when Key == adr_use; Key == adr_set ->
     parse_adr(Value);
 parse_field(Key, Value) when Key == rxwin_use; Key == rxwin_set ->
     parse_rxwin(Value);
-parse_field(Key, Value) when Key == rxq; Key == last_rxq ->
+parse_field(Key, Value) when Key == rxq ->
     ?to_record(rxq, parse(Value));
 parse_field(Key, Value) when Key == txdata ->
     ?to_record(txdata, parse(Value));
@@ -223,11 +223,16 @@ parse_field(_Key, Value) ->
 
 build_field(_Key, undefined) ->
     null;
-build_field(Key, Value) when Key == mac; Key == last_mac; Key == netid; Key == mask;
+build_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == deveui; Key == appeui; Key == appkey; Key == node;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:binary_to_hex(Value);
+build_field(Key, Value) when Key == last_gateways ->
+    lists:map(
+        fun({MAC, RxQ}) ->
+            #{mac=>lorawan_mac:binary_to_hex(MAC), rxq=>build(?to_map(rxq, RxQ))}
+        end, Value);
 build_field(Key, Value) when Key == subid ->
     build_bitstring(Value);
 build_field(Key, Value) when Key == severity; Key == entity ->
@@ -238,7 +243,7 @@ build_field(Key, Value) when Key == adr_use; Key == adr_set ->
     build_adr(Value);
 build_field(Key, Value) when Key == rxwin_use; Key == rxwin_set ->
     build_rxwin(Value);
-build_field(Key, Value) when Key == rxq; Key == last_rxq ->
+build_field(Key, Value) when Key == rxq ->
     build(?to_map(rxq, Value));
 build_field(Key, Value) when Key == txdata ->
     build(?to_map(txdata, Value));

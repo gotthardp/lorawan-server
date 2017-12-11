@@ -5,9 +5,9 @@
 %
 -module(lorawan_mac_region).
 
--export([freq_range/1, default_adr/1, max_adr/1, default_rxwin/1, eirp_limits/1]).
+-export([freq_range/1, default_adr/1, max_adr/1, default_rxwin/1]).
 -export([datar_to_dr/2, powe_to_num/2]).
--export([join1_window/2, join2_window/2, rx1_window/2, rx2_window/2, rx2_rf/2, rf_fixed/1]).
+-export([join1_window/2, join2_window/2, rx1_window/3, rx2_window/2, rx2_rf/2, rf_fixed/1]).
 -export([max_uplink_snr/1, max_uplink_snr/2, max_downlink_snr/3]).
 -export([set_channels/3]).
 -export([tx_time/2]).
@@ -16,24 +16,21 @@
 
 % receive windows
 
-join1_window(Link, RxQ) ->
-    tx_window(Link#node.region, join1_delay, RxQ#rxq.tmst, rx1_rf(Link#node.region, RxQ, 0)).
+join1_window(#network{region=Region}, RxQ) ->
+    tx_window(Region, join1_delay, RxQ#rxq.tmst, rx1_rf(Region, RxQ, 0)).
 
-join2_window(Link, RxQ) ->
-    tx_window(Link#node.region, join2_delay, RxQ#rxq.tmst, rx2_rf(Link#node.region, RxQ)).
+join2_window(#network{region=Region}, RxQ) ->
+    tx_window(Region, join2_delay, RxQ#rxq.tmst, rx2_rf(Region, RxQ)).
 
-rx1_window(Link, RxQ) ->
-    tx_window(Link#node.region, rx1_delay, RxQ#rxq.tmst, rx1_rf(Link, RxQ)).
-
-rx2_window(Link, RxQ) ->
-    tx_window(Link#node.region, rx2_delay, RxQ#rxq.tmst, rx2_rf(Link#node.region, RxQ)).
-
-rx1_rf(Link, RxQ) ->
-    Offset = case Link#node.rxwin_use of
+rx1_window(#network{region=Region}, Node, RxQ) ->
+    Offset = case Node#node.rxwin_use of
         {Off, _, _} when is_integer(Off) -> Off;
         _Else -> 0
     end,
-    rx1_rf(Link#node.region, RxQ, Offset).
+    tx_window(Region, rx1_delay, RxQ#rxq.tmst, rx1_rf(Region, RxQ, Offset)).
+
+rx2_window(#network{region=Region}, RxQ) ->
+    tx_window(Region, rx2_delay, RxQ#rxq.tmst, rx2_rf(Region, RxQ)).
 
 % we calculate in fixed-point numbers
 rx1_rf(Region, RxQ, Offset)
@@ -284,17 +281,6 @@ max_adr(<<"AU915-928">>) -> {10, 4};
 max_adr(<<"CN470-510">>) -> {7, 6};
 max_adr(<<"KR920-923">>) -> {6, 5};
 max_adr(<<"AS923-JP">>) -> {6, 5}.
-
-% {default, maximal} power for downlinks (dBm)
-eirp_limits(<<"EU863-870">>) -> {14, 20};
-eirp_limits(<<"US902-928">>) -> {20, 26};
-eirp_limits(<<"US902-928-PR">>) -> {20, 26};
-eirp_limits(<<"CN779-787">>) -> {10, 10};
-eirp_limits(<<"EU433">>) -> {10, 10};
-eirp_limits(<<"AU915-928">>) -> {20, 26};
-eirp_limits(<<"CN470-510">>) -> {14, 17};
-eirp_limits(<<"KR920-923">>) -> {14, 23};
-eirp_limits(<<"AS923-JP">>) -> {13, 13}.
 
 % {Min, Max}
 freq_range(<<"EU863-870">>) -> {863, 870};
