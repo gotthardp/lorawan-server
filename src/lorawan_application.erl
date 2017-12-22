@@ -27,7 +27,7 @@
     {error, Error :: term()}.
 
 init() ->
-    Modules = application:get_env(lorawan_server, plugins, []),
+    Modules = application:get_env(lorawan_server, applications, []),
     do_init(Modules, []).
 
 do_init([], Acc) -> {ok, Acc};

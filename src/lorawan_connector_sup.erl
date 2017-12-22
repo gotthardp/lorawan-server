@@ -6,24 +6,24 @@
 -module(lorawan_connector_sup).
 -behaviour(supervisor).
 
--export([start_link/0]).
+-export([start_link/0, start_child/3, stop_child/1]).
 -export([init/1]).
 
--spec start_link() -> {ok, pid()}.
 start_link() ->
-    supervisor:start_link(?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+start_child(Id, Module, Args) ->
+    supervisor:start_child(?MODULE,
+        {Id,
+            {Module, start_link, Args},
+            permanent, 5000, worker, [Module]}).
+
+stop_child(Id) ->
+    ok = supervisor:terminate_child(?MODULE, Id),
+    ok = supervisor:delete_child(?MODULE, Id).
 
 init([]) ->
-    {ok, {{one_for_one, 10, 10}, [
-        {mqtt,
-            {lorawan_connector_sup_mqtt, start_link, []},
-            permanent, infinity, supervisor, [lorawan_connector_sup_mqtt]},
-        {http,
-            {lorawan_connector_sup_http, start_link, []},
-            permanent, infinity, supervisor, [lorawan_connector_sup_http]},
-        {factory,
-            {lorawan_connector_factory, start_link, []},
-            permanent, 5000, worker, [lorawan_connector_factory]}
-    ]}}.
+    % dynamically managed children, one for each connector
+    {ok, {{one_for_one, 10, 10}, []}}.
 
 % end of file

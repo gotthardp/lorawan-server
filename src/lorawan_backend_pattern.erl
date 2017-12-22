@@ -3,8 +3,14 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_connector_pattern).
--export([prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2]).
+-module(lorawan_backend_pattern).
+-export([is_pattern/1, prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2]).
+
+is_pattern(Pattern) ->
+    case string:chr(Pattern, ${) of
+        0 -> false;
+        N when N > 0 -> true
+    end.
 
 prepare_filling(undefined) ->
     undefined;

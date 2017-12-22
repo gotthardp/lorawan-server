@@ -8,10 +8,6 @@
 
 -export([start/0]).
 -export([start/2, stop/1]).
--export([update_http_dispatch/1]).
-
--include("lorawan_application.hrl").
--include("lorawan.hrl").
 
 start() ->
     {ok, _Started} = application:ensure_all_started(lorawan_server).
@@ -19,92 +15,10 @@ start() ->
 start(_Type, _Args) ->
     ok = ensure_erlang_version(19),
     lorawan_db:ensure_tables(),
-    syn:init(),
-
-    {ok, Routes} = lorawan_application:init(),
-    Dispatch = dispatch(Routes),
-    case application:get_env(http_admin_listen, undefined) of
-        undefined ->
-            ok;
-        HttpOpts ->
-            {ok, _} = cowboy:start_clear(http, HttpOpts,
-                #{env => #{dispatch => Dispatch},
-                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
-    end,
-    case application:get_env(http_admin_listen_ssl, undefined) of
-        undefined ->
-            ok;
-        SslOpts ->
-            {ok, _} = cowboy:start_tls(https, SslOpts,
-                #{env => #{dispatch => Dispatch},
-                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
-    end,
     lorawan_sup:start_link().
 
 stop(_State) ->
-    ok = cowboy:stop_listener(http),
     ok.
-
-update_http_dispatch(Routes) ->
-    Dispatch = dispatch(Routes),
-    % live update
-    case application:get_env(http_admin_listen, undefined) of
-        undefined ->
-            ok;
-        _HttpOpts ->
-            cowboy:set_env(http, dispatch, Dispatch)
-    end,
-    case application:get_env(http_admin_listen_ssl, undefined) of
-        undefined ->
-            ok;
-        _SslOpts ->
-            cowboy:set_env(https, dispatch, Dispatch)
-    end.
-
-dispatch(Routes) ->
-    cowboy_router:compile([
-        {'_', [
-            {"/servers", lorawan_admin_servers, []},
-            {"/applications/[:name]", lorawan_admin_applications, []},
-            {"/users/[:name]", lorawan_admin_db_record,
-                [users, user, record_info(fields, user)]},
-            {"/networks/[:name]", lorawan_admin_db_record,
-                [networks, network, record_info(fields, network)]},
-            {"/gateways/[:mac]", lorawan_admin_db_record,
-                [gateways, gateway, record_info(fields, gateway)]},
-            {"/multicast_channels/[:devaddr]", lorawan_admin_db_record,
-                [multicast_channels, multicast_channel, record_info(fields, multicast_channel)]},
-            {"/profiles/[:name]", lorawan_admin_db_record,
-                [profiles, profile, record_info(fields, profile)]},
-            {"/devices/[:deveui]", lorawan_admin_db_record,
-                [devices, device, record_info(fields, device)]},
-            {"/nodes/[:devaddr]", lorawan_admin_db_record,
-                [nodes, node, record_info(fields, node)]},
-            {"/ignored_nodes/[:devaddr]", lorawan_admin_db_record,
-                [ignored_nodes, ignored_node, record_info(fields, ignored_node)]},
-            {"/txframes/[:frid]", lorawan_admin_db_record,
-                [txframes, txframe, record_info(fields, txframe)]},
-            {"/rxframes/[:frid]", lorawan_admin_db_record,
-                [rxframes, rxframe, record_info(fields, rxframe)]},
-            {"/handlers/[:appid]", lorawan_admin_db_record,
-                [handlers, handler, record_info(fields, handler)]},
-            {"/connectors/[:connid]", lorawan_admin_db_record,
-                [connectors, connector, record_info(fields, connector)]},
-            {"/events/[:evid]", lorawan_admin_db_record,
-                [events, event, record_info(fields, event)]},
-            {"/upload", lorawan_admin_upload, []},
-            {"/timeline", lorawan_admin_timeline, []},
-            {"/pgraph/:mac", lorawan_admin_gwgraph, [pgraph]},
-            {"/tgraph/:mac", lorawan_admin_gwgraph, [tgraph]},
-            {"/rgraph/:devaddr", lorawan_admin_rxgraph, [rgraph]},
-            {"/qgraph/:devaddr", lorawan_admin_rxgraph, [qgraph]},
-            {"/devstat/:devaddr", lorawan_admin_devstat, []},
-            {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
-            {"/favicon.ico", cowboy_static, {priv_file, lorawan_server, "favicon.ico"}},
-            {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
-            {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}}
-        ]++Routes}
-    ]).
 
 ensure_erlang_version(Min) ->
     case list_to_integer(erlang:system_info(otp_release)) of

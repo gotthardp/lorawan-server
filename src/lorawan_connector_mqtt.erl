@@ -6,7 +6,8 @@
 -module(lorawan_connector_mqtt).
 -behaviour(gen_server).
 
--export([start_link/2]).
+-export([start_connector/1, stop_connector/1]).
+-export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include("lorawan.hrl").
@@ -14,8 +15,14 @@
 -record(state, {connid, cargs, phase, mqttc, last_connect, connect_count,
     ping_timer, subscribe, published, consumed}).
 
-start_link(ConnUri, Conn) ->
-    gen_server:start_link(?MODULE, [ConnUri, Conn], []).
+start_connector(#connector{connid=Id}=Connector) ->
+    lorawan_connector_sup:start_child(Id, ?MODULE, [Connector]).
+
+stop_connector(Id) ->
+    lorawan_connector_sup:stop_child(Id).
+
+start_link(Connector) ->
+    gen_server:start_link(?MODULE, [Connector], []).
 
 init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
     process_flag(trap_exit, true),

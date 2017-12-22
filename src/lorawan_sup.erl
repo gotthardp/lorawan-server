@@ -22,9 +22,12 @@ init([]) ->
         {gateways,
             {lorawan_gw_sup, start_link, []},
             permanent, infinity, supervisor, [lorawan_gw_sup]},
-        {connectors,
-            {lorawan_connector_sup, start_link, []},
-            permanent, infinity, supervisor, [lorawan_connector_sup]}
+        {http_registry,
+            {lorawan_http_registry, start_link, []},
+            permanent, 5000, worker, [lorawan_http_registry]},
+        {backends,
+            {lorawan_backend_sup, start_link, []},
+            permanent, infinity, supervisor, [lorawan_backend_sup]}
     ]}}.
 
 % end of file

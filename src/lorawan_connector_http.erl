@@ -6,21 +6,28 @@
 -module(lorawan_connector_http).
 -behaviour(gen_server).
 
--export([start_link/2]).
+-export([start_connector/1, stop_connector/1]).
+-export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include("lorawan.hrl").
 
 -record(state, {connid, pid, published, auth, nc, streams}).
 
-start_link(ConnUri, Conn) ->
-    gen_server:start_link(?MODULE, [ConnUri, Conn], []).
+start_connector(#connector{connid=Id}=Connector) ->
+    lorawan_connector_sup:start_child(Id, ?MODULE, [Connector]).
 
-init([ConnUri, Conn=#connector{published=Pub, name=Name, pass=Pass}]) ->
+stop_connector(#connector{connid=Id}) ->
+    lorawan_connector_sup:stop_child(Id).
+
+start_link(Connector) ->
+    gen_server:start_link(?MODULE, [Connector], []).
+
+init([Conn=#connector{uri=Uri, published=Pub, name=Name, pass=Pass}]) ->
     lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
     ok = syn:register(Conn#connector.connid, self()),
     {ok, ConnPid} =
-        case ConnUri of
+        case http_uri:parse(Uri, [{scheme_defaults, [{http, 80}, {https, 443}]}]) of
             {http, _UserInfo, HostName, Port, _Path, _Query} ->
                 gun:open(HostName, Port);
             {https, _UserInfo, HostName, Port, _Path, _Query} ->
