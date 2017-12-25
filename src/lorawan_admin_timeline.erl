@@ -13,8 +13,7 @@
 
 -export([get_timeline/2]).
 
--include("lorawan_application.hrl").
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 init(Req, []) ->
     {cowboy_rest, Req, undefined}.

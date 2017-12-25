@@ -9,8 +9,7 @@
 -export([start_link/0, update_routes/2, delete_routes/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--include("lorawan.hrl").
--include("lorawan_application.hrl").
+-include("lorawan_db.hrl").
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -26,7 +25,7 @@ init([]) ->
     State = dict:from_list(Routes),
     % setup routes
     Dispatch = compile_routes(State),
-    case application:get_env(http_admin_listen, undefined) of
+    case application:get_env(lorawan_server, http_admin_listen, undefined) of
         undefined ->
             ok;
         HttpOpts ->
@@ -34,7 +33,7 @@ init([]) ->
                 #{env => #{dispatch => Dispatch},
                 stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
     end,
-    case application:get_env(http_admin_listen_ssl, undefined) of
+    case application:get_env(lorawan_server, http_admin_listen_ssl, undefined) of
         undefined ->
             ok;
         SslOpts ->
@@ -69,13 +68,13 @@ code_change(_OldVsn, State, _Extra) ->
 
 update_routes(State) ->
     Dispatch = compile_routes(State),
-    case application:get_env(http_admin_listen, undefined) of
+    case application:get_env(lorawan_server, http_admin_listen, undefined) of
         undefined ->
             ok;
         _HttpOpts ->
             cowboy:set_env(http, dispatch, Dispatch)
     end,
-    case application:get_env(http_admin_listen_ssl, undefined) of
+    case application:get_env(lorawan_server, http_admin_listen_ssl, undefined) of
         undefined ->
             ok;
         _SslOpts ->
@@ -108,6 +107,8 @@ static_routes() -> [
         [multicast_channels, multicast_channel, record_info(fields, multicast_channel)]},
     {"/profiles/[:name]", lorawan_admin_db_record,
         [profiles, profile, record_info(fields, profile)]},
+    {"/choices/networks", lorawan_admin_choices, networks},
+    {"/choices/profiles", lorawan_admin_choices, profiles},
     {"/devices/[:deveui]", lorawan_admin_db_record,
         [devices, device, record_info(fields, device)]},
     {"/nodes/[:devaddr]", lorawan_admin_db_record,
@@ -118,7 +119,7 @@ static_routes() -> [
         [txframes, txframe, record_info(fields, txframe)]},
     {"/rxframes/[:frid]", lorawan_admin_db_record,
         [rxframes, rxframe, record_info(fields, rxframe)]},
-    {"/handlers/[:appid]", lorawan_admin_db_record,
+    {"/handlers/[:app]", lorawan_admin_db_record,
         [handlers, handler, record_info(fields, handler)]},
     {"/connectors/[:connid]", lorawan_admin_db_record,
         [connectors, connector, record_info(fields, connector)]},

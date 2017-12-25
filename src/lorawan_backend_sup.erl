@@ -15,12 +15,12 @@ start_link() ->
 
 init([]) ->
     {ok, {{one_for_all, 10, 10}, [
-        {factory,
-            {lorawan_connector_factory, start_link, []},
-            permanent, 5000, worker, [lorawan_backend_factory]},
         {connectors,
             {lorawan_connector_sup, start_link, []},
-            permanent, infinity, supervisor, [lorawan_connector_sup]}
+            permanent, infinity, supervisor, [lorawan_connector_sup]},
+        {factory,
+            {lorawan_backend_factory, start_link, []},
+            permanent, 5000, worker, [lorawan_backend_factory]}
     ]}}.
 
 % end of file

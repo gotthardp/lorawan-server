@@ -13,8 +13,7 @@
 
 -export([get_rxframe/2]).
 
--include("lorawan_application.hrl").
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 init(Req, Opts) ->
     {cowboy_rest, Req, Opts}.

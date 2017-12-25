@@ -10,7 +10,7 @@
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 -record(state, {connid, cargs, phase, mqttc, last_connect, connect_count,
     ping_timer, subscribe, published, consumed}).
@@ -24,11 +24,11 @@ stop_connector(Id) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([ConnUri, Conn=#connector{subscribe=Sub, published=Pub, consumed=Cons}]) ->
+init([ConnUri, Conn=#connector{app=App, subscribe=Sub, published=Pub, consumed=Cons}]) ->
     process_flag(trap_exit, true),
     {_Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
     lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
-    ok = syn:register(Conn#connector.connid, self()),
+    ok = pg2:join({backend, App}, self()),
     CArgs = lists:append([
         [{host, HostName},
         {port, Port},
@@ -140,7 +140,7 @@ handle_reconnect0(Error, Phase, #state{connid=ConnId, phase=OldPhase, last_conne
         Diff when Diff < 30, Count > 120 ->
             lager:warning("Connector ~s failed to reconnect: ~p", [ConnId, Error]),
             % give up after 2 hours
-            lorawan_connector_factory:disable_connector(ConnId),
+            lorawan_backend_factory:disable_connector(ConnId),
             {stop, normal, State};
         Diff when Diff < 30, Count > 0 ->
             % wait, then wait even longer, but no longer than 30 sec
@@ -193,7 +193,7 @@ handle_publish({_ContentType, Msg, Vars}, State=#state{mqttc=C, published=Patter
     {noreply, State}.
 
 handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
-    case lorawan_application_backend:handle_downlink(Msg, undefined,
+    case lorawan_application_backend:handle_downlink(undefined, Msg,
             lorawan_connector_pattern:match_vars(Topic, Pattern)) of
         ok ->
             ok;

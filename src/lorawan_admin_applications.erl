@@ -14,7 +14,7 @@
 -export([handle_get/2]).
 -record(state, {name}).
 
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 init(Req, _Opts) ->
     Name = cowboy_req:binding(name, Req),
@@ -34,9 +34,11 @@ content_types_provided(Req, State) ->
 handle_get(Req, #state{name=undefined}=State) ->
     {ok, Modules} = application:get_env(lorawan_server, applications),
     A = lists:map(
-        fun({Name, _Module}) -> [{name, Name}] end,
-        Modules),
-    B = mnesia:dirty_all_keys(handlers),
+            fun({Name, _Module}) -> [{name, Name}] end,
+            Modules),
+    B = lists:map(
+            fun(Name) -> [{name, Name}] end,
+            mnesia:dirty_all_keys(handlers)),
     {jsx:encode(A++B), Req, State};
 handle_get(Req, #state{name=Name}=State) ->
     {jsx:encode([{name, Name}]), Req, State}.

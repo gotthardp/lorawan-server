@@ -8,9 +8,9 @@
 
 -export([start_link/0, uplink/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([nodes_with_backend/1]).
 
--include("lorawan.hrl").
--include("lorawan_application.hrl").
+-include("lorawan_db.hrl").
 
 start_link() ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
@@ -114,7 +114,7 @@ stop_connector(#connector{connid=Id, uri=Uri}) ->
 find_module(Uri) ->
     case binary:split(Uri, [<<":">>]) of
         [Scheme | _] ->
-            Known = application:get_env(connectors, []),
+            Known = application:get_env(lorawan_server, connectors, []),
             find_module0(Scheme, Known);
         _Else ->
             {error, invalid_uri}
@@ -127,7 +127,7 @@ find_module0(Scheme, [{Module, SchemeList} | Other]) ->
         false ->
             find_module0(Scheme, Other)
     end;
-find_module0({Scheme, _, _, _, _, _}, []) ->
+find_module0(Scheme, []) ->
     {error, {unknown_scheme, Scheme}}.
 
 

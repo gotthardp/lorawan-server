@@ -13,8 +13,7 @@
 
 -export([get_gateway/2]).
 
--include("lorawan_application.hrl").
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 -record(state, {format}).
 
 init(Req, [Format]) ->

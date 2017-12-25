@@ -8,8 +8,7 @@
 -export([ensure_tables/0, ensure_table/2]).
 -export([get_rxframes/1, get_last_rxframes/2]).
 
--include("lorawan_application.hrl").
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 ensure_tables() ->
     case mnesia:system_info(use_dir) of
@@ -67,7 +66,7 @@ ensure_tables() ->
         {rxframes, [
             {record_name, rxframe},
             {attributes, record_info(fields, rxframe)},
-            {index, [mac, devaddr]},
+            {index, [devaddr]},
             {disc_copies, [node()]}]},
         {connectors, [
             {record_name, connector},
@@ -135,7 +134,7 @@ rename_table(OldName, Name, TabDef) ->
             % convert
             PropList = lists:zip(OldAttrs, tl(tuple_to_list(Val))),
             ok = mnesia:dirty_write(Name,
-                list_to_tuple([NewRec|[get_value(X, PropList) || X <- NewAttrs]]))
+                list_to_tuple([NewRec|[get_value(Name, X, PropList) || X <- NewAttrs]]))
         end,
         mnesia:dirty_all_keys(OldName)),
     {atomic, ok} = mnesia:delete_table(OldName).
@@ -181,19 +180,21 @@ ensure_fields(Name, TabDef) ->
                 fun(OldRec) ->
                     [Rec|Values] = tuple_to_list(OldRec),
                     PropList = lists:zip(OldAttrs, Values),
-                    list_to_tuple([Rec|[get_value(X, PropList) || X <- NewAttrs]])
+                    list_to_tuple([Rec|[get_value(Rec, X, PropList) || X <- NewAttrs]])
                 end,
                 NewAttrs),
             ok
     end.
 
-get_value(node, PropList) ->
+get_value(_Rec, node, PropList) ->
     % import data from old structure
-    get_value(link, node, PropList);
-get_value(X, PropList) ->
+    get_value0(link, node, PropList);
+get_value(handler, app, PropList) ->
+    get_value0(appid, app, PropList);
+get_value(_Rec, X, PropList) ->
     proplists:get_value(X, PropList).
 
-get_value(Old, New, PropList) ->
+get_value0(Old, New, PropList) ->
     proplists:get_value(New, PropList,
       proplists:get_value(Old, PropList)).
 

@@ -12,8 +12,8 @@
 
 -define(MAX_FCNT_GAP, 16384).
 
--include("lorawan_application.hrl").
 -include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 % TODO complete type specification
 -spec ingest_frame(binary()) -> any().
@@ -325,7 +325,7 @@ create_node(Gateways, #network{netid=NetID}=Network, #device{deveui=DevEUI, appk
     Node2 = Node#node{devaddr=Device#device.node,
         profile=Device#device.profile, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
-        last_reset=calendar:universal_time(), last_gateways=Gateways,
+        last_reset=calendar:universal_time(), gateways=Gateways,
         adr_flag=0, adr_set=undefined, adr_use=lorawan_mac_region:default_adr(Network#network.region), adr_failed=[],
         rxwin_use=lorawan_mac_region:default_rxwin(Network#network.region), rxwin_failed=[],
         devstat_fcnt=undefined, last_qs=[]},

@@ -10,8 +10,8 @@
 -export([alive/3, network_delay/2, report/2, uplinks/1, downlink/5, downlink_error/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--include("lorawan_application.hrl").
 -include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 -record(state, {gateways, recent, request_cnt, error_cnt}).
 

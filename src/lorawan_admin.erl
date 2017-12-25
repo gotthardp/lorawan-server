@@ -12,8 +12,8 @@
 -export([check_alive/1, check_dwell/1]).
 -export([check_reset/1, check_battery/1, check_margin/1, check_adr/1, check_rxwin/1]).
 
--include("lorawan_application.hrl").
 -include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 -define(REALM, <<"lorawan-server">>).
 

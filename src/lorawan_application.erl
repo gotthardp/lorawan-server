@@ -10,8 +10,8 @@
 
 -define(MAX_DELAY, 250). % milliseconds
 
--include("lorawan_application.hrl").
 -include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 -callback init(App :: binary()) ->
     ok | {ok, [Path :: cowboy_router:route_path()]}.

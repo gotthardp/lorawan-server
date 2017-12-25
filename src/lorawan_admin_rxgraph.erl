@@ -13,8 +13,7 @@
 
 -export([get_rxframe/2]).
 
--include("lorawan_application.hrl").
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 -record(state, {format}).
 
 % range encompassing all possible LoRaWAN bands
@@ -53,8 +52,9 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
                 [{id, <<"freq">>}, {label, <<"Frequency (MHz)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
-                fun(#rxframe{fcnt=FCnt, region=Region, powe=TXPower, rxq=#rxq{datr=DatR, freq=Freq}})
+                fun(#rxframe{fcnt=FCnt, region=Region, powe=TXPower, gateways=Gateways})
                         when is_binary(Region) ->
+                    {_MAC, #rxq{datr=DatR, freq=Freq}} = hd(Gateways),
                     [{c, [
                         [{v, FCnt}],
                         [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
@@ -82,20 +82,18 @@ get_rxframe(Req, #state{format=qgraph}=State) ->
                 [{id, <<"snr">>}, {label, <<"SNR (dB)">>}, {type, <<"number">>}]
                 ]},
             {rows, lists:map(
-                fun(#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}, average_qs={AvgRSSI, AvgSNR}}) ->
+                fun(#rxframe{fcnt=FCnt, gateways=Gateways, average_qs=AverageQs}) ->
+                    {_MAC, #rxq{rssi=RSSI, lsnr=SNR}} = hd(Gateways),
+                    {AvgRSSI, AvgSNR} =
+                        if
+                            is_tuple(AverageQs) -> AverageQs;
+                            AverageQs == undefined -> {null, null}
+                        end,
                     [{c, [
                         [{v, FCnt}],
                         [{v, AvgRSSI}],
                         [{v, RSSI}],
                         [{v, AvgSNR}],
-                        [{v, SNR}]
-                    ]}];
-                (#rxframe{fcnt=FCnt, rxq=#rxq{rssi=RSSI, lsnr=SNR}}) ->
-                    [{c, [
-                        [{v, FCnt}],
-                        [{v, null}],
-                        [{v, RSSI}],
-                        [{v, null}],
                         [{v, SNR}]
                     ]}];
                 (_Else) ->

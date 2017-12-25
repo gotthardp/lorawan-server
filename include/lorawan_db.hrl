@@ -47,15 +47,16 @@
     netid :: binary(), % network id
     subid :: 'undefined' | bitstring(), % sub-network id
     region :: binary(),
-    tx_powe :: integer(),
-    max_eirp :: integer()}).
+    max_eirp :: integer(),
+    min_eirp :: integer(),
+    tx_powe :: integer()}).
 
 -record(gateway, {
     mac :: binary(),
     network :: nonempty_string(),
+    group :: any(),
     tx_rfch :: integer(), % rf chain for downlinks
     ant_gain :: integer(), % antenna gain
-    group :: any(),
     desc :: 'undefined' | string(),
     gpspos :: {number(), number()}, % {latitude, longitude}
     gpsalt :: 'undefined' | number(), % altitude
@@ -76,7 +77,7 @@
     name :: nonempty_string(),
     network :: nonempty_string(),
     app :: binary(),
-    appid :: any(), % application route
+    appargs :: any(),
     can_join :: boolean(),
     fcnt_check :: integer(),
     txwin :: integer(),
@@ -91,8 +92,8 @@
     appargs :: any(), % application arguments
     appeui :: eui(),
     appkey :: seckey(),
-    node :: devaddr(),
-    last_join :: calendar:datetime()}).
+    last_join :: calendar:datetime(),
+    node :: devaddr()}).
 
 -record(node, {
     devaddr :: devaddr(),
@@ -106,7 +107,7 @@
     last_reset :: calendar:datetime(),
     reset_count :: integer(), % number of resets/joins
     last_rx :: 'undefined' | calendar:datetime(),
-    last_gateways :: [{binary(), #rxq{}, any()}], % last seen gateways
+    gateways :: [{binary(), #rxq{}}], % last seen gateways
     adr_flag :: 0..1, % device supports
     adr_set :: adr_config(), % auto-calculated
     adr_use :: adr_config(), % used
@@ -114,9 +115,36 @@
     rxwin_use :: rxwin_config(), % used
     rxwin_failed=[] :: [atom()], % last request failed
     last_qs :: [{integer(), integer()}], % list of {RSSI, SNR} tuples
+    average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     devstat_time :: 'undefined' | calendar:datetime(),
     devstat_fcnt :: 'undefined' | integer(),
     devstat :: [{calendar:datetime(), integer(), integer()}]}). % {time, battery, margin}
+
+-record(ignored_node, {
+    devaddr,
+    mask}).
+
+-record(connector, {
+    connid,
+    app,
+    format,
+    uri,
+    published,
+    subscribe,
+    consumed,
+    enabled,
+    client_id,
+    auth,
+    name,
+    pass,
+    certfile,
+    keyfile}).
+
+-record(handler, {
+    app,
+    fields,
+    parse,
+    build}).
 
 -record(rxdata, {
     fcnt :: integer(),
@@ -144,13 +172,11 @@
 
 -record(rxframe, {
     frid :: frid(), % unique identifier
-    mac :: binary(), % gateway used
-    rxq :: #rxq{},
-    average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     app :: binary(),
-    appid :: any(), % application route
     region :: binary(),
     devaddr :: devaddr(),
+    gateways :: [{binary(), #rxq{}}], % singnal quality at each gateway
+    average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     powe:: integer(),
     fcnt :: integer(),
     confirm :: boolean(),

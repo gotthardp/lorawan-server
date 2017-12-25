@@ -10,7 +10,7 @@
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 -record(state, {connid, pid, published, auth, nc, streams}).
 
@@ -23,9 +23,9 @@ stop_connector(#connector{connid=Id}) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([Conn=#connector{uri=Uri, published=Pub, name=Name, pass=Pass}]) ->
+init([Conn=#connector{app=App, uri=Uri, published=Pub, name=Name, pass=Pass}]) ->
     lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
-    ok = syn:register(Conn#connector.connid, self()),
+    ok = pg2:join({backend, App}, self()),
     {ok, ConnPid} =
         case http_uri:parse(Uri, [{scheme_defaults, [{http, 80}, {https, 443}]}]) of
             {http, _UserInfo, HostName, Port, _Path, _Query} ->
@@ -95,7 +95,7 @@ handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{pid=C}) ->
     {noreply, fin_stream(StreamRef, Fin, State)};
 handle_info({'DOWN', _MRef, process, C, {gone, Error}}, State=#state{connid=ConnId, pid=C}) ->
     lager:warning("Connector ~s failed to reconnect: ~p", [ConnId, Error]),
-    lorawan_connector_factory:disable_connector(ConnId),
+    lorawan_backend_factory:disable_connector(ConnId),
     {stop, normal, State};
 handle_info({'DOWN', _MRef, process, C, Reason}, State=#state{pid=C}) ->
     {stop, Reason, State};

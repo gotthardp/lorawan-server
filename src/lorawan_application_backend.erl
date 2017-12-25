@@ -7,22 +7,22 @@
 -behaviour(lorawan_application).
 
 -export([init/1, handle_join/3, handle_uplink/4, handle_rxq/4]).
--export([parse_uplink/5, handle_downlink/3, form_encode/1]).
+-export([handle_downlink/3, form_encode/1]).
 
--include("lorawan_application.hrl").
 -include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 init(_App) ->
     ok.
 
-handle_join({Network, Profile, Device}, {MAC, RxQ}, DevAddr) ->
+handle_join({_Network, _Profile, _Device}, {_MAC, _RxQ}, _DevAddr) ->
     % accept any device
     ok.
 
-handle_uplink({Network, Profile, Node}, _RxQ, {lost, State}, Frame) ->
+handle_uplink({_Network, _Profile, _Node}, _RxQ, {lost, State}, _Frame) ->
     retransmit;
-handle_uplink({Network, #profile{app=App}=Profile, Node}, _RxQ, _LastAcked, Frame) ->
-    case mnesia:dirty_read(handlers, App) of
+handle_uplink({_Network, #profile{app=AppID}=Profile, Node}, _RxQ, _LastAcked, Frame) ->
+    case mnesia:dirty_read(handlers, AppID) of
         [#handler{fields=Fields}=Handler] ->
             Vars = parse_uplink(Handler, Frame),
             case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>, <<"all_gw">>], Fields) of
@@ -34,13 +34,13 @@ handle_uplink({Network, #profile{app=App}=Profile, Node}, _RxQ, _LastAcked, Fram
                     {ok, undefined}
             end;
         [] ->
-            {error, {unknown_appid, AppID}}
+            {error, {unknown_application, AppID}}
     end.
 
 handle_rxq(_Context, _Gateways, _Frame, undefined) ->
     % we did already handle this
     ok;
-handle_rxq({Network, Profile, Node}, Gateways, Frame, {#handler{fields=Fields}=Handler, Vars}) ->
+handle_rxq({_Network, Profile, #node{devaddr=DevAddr}=Node}, Gateways, #frame{fport=Port}, {#handler{fields=Fields}=Handler, Vars}) ->
     Vars2 = parse_rxq(Gateways, Fields, Vars),
     lorawan_backend_factory:uplink({Profile, Node, Handler}, Vars2),
     lorawan_application:send_stored_frames(DevAddr, Port).
@@ -50,9 +50,9 @@ any_is_member(List1, List2) ->
         fun(Item1) ->
             lists:member(Item1, List2)
         end,
-        List2).
+        List1).
 
-parse_uplink(#handler{appid=AppID, parse=Parse, fields=Fields},
+parse_uplink(#handler{app=AppID, parse=Parse, fields=Fields},
         #frame{devaddr=DevAddr, fcnt=FCnt, fport=Port, data=Data}) ->
     Vars =
         vars_add(devaddr, DevAddr, Fields,
@@ -61,8 +61,8 @@ parse_uplink(#handler{appid=AppID, parse=Parse, fields=Fields},
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        #{}))))),
-    data_to_fields(Parse, Vars, Data);
+        #{})))))),
+    data_to_fields(AppID, Parse, Vars, Data).
 
 parse_rxq(Gateways, Fields, Vars) ->
     {_MAC, #rxq{freq=Freq, datr=Datr, codr=Codr}} = hd(Gateways),
@@ -98,69 +98,51 @@ get_deveui(DevAddr) ->
     end.
 
 data_to_fields(AppId, {_, Fun}, Vars, Data) when is_function(Fun) ->
-    try Fun(Port, Data)
+    try Fun(Vars, Data)
     catch
         Error:Term ->
             lorawan_utils:throw_error({handler, AppId}, {parse_failed, {Error, Term}}),
             Vars
     end;
-data_to_fields(_Else, Vars, _) ->
+data_to_fields(_AppId, _Else, Vars, _) ->
     Vars.
 
 
-handle_downlink(Msg, Format, Vars) ->
-    Handler = get_handler(get_appid(Vars), Format),
-    case build_downlink(Handler, Msg) of
+handle_downlink(AppID, Vars, Msg) ->
+    [Handler] = mnesia:dirty_read(handlers, AppID),
+    case build_downlink(Handler, Msg, Vars) of
         {ok, Vars2, Time, TxData} ->
-            send_downlink(maps:merge(Vars, Vars2), Time, TxData);
+            send_downlink(Vars2, Time, TxData);
         {error, Error} ->
             {error, Error}
     end.
 
-get_appid(#{deveui := DevEUI} = Vars) ->
-    get_device_appid(DevEUI, Vars);
-get_appid(#{devaddr := DevAddr} = Vars) ->
-    get_link_appid(DevAddr, Vars);
-get_appid(Vars) ->
-    maps:get(group, Vars, undefined).
-
-get_device_appid(DevEUI, Vars) ->
-    case mnesia:dirty_read(devices, DevEUI) of
-        [] ->
-            case maps:get(devaddr, Vars, undefined) of
-                undefined ->
-                    maps:get(group, Vars, undefined);
-                DevAddr ->
-                    get_link_appid(DevAddr, Vars)
-            end;
-        [Device] ->
-            Device#device.appid
+build_downlink(#handler{app=AppID, build = Build}, Msg, Vars) ->
+    case catch lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])) of
+        Struct when is_map(Struct) ->
+            Port = maps:get(port, Struct, undefined),
+            Data = maps:get(data, Struct, <<>>),
+            {ok, maps:merge(Vars, Struct#{app=>AppID}),
+                maps:get(time, Struct, undefined),
+                #txdata{
+                    confirmed = maps:get(confirmed, Struct, false),
+                    port = Port,
+                    data = fields_to_data(Build, Port, maps:get(fields, Struct, #{}), Data),
+                    pending = maps:get(pending, Struct, undefined)
+                }};
+        _Else ->
+            {error, json_syntax_error}
     end.
 
-get_link_appid(DevAddr, Vars) ->
-    case mnesia:dirty_read(nodes, DevAddr) of
-        [] ->
-            case mnesia:dirty_read(multicast_groups, DevAddr) of
-                [] ->
-                    maps:get(group, Vars, undefined);
-                [Group] ->
-                    Group#multicast_channel.appid
-            end;
-        [Link] ->
-            Link#node.appid
-    end.
-
-get_handler(AppID, Format) ->
-    case mnesia:dirty_read(handlers, AppID) of
-        [] ->
-            #handler{format=Format};
-        [Handler] when Format == undefined ->
-            Handler;
-        [Handler] ->
-            Handler#handler{format=Format}
-    end.
-
-
+fields_to_data({_, Fun}, Port, Fields, Data) when is_function(Fun) ->
+    try Fun(Port, Fields)
+    catch
+        Error:Term ->
+            lager:error("Fun failed ~w:~p", [Error, Term]),
+            Data
+    end;
+fields_to_data(_Else, _, _, Data) ->
+    Data.
 
 send_downlink(#{deveui := DevEUI}, undefined, TxData) ->
     case mnesia:dirty_read(devices, DevEUI) of
@@ -201,20 +183,18 @@ send_downlink(#{devaddr := DevAddr}, Time, TxData) ->
             % class C downlink to an explicit node
             lorawan_application:downlink(Link, Time, TxData)
     end;
-send_downlink(#{group := AppID}, undefined, TxData) ->
+send_downlink(#{app := AppID}, undefined, TxData) ->
     % downlink to a group
     filter_group_responses(AppID,
         [lorawan_application:store_frame(DevAddr, TxData)
-            || DevAddr <- mnesia:dirty_select(nodes, [{#node{devaddr='$1', appid=AppID, _='_'}, [], ['$1']}])]
+            || #node{devaddr=DevAddr} <- lorawan_backend_factory:nodes_with_backend(AppID)]
     );
-send_downlink(#{group := AppID}, Time, TxData) ->
+send_downlink(#{app := AppID}, Time, TxData) ->
     % class C downlink to a group of devices
     filter_group_responses(AppID,
-        [lorawan_application:downlink(Link, Time, TxData)
-            || Link <- mnesia:dirty_select(nodes, [{#node{appid=AppID, _='_'}, [], ['$_']}])]
-    );
-send_downlink(Else, _Time, _TxData) ->
-    lager:error("Unknown downlink target: ~p", [Else]).
+        [lorawan_application:downlink(Node, Time, TxData)
+            || Node <- lorawan_backend_factory:nodes_with_backend(AppID)]
+    ).
 
 filter_group_responses(AppID, []) ->
     lager:warning("Group ~w is empty", [AppID]);
@@ -224,36 +204,6 @@ filter_group_responses(_AppID, List) ->
             (Left, _) -> Left
         end,
         ok, List).
-
-build_downlink(#handler{format = <<"json">>, build = Build}, Msg) ->
-    case catch lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])) of
-        Struct when is_map(Struct) ->
-            Port = maps:get(port, Struct, undefined),
-            Data = maps:get(data, Struct, <<>>),
-            {ok, Struct,
-                maps:get(time, Struct, undefined),
-                #txdata{
-                    confirmed = maps:get(confirmed, Struct, false),
-                    port = Port,
-                    data = fields_to_data(Build, Port, maps:get(fields, Struct, #{}), Data),
-                    pending = maps:get(pending, Struct, undefined)
-                }};
-        _Else ->
-            {error, json_syntax_error}
-    end;
-build_downlink(#handler{build = Build}, Data) ->
-    {ok, #{}, undefined,
-        #txdata{data = fields_to_data(Build, undefined, #{}, Data)}}.
-
-fields_to_data({_, Fun}, Port, Fields, Data) when is_function(Fun) ->
-    try Fun(Port, Fields)
-    catch
-        Error:Term ->
-            lager:error("Fun failed ~w:~p", [Error, Term]),
-            Data
-    end;
-fields_to_data(_Else, _, _, Data) ->
-    Data.
 
 form_encode(Values) ->
     cow_qs:qs(

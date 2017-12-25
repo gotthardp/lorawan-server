@@ -9,8 +9,7 @@
 -export([init/2]).
 -export([websocket_init/1, websocket_handle/2, websocket_info/2, terminate/3]).
 
--include("lorawan_application.hrl").
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 -record(state, {connector, bindings}).
 
@@ -77,8 +76,8 @@ websocket_handle(Data, State) ->
     lager:warning("Unknown handle ~w", [Data]),
     {ok, State}.
 
-handle_downlink(Msg, #state{connector=#connector{format=Format}, bindings=Bindings} = State) ->
-    case lorawan_application_backend:handle_downlink(Msg, Format, Bindings) of
+handle_downlink(Msg, #state{connector=#connector{app=App, format=Format}, bindings=Bindings} = State) ->
+    case lorawan_application_backend:handle_downlink(App, Bindings, Msg) of
         ok ->
             {ok, State};
         {error, {Object, Error}} ->

@@ -7,8 +7,7 @@
 
 -export([handle_fopts/4, build_fopts/2]).
 
--include("lorawan_application.hrl").
--include("lorawan.hrl").
+-include("lorawan_db.hrl").
 
 handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
     FOptsIn = parse_fopts(FOpts),
@@ -17,7 +16,7 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
         List1 -> lager:debug("~s -> ~w", [lorawan_mac:binary_to_hex(Node#node.devaddr), List1])
     end,
     % process incoming responses
-    {atomic, {MacConfirm, Node2, AverageQs}} =
+    {atomic, {MacConfirm, Node2}} =
         mnesia:transaction(
         fun() ->
             [N0] = mnesia:read(nodes, Node#node.devaddr, write),
@@ -35,7 +34,7 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
             end,
             [], FOptsIn),
     % check for new requests
-    {ok, MacConfirm, Node2, AverageQs, build_fopts(Node2, FOptsOut)}.
+    {ok, MacConfirm, Node2, build_fopts(Node2, FOptsOut)}.
 
 handle_fopts0({Network, Profile, Node0}, Gateways, FOptsIn) ->
     {MacConfirm, Node1} = handle_rxwin(FOptsIn, Network, Profile,
@@ -43,11 +42,27 @@ handle_fopts0({Network, Profile, Node0}, Gateways, FOptsIn) ->
         handle_status(FOptsIn, Network, Node0))),
     % maintain quality statistics
     {_, RxQ, _} = hd(Gateways),
-    LastQs = appendq({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Node1#node.last_qs),
-    {Node2, AverageQs} = auto_adr(Network, Profile, Node1#node{last_qs=LastQs}),
+    {LastQs, AverageQs} = append_qs({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Node1#node.last_qs),
+    Node2 = auto_adr(Network, Profile, Node1#node{last_qs=LastQs, average_qs=AverageQs}),
     {MacConfirm,
-        Node2#node{last_rx=calendar:universal_time(), last_gateways=Gateways},
-        AverageQs}.
+        Node2#node{last_rx=calendar:universal_time(), gateways=Gateways}}.
+
+append_qs(SNR, undefined) ->
+    {[SNR], undefined};
+append_qs(SNR, LastQs) when length(LastQs) < 49 ->
+    {[SNR | LastQs], undefined};
+append_qs(SNR, LastQs) ->
+    LastQs2 = lists:sublist([SNR | LastQs], 50),
+    AverageQs = average_qs(lists:unzip(LastQs2)),
+    {LastQs2, AverageQs}.
+
+average_qs({List1, List2}) ->
+    {average_qs0(List1), average_qs0(List2)}.
+
+average_qs0(List) ->
+    Avg = lists:sum(List)/length(List),
+    Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- List])/length(List)),
+    Avg-Sigma.
 
 build_fopts({Network, Profile, Node}, FOptsOut0) ->
     FOptsOut = send_adr(Network, Node,
@@ -230,34 +245,28 @@ send_link_check([{_MAC, RxQ, _}|_]=Gateways) ->
     {link_check_ans, Margin, length(Gateways)}.
 
 
-auto_adr(Network, #profile{adr_mode=1}, #node{adr_flag=1, adr_failed=[], last_qs=LastQs}=Node) ->
+auto_adr(Network, #profile{adr_mode=1}, #node{adr_flag=1, adr_failed=[]}=Node) ->
     case merge_adr(Node#node.adr_set, Node#node.adr_use) of
-        Unchanged when Unchanged == Node#node.adr_use, length(LastQs) >= 20 ->
+        Unchanged when Unchanged == Node#node.adr_use, is_tuple(Node#node.average_qs) ->
             % have enough data and no other change was requested
             calculate_adr(Network, Node);
         _Else ->
-            {Node, undefined}
+            Node
     end;
 auto_adr(_Network, #profile{adr_mode=2}=Profile, #node{adr_flag=1, adr_failed=[]}=Node) ->
     case merge_adr(Profile#profile.adr_set, Node#node.adr_use) of
         Unchanged when Unchanged == Node#node.adr_use ->
             % no change to profile settings
-            {Node, undefined};
+            Node;
         _Else ->
             % use the profile-defined value
-            {Node#node{adr_set = Profile#profile.adr_set}, undefined}
+            Node#node{adr_set = Profile#profile.adr_set}
     end;
 auto_adr(_Network, _Profile, Node) ->
     % ADR is Disabled (or undefined)
-    {Node, undefined}.
+    Node.
 
-appendq(SNR, undefined) ->
-    [SNR];
-appendq(SNR, LastSNRs) ->
-    lists:sublist([SNR | LastSNRs], 50).
-
-calculate_adr(#network{region=Region}, #node{last_qs=LastQs, adr_use={TxPower, DataRate, Chans}}=Node) ->
-    {AvgRSSI, AvgSNR} = AverageQs = average(lists:unzip(LastQs)),
+calculate_adr(#network{region=Region}, #node{average_qs={AvgRSSI, AvgSNR}, adr_use={TxPower, DataRate, Chans}}=Node) ->
     {DefPower, _, _} = lorawan_mac_region:default_adr(Region),
     {MinPower, MaxDR} = lorawan_mac_region:max_adr(Region),
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
@@ -290,19 +299,11 @@ calculate_adr(#network{region=Region}, #node{last_qs=LastQs, adr_use={TxPower, D
     % verify if something has changed
     case {TxPower2, DataRate2, Chans} of
         {TxPower, DataRate, Chans} ->
-            {Node, AverageQs};
+            Node;
         Set ->
             % request ADR command
-            {Node#node{adr_set=Set}, AverageQs}
+            Node#node{adr_set=Set}
     end.
-
-average({List1, List2}) ->
-    {average0(List1), average0(List2)}.
-
-average0(List) ->
-    Avg = lists:sum(List)/length(List),
-    Sigma = math:sqrt(lists:sum([(N-Avg)*(N-Avg) || N <- List])/length(List)),
-    Avg-Sigma.
 
 send_adr(#network{region=Region},
         #node{adr_flag=1, adr_set={TxPower, DataRate, Chans}, adr_failed=[]}=Node, FOptsOut)
