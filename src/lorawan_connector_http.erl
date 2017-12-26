@@ -35,7 +35,7 @@ init([Conn=#connector{app=App, uri=Uri, published=Pub, name=Name, pass=Pass}]) -
         end,
     monitor(process, ConnPid),
     {ok, #state{connid=Conn#connector.connid, pid=ConnPid,
-        published=lorawan_connector_pattern:prepare_filling(Pub),
+        published=lorawan_connector:prepare_filling(Pub),
         auth={Name, Pass}, nc=1, streams=#{}}}.
 
 handle_call({resubscribe, _Sub2}, _From, State) ->
@@ -117,7 +117,7 @@ code_change(_OldVsn, State, _Extra) ->
 handle_publish({ContentType, Body, Vars}, State=#state{published=Pattern}) ->
     {noreply, do_publish(
         {initial,
-            lorawan_connector_pattern:fill_pattern(Pattern, lorawan_admin:build(Vars)),
+            lorawan_connector:fill_pattern(Pattern, lorawan_admin:build(Vars)),
             ContentType, Body},
         [], State)}.
 

@@ -13,7 +13,7 @@
 
 -record(state, {connector, bindings}).
 
-start_connector(#connector{connid=Id, uri=URI}=Connector) ->
+start_connector(#connector{connid=Id, uri= <<"ws:", URI/binary>>}=Connector) ->
     % convert our pattern to cowboy pattern
     URI2 = re:replace(URI, "{([^}])}", ":\\1", [{return, binary}]),
     lorawan_http_registry:update_routes({ws, Id}, [
@@ -21,18 +21,18 @@ start_connector(#connector{connid=Id, uri=URI}=Connector) ->
     ]).
 
 stop_connector(Id) ->
-    lorawan_http_registry:delete_routes(Id).
+    lorawan_http_registry:delete_routes({ws, Id}).
 
 init(Req, [#connector{connid=Id}=Connector]) ->
-    {Bindings, Req2} = cowboy_req:bindings(Req),
-    case validate(Bindings) of
+    Bindings = cowboy_req:bindings(Req),
+    case validate(maps:to_list(Bindings)) of
         ok ->
             {ok, Timeout} = application:get_env(lorawan_server, websocket_timeout),
-            {cowboy_websocket, Req2, #state{connector=Connector, bindings=maps:from_list(Bindings)}, #{idle_timeout => Timeout}};
+            {cowboy_websocket, Req, #state{connector=Connector, bindings=Bindings}, #{idle_timeout => Timeout}};
         {error, Error} ->
             lorawan_utils:throw_error({connector, Id}, Error),
-            Req3 = cowboy_req:reply(404, Req2),
-            {ok, Req3, undefined}
+            Req2 = cowboy_req:reply(404, Req),
+            {ok, Req2, undefined}
     end.
 
 validate([{Key, Value} | Other]) ->
@@ -61,7 +61,7 @@ validate0(devaddr, DevAddr) ->
     end.
 
 websocket_init(#state{connector=#connector{connid=Id, app=App}, bindings=Bindings} = State) ->
-    lager:debug("WebSocket connector ~p to ~p", [Id, Bindings]),
+    lager:debug("WebSocket connector ~p with ~p", [Id, Bindings]),
     ok = pg2:join({backend, App}, self()),
     {ok, State}.
 
@@ -76,8 +76,8 @@ websocket_handle(Data, State) ->
     lager:warning("Unknown handle ~w", [Data]),
     {ok, State}.
 
-handle_downlink(Msg, #state{connector=#connector{app=App, format=Format}, bindings=Bindings} = State) ->
-    case lorawan_application_backend:handle_downlink(App, Bindings, Msg) of
+handle_downlink(Msg, #state{connector=Connector, bindings=Bindings}=State) ->
+    case decode_and_send_downlink(Msg, Connector, Bindings) of
         ok ->
             {ok, State};
         {error, {Object, Error}} ->
@@ -88,15 +88,24 @@ handle_downlink(Msg, #state{connector=#connector{app=App, format=Format}, bindin
             {stop, State}
     end.
 
-websocket_info({uplink, _, #{data := Data}},
+decode_and_send_downlink(Msg, #connector{app=App, format=Format}, Bindings) ->
+    case lorawan_connector:decode(Format, Msg) of
+        {ok, Vars} ->
+            lorawan_application_backend:handle_downlink(
+                maps:merge(Bindings#{app=>App}, Vars));
+        Error ->
+            Error
+    end.
+
+websocket_info({uplink, _, Vars},
         #state{connector=#connector{format= <<"raw">>}} = State) ->
-    {reply, {binary, Data}, State};
+    {reply, {binary, maps:get(data, Vars, <<>>)}, State};
 websocket_info({uplink, _, Vars},
         #state{connector=#connector{format= <<"json">>}} = State) ->
     {reply, {text, jsx:encode(lorawan_admin:build(Vars))}, State};
 websocket_info({uplink, _, Vars},
         #state{connector=#connector{format= <<"www-form">>}} = State) ->
-    {reply, {text, lorawan_application_backend:form_encode(lorawan_admin:build(Vars))}, State};
+    {reply, {text, lorawan_connector:form_encode(Vars)}, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~p", [Info]),
     {ok, State}.

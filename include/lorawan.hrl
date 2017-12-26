@@ -9,7 +9,7 @@
     mail, desc % TTN extensions
 }).
 
--record(frame, {conf, devaddr, adr, adr_ack_req, ack, fcnt, fopts, fport, data}).
+-record(frame, {conf, devaddr, adr, adr_ack_req, ack, fcnt, fopts, port, data}).
 
 -define(to_record(Record, Object, Default),
     list_to_tuple([Record|[maps:get(X, Object, Default) || X <- record_info(fields, Record)]])).

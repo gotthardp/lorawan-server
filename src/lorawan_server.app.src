@@ -10,7 +10,9 @@
     {registered, []},
     {mod, {lorawan_app, []}},
     {env, [
-        {applications, []},
+        {applications, [
+            {<<"semtech-mote">>, lorawan_application_semtech_mote}
+        ]},
         {connectors, []},
         {packet_forwarder_listen, [{port, 1680}]},
         {http_admin_listen, [{port, 8080}]},
@@ -24,7 +26,7 @@
         {rx1_delay, 1000000}, % us
         {rx2_delay, 2000000}, % us
         {regions, [
-            {<<"EU863">>, [
+            {<<"EU868">>, [
                 % default RX2 frequency (MHz) and data rate (DRx)
                 {rx2_rf, {869.525, <<"SF12BW125">>, <<"4/5">>}}
             ]},

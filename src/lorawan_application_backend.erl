@@ -7,7 +7,7 @@
 -behaviour(lorawan_application).
 
 -export([init/1, handle_join/3, handle_uplink/4, handle_rxq/4]).
--export([handle_downlink/3, form_encode/1]).
+-export([handle_downlink/1]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -37,10 +37,11 @@ handle_uplink({_Network, #profile{app=AppID}=Profile, Node}, _RxQ, _LastAcked, F
             {error, {unknown_application, AppID}}
     end.
 
-handle_rxq(_Context, _Gateways, _Frame, undefined) ->
-    % we did already handle this
-    ok;
-handle_rxq({_Network, Profile, #node{devaddr=DevAddr}=Node}, Gateways, #frame{fport=Port}, {#handler{fields=Fields}=Handler, Vars}) ->
+handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways, #frame{port=Port}, undefined) ->
+    % we did already handle this uplink
+    lorawan_application:send_stored_frames(DevAddr, Port);
+handle_rxq({_Network, Profile, #node{devaddr=DevAddr}=Node},
+        Gateways, #frame{port=Port}, {#handler{fields=Fields}=Handler, Vars}) ->
     Vars2 = parse_rxq(Gateways, Fields, Vars),
     lorawan_backend_factory:uplink({Profile, Node, Handler}, Vars2),
     lorawan_application:send_stored_frames(DevAddr, Port).
@@ -53,7 +54,7 @@ any_is_member(List1, List2) ->
         List1).
 
 parse_uplink(#handler{app=AppID, parse=Parse, fields=Fields},
-        #frame{devaddr=DevAddr, fcnt=FCnt, fport=Port, data=Data}) ->
+        #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
@@ -108,41 +109,26 @@ data_to_fields(_AppId, _Else, Vars, _) ->
     Vars.
 
 
-handle_downlink(AppID, Vars, Msg) ->
-    [Handler] = mnesia:dirty_read(handlers, AppID),
-    case build_downlink(Handler, Msg, Vars) of
-        {ok, Vars2, Time, TxData} ->
-            send_downlink(Vars2, Time, TxData);
-        {error, Error} ->
-            {error, Error}
-    end.
+handle_downlink(#{app := AppId} = Vars) ->
+    [#handler{build=Build}] = mnesia:dirty_read(handlers, AppId),
+    send_downlink(Vars,
+        maps:get(time, Vars, undefined),
+        #txdata{
+            confirmed = maps:get(confirmed, Vars, false),
+            port = maps:get(port, Vars, undefined),
+            data = fields_to_data(AppId, Build, Vars),
+            pending = maps:get(pending, Vars, undefined)
+        }).
 
-build_downlink(#handler{app=AppID, build = Build}, Msg, Vars) ->
-    case catch lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])) of
-        Struct when is_map(Struct) ->
-            Port = maps:get(port, Struct, undefined),
-            Data = maps:get(data, Struct, <<>>),
-            {ok, maps:merge(Vars, Struct#{app=>AppID}),
-                maps:get(time, Struct, undefined),
-                #txdata{
-                    confirmed = maps:get(confirmed, Struct, false),
-                    port = Port,
-                    data = fields_to_data(Build, Port, maps:get(fields, Struct, #{}), Data),
-                    pending = maps:get(pending, Struct, undefined)
-                }};
-        _Else ->
-            {error, json_syntax_error}
-    end.
-
-fields_to_data({_, Fun}, Port, Fields, Data) when is_function(Fun) ->
-    try Fun(Port, Fields)
+fields_to_data(AppId, {_, Fun}, Vars) when is_function(Fun) ->
+    try Fun(Vars)
     catch
         Error:Term ->
-            lager:error("Fun failed ~w:~p", [Error, Term]),
-            Data
+            lorawan_utils:throw_error({handler, AppId}, {build_failed, {Error, Term}}),
+            <<>>
     end;
-fields_to_data(_Else, _, _, Data) ->
-    Data.
+fields_to_data(_AppId, _Else, Vars) ->
+    maps:get(data, Vars, <<>>).
 
 send_downlink(#{deveui := DevEUI}, undefined, TxData) ->
     case mnesia:dirty_read(devices, DevEUI) of
@@ -157,15 +143,15 @@ send_downlink(#{deveui := DevEUI}, Time, TxData) ->
         [] ->
             {error, {{device, DevEUI}, unknown_deveui}};
         [Device] ->
-            [Link] = mnesia:dirty_read(nodes, Device#device.node),
+            [Node] = mnesia:dirty_read(nodes, Device#device.node),
             % class C downlink to an explicit node
-            lorawan_application:downlink(Link, Time, TxData)
+            lorawan_handler:downlink(Node, Time, TxData)
     end;
 send_downlink(#{devaddr := DevAddr}, undefined, TxData) ->
     case mnesia:dirty_read(nodes, DevAddr) of
         [] ->
             {error, {{node, DevAddr}, unknown_devaddr}};
-        [_Link] ->
+        [_Node] ->
             % standard downlink to an explicit node
             lorawan_application:store_frame(DevAddr, TxData)
     end;
@@ -177,11 +163,11 @@ send_downlink(#{devaddr := DevAddr}, Time, TxData) ->
                     {error, {{node, DevAddr}, unknown_devaddr}};
                 [Group] ->
                     % scheduled multicast
-                    lorawan_application:multicast(Group, Time, TxData)
+                    lorawan_handler:multicast(Group, Time, TxData)
             end;
-        [Link] ->
+        [Node] ->
             % class C downlink to an explicit node
-            lorawan_application:downlink(Link, Time, TxData)
+            lorawan_handler:downlink(Node, Time, TxData)
     end;
 send_downlink(#{app := AppID}, undefined, TxData) ->
     % downlink to a group
@@ -192,7 +178,7 @@ send_downlink(#{app := AppID}, undefined, TxData) ->
 send_downlink(#{app := AppID}, Time, TxData) ->
     % class C downlink to a group of devices
     filter_group_responses(AppID,
-        [lorawan_application:downlink(Node, Time, TxData)
+        [lorawan_handler:downlink(Node, Time, TxData)
             || Node <- lorawan_backend_factory:nodes_with_backend(AppID)]
     ).
 
@@ -204,28 +190,5 @@ filter_group_responses(_AppID, List) ->
             (Left, _) -> Left
         end,
         ok, List).
-
-form_encode(Values) ->
-    cow_qs:qs(
-        lists:map(
-            fun({Name, Value}) ->
-                {atom_to_binary(Name, latin1), value_to_binary(Value)}
-            end,
-            maps:to_list(Values))).
-
-value_to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, latin1);
-value_to_binary(Num) when is_integer(Num) -> integer_to_binary(Num);
-value_to_binary(Num) when is_float(Num) -> float_to_binary(Num);
-value_to_binary(List) when is_list(List) -> list_to_binary(List);
-value_to_binary(Bin) when is_binary(Bin) -> Bin.
-
--include_lib("eunit/include/eunit.hrl").
-
-www_form_test_()-> [
-    ?_assertEqual(<<>>, form_encode(#{})),
-    ?_assertEqual(<<"one=1">>, form_encode(#{one=>1})),
-    ?_assertEqual(<<"one=1&two=val">>, form_encode(#{one=>1,two=>"val"})),
-    ?_assertEqual(<<"one=1&three=%26&two=val">>, form_encode(#{one=>1,two=>"val",three=><<"&">>}))
-].
 
 % end of file

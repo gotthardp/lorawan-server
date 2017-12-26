@@ -23,24 +23,7 @@ delete_routes(Id) ->
 init([]) ->
     {ok, Routes} = lorawan_application:init(),
     State = dict:from_list(Routes),
-    % setup routes
-    Dispatch = compile_routes(State),
-    case application:get_env(lorawan_server, http_admin_listen, undefined) of
-        undefined ->
-            ok;
-        HttpOpts ->
-            {ok, _} = cowboy:start_clear(http, HttpOpts,
-                #{env => #{dispatch => Dispatch},
-                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
-    end,
-    case application:get_env(lorawan_server, http_admin_listen_ssl, undefined) of
-        undefined ->
-            ok;
-        SslOpts ->
-            {ok, _} = cowboy:start_tls(https, SslOpts,
-                #{env => #{dispatch => Dispatch},
-                stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
-    end,
+    update_routes(State),
     {ok, State}.
 
 handle_call({update_routes, Id, Routes}, _From, State) ->
@@ -59,8 +42,6 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-    cowboy:stop_listener(http),
-    cowboy:stop_listener(https),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -82,8 +63,10 @@ update_routes(State) ->
     end.
 
 compile_routes(Dict) ->
+    Routes = get_routes(Dict),
+    lager:debug("New routes ~p", [Routes]),
     cowboy_router:compile([
-        {'_', get_routes(Dict)}
+        {'_', Routes++static_routes()}
     ]).
 
 get_routes(Dict) ->
@@ -91,7 +74,7 @@ get_routes(Dict) ->
         fun(_Key, Routes, Acc) ->
             Acc++Routes
         end,
-        static_routes(), Dict).
+        [], Dict).
 
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
 static_routes() -> [

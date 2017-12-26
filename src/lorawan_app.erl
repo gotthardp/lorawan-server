@@ -15,9 +15,25 @@ start() ->
 start(_Type, _Args) ->
     ok = ensure_erlang_version(19),
     lorawan_db:ensure_tables(),
+    case application:get_env(lorawan_server, http_admin_listen, undefined) of
+        undefined ->
+            ok;
+        HttpOpts ->
+            {ok, _} = cowboy:start_clear(http, HttpOpts,
+                #{stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
+    end,
+    case application:get_env(lorawan_server, http_admin_listen_ssl, undefined) of
+        undefined ->
+            ok;
+        SslOpts ->
+            {ok, _} = cowboy:start_tls(https, SslOpts,
+                #{stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
+    end,
     lorawan_sup:start_link().
 
 stop(_State) ->
+    cowboy:stop_listener(http),
+    cowboy:stop_listener(https),
     ok.
 
 ensure_erlang_version(Min) ->

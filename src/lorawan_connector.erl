@@ -3,8 +3,9 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_backend_pattern).
+-module(lorawan_connector).
 -export([is_pattern/1, prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2]).
+-export([form_encode/1, decode/2]).
 
 is_pattern(Pattern) ->
     case string:chr(Pattern, ${) of
@@ -74,6 +75,29 @@ match_vars(Topic, Pattern) ->
     end.
 
 
+form_encode(Values) ->
+    cow_qs:qs(
+        lists:map(
+            fun({Name, Value}) ->
+                {atom_to_binary(Name, latin1), value_to_binary(Value)}
+            end,
+            maps:to_list(lorawan_admin:build(Values)))).
+
+value_to_binary(Term) when is_list(Term) -> list_to_binary(Term);
+value_to_binary(Term) when is_binary(Term) -> Term;
+value_to_binary(Term) -> list_to_binary(io_lib:print(Term)).
+
+decode(<<"raw">>, Msg) ->
+    {ok, #{data => Msg}};
+decode(<<"json">>, Msg) ->
+    case catch lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])) of
+        Struct when is_map(Struct) ->
+            {ok, Struct};
+        _Else ->
+            {error, json_syntax_error}
+    end.
+
+
 -include_lib("eunit/include/eunit.hrl").
 
 matchtst(undefined = Vars, Pattern, Topic) ->
@@ -95,5 +119,13 @@ pattern_test_()-> [
         match_pattern(<<"00112233/trailing/data">>, prepare_matching(<<"{devaddr}/#">>))),
     ?_assertEqual(#{devaddr => <<"00112233">>},
         match_pattern(<<"/leading/data/00112233">>, prepare_matching(<<"#/{devaddr}">>)))].
+
+
+www_form_test_()-> [
+    ?_assertEqual(<<>>, form_encode(#{})),
+    ?_assertEqual(<<"one=1">>, form_encode(#{one=>1})),
+    ?_assertEqual(<<"one=1&two=val">>, form_encode(#{one=>1,two=>"val"})),
+    ?_assertEqual(<<"one=1&three=%26&two=val">>, form_encode(#{one=>1,two=>"val",three=><<"&">>}))
+].
 
 % end of file

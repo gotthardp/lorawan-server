@@ -57,6 +57,7 @@ paginate(Req, State, List) ->
         #{'_page' := Page0, '_perPage' := PerPage0} ->
             {Page, PerPage} = {binary_to_integer(Page0), binary_to_integer(PerPage0)},
             Req2 = cowboy_req:set_resp_header(<<"x-total-count">>, integer_to_binary(length(List)), Req),
+            % io:format("~p", [List]),
             {jsx:encode(lists:sublist(List, 1+(Page-1)*PerPage, PerPage)), Req2, State}
     end.
 

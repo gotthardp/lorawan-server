@@ -120,7 +120,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+' }),
         nga.field('region', 'choice')
             .choices([
-                { value: 'EU863', label: 'EU 863-870MHz' },
+                { value: 'EU868', label: 'EU 863-870MHz' },
                 { value: 'US902', label: 'US 902-928MHz' },
                 { value: 'US902-PR', label: 'US 902-928MHz (Private Hybrid)' },
                 { value: 'CN779', label: 'China 779-787MHz' },
@@ -442,14 +442,19 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('last_join', 'datetime')
             ]),
         nga.field('gateways', 'embedded_list')
+            .targetFields([
+                nga.field('mac').label('MAC'),
+                nga.field('rxq.rssi').label('U/L RSSI'),
+                nga.field('rxq.lsnr').label('U/L SNR')
+            ])
             .editable(false),
         nga.field('downlinks', 'referenced_list')
             .targetEntity(txframes)
             .targetReferenceField('devaddr')
             .targetFields([
                 nga.field('datetime', 'datetime').label('Creation Time'),
-                nga.field('txdata.port'),
-                nga.field('txdata.data')
+                nga.field('txdata.port').label('Port'),
+                nga.field('txdata.data').label('Data')
             ])
             .listActions(['delete']),
         // ADR
@@ -493,9 +498,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_profiles = response.data });
     }]);
     nodes.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:11},
-        {name:"ADR", min:11, max:21},
-        {name:"Status", min:21, max:25}
+        {name:"General", min:0, max:12},
+        {name:"ADR", min:12, max:22},
+        {name:"Status", min:22, max:26}
     ]));
     // add to the admin application
     admin.addEntity(nodes);
@@ -531,9 +536,18 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template(function(entry) {
                 return "<a href='/admin/#nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
             }),
-        nga.field('gateways').label('MAC'),
-        nga.field('gateways').label('U/L RSSI'),
-        nga.field('gateways').label('U/L SNR'),
+        nga.field('mac').label('MAC')
+            .template(function(entry) {
+                return array_slice_mac(entry.values.gateways);
+            }),
+        nga.field('rssi', 'number').label('U/L RSSI')
+            .template(function(entry) {
+                return array_slice_rxq(entry.values.gateways, 'rssi');
+            }),
+        nga.field('lsnr', 'number').label('U/L SNR')
+            .template(function(entry) {
+                return array_slice_rxq(entry.values.gateways, 'lsnr');
+            }),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('confirm', 'boolean'),
         nga.field('port', 'number'),
@@ -576,7 +590,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('uri').label('URI')
             .attributes({ placeholder: 'e.g. mqtt://server:8883' })
-            .validation({ required: true, pattern: '^(amqp|mqtt|http|ws)s?:\/\/[^\/?#]+[^?#]*' }),
+            .validation({ required: true, pattern: '^(((amqp|mqtt|http)s?:\/)|ws:)\/[^\/?#]+[^?#]*' }),
         nga.field('published').label('Published Topic'),
         nga.field('subscribe').label('Subscribe'),
         nga.field('consumed').label('Received Topic'),
@@ -618,10 +632,18 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('fields', 'choices').label('Uplink Fields')
             .choices([
-                { value: 'gateway', label: 'gateway' },
+                { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
+                { value: 'fcnt', label: 'fcnt' },
+                { value: 'port', label: 'port' },
+                { value: 'data', label: 'data' },
                 { value: 'datetime', label: 'datetime' },
-                { value: 'rxq', label: 'rxq' }
+
+                { value: 'freq', label: 'freq' },
+                { value: 'datr', label: 'datr' },
+                { value: 'codr', label: 'codr' },
+                { value: 'best_gw', label: 'best_gw' },
+                { value: 'all_gw', label: 'all_gw' }
             ]),
         nga.field('parse', 'text').label('Parse Uplink'),
         nga.field('build', 'text').label('Build Downlink'),
@@ -745,14 +767,18 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(rxframes).title('Received Frames')
             .fields([
                 nga.field('datetime', 'datetime').label('Received'),
-                nga.field('mac', 'reference').label('MAC')
-                    .targetEntity(gateways)
-                    .targetField(nga.field('mac')),
                 nga.field('devaddr').label('DevAddr')
                     .template(function(entry) {
                         return "<a href='/admin/#nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
                     }),
-                nga.field('rxq.lsnr').label('U/L SNR')
+                nga.field('mac').label('MAC')
+                    .template(function(entry) {
+                        return array_slice_mac(entry.values.gateways);
+                    }),
+                nga.field('lsnr', 'number').label('U/L SNR')
+                    .template(function(entry) {
+                        return array_slice_rxq(entry.values.gateways, 'lsnr');
+                    }),
             ])
             .sortField('datetime')
             .perPage(7)
@@ -829,6 +855,15 @@ function bytesToSize(bytes) {
    if (bytes == 0) return '0 Byte';
    var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
    return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+}
+
+function array_slice_mac(array) {
+    if(Array.isArray(array))
+        return array.map(x => '<a href="#/gateways/edit/' + x['mac'] + '">' + x['mac'] + '</a>' ).join('<br>');
+}
+function array_slice_rxq(array, slice) {
+    if(Array.isArray(array))
+        return array.map(x => x['rxq'][slice].toString() ).join('<br>');
 }
 
 function hextoascii(val) {
@@ -1183,8 +1218,8 @@ return {
                     1: {"title": 'Tx in Hour [ms]', "minValue": 0, "maxValue": 1}
                 },
                 "series": {
-                    0: {"targetAxisIndex": 0},
-                    1: {"targetAxisIndex": 1}
+                    0: {"targetAxisIndex": 0, "pointSize": 3},
+                    1: {"targetAxisIndex": 1, "pointsVisible": false}
                 },
                 "chartArea": {
                     "top": 0, "bottom": "10%",
@@ -1194,7 +1229,7 @@ return {
                 "legend": {
                     "position": "none"
                 },
-                "pointSize": 3,
+                "interpolateNulls": true,
                 "hAxis": {
                     "format": 'kk:mm'
                 },

@@ -22,7 +22,7 @@ init([]) ->
 callback_mode() ->
     state_functions.
 
-idle(cast, {frame, {MAC, RxQ, _}, <<2#000:3, _/binary>>=PHYPayload}, Data) ->
+idle(cast, {frame, {MAC, RxQ, _}, <<2#000:3, _/bitstring>>=PHYPayload}, Data) ->
     case lorawan_mac:ingest_frame(PHYPayload) of
         {join, {Network, Profile, Device}, DevAddr, DevNonce} ->
             case invoke_handler(handle_join, {Network, Profile, Device}, [{MAC, RxQ}, DevAddr]) of
@@ -119,7 +119,7 @@ uplink(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node},
     {MAC, RxQ, GWState} = hd(Gateways0),
     Gateways = extract_rxq(Gateways0),
     % process commands
-    {MacConfirm, Node2, FOptsOut} =
+    {ok, MacConfirm, Node2, FOptsOut} =
         lorawan_mac_commands:handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts),
     % check whether the response is required
     ShallReply = if
@@ -140,7 +140,7 @@ uplink(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node},
             % else
             false
     end,
-    mnesia:dirty_write(rxframes, build_rxframe(Gateways, {Network, Profile, Node2}, Frame)),
+    ok = mnesia:dirty_write(rxframes, build_rxframe(Gateways, {Network, Profile, Node2}, Frame)),
     TxQ = choose_tx({Network, Profile, Node2}, RxQ, TimeStamp),
     % invoke applications
     case invoke_handler(handle_rxq, {Network, Profile, Node2}, [Gateways, Frame, AppState]) of
@@ -176,8 +176,8 @@ choose_tx({Network, _Profile, Node}, RxQ, TimeStamp) ->
             lorawan_mac_region:rx2_window(Network, RxQ)
     end.
 
-send_unicast({MAC, GWState}, {Network, _Profile, #node{devaddr=DevAddr}}, TxQ, ACK, FOpts, #txdata{confirmed=Confirmed}=TxData) ->
-    PHYPayload = lorawan_mac:encode_unicast(DevAddr, ACK, FOpts, TxData),
+send_unicast({MAC, GWState}, {Network, Profile, #node{devaddr=DevAddr}=Node}, TxQ, ACK, FOpts, #txdata{confirmed=Confirmed}=TxData) ->
+    {ok, PHYPayload} = lorawan_mac:encode_unicast({Network, Profile, Node}, ACK, FOpts, TxData),
     ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=Confirmed, phypayload=PHYPayload}),
     lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload);
 % non #txdata received, invoke the application to perform payload encoding
@@ -195,12 +195,12 @@ retransmit(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node}, Frame, 
     lorawan_gw_router:downlink({MAC, GWState}, Network, Node#node.devaddr, TxQ, LostDownlink),
     {stop, normal, undefined}.
 
-log_only(cast, {rxq, Gateways0}, #frame{conf=Confirm, devaddr=DevAddr, fcnt=FCnt, fport=FPort}) ->
+log_only(cast, {rxq, Gateways0}, #frame{conf=Confirm, devaddr=DevAddr, fcnt=FCnt, port=Port}) ->
     Gateways = extract_rxq(Gateways0),
     % log ignored frames too
     ok = mnesia:dirty_write(rxframes,
         #rxframe{frid= <<(erlang:system_time()):64>>, gateways=Gateways, devaddr=DevAddr,
-            fcnt=FCnt, confirm=bit_to_bool(Confirm), port=FPort,
+            fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port,
             datetime=calendar:universal_time()}),
     {stop, normal, undefined}.
 
@@ -233,7 +233,8 @@ invoke_handler2(Module, Fun, Params) ->
     end.
 
 % class C
-downlink({Network, Profile, Node}, Time, TxData) ->
+downlink(Node, Time, TxData) ->
+    {ok, Network, Profile} = lorawan_mac:load_profile(Node),
     {MAC, RxQ} = hd(Node#node.gateways),
     TxQ = lorawan_mac_region:rx2_rf(Network#network.region, RxQ),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
@@ -242,7 +243,7 @@ downlink({Network, Profile, Node}, Time, TxData) ->
 
 multicast(#multicast_channel{devaddr=DevAddr, profiles=Profiles}, Time, #txdata{confirmed=false} = TxData) ->
     % must be unconfirmed, ACK=0, no MAC commands allowed
-    PHYPayload = lorawan_mac:encode_multicast(DevAddr, TxData),
+    {ok, PHYPayload} = lorawan_mac:encode_multicast(DevAddr, TxData),
     lists:foreach(
         fun(Prof) ->
             [Profile] = mnesia:dirty_read(profiles, Prof),
@@ -270,12 +271,12 @@ multicast(DevAddr, #profile{name=Prof, network=Net}, Time, PHYPayload) ->
     ))).
 
 build_rxframe(Gateways, {#network{region=Region}, #profile{app=App},
-        #node{fcntup=FCnt, average_qs=AverageQs, adr_use={{TXPower, _, _}}}},
-        #frame{conf=Confirm, devaddr=DevAddr, fcnt=FCnt, fport=FPort, data=Data}) ->
+        #node{fcntup=FCnt, average_qs=AverageQs, adr_use={TXPower, _, _}}},
+        #frame{conf=Confirm, devaddr=DevAddr, port=Port, data=Data}) ->
     % #rxframe{frid, gateways, average_qs, app, region, devaddr, powe, fcnt, confirm, port, data, datetime}
     #rxframe{frid= <<(erlang:system_time()):64>>, gateways=Gateways,
         average_qs=AverageQs, app=App, region=Region, devaddr=DevAddr, powe=TXPower,
-        fcnt=FCnt, confirm=bit_to_bool(Confirm), port=FPort, data=Data,
+        fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port, data=Data,
         datetime=calendar:universal_time()}.
 
 bit_to_bool(0) -> false;

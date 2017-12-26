@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac).
 
--export([ingest_frame/1, handle_accept/5, encode_unicast/5, encode_multicast/2]).
+-export([ingest_frame/1, handle_accept/5, load_profile/1, encode_unicast/4, encode_multicast/2]).
 -export([binary_to_hex/1, hex_to_binary/1]).
 % for unit testing
 -export([reverse/1, cipher/5, b0/4]).
@@ -20,10 +20,12 @@
 ingest_frame(PHYPayload) ->
     Size = byte_size(PHYPayload)-4,
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
-    mnesia:transaction(
-        fun() ->
-            ingest_frame0(Msg, MIC)
-        end).
+    {atomic, Res} =
+        mnesia:transaction(
+            fun() ->
+                ingest_frame0(Msg, MIC)
+            end),
+    Res.
 
 ingest_frame0(<<2#000:3, _:5,
         AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = Msg, MIC) ->
@@ -47,18 +49,18 @@ ingest_frame0(<<MType:3, _:5,
         when MType == 2#010; MType == 2#100 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
     DevAddr = reverse(DevAddr0),
-    {FPort, FRMPayload} = case Body of
+    {Port, FRMPayload} = case Body of
         <<>> -> {undefined, <<>>};
-        <<Port:8, Payload/binary>> -> {Port, Payload}
+        <<FPort:8, FPayload/binary>> -> {FPort, FPayload}
     end,
-    Frame = #frame{conf=Confirm, devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, fport=FPort},
+    Frame = #frame{conf=Confirm, devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, port=Port},
 
     case accept_node_frame(DevAddr, FCnt) of
         {ok, Fresh, {Network, Profile, Node}} ->
             case aes_cmac:aes_cmac(Node#node.nwkskey,
                     <<(b0(MType band 1, DevAddr, Node#node.fcntup, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
-                    case FPort of
+                    case Port of
                         0 when FOptsLen == 0 ->
                             Data = cipher(FRMPayload, Node#node.nwkskey, MType band 1, DevAddr, Node#node.fcntup),
                             {Fresh, {Network, Profile, Node},
@@ -142,6 +144,7 @@ accept_node_frame(DevAddr, FCnt) ->
                 {ok, {Network, Profile, Node}} ->
                     case check_fcnt({Network, Profile, Node}, FCnt) of
                         {ok, Fresh, Node2} ->
+                            ok = mnesia:write(nodes, Node2, write),
                             {ok, Fresh, {Network, Profile, Node2}};
                         Error ->
                             Error
@@ -343,17 +346,16 @@ encode_accept(#device{appkey=AppKey}, #node{devaddr=DevAddr, rxwin_use={RX1DROff
     PHYPayload = crypto:block_decrypt(aes_ecb, AppKey, padded(16, <<MACPayload/binary, MIC/binary>>)),
     {ok, Node, <<MHDR/binary, PHYPayload/binary>>}.
 
-encode_unicast(DevAddr, ADR, ACK, FOpts, TxData) ->
-    {atomic, L} = mnesia:transaction(
+encode_unicast({_Network, #profile{adr_mode=ADR},
+        #node{devaddr=DevAddr, nwkskey=NwkSKey, appskey=AppSKey}}, ACK, FOpts, TxData) ->
+    {atomic, FCntDown} = mnesia:transaction(
         fun() ->
             [D] = mnesia:read(nodes, DevAddr, write),
             FCnt = (D#node.fcntdown + 1) band 16#FFFFFFFF,
-            NewD = D#node{fcntdown=FCnt},
-            ok = mnesia:write(nodes, NewD, write),
-            NewD
+            ok = mnesia:write(nodes, D#node{fcntdown=FCnt}, write),
+            FCnt
         end),
-    encode_frame(DevAddr, L#node.nwkskey, L#node.appskey,
-        L#node.fcntdown, ADR, ACK, FOpts, TxData).
+    encode_frame(DevAddr, NwkSKey, AppSKey, FCntDown, get_adr_flag(ADR), ACK, FOpts, TxData).
 
 encode_multicast(DevAddr, TxData) ->
     {atomic, G} = mnesia:transaction(
@@ -366,6 +368,9 @@ encode_multicast(DevAddr, TxData) ->
         end),
     encode_frame(DevAddr, G#multicast_channel.nwkskey, G#multicast_channel.appskey,
         G#multicast_channel.fcntdown, 0, 0, <<>>, TxData).
+
+get_adr_flag(ADR) when ADR == undefined; ADR == 0 -> 0;
+get_adr_flag(ADR) when ADR > 0 -> 1.
 
 encode_frame(DevAddr, NwkSKey, _AppSKey, FCnt, ADR, ACK, FOpts,
         #txdata{port=0, data=Data, confirmed=Confirmed, pending=FPending}) ->
@@ -380,10 +385,10 @@ encode_frame(DevAddr, NwkSKey, _AppSKey, FCnt, ADR, ACK, FOpts,
     sign_frame(Confirmed, DevAddr, NwkSKey, FCnt, MACPayload);
 
 encode_frame(DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts,
-        #txdata{port=FPort, data=Data, confirmed=Confirmed, pending=FPending}) ->
+        #txdata{port=Port, data=Data, confirmed=Confirmed, pending=FPending}) ->
     FHDR = <<(reverse(DevAddr)):4/binary, ADR:1, 0:1, ACK:1, (bool_to_pending(FPending)):1, (byte_size(FOpts)):4,
         FCnt:16/little-unsigned-integer, FOpts/binary>>,
-    MACPayload = case FPort of
+    MACPayload = case Port of
         undefined when Data == undefined; Data == <<>> ->
             <<FHDR/binary>>;
         undefined ->
@@ -391,7 +396,7 @@ encode_frame(DevAddr, NwkSKey, AppSKey, FCnt, ADR, ACK, FOpts,
             <<FHDR/binary>>;
         Num when Num > 0 ->
             FRMPayload = cipher(Data, AppSKey, 1, DevAddr, FCnt),
-            <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>
+            <<FHDR/binary, Port:8, (reverse(FRMPayload))/binary>>
     end,
     sign_frame(Confirmed, DevAddr, NwkSKey, FCnt, MACPayload).
 

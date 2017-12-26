@@ -16,23 +16,24 @@
     ping_timer, subscribe, published, consumed}).
 
 start_connector(#connector{connid=Id}=Connector) ->
-    lorawan_connector_sup:start_child(Id, ?MODULE, [Connector]).
+    lorawan_connector_sup:start_child({mqtt, Id}, ?MODULE, [Connector]).
 
 stop_connector(Id) ->
-    lorawan_connector_sup:stop_child(Id).
+    lorawan_connector_sup:stop_child({mqtt, Id}).
 
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([ConnUri, Conn=#connector{app=App, subscribe=Sub, published=Pub, consumed=Cons}]) ->
+init([Conn=#connector{app=App, uri=Uri, subscribe=Sub, published=Pub, consumed=Cons}]) ->
     process_flag(trap_exit, true),
-    {_Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
-    lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Conn#connector.uri]),
+    lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Uri]),
+    {_Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri =
+        http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{mqtt, 1883}, {mqtts, 8883}]}]),
     ok = pg2:join({backend, App}, self()),
     CArgs = lists:append([
         [{host, HostName},
         {port, Port},
-        {logger, warning},
+    %    {logger, warning},
         {keepalive, 0}],
         auth_args(ConnUri, Conn),
         ssl_args(ConnUri, Conn)
@@ -40,8 +41,8 @@ init([ConnUri, Conn=#connector{app=App, subscribe=Sub, published=Pub, consumed=C
     % initially use MQTT 3.1.1
     {ok, connect(attempt311, #state{connid=Conn#connector.connid,
         cargs=CArgs, connect_count=0, subscribe=Sub,
-        published=lorawan_connector_pattern:prepare_filling(Pub),
-        consumed=lorawan_connector_pattern:prepare_matching(Cons)})}.
+        published=lorawan_connector:prepare_filling(Pub),
+        consumed=lorawan_connector:prepare_matching(Cons)})}.
 
 % Microsoft Shared Access Signature
 auth_args({_Scheme, _UserInfo, HostName, _Port, _Path, _Query},
@@ -189,12 +190,12 @@ maybe_cancel_timer(Timer) ->
 
 
 handle_publish({_ContentType, Msg, Vars}, State=#state{mqttc=C, published=Pattern}) ->
-    emqttc:publish(C, lorawan_connector_pattern:fill_pattern(Pattern, lorawan_admin:build(Vars)), Msg),
+    emqttc:publish(C, lorawan_connector:fill_pattern(Pattern, lorawan_admin:build(Vars)), Msg),
     {noreply, State}.
 
 handle_consume(Topic, Msg, State=#state{consumed=Pattern}) ->
     case lorawan_application_backend:handle_downlink(undefined, Msg,
-            lorawan_connector_pattern:match_vars(Topic, Pattern)) of
+            lorawan_connector:match_vars(Topic, Pattern)) of
         ok ->
             ok;
         {error, {Object, Error}} ->

@@ -6,7 +6,9 @@
 -module(loramote_tests).
 -include_lib("eunit/include/eunit.hrl").
 
+-define(NET, <<"testnet">>).
 -define(GWMAC, <<16#0000000000000000:64>>).
+-define(PROF, <<"testprof">>).
 -define(NODE0, {<<16#11223344:32>>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>}).
 -define(NODE1, {<<16#22222222:32>>, <<"77CC3C53DC57CB932735E76F50570CAE">>, <<"172EB40016E87DE0701C00E4AA034085">>}).
 
@@ -18,10 +20,12 @@ loramote_test_() ->
         fun() ->
             {ok, _} = application:ensure_all_started(lorawan_server),
             lager:set_loglevel(lager_console_backend, debug),
-            test_admin:add_gateway(?GWMAC),
+            test_admin:add_network(?NET),
+            test_admin:add_gateway(?NET, ?GWMAC),
             {ok, Gateway} = test_forwarder:start_link(?GWMAC, {"localhost", 1680}),
-            test_admin:add_node(?NODE0),
-            test_admin:add_node(?NODE1),
+            test_admin:add_profile(?NET, ?PROF),
+            test_admin:add_node(?PROF, ?NODE0),
+            test_admin:add_node(?PROF, ?NODE1),
             {ok, Node1} = test_mote:start_link(?NODE1, Gateway),
             #state{gateway=Gateway, node1=Node1}
         end,

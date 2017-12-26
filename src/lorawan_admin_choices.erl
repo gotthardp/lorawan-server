@@ -56,7 +56,7 @@ network_choices(Net) ->
 
 data_rate_choices0(Region) ->
     if
-        Region == <<"EU863">>; Region == <<"CN779">>; Region == <<"EU433">>;
+        Region == <<"EU868">>; Region == <<"CN779">>; Region == <<"EU433">>;
         Region == <<"CN470">>; Region == <<"KR920">>; Region == <<"AS923-JP">> -> [
             [{value, 0}, {label, <<"SF12 125 kHz (250 bit/s)">>}],
             [{value, 1}, {label, <<"SF11 125 kHz (440 bit/s)">>}],
@@ -65,7 +65,7 @@ data_rate_choices0(Region) ->
             [{value, 4}, {label, <<"SF8 125 kHz (3125 bit/s)">>}],
             [{value, 5}, {label, <<"SF7 125 kHz (5470 bit/s)">>}]] ++
         if
-            Region == <<"EU863">>; Region == <<"CN779">>; Region == <<"EU433">> -> [
+            Region == <<"EU868">>; Region == <<"CN779">>; Region == <<"EU433">> -> [
                 [{value, 6}, {label, <<"SF7 250 kHz (11000 bit/s)">>}],
                 [{value, 7}, {label, <<"50 kbps (50000 bit/s)">>}]];
             true ->

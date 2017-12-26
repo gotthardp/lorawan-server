@@ -20,11 +20,11 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
         mnesia:transaction(
         fun() ->
             [N0] = mnesia:read(nodes, Node#node.devaddr, write),
-            {MC, N2, AQ} = handle_fopts0(
+            {MC, N2} = handle_fopts0(
                 {Network, Profile, store_actual_adr(Gateways, ADR, Network, N0)},
                 Gateways, FOptsIn),
             ok = mnesia:write(nodes, N2, write),
-            {MC, N2, AQ}
+            {MC, N2}
         end),
     % process requests
     FOptsOut =
@@ -34,14 +34,14 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
             end,
             [], FOptsIn),
     % check for new requests
-    {ok, MacConfirm, Node2, build_fopts(Node2, FOptsOut)}.
+    {ok, MacConfirm, Node2, build_fopts({Network, Profile, Node2}, FOptsOut)}.
 
 handle_fopts0({Network, Profile, Node0}, Gateways, FOptsIn) ->
     {MacConfirm, Node1} = handle_rxwin(FOptsIn, Network, Profile,
         handle_adr(FOptsIn,
         handle_status(FOptsIn, Network, Node0))),
     % maintain quality statistics
-    {_, RxQ, _} = hd(Gateways),
+    {_, RxQ} = hd(Gateways),
     {LastQs, AverageQs} = append_qs({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Node1#node.last_qs),
     Node2 = auto_adr(Network, Profile, Node1#node{last_qs=LastQs, average_qs=AverageQs}),
     {MacConfirm,
@@ -121,7 +121,7 @@ encode_fopts([]) ->
     <<>>.
 
 
-store_actual_adr([{_MAC, RxQ, _}|_], ADR, Network, Node) ->
+store_actual_adr([{_MAC, RxQ}|_], ADR, Network, Node) ->
     % store parameters
     DataRate = lorawan_mac_region:datar_to_dr(Network#network.region, RxQ#rxq.datr),
     case Node#node.adr_use of
@@ -181,7 +181,7 @@ handle_rxwin(FOptsIn, Network, Profile, Node) ->
     case find_rxwin(FOptsIn) of
         {1, 1, 1} ->
             if
-                Profile#profile.adr_set == Node#node.adr_use ->
+                Profile#profile.rxwin_set == Node#node.rxwin_use ->
                     lager:debug("RXParamSetupAns ~s succeeded (enforcement only)", [lorawan_mac:binary_to_hex(Node#node.devaddr)]),
                     {true, Node#node{rxwin_failed=[]}};
                 true ->
@@ -238,7 +238,7 @@ find_status(FOptsIn) ->
         end,
         undefined, FOptsIn).
 
-send_link_check([{_MAC, RxQ, _}|_]=Gateways) ->
+send_link_check([{_MAC, RxQ}|_]=Gateways) ->
     #rxq{datr=DataRate, lsnr=SNR} = RxQ,
     Margin = trunc(SNR - lorawan_mac_region:max_uplink_snr(DataRate)),
     lager:debug("LinkCheckAns: margin: ~B, gateways: ~B", [Margin, length(Gateways)]),
@@ -354,7 +354,7 @@ merge_rxwin({A1,B1,C1},{A2,B2,C2}) ->
         true -> B2
     end,
     if
-        is_number(C1) > 0 -> C1;
+        is_number(C1) -> C1;
         true -> C2
     end}.
 

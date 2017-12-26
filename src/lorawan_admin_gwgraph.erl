@@ -76,7 +76,7 @@ get_gateway(Req, #state{format=tgraph}=State) ->
                 fun ({Date, {_, Duration, Sum}}) ->
                     {true,  [{c, [
                                 [{v, encode_timestamp(Date)}],
-                                [{v, round(Duration)}],
+                                [{v, if Duration == 0 -> null; true -> round(Duration) end}],
                                 [{v, Sum/36000}, {f, <<(integer_to_binary(round(Sum)))/binary,
                                     " (", (float_to_binary(Sum/36000, [{decimals, 3}, compact]))/binary, "%)">>}]
                             ]}]};

@@ -44,6 +44,7 @@ ensure_tables() ->
         {profiles, [
             {record_name, profile},
             {attributes, record_info(fields, profile)},
+            {index, [app]},
             {disc_copies, [node()]}]},
         {devices, [
             {record_name, device},
@@ -53,6 +54,7 @@ ensure_tables() ->
         {nodes, [
             {record_name, node},
             {attributes, record_info(fields, node)},
+            {index, [profile]},
             {disc_copies, [node()]}]},
         {ignored_nodes, [
             {record_name, ignored_node},

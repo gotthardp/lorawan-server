@@ -78,10 +78,6 @@ item_updated(#profile{name=Name, app=App}, #profile{name=Name, app=App}) ->
 item_updated(#profile{name=Name, app=App1}, #profile{name=Name, app=App2}) ->
     announce_backend_update(App2),
     announce_backend_update(App1);
-item_updated(#connector{connid=Id, uri=Uri},
-        #connector{connid=Id, uri=Uri}) ->
-    % nothing significant has changed
-    ok;
 item_updated(#connector{connid=ConnId}=Connector1, #connector{connid=ConnId}=Connector2) ->
     stop_connector(Connector2),
     start_connector(Connector1).
@@ -94,22 +90,26 @@ item_deleted(#connector{}=Connector) ->
     stop_connector(Connector).
 
 
-start_connector(#connector{connid=Id, uri=Uri, app=App}=Connector) ->
+start_connector(#connector{enabled=true, connid=Id, uri=Uri, app=App}=Connector) ->
     case find_module(Uri) of
         {ok, Module} ->
             pg2:create({backend, App}),
             apply(Module, start_connector, [Connector]);
         {error, Error} ->
             lorawan_utils:throw_error({connector, Id}, Error)
-    end.
+    end;
+start_connector(#connector{}) ->
+    ok.
 
-stop_connector(#connector{connid=Id, uri=Uri}) ->
+stop_connector(#connector{enabled=true, connid=Id, uri=Uri}) ->
     case find_module(Uri) of
         {ok, Module} ->
             apply(Module, stop_connector, [Id]);
         {error, Error} ->
             lorawan_utils:throw_error({connector, Id}, Error)
-    end.
+    end;
+stop_connector(#connector{}) ->
+    ok.
 
 find_module(Uri) ->
     case binary:split(Uri, [<<":">>]) of

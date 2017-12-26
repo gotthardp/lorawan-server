@@ -34,7 +34,7 @@ downlink({MAC, GWState}, #network{tx_powe=DefPower, max_eirp=MaxEIRP}, DevAddr, 
     [#gateway{tx_rfch=RFCh, ant_gain=Gain}] = mnesia:dirty_read(gateways, MAC),
     Power = erlang:min(
         value_or_default(TxQ#txq.powe, DefPower),
-        MaxEIRP-Gain),
+        MaxEIRP-value_or_default(Gain, 0)),
     gen_server:cast({global, ?MODULE}, {downlink, {MAC, GWState}, DevAddr,
         TxQ#txq{powe=Power}, RFCh, PHYPayload}).
 
@@ -108,7 +108,8 @@ handle_cast({downlink_error, _MAC, DevAddr, Error}, #state{error_cnt=Cnt}=State)
     {noreply, State#state{error_cnt=Cnt+1}}.
 
 handle_info({rxq_ready, PHYPayload}, #state{recent=Recent}=State) ->
-    {{Gateways, Handler}, Recent2} = dict:take(PHYPayload, Recent),
+    {Gateways, Handler} = dict:fetch(PHYPayload, Recent),
+    Recent2 = dict:erase(PHYPayload, Recent),
     % gateway with the best signal will be first
     Gateways2 = lists:sort(
         fun({_M1, Q1, _S1}, {_M2, Q2, _S2}) ->
@@ -121,9 +122,13 @@ handle_info({rxq_ready, PHYPayload}, #state{recent=Recent}=State) ->
 handle_info(submit_stats, #state{request_cnt=RequestCnt, error_cnt=ErrorCnt}=State) ->
     {atomic, ok} = mnesia:transaction(
         fun() ->
-            [#server{router_perf=Perf}=S] = mnesia:read(servers, node(), write),
-            mnesia:write(servers,
-                S#server{router_perf=append_perf(RequestCnt, ErrorCnt, Perf)}, write)
+            Perf = {calendar:universal_time(), RequestCnt, ErrorCnt},
+            Server =
+                case mnesia:read(servers, node(), write) of
+                    [S] -> S#server{router_perf=append_perf(Perf, S#server.router_perf)};
+                    [] -> #server{router_perf=[Perf]}
+                end,
+            mnesia:write(servers, Server, write)
         end),
     {noreply, State#state{request_cnt=0, error_cnt=0}}.
 
@@ -135,11 +140,10 @@ terminate(Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.
 
-append_perf(RequestCnt, ErrorCnt, undefined) ->
-    append_perf(RequestCnt, ErrorCnt, []);
-append_perf(RequestCnt, ErrorCnt, Perf) ->
-    New = {calendar:universal_time(), RequestCnt, ErrorCnt},
-    lists:sublist([New | Perf], 50).
+append_perf(Perf, undefined) ->
+    [Perf];
+append_perf(Perf, PerfList) ->
+    lists:sublist([Perf | PerfList], 50).
 
 handle_alive(MAC, Target, TxTimes, NwkDelays) ->
     {atomic, ok} = mnesia:transaction(
@@ -155,8 +159,6 @@ handle_alive(MAC, Target, TxTimes, NwkDelays) ->
             end
         end).
 
-update_dwell(undefined, Dwell) ->
-    Dwell;
 update_dwell(TxTimes, undefined) ->
     update_dwell(TxTimes, []);
 update_dwell(TxTimes, Dwell0) ->
@@ -175,14 +177,19 @@ update_dwell(TxTimes, Dwell0) ->
             length(Relevant) >= 20 -> Relevant;
             true -> lists:sublist(Dwell0, 20)
         end,
-    % summarize cached transmissions
     Time =
         lists:foldl(
             fun({_Freq, Time}, Acc) ->
                 Acc + Time
             end, 0, TxTimes),
-    % FIXME: the frequency band should be somehow considered too
-    [{Now, {868, Time, Sum+Time}} | Dwell].
+    if
+        length(TxTimes) == 0, length(Dwell) == length(Dwell0) ->
+            % nothing has changed
+            Dwell;
+        true ->
+            % FIXME: the frequency band should be somehow considered too
+            [{Now, {868, Time, Sum+Time}} | Dwell]
+    end.
 
 append_delays(NwkDelays, undefined) ->
     append_delays(NwkDelays, []);
@@ -277,7 +284,7 @@ handle_uplink({GWData, PHYPayload}, #state{recent=Recent, request_cnt=Cnt}=State
     case dict:find(PHYPayload, Recent) of
         error ->
             % we are not yet processing this frame
-            Handler = lorawan_handler_sup:start_child(),
+            {ok, Handler} = lorawan_handler_sup:start_child(),
             % lager:debug("--> datr ~s, codr ~s, tmst ~B, size ~B", [RxQ#rxq.datr, RxQ#rxq.codr, RxQ#rxq.tmst, byte_size(PHYPayload)]),
             gen_server:cast(Handler, {frame, GWData, PHYPayload}),
             % schedule signal quality info

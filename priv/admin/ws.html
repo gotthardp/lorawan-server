@@ -4,12 +4,12 @@
     <title>WebSocket client</title>
     <script src="/admin/jquery.min.js"></script>
     <script type="text/javascript">
-    var websocket, wsformat;
+    var websocket;
     $(document).ready(init);
 
     function init() {
         $('#server').val("3238353554348D05");
-        if(!("WebSocket" in window)){  
+        if(!("WebSocket" in window)){
             $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
             $("#navigation").hide();
         } else {
@@ -47,8 +47,7 @@
 
     function connect()
     {
-        wsHost = "ws://" + window.location.host + "/ws/" + $("#type").val() + "/" + $("#server").val() + "/" + $("#format").val();
-        wsformat = $("#format").val();
+        wsHost = "ws://" + window.location.host + $("#uri").val();
         websocket = new WebSocket(wsHost);
         showScreen('Connecting to: ' +  wsHost);
         websocket.binaryType = 'arraybuffer';
@@ -73,7 +72,7 @@
     function sendTxt() {
         if(websocket.readyState == websocket.OPEN) {
             txt = $("#send_txt").val();
-            if(wsformat == "raw") {
+            if($("#format").val() == "raw") {
                 websocket.send(hexa_to_binary(txt).buffer);
             } else {
                 websocket.send(txt);
@@ -95,9 +94,9 @@
     };
 
     function onMessage(evt) {
-        if(wsformat == "raw") {
+        if($("#format").val() == "raw") {
             showScreen('<span style="color: blue;">RECEIVED: ' + ascii_to_hexa(evt.data) +'</span>');
-        } else if(wsformat == "json") {
+        } else if($("#format").val() == "json") {
             var msg = JSON.parse(evt.data);
             showScreen('<span style="color: blue;">RECEIVED: ' + JSON.stringify(msg) +'</span>');
         } else {
@@ -131,16 +130,11 @@
 
     <div id="navigation">
       <p id="connecting">
-        <select id="type">
-          <option value="devices" selected="true">DevEUI</option>
-          <option value="nodes">DevAddr</option>
-          <option value="groups">Group</option>
-        </select>
-        <input type='text' id="server" value=""></input>
+        <input type='text' id="uri" placeholder="/uri/path"></input>
         <select id="format">
           <option value="raw" selected="true">Raw</option>
           <option value="json">JSON</option>
-          <option value="www-form">Web Form</option>
+          <option value="text">Text</option>
         </select>
         <button type="button" onclick="toggle_connection()">connection</button>
       </p>

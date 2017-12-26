@@ -161,7 +161,10 @@ parse(Object) when is_map(Object) ->
 
 build(Object) when is_map(Object) ->
     maps:map(
-        fun(Key, Value) -> build_field(Key, Value) end,
+        fun
+            (_Key, Value) when is_map(Value) -> build(Value);
+            (Key, Value) -> build_field(Key, Value)
+        end,
         maps:filter(
             fun
                 (_Key, undefined) -> false;
@@ -175,7 +178,7 @@ parse_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:hex_to_binary(Value);
-parse_field(Key, Value) when Key == last_gateways ->
+parse_field(Key, Value) when Key == gateways ->
     lists:map(
         fun(#{mac:=MAC, rxq:=RxQ}) ->
             {lorawan_mac:hex_to_binary(MAC), ?to_record(rxq, parse(RxQ))}
@@ -234,7 +237,7 @@ build_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_mac:binary_to_hex(Value);
-build_field(Key, Value) when Key == last_gateways ->
+build_field(Key, Value) when Key == gateways ->
     lists:map(
         fun({MAC, RxQ}) ->
             #{mac=>lorawan_mac:binary_to_hex(MAC), rxq=>build(?to_map(rxq, RxQ))}
@@ -276,8 +279,10 @@ build_field(Key, Value) when Key == average_qs ->
     build_qs(Value);
 build_field(Key, Value) when Key == build; Key == parse ->
     build_fun(Value);
-build_field(Key, Value) when Key == gateway ->
-    build(Value);
+build_field(Key, Value) when Key == all_gw ->
+    lists:map(
+        fun(Gw) -> build(Gw) end,
+        Value);
 build_field(Key, {IP, Port, Ver}) when Key == ip_address ->
     #{ip=>list_to_binary(inet_parse:ntoa(IP)), port=>Port, ver=>Ver};
 build_field(_Key, Value) ->
