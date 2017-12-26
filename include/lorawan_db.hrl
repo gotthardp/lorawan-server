@@ -60,7 +60,7 @@
     desc :: 'undefined' | string(),
     gpspos :: {number(), number()}, % {latitude, longitude}
     gpsalt :: 'undefined' | number(), % altitude
-    target :: {inet:ip_address(), inet:port_number(), integer()},
+    ip_address :: {inet:ip_address(), inet:port_number(), integer()},
     last_alive :: 'undefined' | calendar:datetime(),
     last_report :: 'undefined' | calendar:datetime(),
     dwell :: [{calendar:datetime(), {number(), number(), number()}}], % {frequency, duration, hoursum}

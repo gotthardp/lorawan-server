@@ -24,16 +24,16 @@
         {rx1_delay, 1000000}, % us
         {rx2_delay, 2000000}, % us
         {regions, [
-            {<<"EU863-870">>, [
+            {<<"EU863">>, [
                 % default RX2 frequency (MHz) and data rate (DRx)
                 {rx2_rf, {869.525, <<"SF12BW125">>, <<"4/5">>}}
             ]},
-            {<<"US902-928">>, [
+            {<<"US902">>, [
                 {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
             ]},
             % Multitech Private Hybrid Mode
             % http://www.multitech.net/developer/software/lora/introduction-to-lora
-            {<<"US902-928-PR">>, [
+            {<<"US902-PR">>, [
                 {join1_delay, 1000000},
                 {join2_delay, 2000000},
                 {rx1_delay, 1000000},
@@ -41,19 +41,19 @@
                 % although the frequency is not used for this region, it is sent in RXParamSetupReq
                 {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
             ]},
-            {<<"CN779-787">>, [
+            {<<"CN779">>, [
                 {rx2_rf, {786, <<"SF12BW125">>, <<"4/5">>}}
             ]},
             {<<"EU433">>, [
                 {rx2_rf, {434.665, <<"SF12BW125">>, <<"4/5">>}}
             ]},
-            {<<"AU915-928">>, [
+            {<<"AU915">>, [
                 {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
             ]},
-            {<<"CN470-510">>, [
+            {<<"CN470">>, [
                 {rx2_rf, {505.3, <<"SF12BW125">>, <<"4/5">>}}
             ]},
-            {<<"KR920-923">>, [
+            {<<"KR920">>, [
                 {rx2_rf, {921.9, <<"SF12BW125">>, <<"4/5">>}}
             ]},
             {<<"AS923-JP">>, [

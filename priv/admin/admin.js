@@ -160,9 +160,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- gateways
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
-        nga.field('network'),
+        nga.field('network', 'reference')
+            .targetEntity(networks)
+            .targetField(nga.field('name')),
         nga.field('group'),
         nga.field('desc').label('Description'),
+        nga.field('ip_address.ip').label('IP Address'),
         nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
@@ -197,6 +200,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         // Status
         nga.field('health_alerts', 'choices').label('Alerts')
             .editable(false),
+        nga.field('ip_address.ip').label('IP Address')
+            .editable(false),
         nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('last_report', 'datetime').label('Last Report'),
         nga.field('mac', 'template').label('Delays')
@@ -210,7 +215,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.editionView().fields(gateways.creationView().fields());
     gateways.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:8},
-        {name:"Status", min:8, max:13}
+        {name:"Status", min:8, max:14}
     ]));
     // add to the admin application
     admin.addEntity(gateways);
@@ -356,7 +361,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- nodes
     nodes.listView().fields([
         nga.field('devaddr').label('DevAddr').isDetailLink(true),
-        nga.field('profile'),
+        nga.field('profile', 'reference')
+            .targetEntity(profiles)
+            .targetField(nga.field('name')),
         nga.field('appargs').label('Arguments'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
@@ -427,6 +434,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('last_reset', 'datetime').label('Last Reset'),
         nga.field('last_rx', 'datetime').label('Last RX'),
+        nga.field('device', 'referenced_list')
+            .targetEntity(devices)
+            .targetReferenceField('node')
+            .targetFields([
+                nga.field('deveui').label('DevEUI').isDetailLink(true),
+                nga.field('last_join', 'datetime')
+            ]),
         nga.field('gateways', 'embedded_list')
             .editable(false),
         nga.field('downlinks', 'referenced_list')
@@ -681,10 +695,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(gateways)
             .fields([
                 nga.field('mac').label('MAC').isDetailLink(true),
-                nga.field('netid').label('NetID'),
-                nga.field('subid').label('SubID')
-                    .map(format_bitstring),
-                nga.field('last_rx', 'datetime').label('Last RX'),
+                nga.field('network', 'reference')
+                    .targetEntity(networks)
+                    .targetField(nga.field('name')),
+                nga.field('ip_address.ip').label('IP Address'),
+                nga.field('last_alive', 'datetime'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
             ])
@@ -692,18 +707,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .sortDir('DESC')
             .perPage(7)
         )
-        .addCollection(nga.collection(devices)
-            .fields([
-                nga.field('deveui').label('DevEUI').isDetailLink(true),
-                nga.field('last_join', 'datetime').label('Last Join')
-            ])
-            .sortField('deveui')
-            .sortDir('ASC')
-            .perPage(7)
-        )
         .addCollection(nga.collection(nodes)
             .fields([
                 nga.field('devaddr').label('DevAddr').isDetailLink(true),
+                nga.field('profile', 'reference')
+                    .targetEntity(profiles)
+                    .targetField(nga.field('name')),
                 nga.field('battery', 'number').label('Battery')
                     .map(function(value, entry) { return first(entry.devstat, 'battery') }),
                 nga.field('margin', 'number').label('D/L SNR')
@@ -749,7 +758,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .perPage(7)
         )
     );
-    var dashLeft = ['servers', 'gateways', 'devices', 'nodes'];
+    var dashLeft = ['servers', 'gateways', 'nodes'];
     var dashRight = ['events', 'rxframes'];
 
     // ---- menu

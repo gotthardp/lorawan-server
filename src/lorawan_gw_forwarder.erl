@@ -133,7 +133,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 status(MAC, Pk) ->
-    lorawan_gw_router:status(MAC, ?to_record(stat, Pk)).
+    lorawan_gw_router:report(MAC, ?to_record(stat, Pk)).
 
 
 rxpk(MAC, PkList) ->

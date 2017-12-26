@@ -25,6 +25,10 @@ ensure_tables() ->
             {record_name, user},
             {attributes, record_info(fields, user)},
             {disc_copies, [node()]}]},
+        {servers, [
+            {record_name, server},
+            {attributes, record_info(fields, server)},
+            {disc_copies, [node()]}]},
         {networks, [
             {record_name, network},
             {attributes, record_info(fields, network)},

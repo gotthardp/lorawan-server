@@ -100,7 +100,9 @@ check_alive(#gateway{last_alive=LastAlive}) ->
 
 check_dwell(#gateway{dwell=Dwell}) when is_list(Dwell) ->
     MaxSum =
-        lists:foldl(fun({_, _, Sum}, Max) -> max(Sum, Max) end, 0, Dwell),
+        lists:foldl(
+            fun({_, {_, _, Sum}}, Max) -> max(Sum, Max) end,
+            0, Dwell),
     Percent = MaxSum/36000,
     if
         Percent > 1 ->
@@ -193,6 +195,7 @@ parse_field(Key, Value) when Key == rxq ->
 parse_field(Key, Value) when Key == txdata ->
     ?to_record(txdata, parse(Value));
 parse_field(Key, Value) when Key == last_join; Key == first_reset; Key == last_reset;
+                        Key == last_alive; Key == last_report;
                         Key == datetime; Key == devstat_time;
                         Key == first_rx; Key == last_rx ->
     iso8601:parse(Value);
@@ -209,8 +212,8 @@ parse_field(Key, Value) when Key == dwell ->
         end, Value);
 parse_field(Key, Value) when Key == delays ->
     lists:map(
-        fun(#{date:=Date, srvdelay:=SDelay, nwkdelay:=NDelay}) ->
-            {iso8601:parse(Date), SDelay, NDelay}
+        fun(#{date:=Date, min:=Min, avg:=Avg, max:=Max}) ->
+            {iso8601:parse(Date), {Min, Avg, Max}}
         end, Value);
 parse_field(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> parse_qs(Item) end, Value);
@@ -218,6 +221,9 @@ parse_field(Key, Value) when Key == average_qs ->
     parse_qs(Value);
 parse_field(Key, Value) when Key == build; Key == parse ->
     parse_fun(Value);
+parse_field(Key, #{ip:=IP, port:=Port, ver:=Ver}) when Key == ip_address ->
+    {ok, IP2} = inet_parse:address(binary_to_list(IP)),
+    {IP2, Port, Ver};
 parse_field(_Key, Value) ->
     Value.
 
@@ -251,6 +257,7 @@ build_field(Key, immediately) when Key == time ->
     <<"immediately">>;
 build_field(Key, Value) when Key == last_join; Key == first_reset; Key == last_reset;
                         Key == datetime; Key == devstat_time; Key == time;
+                        Key == last_alive; Key == last_report;
                         Key == first_rx; Key == last_rx ->
     iso8601:format(Value);
 build_field(Key, Value) when Key == devstat ->
@@ -260,8 +267,8 @@ build_field(Key, Value) when Key == dwell ->
                 #{time=>iso8601:format(Time), freq=>Freq, duration=>Duration, hoursum=>Sum}
               end, Value);
 build_field(Key, Value) when Key == delays ->
-    lists:map(fun({Date, SDelay, NDelay}) -> #{date=>iso8601:format(Date), srvdelay=>SDelay, nwkdelay=>NDelay};
-                ({Date, NDelay}) -> #{date=>iso8601:format(Date), srvdelay=>undefined, nwkdelay=>NDelay}
+    lists:map(fun({Date, {Min, Avg, Max}}) ->
+                  #{date=>iso8601:format(Date), min=>Min, avg=>Avg, max=>Max}
               end, Value);
 build_field(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> build_qs(Item) end, Value);
@@ -271,6 +278,8 @@ build_field(Key, Value) when Key == build; Key == parse ->
     build_fun(Value);
 build_field(Key, Value) when Key == gateway ->
     build(Value);
+build_field(Key, {IP, Port, Ver}) when Key == ip_address ->
+    #{ip=>list_to_binary(inet_parse:ntoa(IP)), port=>Port, ver=>Ver};
 build_field(_Key, Value) ->
     Value.
 

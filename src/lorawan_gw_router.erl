@@ -147,7 +147,7 @@ handle_alive(MAC, Target, TxTimes, NwkDelays) ->
             case mnesia:read(gateways, MAC, write) of
                 [#gateway{dwell=Dwell, delays=Delay}=G] ->
                     mnesia:write(gateways,
-                        G#gateway{target=Target, last_alive=calendar:universal_time(),
+                        G#gateway{ip_address=Target, last_alive=calendar:universal_time(),
                             dwell=update_dwell(TxTimes, Dwell),
                             delays=append_delays(NwkDelays, Delay)}, write);
                 [] ->
@@ -187,9 +187,13 @@ update_dwell(TxTimes, Dwell0) ->
 append_delays(NwkDelays, undefined) ->
     append_delays(NwkDelays, []);
 append_delays(NwkDelays, Delay) ->
-    New = {calendar:universal_time(),
-        {lists:min(NwkDelays), round(lists:sum(NwkDelays)/length(NwkDelays)), lists:max(NwkDelays)}},
-    lists:sublist([New | Delay], 50).
+    case NwkDelays of
+        List when length(List) > 0 ->
+            New = {lists:min(NwkDelays), round(lists:sum(NwkDelays)/length(NwkDelays)), lists:max(NwkDelays)},
+            lists:sublist([{calendar:universal_time(), New} | Delay], 50);
+        _Else ->
+            Delay
+    end.
 
 handle_report(MAC, S) ->
     if
