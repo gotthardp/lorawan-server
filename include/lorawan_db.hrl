@@ -138,12 +138,6 @@
     parse,
     build}).
 
--record(rxdata, {
-    fcnt :: integer(),
-    port :: integer(),
-    data :: binary(),
-    shall_reply=false :: boolean()}).
-
 -record(txdata, {
     confirmed=false :: boolean(),
     port :: 'undefined' | integer(),
