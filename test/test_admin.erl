@@ -27,7 +27,7 @@ add_node(ProfName, {DevAddr, NwkSKey, AppSKey}) ->
 
 post_json(Uri, Body) ->
     {ok, {{_Version, 401, _ReasonPhrase1}, Headers1, _Body1}} =
-        httpc:request(post, {"http://localhost:8080/" ++ Uri, [],
+        httpc:request(post, {"http://localhost:8080/api/" ++ Uri, [],
             "application/json", jsx:encode(Body)}, [], []),
 
     WWWAuthenticate = proplists:get_value("www-authenticate", Headers1),
@@ -38,7 +38,7 @@ post_json(Uri, Body) ->
         {<<"admin">>, <<"lorawan-server">>, <<"admin">>}, Nonce),
 
     {ok, {{_Version, 204, _ReasonPhrase2}, _Headers2, _Body2}} =
-        httpc:request(post, {"http://localhost:8080/" ++ Uri,
+        httpc:request(post, {"http://localhost:8080/api/" ++ Uri,
             [{"Authorization", binary_to_list(
                 lorawan_http_digest:header(digest, [{<<"username">>, <<"admin">>},
                     {<<"realm">>, Realm}, {<<"nonce">>, Nonce}, {<<"uri">>, list_to_binary(Uri)},

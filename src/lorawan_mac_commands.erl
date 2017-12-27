@@ -96,7 +96,7 @@ parse_fopts(<<16#09, Rest/binary>>) ->
 parse_fopts(<<>>) ->
     [];
 parse_fopts(Unknown) ->
-    lager:warning("Unknown command ~p", [Unknown]),
+    lager:warning("Unknown command ~p", [lorawan_mac:binary_to_hex(Unknown)]),
     [].
 
 encode_fopts([{link_check_ans, Margin, GwCnt} | Rest]) ->
