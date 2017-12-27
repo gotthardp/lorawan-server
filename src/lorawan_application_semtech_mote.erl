@@ -9,7 +9,7 @@
 -module(lorawan_application_semtech_mote).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_uplink/4, handle_rxq/4]).
+-export([init/1, handle_join/3, handle_uplink/4, handle_rxq/5]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -29,7 +29,7 @@ handle_uplink(_Context, _RxQ, _LastAcked, _Frame) ->
 
 % the data structure is explained in
 % https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207
-handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways,
+handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways, _WillReply,
         #frame{port=2, data= <<LED, Press:16, Temp:16, _AltBar:16, Batt, _Lat:24, _Lon:24, _AltGps:16>>}, []) ->
     lager:debug("PUSH_DATA ~w ~w ~w ~w",[DevAddr, Press, Temp, Batt]),
     % blink with the LED indicator

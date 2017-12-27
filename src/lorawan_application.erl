@@ -15,13 +15,16 @@
 
 -callback init(App :: binary()) ->
     ok | {ok, [Path :: cowboy_router:route_path()]}.
--callback handle_join({Network :: #network{}, Profile :: #profile{}, Device :: #device{}}, {MAC :: binary(), RxQ :: #rxq{}}, DevAddr :: devaddr()) ->
+-callback handle_join({Network :: #network{}, Profile :: #profile{}, Device :: #device{}},
+        {MAC :: binary(), RxQ :: #rxq{}}, DevAddr :: devaddr()) ->
     ok | {error, Error :: term()}.
--callback handle_uplink({Network :: #network{}, Profile :: #profile{}, Node :: #node{}}, {MAC :: binary(), RxQ :: #rxq{}}, {lost, State :: any()}, Frame :: #frame{}) ->
+-callback handle_uplink({Network :: #network{}, Profile :: #profile{}, Node :: #node{}},
+        {MAC :: binary(), RxQ :: #rxq{}}, {lost, State :: any()}, Frame :: #frame{}) ->
     ok | retransmit |
     {send, Port :: integer(), Data :: #txdata{}} |
     {error, Error :: term()}.
--callback handle_rxq({Network :: #network{}, Profile :: #profile{}, Node :: #node{}}, Gateways :: [{MAC :: binary(), RxQ :: #rxq{}}], Frame :: #frame{}, State :: any()) ->
+-callback handle_rxq({Network :: #network{}, Profile :: #profile{}, Node :: #node{}},
+        Gateways :: [{MAC :: binary(), RxQ :: #rxq{}}], WillReply :: boolean(), Frame :: #frame{}, State :: any()) ->
     ok | retransmit |
     {send, Port :: integer(), Data :: #txdata{}} |
     {error, Error :: term()}.

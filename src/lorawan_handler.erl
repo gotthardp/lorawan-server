@@ -143,7 +143,7 @@ uplink(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node},
     ok = mnesia:dirty_write(rxframes, build_rxframe(Gateways, {Network, Profile, Node2}, Frame)),
     TxQ = choose_tx({Network, Profile, Node2}, RxQ, TimeStamp),
     % invoke applications
-    case invoke_handler(handle_rxq, {Network, Profile, Node2}, [Gateways, Frame, AppState]) of
+    case invoke_handler(handle_rxq, {Network, Profile, Node2}, [Gateways, ShallReply, Frame, AppState]) of
         {send, TxData} ->
             send_unicast({MAC, GWState}, {Network, Profile, Node2}, TxQ, Confirm, FOptsOut, TxData);
         ok when ShallReply ->

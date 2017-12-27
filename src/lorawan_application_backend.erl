@@ -6,7 +6,7 @@
 -module(lorawan_application_backend).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_uplink/4, handle_rxq/4]).
+-export([init/1, handle_join/3, handle_uplink/4, handle_rxq/5]).
 -export([handle_downlink/2]).
 
 -include("lorawan.hrl").
@@ -37,11 +37,12 @@ handle_uplink({_Network, #profile{app=AppID}, Node}, _RxQ, _LastAcked, Frame) ->
             {error, {unknown_application, AppID}}
     end.
 
-handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways, #frame{port=Port}, undefined) ->
+handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}},
+        _Gateways, _WillReply, #frame{port=Port}, undefined) ->
     % we did already handle this uplink
     lorawan_application:send_stored_frames(DevAddr, Port);
 handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}},
-        Gateways, #frame{port=Port}, {#handler{fields=Fields}, Vars}) ->
+        Gateways, _WillReply, #frame{port=Port}, {#handler{fields=Fields}, Vars}) ->
     lorawan_backend_factory:uplink(AppID, parse_rxq(Gateways, Fields, Vars)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 
