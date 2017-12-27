@@ -35,8 +35,8 @@ init() ->
 
 do_init([], Acc) ->
     {ok, Acc};
-do_init([{App, Module} | Rest], Acc) ->
-    case apply(Module, init, [App]) of
+do_init([AppModule | Rest], Acc) ->
+    case invoke_init(AppModule) of
         ok ->
             do_init(Rest, Acc);
         {ok, Handlers} ->
@@ -44,6 +44,12 @@ do_init([{App, Module} | Rest], Acc) ->
         Else ->
             Else
     end.
+
+invoke_init({App, {AppName, Module}}) ->
+    {ok, _Started} = application:ensure_all_started(AppName),
+    apply(Module, init, [App]);
+invoke_init({App, Module}) when is_atom(Module) ->
+    apply(Module, init, [App]).
 
 store_frame(DevAddr, TxData) ->
     {atomic, ok} =
