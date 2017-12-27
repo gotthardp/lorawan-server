@@ -22,10 +22,8 @@ delete_routes(Id) ->
     gen_server:call(?MODULE, {delete_routes, Id}).
 
 init([]) ->
-    {ok, Routes} = lorawan_application:init(),
-    State = dict:from_list(Routes),
-    update_routes(State),
-    {ok, State}.
+    self() ! initialize,
+    {ok, dict:new()}.
 
 handle_call({update_routes, Id, Routes}, _From, State) ->
     State2 = dict:store(Id, Routes, State),
@@ -39,6 +37,11 @@ handle_call({delete_routes, Id}, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+handle_info(initialize, State) ->
+    {ok, Routes} = lorawan_application:init(),
+    State = dict:from_list(Routes),
+    update_routes(State),
+    {noreply, State};
 handle_info(_Info, State) ->
     {noreply, State}.
 
