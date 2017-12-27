@@ -33,15 +33,6 @@
     time :: 'undefined' | 'immediately' | calendar:datetime(),
     powe :: 'undefined' | integer()}).
 
--record(user, {
-    name :: nonempty_string(),
-    pass :: string(),
-    roles :: [string()]}).
-
--record(server, {
-    name :: nonempty_string(),
-    router_perf :: [{calendar:datetime(), integer(), integer()}]}).
-
 -record(network, {
     name :: nonempty_string(),
     netid :: binary(), % network id
@@ -184,16 +175,5 @@
     port :: integer(),
     data :: binary(),
     datetime :: calendar:datetime()}).
-
--record(event, {
-    evid :: binary(),
-    severity :: atom(),
-    first_rx :: calendar:datetime(),
-    last_rx :: calendar:datetime(),
-    count :: integer(),
-    entity :: atom(),
-    eid :: binary(),
-    text :: binary(),
-    args :: 'undefined' | binary()}).
 
 % end of file

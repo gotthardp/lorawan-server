@@ -32,7 +32,7 @@ content_types_provided(Req, State) ->
 
 get_gateway(Req, #state{format=Type}=State) ->
     MAC = cowboy_req:binding(mac, Req),
-    [Gateway] = mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)),
+    [Gateway] = mnesia:dirty_read(gateways, lorawan_utils:hex_to_binary(MAC)),
     {jsx:encode([{mac, MAC}, {array, get_array(Type, Gateway)}]), Req, State}.
 
 get_array(pgraph, #gateway{delays=Delays}) when is_list(Delays) ->
@@ -84,7 +84,7 @@ encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
 
 resource_exists(Req, State) ->
     case mnesia:dirty_read(gateways,
-            lorawan_mac:hex_to_binary(cowboy_req:binding(mac, Req))) of
+            lorawan_utils:hex_to_binary(cowboy_req:binding(mac, Req))) of
         [] -> {false, Req, State};
         [_Stats] -> {true, Req, State}
     end.

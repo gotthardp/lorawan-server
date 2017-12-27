@@ -35,7 +35,7 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, #state{format=rgraph}=State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    ActRec = lorawan_db:get_rxframes(lorawan_utils:hex_to_binary(DevAddr)),
     % guess which frequency band the device is using
     % FIXME: this is backward incompatible-- and moreover we should directly access device profile!!
     {Min, Max} = case ActRec of
@@ -72,7 +72,7 @@ get_rxframe(Req, #state{format=rgraph}=State) ->
 
 get_rxframe(Req, #state{format=qgraph}=State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    ActRec = lorawan_db:get_rxframes(lorawan_mac:hex_to_binary(DevAddr)),
+    ActRec = lorawan_db:get_rxframes(lorawan_utils:hex_to_binary(DevAddr)),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
@@ -111,7 +111,7 @@ format_power(Index, _Power) ->
 
 resource_exists(Req, State) ->
     case mnesia:dirty_read(nodes,
-            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
+            lorawan_utils:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
         [] -> {false, Req, State};
         [_Node] -> {true, Req, State}
     end.

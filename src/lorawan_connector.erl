@@ -4,11 +4,15 @@
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 -module(lorawan_connector).
--export([is_pattern/1, prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2, same_common_vars/2]).
+-export([node_to_vars/1, is_pattern/1]).
+-export([prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2, same_common_vars/2]).
 -export([shared_access_token/4]).
 -export([form_encode/1, decode_and_downlink/3]).
 
 -include("lorawan_db.hrl").
+
+node_to_vars(#node{devaddr=DevAddr}) ->
+    #{devaddr=>DevAddr}.
 
 is_pattern(Pattern) ->
     case string:chr(Pattern, ${) of

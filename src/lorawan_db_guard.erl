@@ -11,6 +11,7 @@
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
+-include("lorawan.hrl").
 -include("lorawan_db.hrl").
 
 start_link() ->
@@ -44,7 +45,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 handle_delete(nodes, DevAddr) ->
-    lager:debug("Node ~p deleted", [lorawan_mac:binary_to_hex(DevAddr)]),
+    lager:debug("Node ~p deleted", [lorawan_utils:binary_to_hex(DevAddr)]),
     % delete linked records
     ok = mnesia:dirty_delete(pending, DevAddr),
     delete_matched(rxframes, #rxframe{frid='$1', devaddr=DevAddr, _='_'}),
@@ -71,7 +72,7 @@ trim_rxframes() ->
     if
         length(Trimmed) > 0 ->
             lager:debug("Expired rxframes from ~p",
-                [[lorawan_mac:binary_to_hex(E) || E <- Trimmed]]);
+                [[lorawan_utils:binary_to_hex(E) || E <- Trimmed]]);
         true ->
             ok
     end.

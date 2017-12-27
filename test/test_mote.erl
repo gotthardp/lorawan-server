@@ -10,7 +10,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -record(state, {devaddr, nwkskey, appskey, gateway, client, send_status}).
--import(lorawan_mac, [reverse/1, cipher/5, b0/4]).
+-import(lorawan_mac, [cipher/5, b0/4]).
+-import(lorawan_utils, [reverse/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -33,7 +34,7 @@ init([DevCfg, Gateway]) ->
         client=undefined, send_status=false}}.
 
 get_config({DevAddr, NwkSKey, AppSKey}) ->
-    {DevAddr, lorawan_mac:hex_to_binary(NwkSKey), lorawan_mac:hex_to_binary(AppSKey)}.
+    {DevAddr, lorawan_utils:hex_to_binary(NwkSKey), lorawan_utils:hex_to_binary(AppSKey)}.
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.

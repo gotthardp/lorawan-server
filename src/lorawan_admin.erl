@@ -181,11 +181,11 @@ parse_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == deveui; Key == appeui; Key == appkey; Key == node;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
-    lorawan_mac:hex_to_binary(Value);
+    lorawan_utils:hex_to_binary(Value);
 parse_field(Key, Value) when Key == gateways ->
     lists:map(
         fun(#{mac:=MAC, rxq:=RxQ}) ->
-            {lorawan_mac:hex_to_binary(MAC), ?to_record(rxq, parse(RxQ))}
+            {lorawan_utils:hex_to_binary(MAC), ?to_record(rxq, parse(RxQ))}
         end, Value);
 parse_field(Key, Value) when Key == subid ->
     parse_bitstring(Value);
@@ -245,11 +245,11 @@ build_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == deveui; Key == appeui; Key == appkey; Key == node;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
-    lorawan_mac:binary_to_hex(Value);
+    lorawan_utils:binary_to_hex(Value);
 build_field(Key, Value) when Key == gateways ->
     lists:map(
         fun({MAC, RxQ}) ->
-            #{mac=>lorawan_mac:binary_to_hex(MAC), rxq=>build(?to_map(rxq, RxQ))}
+            #{mac=>lorawan_utils:binary_to_hex(MAC), rxq=>build(?to_map(rxq, RxQ))}
         end, Value);
 build_field(Key, Value) when Key == subid ->
     build_bitstring(Value);
@@ -312,7 +312,7 @@ parse_bitstring(Map) ->
                     <<0:Len>>
             end;
         Val ->
-            BinVal = lorawan_mac:hex_to_binary(Val),
+            BinVal = lorawan_utils:hex_to_binary(Val),
             case parse_opt(len, Map) of
                 undefined ->
                     BinVal;
@@ -326,9 +326,9 @@ parse_bitstring(Map) ->
 
 build_bitstring(Value) ->
     case bit_size(Value) rem 8 of
-        0 -> #{val => lorawan_mac:binary_to_hex(Value),
+        0 -> #{val => lorawan_utils:binary_to_hex(Value),
                 len => bit_size(Value)};
-        N -> #{val => lorawan_mac:binary_to_hex(<<Value/bitstring, 0:(8-N)>>),
+        N -> #{val => lorawan_utils:binary_to_hex(<<Value/bitstring, 0:(8-N)>>),
                 len => bit_size(Value)}
     end.
 

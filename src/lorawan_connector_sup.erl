@@ -16,7 +16,7 @@ start_child(Id, Module, Args) ->
     supervisor:start_child(?MODULE,
         {Id,
             {Module, start_link, Args},
-            permanent, 5000, worker, [Module]}).
+            transient, 5000, worker, [Module]}).
 
 stop_child(Id) ->
     ok = supervisor:terminate_child(?MODULE, Id),

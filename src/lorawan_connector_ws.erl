@@ -46,14 +46,14 @@ validate([])->
     ok.
 
 validate0(deveui, DevEUI) ->
-    case mnesia:dirty_read(devices, lorawan_mac:hex_to_binary(DevEUI)) of
+    case mnesia:dirty_read(devices, lorawan_utils:hex_to_binary(DevEUI)) of
         [#device{}] ->
             ok;
         _Else ->
             {error, {unknown_deveui, DevEUI}}
     end;
 validate0(devaddr, DevAddr) ->
-    case mnesia:dirty_read(nodes, lorawan_mac:hex_to_binary(DevAddr)) of
+    case mnesia:dirty_read(nodes, lorawan_utils:hex_to_binary(DevAddr)) of
         [#node{}] ->
             ok;
         _Else ->

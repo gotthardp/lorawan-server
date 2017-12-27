@@ -13,7 +13,7 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
     FOptsIn = parse_fopts(FOpts),
     case FOptsIn of
         [] -> ok;
-        List1 -> lager:debug("~s -> ~w", [lorawan_mac:binary_to_hex(Node#node.devaddr), List1])
+        List1 -> lager:debug("~s -> ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), List1])
     end,
     % process incoming responses
     {atomic, {MacConfirm, Node2}} =
@@ -70,7 +70,7 @@ build_fopts({Network, Profile, Node}, FOptsOut0) ->
         request_status(Profile, Node, FOptsOut0))),
     case FOptsOut of
         [] -> ok;
-        List2 -> lager:debug("~s <- ~w", [lorawan_mac:binary_to_hex(Node#node.devaddr), List2])
+        List2 -> lager:debug("~s <- ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), List2])
     end,
     encode_fopts(FOptsOut).
 
@@ -96,7 +96,7 @@ parse_fopts(<<16#09, Rest/binary>>) ->
 parse_fopts(<<>>) ->
     [];
 parse_fopts(Unknown) ->
-    lager:warning("Unknown command ~p", [lorawan_mac:binary_to_hex(Unknown)]),
+    lager:warning("Unknown command ~p", [lorawan_utils:binary_to_hex(Unknown)]),
     [].
 
 encode_fopts([{link_check_ans, Margin, GwCnt} | Rest]) ->
@@ -132,11 +132,11 @@ store_actual_adr([{_MAC, RxQ}|_], ADR, Network, Node) ->
             lager:debug("ADR indicator set to ~w", [ADR]),
             Node#node{adr_flag=ADR, devstat_fcnt=undefined, last_qs=[]};
         {TXPower, _OldDataRate, Chans} ->
-            lager:debug("DataRate ~s switched to dr ~w", [lorawan_mac:binary_to_hex(Node#node.devaddr), DataRate]),
+            lager:debug("DataRate ~s switched to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
             Node#node{adr_flag=ADR, adr_use={TXPower, DataRate, Chans},
                 devstat_fcnt=undefined, last_qs=[]};
         undefined ->
-            lager:debug("DataRate ~s switched to dr ~w", [lorawan_mac:binary_to_hex(Node#node.devaddr), DataRate]),
+            lager:debug("DataRate ~s switched to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
             Node#node{adr_flag=ADR, adr_use={undefined, DataRate, undefined},
                 devstat_fcnt=undefined, last_qs=[]}
     end.
@@ -147,12 +147,12 @@ handle_adr(FOptsIn, Node) ->
             case merge_adr(Node#node.adr_set, Node#node.adr_use) of
                 Unchanged when Unchanged == Node#node.adr_use ->
                     lager:debug("LinkADRReq ~s succeeded (enforcement only)",
-                        [lorawan_mac:binary_to_hex(Node#node.devaddr)]),
+                        [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
                     % the desired ADR is already used
                     Node#node{adr_set=undefined, adr_failed=[]};
                 NodeSet ->
                     lager:debug("LinkADRReq ~s succeeded",
-                        [lorawan_mac:binary_to_hex(Node#node.devaddr)]),
+                        [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
                     Node#node{adr_set=undefined, adr_use=NodeSet, adr_failed=[], devstat_fcnt=undefined, last_qs=[]}
             end;
         {PowerACK, DataRateACK, ChannelMaskACK} ->
@@ -182,10 +182,10 @@ handle_rxwin(FOptsIn, Network, Profile, Node) ->
         {1, 1, 1} ->
             if
                 Profile#profile.rxwin_set == Node#node.rxwin_use ->
-                    lager:debug("RXParamSetupAns ~s succeeded (enforcement only)", [lorawan_mac:binary_to_hex(Node#node.devaddr)]),
+                    lager:debug("RXParamSetupAns ~s succeeded (enforcement only)", [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
                     {true, Node#node{rxwin_failed=[]}};
                 true ->
-                    lager:debug("RXParamSetupAns ~s succeeded", [lorawan_mac:binary_to_hex(Node#node.devaddr)]),
+                    lager:debug("RXParamSetupAns ~s succeeded", [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
                     {RX1DROffset, _, _} = Profile#profile.rxwin_set,
                     {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Network#network.region),
                     {true, Node#node{rxwin_use={RX1DROffset, RX2DataRate, Frequency}, rxwin_failed=[]}}
@@ -276,7 +276,7 @@ calculate_adr(#network{region=Region}, #node{average_qs={AvgRSSI, AvgSNR}, adr_u
     DataRate2 = if
             StepsDR > 0, DataRate < MaxDR ->
                 lager:debug("DataRate ~s: average snr ~w ~w = ~w, dr ~w -> step ~w",
-                    [lorawan_mac:binary_to_hex(Node#node.devaddr), round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
+                    [lorawan_utils:binary_to_hex(Node#node.devaddr), round(AvgSNR), MaxSNR, round(AvgSNR-MaxSNR), DataRate, StepsDR]),
                 min(DataRate+StepsDR, MaxDR);
             true ->
                 DataRate
@@ -286,12 +286,12 @@ calculate_adr(#network{region=Region}, #node{average_qs={AvgRSSI, AvgSNR}, adr_u
             AvgRSSI > -96, TxPower < MinPower ->
                 PwrStepUp = trunc((AvgRSSI+100)/4), % there are 2 dB between levels, go slower
                 lager:debug("Power ~s: average rssi ~w, power ~w -> up by ~w",
-                    [lorawan_mac:binary_to_hex(Node#node.devaddr), round(AvgRSSI), TxPower, PwrStepUp]),
+                    [lorawan_utils:binary_to_hex(Node#node.devaddr), round(AvgRSSI), TxPower, PwrStepUp]),
                 min(MinPower, TxPower+PwrStepUp);
             AvgRSSI < -102, TxPower > DefPower ->
                 PwrStepDown = trunc((AvgRSSI+98)/2), % go faster
                 lager:debug("Power ~s: average rssi ~w, power ~w -> down by ~w",
-                    [lorawan_mac:binary_to_hex(Node#node.devaddr), round(AvgRSSI), TxPower, PwrStepDown]),
+                    [lorawan_utils:binary_to_hex(Node#node.devaddr), round(AvgRSSI), TxPower, PwrStepDown]),
                 max(DefPower, TxPower+PwrStepDown); % steps are negative
             true ->
                 TxPower

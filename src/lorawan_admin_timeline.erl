@@ -13,6 +13,7 @@
 
 -export([get_timeline/2]).
 
+-include("lorawan.hrl").
 -include("lorawan_db.hrl").
 
 init(Req, []) ->
@@ -34,13 +35,13 @@ get_timeline(Req, State) ->
         cowboy_req:match_qs([{'start', [], <<>>}, {'end', [], <<>>}], Req),
     Events = lists:map(
         fun (#event{evid=Id, first_rx=Time, last_rx=Time, severity=Severity, text=Text}=Event) ->
-                [{id, lorawan_mac:binary_to_hex(Id)},
+                [{id, lorawan_utils:binary_to_hex(Id)},
                     {className, Severity},
                     {content, Text},
                     {title, list_to_binary(title(Event))},
                     {start, Time}];
             (#event{evid=Id, first_rx=StartTime, last_rx=EndTime, severity=Severity, text=Text}=Event) ->
-                [{id, lorawan_mac:binary_to_hex(Id)},
+                [{id, lorawan_utils:binary_to_hex(Id)},
                     {className, Severity},
                     {content, Text},
                     {title, list_to_binary(title(Event))},
@@ -51,7 +52,7 @@ get_timeline(Req, State) ->
             select_datetime(Start, End, '$2', '$3'), ['$_']}])),
     RxFrames = lists:map(
         fun({Id, DevAddr, DateTime, Port, Data}) ->
-            [{id, lorawan_mac:binary_to_hex(Id)},
+            [{id, lorawan_utils:binary_to_hex(Id)},
                 {className,
                     case Data of
                         undefined -> <<"info">>;
@@ -65,9 +66,9 @@ get_timeline(Req, State) ->
     {jsx:encode([{items, Events++RxFrames}]), Req, State}.
 
 addr_port(DevAddr, undefined) ->
-    lorawan_mac:binary_to_hex(DevAddr);
+    lorawan_utils:binary_to_hex(DevAddr);
 addr_port(DevAddr, Port) ->
-    <<(lorawan_mac:binary_to_hex(DevAddr))/binary, ":", (integer_to_binary(Port))/binary>>.
+    <<(lorawan_utils:binary_to_hex(DevAddr))/binary, ":", (integer_to_binary(Port))/binary>>.
 
 select_datetime(<<>>, <<>>, _, _) ->
     [];
@@ -81,7 +82,7 @@ select_datetime(WStart, WEnd, EStart, EEnd) ->
 title(#event{entity=Entity, eid=undefined}=Event) ->
     [io_lib:print(Entity), "<br\>", title0(Event)];
 title(#event{entity=Entity, eid=EID}=Event) ->
-    [io_lib:print(Entity), " ", lorawan_mac:binary_to_hex(EID), "<br\>", title0(Event)].
+    [io_lib:print(Entity), " ", lorawan_utils:binary_to_hex(EID), "<br\>", title0(Event)].
 
 title0(#event{text=Text, args=undefined}) ->
     Text;

@@ -44,7 +44,7 @@ init([#connector{connid=ConnId, app=App, uri=Uri, client_id=ClientId, name=UserN
 build_hierarchy(PatConn, PatSub, Nodes) ->
     lists:foldl(
         fun(Node, Hier) ->
-            Vars = lorawan_admin:build(node_to_vars(Node)),
+            Vars = lorawan_admin:build(lorawan_connector:node_to_vars(Node)),
             Connect = lorawan_connector:fill_pattern(PatConn, Vars),
 
             Subs = proplists:get_value(Connect, Hier, []),
@@ -62,9 +62,6 @@ build_hierarchy(PatConn, PatSub, Nodes) ->
             lists:keystore(Connect, 1, Hier, {Connect, Subs2})
         end,
         [], Nodes).
-
-node_to_vars(#node{devaddr=DevAddr}) ->
-    #{devaddr=>DevAddr}.
 
 execute_hierarchy_updates(NewHier, CurrHier, Conn) ->
     lists:filtermap(
@@ -165,13 +162,11 @@ handle_info({mqttc, _C, disconnected}, State) ->
 handle_info({uplink, Node, Vars0}, #state{conn=#connector{format=Format},
         connect=PatConn, published=PatPub, hier=Hier}=State) ->
     % determine the connection to use
-    Vars = lorawan_admin:build(maps:merge(node_to_vars(Node), Vars0)),
-    Connect = lorawan_connector:fill_pattern(PatConn, Vars),
+    Connect = lorawan_connector:fill_pattern(PatConn,
+        lorawan_admin:build(lorawan_connector:node_to_vars(Node))),
     {Connect, C, _NewSub, _Costa} = lists:keyfind(Connect, 1, Hier),
-    % publish
-    emqttc:publish(C,
-        lorawan_connector:fill_pattern(PatPub, Vars),
-        encode_uplink(Format, Vars0)),
+    % distribute
+    publish(C, PatPub, Format, Vars0),
     {noreply, State};
 
 handle_info({publish, Topic, Payload}, State=#state{conn=Connector, consumed=Pattern}) ->
@@ -242,6 +237,15 @@ switch_ver(#costa{phase=attempt311}=Costa) ->
     Costa#costa{phase=attempt31};
 switch_ver(Costa) ->
     Costa#costa{phase=attempt311}.
+
+publish(C, PatPub, Format, Vars0) when is_list(Vars0) ->
+    lists:foreach(
+        fun(V0) -> publish(C, PatPub, Format, V0) end,
+        Vars0);
+publish(C, PatPub, Format, Vars0) when is_map(Vars0) ->
+    emqttc:publish(C,
+        lorawan_connector:fill_pattern(PatPub, lorawan_admin:build(Vars0)),
+        encode_uplink(Format, Vars0)).
 
 encode_uplink(<<"raw">>, Vars) ->
     maps:get(data, Vars, <<>>);

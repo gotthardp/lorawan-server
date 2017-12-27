@@ -12,7 +12,7 @@ add_network(NetName) ->
         {region, <<"EU868">>}, {max_eirp, 16}, {tx_powe, 16}]).
 
 add_gateway(NetName, MAC) ->
-    post_json("gateways", [{mac, lorawan_mac:binary_to_hex(MAC)}, {network, NetName},
+    post_json("gateways", [{mac, lorawan_utils:binary_to_hex(MAC)}, {network, NetName},
         {tx_rfch, 0}, {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
 add_profile(NetName, ProfName) ->
@@ -20,7 +20,7 @@ add_profile(NetName, ProfName) ->
         {fcnt_check, undefined}, {adr_mode, 0}]).
 
 add_node(ProfName, {DevAddr, NwkSKey, AppSKey}) ->
-    post_json("nodes", [{devaddr, lorawan_mac:binary_to_hex(DevAddr)}, {profile, ProfName},
+    post_json("nodes", [{devaddr, lorawan_utils:binary_to_hex(DevAddr)}, {profile, ProfName},
         {nwkskey, NwkSKey}, {appskey, AppSKey}, {fcntup, 0}, {fcntdown, 0},
         {adr_flag, 0}, {adr_use, [{power, 1}, {datr, 0}, {chans, <<"0-2">>}]},
         {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).

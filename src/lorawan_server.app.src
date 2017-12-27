@@ -13,7 +13,12 @@
         {applications, [
             {<<"semtech-mote">>, lorawan_application_semtech_mote}
         ]},
-        {connectors, []},
+        {connectors, [
+            {lorawan_connector_amqp, [<<"amqp">>, <<"amqps">>]},
+            {lorawan_connector_mqtt, [<<"mqtt">>, <<"mqtts">>]},
+            {lorawan_connector_http, [<<"http">>, <<"https">>]},
+            {lorawan_connector_ws, [<<"ws">>]}
+        ]},
         {packet_forwarder_listen, [{port, 1680}]},
         {http_admin_listen, [{port, 8080}]},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},

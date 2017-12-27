@@ -8,6 +8,7 @@
 -export([ensure_tables/0, ensure_table/2]).
 -export([get_rxframes/1, get_last_rxframes/2]).
 
+-include("lorawan.hrl").
 -include("lorawan_db.hrl").
 
 ensure_tables() ->

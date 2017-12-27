@@ -6,9 +6,9 @@
 -module(lorawan_mac).
 
 -export([ingest_frame/1, handle_accept/5, load_profile/1, encode_unicast/4, encode_multicast/2]).
--export([binary_to_hex/1, hex_to_binary/1]).
 % for unit testing
--export([reverse/1, cipher/5, b0/4]).
+-export([cipher/5, b0/4]).
+-import(lorawan_utils, [binary_to_hex/1, hex_to_binary/1, reverse/1]).
 
 -define(MAX_FCNT_GAP, 16384).
 
@@ -324,7 +324,8 @@ create_node(Gateways, #network{netid=NetID}=Network, #device{deveui=DevEUI, appk
                 #node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
 
-    lorawan_utils:throw_info({device, Device#device.deveui}, {join, binary_to_hex(Device#device.node)}),
+    lorawan_utils:throw_info({device, Device#device.deveui},
+        {join, binary_to_hex(Device#device.node)}),
     Node2 = Node#node{devaddr=Device#device.node,
         profile=Device#device.profile, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
@@ -338,7 +339,8 @@ create_node(Gateways, #network{netid=NetID}=Network, #device{deveui=DevEUI, appk
 encode_accept(#network{netid=NetID, cflist=CFList}, #device{appkey=AppKey},
         #node{devaddr=DevAddr, rxwin_use={RX1DROffset, RX2DataRate, _}}=Node, AppNonce) ->
     lager:debug("Join-Accept ~p, netid ~p, cflist ~p, rx1droff ~p, rx2dr ~p, appkey ~p, appnce ~p",
-        [binary_to_hex(DevAddr), NetID, CFList, RX1DROffset, RX2DataRate, binary_to_hex(AppKey), binary_to_hex(AppNonce)]),
+        [binary_to_hex(DevAddr), NetID, CFList, RX1DROffset, RX2DataRate,
+        binary_to_hex(AppKey), binary_to_hex(AppNonce)]),
     MHDR = <<2#001:3, 0:3, 0:2>>,
     MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1,
         RX1DROffset:3, RX2DataRate:4, 1, (encode_cflist(CFList))/binary>>,
@@ -449,27 +451,10 @@ binxor(<<>>, <<>>, Acc) -> Acc;
 binxor(<<A, RestA/binary>>, <<B, RestB/binary>>, Acc) ->
     binxor(RestA, RestB, <<(A bxor B), Acc/binary>>).
 
-reverse(Bin) -> reverse(Bin, <<>>).
-reverse(<<>>, Acc) -> Acc;
-reverse(<<H:1/binary, Rest/binary>>, Acc) ->
-    reverse(Rest, <<H/binary, Acc/binary>>).
-
 padded(Bytes, Msg) ->
     case bit_size(Msg) rem (8*Bytes) of
         0 -> Msg;
         N -> <<Msg/bitstring, 0:(8*Bytes-N)>>
     end.
-
-% stackoverflow.com/questions/3768197/erlang-ioformatting-a-binary-to-hex
-% a little magic from http://stackoverflow.com/users/2760050/himangshuj
-binary_to_hex(undefined) ->
-    undefined;
-binary_to_hex(Id) ->
-    << <<Y>> || <<X:4>> <= Id, Y <- integer_to_list(X,16)>>.
-
-hex_to_binary(undefined) ->
-    undefined;
-hex_to_binary(Id) ->
-    <<<<Z>> || <<X:8,Y:8>> <= Id,Z <- [binary_to_integer(<<X,Y>>,16)]>>.
 
 % end of file

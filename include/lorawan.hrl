@@ -25,4 +25,24 @@
             lists:zip3(record_info(fields, Record), tl(tuple_to_list(RecData)), tl(tuple_to_list(#Record{})))
     ))).
 
+-record(user, {
+    name :: nonempty_string(),
+    pass :: string(),
+    roles :: [string()]}).
+
+-record(server, {
+    name :: nonempty_string(),
+    router_perf :: [{calendar:datetime(), integer(), integer()}]}).
+
+-record(event, {
+    evid :: binary(),
+    severity :: atom(),
+    first_rx :: calendar:datetime(),
+    last_rx :: calendar:datetime(),
+    count :: integer(),
+    entity :: atom(),
+    eid :: binary(),
+    text :: binary(),
+    args :: 'undefined' | binary()}).
+
 % end of file
