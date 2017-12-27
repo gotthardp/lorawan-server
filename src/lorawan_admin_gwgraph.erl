@@ -30,63 +30,50 @@ content_types_provided(Req, State) ->
         {{<<"application">>, <<"json">>, []}, get_gateway}
     ], Req, State}.
 
-get_gateway(Req, #state{format=pgraph}=State) ->
+get_gateway(Req, #state{format=Type}=State) ->
     MAC = cowboy_req:binding(mac, Req),
-    Delays =
-        case mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)) of
-            [#gateway{delays=D}] when D /= undefined -> D;
-            _Else -> []
-        end,
+    [Gateway] = mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)),
+    {jsx:encode([{mac, MAC}, {array, get_array(Type, Gateway)}]), Req, State}.
+
+get_array(pgraph, #gateway{delays=Delays}) when is_list(Delays) ->
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
-    Array = [{cols, [
-                [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
-                [{id, <<"srvdelay">>}, {label, <<"Server Delay [ms]">>}, {type, <<"number">>}],
-                [{id, <<"nwkdelay">>}, {label, <<"Network Delay [ms]">>}, {type, <<"number">>}]
-                ]},
-            {rows, lists:filtermap(
-                fun ({Date, SDelay, NDelay}) ->
-                    {true,  [{c, [
-                                [{v, encode_timestamp(Date)}],
-                                [{v, SDelay}],
-                                [{v, NDelay}]
-                            ]}]};
-                (_Else) ->
-                    false
-                end, Delays)
-            }
-        ],
-    {jsx:encode([{mac, MAC}, {array, Array}]), Req, State};
-
-get_gateway(Req, #state{format=tgraph}=State) ->
-    MAC = cowboy_req:binding(mac, Req),
-    Dwell =
-        case mnesia:dirty_read(gateways, lorawan_mac:hex_to_binary(MAC)) of
-            [#gateway{dwell=D}] when D /= undefined -> D;
-            _Else -> []
-        end,
-    % construct Google Chart DataTable
-    % see https://developers.google.com/chart/interactive/docs/reference#dataparam
-    Array = [{cols, [
-                [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
-                [{id, <<"dwell">>}, {label, <<"Tx Time [ms]">>}, {type, <<"number">>}],
-                [{id, <<"sum">>}, {label, <<"Tx in Hour [ms]">>}, {type, <<"number">>}]
-                ]},
-            {rows, lists:filtermap(
-                fun ({Date, {_, Duration, Sum}}) ->
-                    {true,  [{c, [
-                                [{v, encode_timestamp(Date)}],
-                                [{v, if Duration == 0 -> null; true -> round(Duration) end}],
-                                [{v, Sum/36000}, {f, <<(integer_to_binary(round(Sum)))/binary,
-                                    " (", (float_to_binary(Sum/36000, [{decimals, 3}, compact]))/binary, "%)">>}]
-                            ]}]};
-                (_Else) ->
-                    false
-                end, Dwell)
-            }
-        ],
-    {jsx:encode([{mac, MAC}, {array, Array}]), Req, State}.
-
+    [{cols, [
+        [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
+        [{id, <<"srvdelay">>}, {label, <<"Server Delay [ms]">>}, {type, <<"number">>}],
+        [{id, <<"nwkdelay">>}, {label, <<"Network Delay [ms]">>}, {type, <<"number">>}]
+    ]},
+    {rows, lists:filtermap(
+        fun ({Date, SDelay, NDelay}) ->
+            {true,  [{c, [
+                        [{v, encode_timestamp(Date)}],
+                        [{v, SDelay}],
+                        [{v, NDelay}]
+                    ]}]};
+        (_Else) ->
+            false
+        end, Delays)
+    }];
+get_array(tgraph, #gateway{dwell=Dwell}) when is_list(Dwell) ->
+    [{cols, [
+        [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
+        [{id, <<"dwell">>}, {label, <<"Tx Time [ms]">>}, {type, <<"number">>}],
+        [{id, <<"sum">>}, {label, <<"Tx in Hour [ms]">>}, {type, <<"number">>}]
+    ]},
+    {rows, lists:filtermap(
+        fun ({Date, {_, Duration, Sum}}) ->
+            {true,  [{c, [
+                        [{v, encode_timestamp(Date)}],
+                        [{v, if Duration == 0 -> null; true -> round(Duration) end}],
+                        [{v, Sum/36000}, {f, <<(integer_to_binary(round(Sum)))/binary,
+                            " (", (float_to_binary(Sum/36000, [{decimals, 3}, compact]))/binary, "%)">>}]
+                    ]}]};
+        (_Else) ->
+            false
+        end, Dwell)
+    }];
+get_array(_, _Else) ->
+    [].
 
 encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
     list_to_binary(

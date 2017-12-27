@@ -31,42 +31,45 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    [#node{last_reset=Reset, devstat=DevStat}] = mnesia:dirty_read(nodes, lorawan_mac:hex_to_binary(DevAddr)),
+    [Node] = mnesia:dirty_read(nodes, lorawan_mac:hex_to_binary(DevAddr)),
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
+    {jsx:encode([{devaddr, DevAddr}, {array, get_array(Node)}]), Req2, State}.
+
+get_array(#node{last_reset=Reset, devstat=DevStat}) when is_list(DevStat) ->
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
-    Array = [{cols, [
-                [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
-                [{type, <<"string">>}, {role, <<"annotation">>}],
-                [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
-                [{id, <<"snr">>}, {label, <<"D/L SNR (dB)">>}, {type, <<"number">>}],
-                [{id, <<"max_snr">>}, {label, <<"Max SNR (dB)">>}, {type, <<"number">>}]
-                ]},
-            {rows,
-                [[{c, [
-                    [{v, encode_timestamp(Reset)}],
-                    [{v, <<"Last Reset">>}],
-                    [{v, null}],
-                    [{v, null}],
-                    [{v, null}]
-                ]}] | lists:map(
-                fun({Timestamp, Batt, Margin, MaxSNR}) ->
-                    [{c, [
-                        [{v, encode_timestamp(Timestamp)}],
-                        [{v, null}],
-                        [{v, Batt}],
-                        % what the standard calls "margin" is simply the SNR
-                        [{v, Margin}],
-                        [{v, MaxSNR}]
-                    ]}];
-                % backwards compatibility
-                % REMOVE BEFORE RELEASING 0.4.11
-                ({_Timestamp, _Batt, _Margin}) ->
-                    [{c, []}]
-                end, DevStat)]
-            }
-        ],
-    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
-    {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req2, State}.
+    [{cols, [
+        [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
+        [{type, <<"string">>}, {role, <<"annotation">>}],
+        [{id, <<"batt">>}, {label, <<"Battery">>}, {type, <<"number">>}],
+        [{id, <<"snr">>}, {label, <<"D/L SNR (dB)">>}, {type, <<"number">>}],
+        [{id, <<"max_snr">>}, {label, <<"Max SNR (dB)">>}, {type, <<"number">>}]
+    ]},
+    {rows,
+        [[{c, [
+            [{v, encode_timestamp(Reset)}],
+            [{v, <<"Last Reset">>}],
+            [{v, null}],
+            [{v, null}],
+            [{v, null}]
+        ]}] | lists:map(
+        fun({Timestamp, Batt, Margin, MaxSNR}) ->
+            [{c, [
+                [{v, encode_timestamp(Timestamp)}],
+                [{v, null}],
+                [{v, Batt}],
+                % what the standard calls "margin" is simply the SNR
+                [{v, Margin}],
+                [{v, MaxSNR}]
+            ]}];
+        % backwards compatibility
+        % REMOVE BEFORE RELEASING 0.4.11
+        ({_Timestamp, _Batt, _Margin}) ->
+            [{c, []}]
+        end, DevStat)]
+    }];
+get_array(_Else) ->
+    [].
 
 encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
     list_to_binary(
@@ -78,12 +81,10 @@ encode_timestamp(_Else) ->
     null.
 
 resource_exists(Req, State) ->
-    DevAddr = cowboy_req:binding(devaddr, Req),
-    case mnesia:dirty_read(nodes, lorawan_mac:hex_to_binary(DevAddr)) of
-        [#node{devstat=DevStat}] when is_list(DevStat) ->
-            {true, Req, State};
-        _Else ->
-            {false, Req, State}
+    case mnesia:dirty_read(nodes,
+            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
+        [] -> {false, Req, State};
+        [_Node] -> {true, Req, State}
     end.
 
 generate_etag(Req, State) ->

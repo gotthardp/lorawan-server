@@ -110,10 +110,10 @@ format_power(Index, _Power) ->
     [{v, Index}].
 
 resource_exists(Req, State) ->
-    case mnesia:dirty_index_read(rxframes,
-            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req)), #rxframe.devaddr) of
+    case mnesia:dirty_read(nodes,
+            lorawan_mac:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
         [] -> {false, Req, State};
-        [_First|_Rest] -> {true, Req, State}
+        [_Node] -> {true, Req, State}
     end.
 
 % end of file
