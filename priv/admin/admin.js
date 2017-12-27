@@ -5,7 +5,7 @@
  */
 var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart', 'ngVis', 'colorpicker.module']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
-    var admin = nga.application('Server Admin').baseApiUrl('/');
+    var admin = nga.application('Server Admin').baseApiUrl('/api/');
 
     var servers = nga.entity('servers')
         .identifier(nga.field('node'))
@@ -297,7 +297,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(true)
     ])
     .prepare(['$http', function($http) {
-        return $http.get('/choices/networks')
+        return $http.get('/api/choices/networks')
             .then(response => { choices_networks = response.data });
     }]);
     profiles.creationView().template(createWithTabsTemplate([
@@ -306,7 +306,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]));
     profiles.editionView().fields(profiles.creationView().fields())
     .prepare(['$http', function($http) {
-        return $http.get('/choices/networks')
+        return $http.get('/api/choices/networks')
             .then(response => { choices_networks = response.data });
     }]);
     profiles.editionView().template(editWithTabsTemplate([
@@ -494,7 +494,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template('<dgraph value="value"></dgraph>')
     ])
     .prepare(['$http', function($http) {
-        return $http.get('/choices/profiles')
+        return $http.get('/api/choices/profiles')
             .then(response => { choices_profiles = response.data });
     }]);
     nodes.editionView().template(editWithTabsTemplate([
@@ -1083,7 +1083,7 @@ return {
             var start = new Date($scope.timeline.range.start);
             var end = new Date($scope.timeline.range.end);
 
-            $http({method: 'GET', url: '/timeline',
+            $http({method: 'GET', url: '/admin/timeline',
                     params: {start: start.toISOString(), end: end.toISOString()}})
                 .then(function(response) {
 
@@ -1156,7 +1156,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/pgraph/'.concat($scope.value)})
+                $http({method: 'GET', url: '/admin/pgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.prChartObject.data = response.data.array;
                     });
@@ -1205,7 +1205,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/tgraph/'.concat($scope.value)})
+                $http({method: 'GET', url: '/admin/tgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.txChartObject.data = response.data.array;
                     });
@@ -1255,7 +1255,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/rgraph/'.concat($scope.value)})
+                $http({method: 'GET', url: '/admin/rgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxChartObject.data = response.data.array;
                         $scope.rxChartObject.options.vAxes[1] = response.data.band;
@@ -1308,7 +1308,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/qgraph/'.concat($scope.value)})
+                $http({method: 'GET', url: '/admin/qgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxqChartObject.data = response.data.array;
                     });
@@ -1360,7 +1360,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/devstat/'.concat($scope.value)})
+                $http({method: 'GET', url: '/admin/devstat/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxdChartObject.data = response.data.array;
                     });
