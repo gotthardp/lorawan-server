@@ -4,8 +4,11 @@
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 -module(lorawan_connector).
--export([is_pattern/1, prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2]).
--export([form_encode/1, decode/2]).
+-export([is_pattern/1, prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2, same_common_vars/2]).
+-export([shared_access_token/4]).
+-export([form_encode/1, decode_and_downlink/3]).
+
+-include("lorawan_db.hrl").
 
 is_pattern(Pattern) ->
     case string:chr(Pattern, ${) of
@@ -13,6 +16,9 @@ is_pattern(Pattern) ->
         N when N > 0 -> true
     end.
 
+prepare_filling(List) when is_list(List) ->
+    lists:map(
+        fun(Item) -> prepare_filling(Item) end, List);
 prepare_filling(undefined) ->
     undefined;
 prepare_filling(Pattern) ->
@@ -25,6 +31,11 @@ prepare_filling(Pattern) ->
             {Pattern, []}
     end.
 
+fill_pattern(List, Values) when is_list(List) ->
+    lists:map(
+        fun(Item) -> fill_pattern(Item, Values) end, List);
+fill_pattern(undefined, _) ->
+    undefined;
 fill_pattern({Pattern, []}, _) ->
     Pattern;
 fill_pattern({Pattern, Vars}, Values) ->
@@ -74,6 +85,54 @@ match_vars(Topic, Pattern) ->
             lorawan_admin:parse(Vars)
     end.
 
+same_common_vars(Vars1, Vars2) ->
+    same_common_vars0(maps:to_list(Vars1), Vars2).
+
+same_common_vars0([], Vars2) ->
+    true;
+same_common_vars0([{_Key, undefined} | Vars1], Vars2) ->
+    same_common_vars0(Vars1, Vars2);
+same_common_vars0([{Key, Val} | Vars1], Vars2) ->
+    case maps:get(Key, Vars2, undefined) of
+        undefined ->
+            same_common_vars0(Vars1, Vars2);
+        Val ->
+            same_common_vars0(Vars1, Vars2);
+        OtherVal ->
+            false
+    end.
+
+% Shared Access Signature functions
+% see https://docs.microsoft.com/en-us/azure/storage/storage-dotnet-shared-access-signature-part-1
+
+shared_access_token(HostName, DeviceID, undefined, AccessKey) ->
+    Res = lists:flatten(
+        io_lib:format("~s/devices/~s", [HostName, DeviceID])),
+    lists:flatten(
+        build_access_token(Res, AccessKey));
+
+shared_access_token(HostName, _DeviceID, KeyName, AccessKey) ->
+    Res = lists:flatten(
+        io_lib:format("~s/devices", [HostName])),
+    lists:flatten(
+        [build_access_token(Res, AccessKey), io_lib:format("&skn=~s", [KeyName])]).
+
+build_access_token(Res0, AccessKey) ->
+    build_access_token(Res0, AccessKey, 60*60*24*7). % expires in a week
+
+build_access_token(Res0, AccessKey, Expiry) ->
+    Res = http_uri:encode(Res0),
+    % seconds since the UNIX epoch
+    Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time())
+     - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
+    ToSign = lists:flatten(
+        io_lib:format("~s~n~B", [Res, Now+Expiry])),
+    Sig = http_uri:encode(base64:encode_to_string(
+        crypto:hmac(sha256, base64:decode(AccessKey), ToSign))),
+    io_lib:format("SharedAccessSignature sr=~s&sig=~s&se=~B", [Res, Sig, Now+Expiry]).
+
+
+% content formatting
 
 form_encode(Values) ->
     cow_qs:qs(
@@ -86,6 +145,15 @@ form_encode(Values) ->
 value_to_binary(Term) when is_list(Term) -> list_to_binary(Term);
 value_to_binary(Term) when is_binary(Term) -> Term;
 value_to_binary(Term) -> list_to_binary(io_lib:print(Term)).
+
+decode_and_downlink(#connector{app=App, format=Format}, Msg, Bindings) ->
+    case decode(Format, Msg) of
+        {ok, Vars} ->
+            lorawan_application_backend:handle_downlink(App,
+                maps:merge(Bindings, Vars));
+        Error ->
+            Error
+    end.
 
 decode(<<"raw">>, Msg) ->
     {ok, #{data => Msg}};

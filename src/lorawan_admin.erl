@@ -147,11 +147,15 @@ check_margin(#node{}) ->
 
 check_adr(#node{adr_failed=[]}) ->
     ok;
+check_adr(#node{adr_failed=undefined}) ->
+    undefined;
 check_adr(#node{}) ->
     {25, linkadr_failed}.
 
 check_rxwin(#node{rxwin_failed=[]}) ->
     ok;
+check_rxwin(#node{rxwin_failed=undefined}) ->
+    undefined;
 check_rxwin(#node{}) ->
     {25, rxparamsetup_failed}.
 

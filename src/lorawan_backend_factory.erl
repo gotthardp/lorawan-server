@@ -6,7 +6,7 @@
 -module(lorawan_backend_factory).
 -behaviour(gen_server).
 
--export([start_link/0, uplink/2]).
+-export([start_link/0, uplink/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([nodes_with_backend/1]).
 
@@ -21,12 +21,7 @@ init([]) ->
     {ok, _} = mnesia:subscribe({table, profiles, detailed}),
     {ok, _} = mnesia:subscribe({table, connectors, detailed}),
     % start connectors that need to subscribe
-    lists:foreach(
-        fun(ConnId) ->
-            [Connector] = mnesia:dirty_read(connectors, ConnId),
-            start_connector(Connector)
-        end,
-        mnesia:dirty_all_keys(connectors)),
+    self() ! start_all,
     {ok, undefined}.
 
 handle_call(_Request, _From, State) ->
@@ -35,6 +30,14 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+handle_info(start_all, State) ->
+    lists:foreach(
+        fun(ConnId) ->
+            [Connector] = mnesia:dirty_read(connectors, ConnId),
+            start_connector(Connector)
+        end,
+        mnesia:dirty_all_keys(connectors)),
+    {noreply, State};
 handle_info({mnesia_table_event, {write, _Table, NewRec0, [], _Activity}}, State) ->
     item_created(NewRec0),
     {noreply, State};
@@ -131,8 +134,8 @@ find_module0(Scheme, []) ->
     {error, {unknown_scheme, Scheme}}.
 
 
-uplink({#profile{app=App}=Profile, Node, Handler}, Vars) ->
-    send_to_connectors(App, {uplink, {Profile, Node, Handler}, Vars}).
+uplink(App, Node, Vars) ->
+    send_to_connectors(App, {uplink, Node, Vars}).
 
 announce_profile_update(ProfId) ->
     case mnesia:dirty_read(profiles, ProfId) of

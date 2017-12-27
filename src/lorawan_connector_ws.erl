@@ -77,38 +77,35 @@ websocket_handle(Data, State) ->
     {ok, State}.
 
 handle_downlink(Msg, #state{connector=Connector, bindings=Bindings}=State) ->
-    case decode_and_send_downlink(Msg, Connector, Bindings) of
+    case lorawan_connector:decode_and_downlink(Connector, Msg, Bindings) of
         ok ->
             {ok, State};
         {error, {Object, Error}} ->
             lorawan_utils:throw_error(Object, Error),
             {stop, State};
         {error, Error} ->
-            lorawan_utils:throw_error(server, Error),
+            lorawan_utils:throw_error({connector, Connector#connector.connid}, Error),
             {stop, State}
     end.
 
-decode_and_send_downlink(Msg, #connector{app=App, format=Format}, Bindings) ->
-    case lorawan_connector:decode(Format, Msg) of
-        {ok, Vars} ->
-            lorawan_application_backend:handle_downlink(
-                maps:merge(Bindings#{app=>App}, Vars));
-        Error ->
-            Error
-    end.
-
-websocket_info({uplink, _, Vars},
-        #state{connector=#connector{format= <<"raw">>}} = State) ->
-    {reply, {binary, maps:get(data, Vars, <<>>)}, State};
-websocket_info({uplink, _, Vars},
-        #state{connector=#connector{format= <<"json">>}} = State) ->
-    {reply, {text, jsx:encode(lorawan_admin:build(Vars))}, State};
-websocket_info({uplink, _, Vars},
-        #state{connector=#connector{format= <<"www-form">>}} = State) ->
-    {reply, {text, lorawan_connector:form_encode(Vars)}, State};
+websocket_info({uplink, _Node, Vars},
+        #state{connector=#connector{format=Format}, bindings=Bindings} = State) ->
+    case lorawan_connector:same_common_vars(Vars, Bindings) of
+        true ->
+            {reply, encode_uplink(Format, Vars), State};
+        false ->
+            {ok, State}
+    end;
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~p", [Info]),
     {ok, State}.
+
+encode_uplink(<<"raw">>, Vars) ->
+    {binary, maps:get(data, Vars, <<>>)};
+encode_uplink(<<"json">>, Vars) ->
+    {text, jsx:encode(lorawan_admin:build(Vars))};
+encode_uplink(<<"www-form">>, Vars) ->
+    {text, lorawan_connector:form_encode(Vars)}.
 
 terminate(Reason, _Req, _State) ->
     lager:debug("WebSocket terminated: ~p", [Reason]),

@@ -7,7 +7,7 @@
 -behaviour(lorawan_application).
 
 -export([init/1, handle_join/3, handle_uplink/4, handle_rxq/4]).
--export([handle_downlink/1]).
+-export([handle_downlink/2]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -30,7 +30,7 @@ handle_uplink({_Network, #profile{app=AppID}=Profile, Node}, _RxQ, _LastAcked, F
                     % we have to wait for the rx quality indicators
                     {ok, {Handler, Vars}};
                 false ->
-                    lorawan_backend_factory:uplink({Profile, Node, Handler}, Vars),
+                    lorawan_backend_factory:uplink(AppID, Node, Vars),
                     {ok, undefined}
             end;
         [] ->
@@ -40,10 +40,9 @@ handle_uplink({_Network, #profile{app=AppID}=Profile, Node}, _RxQ, _LastAcked, F
 handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways, #frame{port=Port}, undefined) ->
     % we did already handle this uplink
     lorawan_application:send_stored_frames(DevAddr, Port);
-handle_rxq({_Network, Profile, #node{devaddr=DevAddr}=Node},
+handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}},
         Gateways, #frame{port=Port}, {#handler{fields=Fields}=Handler, Vars}) ->
-    Vars2 = parse_rxq(Gateways, Fields, Vars),
-    lorawan_backend_factory:uplink({Profile, Node, Handler}, Vars2),
+    lorawan_backend_factory:uplink(AppID, parse_rxq(Gateways, Fields, Vars)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 
 any_is_member(List1, List2) ->
@@ -109,7 +108,7 @@ data_to_fields(_AppId, _Else, Vars, _) ->
     Vars.
 
 
-handle_downlink(#{app := AppId} = Vars) ->
+handle_downlink(AppId, Vars) ->
     [#handler{build=Build}] = mnesia:dirty_read(handlers, AppId),
     send_downlink(Vars,
         maps:get(time, Vars, undefined),
@@ -180,7 +179,9 @@ send_downlink(#{app := AppID}, Time, TxData) ->
     filter_group_responses(AppID,
         [lorawan_handler:downlink(Node, Time, TxData)
             || Node <- lorawan_backend_factory:nodes_with_backend(AppID)]
-    ).
+    );
+send_downlink(Else, _Time, _TxData) ->
+    lager:error("Unknown downlink target: ~p", [Else]).
 
 filter_group_responses(AppID, []) ->
     lager:warning("Group ~w is empty", [AppID]);

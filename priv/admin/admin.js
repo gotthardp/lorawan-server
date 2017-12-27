@@ -800,7 +800,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addChild(nga.menu().title('Devices').icon('<span class="fa fa-cubes fa-fw"></span>')
             .addChild(nga.menu(profiles).title('Profiles').icon('<span class="fa fa-pencil-square-o fa-fw"></span>'))
             .addChild(nga.menu(devices).title('Commissioned').icon('<span class="fa fa-cube fa-fw"></span>'))
-            .addChild(nga.menu(nodes).title('Activated').icon('<span class="fa fa-rss fa-fw"></span>'))
+            .addChild(nga.menu(nodes).title('Activated (Nodes)').icon('<span class="fa fa-rss fa-fw"></span>'))
             .addChild(nga.menu(ignored_nodes).title('Ignored').icon('<span class="fa fa-ban fa-fw"></span>'))
         )
     );
@@ -1214,7 +1214,7 @@ return {
             $scope.txChartObject.type = "LineChart";
             $scope.txChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Tx Time [ms]', "minValue": 0, "maxValue": 5000},
+                    0: {"title": 'Tx Time [ms]', "minValue": 0, "maxValue": 3000},
                     1: {"title": 'Tx in Hour [ms]', "minValue": 0, "maxValue": 1}
                 },
                 "series": {
