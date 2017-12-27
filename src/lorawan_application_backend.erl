@@ -21,7 +21,7 @@ handle_join({_Network, _Profile, _Device}, {_MAC, _RxQ}, _DevAddr) ->
 
 handle_uplink({_Network, _Profile, _Node}, _RxQ, {lost, State}, _Frame) ->
     retransmit;
-handle_uplink({_Network, #profile{app=AppID}=Profile, Node}, _RxQ, _LastAcked, Frame) ->
+handle_uplink({_Network, #profile{app=AppID}, Node}, _RxQ, _LastAcked, Frame) ->
     case mnesia:dirty_read(handlers, AppID) of
         [#handler{fields=Fields}=Handler] ->
             Vars = parse_uplink(Handler, Frame),
@@ -41,7 +41,7 @@ handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways, #frame{port=
     % we did already handle this uplink
     lorawan_application:send_stored_frames(DevAddr, Port);
 handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}},
-        Gateways, #frame{port=Port}, {#handler{fields=Fields}=Handler, Vars}) ->
+        Gateways, #frame{port=Port}, {#handler{fields=Fields}, Vars}) ->
     lorawan_backend_factory:uplink(AppID, parse_rxq(Gateways, Fields, Vars)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 

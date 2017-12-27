@@ -88,7 +88,7 @@ match_vars(Topic, Pattern) ->
 same_common_vars(Vars1, Vars2) ->
     same_common_vars0(maps:to_list(Vars1), Vars2).
 
-same_common_vars0([], Vars2) ->
+same_common_vars0([], _Vars2) ->
     true;
 same_common_vars0([{_Key, undefined} | Vars1], Vars2) ->
     same_common_vars0(Vars1, Vars2);
@@ -98,7 +98,7 @@ same_common_vars0([{Key, Val} | Vars1], Vars2) ->
             same_common_vars0(Vars1, Vars2);
         Val ->
             same_common_vars0(Vars1, Vars2);
-        OtherVal ->
+        _OtherVal ->
             false
     end.
 

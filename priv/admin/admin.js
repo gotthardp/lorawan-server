@@ -151,9 +151,21 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('tx_powe', 'number').label('Gateway TX Power (dBm)')
             .attributes({ placeholder: 'e.g. 16' })
-            .validation({ required: true })
+            .validation({ required: true }),
+        nga.field('cflist', 'embedded_list').label('Channels')
+            .targetFields([ // which comment fields to display in the datagrid / form
+                nga.field('freq', 'number').label('Frequency')
+            ])
     ]);
+    networks.creationView().template(createWithTabsTemplate([
+        {name:"General", min:0, max:7},
+        {name:"Channels", min:7, max:8}
+    ]));
     networks.editionView().fields(networks.creationView().fields());
+    networks.editionView().template(editWithTabsTemplate([
+        {name:"General", min:0, max:7},
+        {name:"Channels", min:7, max:8}
+    ]));
     // add to the admin application
     admin.addEntity(networks);
 

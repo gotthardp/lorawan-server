@@ -49,7 +49,8 @@
     region :: binary(),
     max_eirp :: integer(),
     min_eirp :: integer(),
-    tx_powe :: integer()}).
+    tx_powe :: integer(),
+    cflist :: 'undefined' | [integer()]}).
 
 -record(gateway, {
     mac :: binary(),

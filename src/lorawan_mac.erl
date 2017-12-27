@@ -293,14 +293,14 @@ fcnt32_inc(FCntUp, N) ->
     (FCntUp + N) band 16#FFFFFFFF.
 
 
-handle_accept(Gateways, #network{netid=NetID}=Network, Device, DevAddr, DevNonce) ->
+handle_accept(Gateways, Network, Device, DevAddr, DevNonce) ->
     AppNonce = crypto:strong_rand_bytes(3),
     {atomic, Node} = mnesia:transaction(
         fun() ->
             create_node(Gateways, Network, Device, AppNonce, DevAddr, DevNonce)
         end),
     reset_node(Node#node.devaddr),
-    encode_accept(Device, Node, NetID, AppNonce).
+    encode_accept(Network, Device, Node, AppNonce).
 
 create_node(Gateways, #network{netid=NetID}=Network, #device{deveui=DevEUI, appkey=AppKey}, AppNonce, DevAddr, DevNonce) ->
     NwkSKey = crypto:block_encrypt(aes_ecb, AppKey,
@@ -335,16 +335,29 @@ create_node(Gateways, #network{netid=NetID}=Network, #device{deveui=DevEUI, appk
     ok = mnesia:write(nodes, Node2, write),
     Node2.
 
-encode_accept(#device{appkey=AppKey}, #node{devaddr=DevAddr, rxwin_use={RX1DROffset, RX2DataRate, _}}=Node, NetID, AppNonce) ->
-    lager:debug("Join-Accept ~p, netid ~p, rx1droff ~p, rx2dr ~p, appkey ~p, appnce ~p",
-        [binary_to_hex(DevAddr), NetID, RX1DROffset, RX2DataRate, binary_to_hex(AppKey), binary_to_hex(AppNonce)]),
+encode_accept(#network{netid=NetID, cflist=CFList}, #device{appkey=AppKey},
+        #node{devaddr=DevAddr, rxwin_use={RX1DROffset, RX2DataRate, _}}=Node, AppNonce) ->
+    lager:debug("Join-Accept ~p, netid ~p, cflist ~p, rx1droff ~p, rx2dr ~p, appkey ~p, appnce ~p",
+        [binary_to_hex(DevAddr), NetID, CFList, RX1DROffset, RX2DataRate, binary_to_hex(AppKey), binary_to_hex(AppNonce)]),
     MHDR = <<2#001:3, 0:3, 0:2>>,
-    MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1, RX1DROffset:3, RX2DataRate:4, 1>>,
+    MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1,
+        RX1DROffset:3, RX2DataRate:4, 1, (encode_cflist(CFList))/binary>>,
     MIC = aes_cmac:aes_cmac(AppKey, <<MHDR/binary, MACPayload/binary>>, 4),
 
     % yes, decrypt; see LoRaWAN specification, Section 6.2.5
     PHYPayload = crypto:block_decrypt(aes_ecb, AppKey, padded(16, <<MACPayload/binary, MIC/binary>>)),
     {ok, Node, <<MHDR/binary, PHYPayload/binary>>}.
+
+encode_cflist(List) when is_list(List), length(List) > 0, length(List) =< 5 ->
+    FreqList =
+        lists:foldr(
+            fun(Freq, Acc) ->
+                <<Freq:24/little-unsigned-integer, Acc/binary>>
+            end,
+            <<>>, List),
+    padded(16, FreqList);
+encode_cflist(_Else) ->
+    <<>>.
 
 encode_unicast({_Network, #profile{adr_mode=ADR},
         #node{devaddr=DevAddr, nwkskey=NwkSKey, appskey=AppSKey}}, ACK, FOpts, TxData) ->

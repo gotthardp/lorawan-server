@@ -268,7 +268,7 @@ default_adr(<<"AS923-JP">>) -> {1, 0, [{0, 1}]}.
 
 % {RX1DROffset, RX2DataRate, Frequency}
 default_rxwin(Region) ->
-    {Freq, DataRate, CodingRate} = regional_config(rx2_rf, Region),
+    {Freq, DataRate, _CodingRate} = regional_config(rx2_rf, Region),
     {0, datar_to_dr(Region, DataRate), Freq}.
 
 % {TXPower, DataRate}
