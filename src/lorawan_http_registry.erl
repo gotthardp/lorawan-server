@@ -37,11 +37,11 @@ handle_call({delete_routes, Id}, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(initialize, State) ->
+handle_info(initialize, _State) ->
     {ok, Routes} = lorawan_application:init(),
-    State = dict:from_list(Routes),
-    update_routes(State),
-    {noreply, State};
+    State2 = dict:from_list(Routes),
+    update_routes(State2),
+    {noreply, State2};
 handle_info(_Info, State) ->
     {noreply, State}.
 
