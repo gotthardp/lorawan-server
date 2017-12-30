@@ -746,6 +746,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices([
                 { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
+                { value: 'battery', label: 'battery' },
                 { value: 'fcnt', label: 'fcnt' },
                 { value: 'port', label: 'port' },
                 { value: 'data', label: 'data' },

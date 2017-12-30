@@ -24,7 +24,7 @@ handle_uplink({_Network, _Profile, _Node}, _RxQ, {lost, State}, _Frame) ->
 handle_uplink({_Network, #profile{app=AppID}, Node}, _RxQ, _LastAcked, Frame) ->
     case mnesia:dirty_read(handlers, AppID) of
         [#handler{fields=Fields}=Handler] ->
-            Vars = parse_uplink(Handler, Frame),
+            Vars = parse_uplink(Handler, Node, Frame),
             case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>, <<"all_gw">>], Fields) of
                 true ->
                     % we have to wait for the rx quality indicators
@@ -54,15 +54,17 @@ any_is_member(List1, List2) ->
         List1).
 
 parse_uplink(#handler{app=AppID, parse=Parse, fields=Fields},
+        #node{devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
+        vars_add(battery, get_battery(DevStat), Fields,
         vars_add(fcnt, FCnt, Fields,
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        #{})))))),
+        #{}))))))),
     data_to_fields(AppID, Parse, Vars, Data).
 
 parse_rxq(Gateways, Fields, Vars) ->
@@ -97,6 +99,11 @@ get_deveui(DevAddr) ->
         [#device{deveui=DevEUI}|_] -> DevEUI;
         [] -> undefined
     end.
+
+get_battery([{_DateTime, Battery, _Margin, _MaxSNR}|_]) ->
+    Battery;
+get_battery(_Else) ->
+    undefined.
 
 data_to_fields(AppId, {_, Fun}, Vars, Data) when is_function(Fun) ->
     try Fun(Vars, Data)
