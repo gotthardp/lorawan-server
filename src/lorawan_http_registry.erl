@@ -82,7 +82,7 @@ get_routes(Dict) ->
 
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
 static_routes() -> [
-    {"/api/servers", lorawan_admin_servers, []},
+    {"/api/servers/[:name]", lorawan_admin_servers, []},
     {"/api/applications/[:name]", lorawan_admin_applications, []},
     {"/api/users/[:name]", lorawan_admin_db_record,
         [users, user, record_info(fields, user)]},
@@ -94,6 +94,7 @@ static_routes() -> [
         [multicast_channels, multicast_channel, record_info(fields, multicast_channel)]},
     {"/api/profiles/[:name]", lorawan_admin_db_record,
         [profiles, profile, record_info(fields, profile)]},
+    {"/api/choices/regions", lorawan_admin_choices, regions},
     {"/api/choices/networks", lorawan_admin_choices, networks},
     {"/api/choices/profiles", lorawan_admin_choices, profiles},
     {"/api/devices/[:deveui]", lorawan_admin_db_record,
@@ -115,11 +116,12 @@ static_routes() -> [
     {"/api/upload", lorawan_admin_upload, []},
     {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
     {"/admin/timeline", lorawan_admin_timeline, []},
-    {"/admin/pgraph/:mac", lorawan_admin_gwgraph, [pgraph]},
-    {"/admin/tgraph/:mac", lorawan_admin_gwgraph, [tgraph]},
-    {"/admin/rgraph/:devaddr", lorawan_admin_rxgraph, [rgraph]},
-    {"/admin/qgraph/:devaddr", lorawan_admin_rxgraph, [qgraph]},
-    {"/admin/devstat/:devaddr", lorawan_admin_devstat, []},
+    {"/admin/sgraph/:name", lorawan_admin_graph_server, []},
+    {"/admin/pgraph/:mac", lorawan_admin_graph_gw, [pgraph]},
+    {"/admin/tgraph/:mac", lorawan_admin_graph_gw, [tgraph]},
+    {"/admin/rgraph/:devaddr", lorawan_admin_graph_rx, [rgraph]},
+    {"/admin/qgraph/:devaddr", lorawan_admin_graph_rx, [qgraph]},
+    {"/admin/ngraph/:devaddr", lorawan_admin_graph_node, []},
     {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}},
     {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
     {"/favicon.ico", cowboy_static, {priv_file, lorawan_server, "favicon.ico"}}].

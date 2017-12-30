@@ -9,7 +9,10 @@
 
 add_network(NetName) ->
     post_json("networks", [{name, NetName}, {netid, <<"000000">>},
-        {region, <<"EU868">>}, {max_eirp, 16}, {tx_powe, 16}]).
+        {region, <<"EU868">>}, {tx_codr, <<"4/5">>},
+        {join1_delay, 5}, {join2_delay, 6}, {rx1_delay, 1}, {rx2_delay, 2},
+        {gw_power, 16}, {max_eirp, 16},
+        {rxwin_init, [{rx1_dr_offset, 0}, {rx2_dr, 0}, {rx2_freq, 869.525}]}]).
 
 add_gateway(NetName, MAC) ->
     post_json("gateways", [{mac, lorawan_utils:binary_to_hex(MAC)}, {network, NetName},
@@ -23,6 +26,7 @@ add_node(ProfName, {DevAddr, NwkSKey, AppSKey}) ->
     post_json("nodes", [{devaddr, lorawan_utils:binary_to_hex(DevAddr)}, {profile, ProfName},
         {nwkskey, NwkSKey}, {appskey, AppSKey}, {fcntup, 0}, {fcntdown, 0},
         {adr_flag, 0}, {adr_use, [{power, 1}, {datr, 0}, {chans, <<"0-2">>}]},
+        {rxwin_use, [{rx1_dr_offset, 0}, {rx2_dr, 0}, {rx2_freq, 869.525}]},
         {devstat_time, calendar:universal_time()}, {devstat_fcnt, 3}]).
 
 post_json(Uri, Body) ->

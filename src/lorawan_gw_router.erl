@@ -30,7 +30,7 @@ report(MAC, S) ->
 uplinks(PkList) ->
     gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
-downlink({MAC, GWState}, #network{tx_powe=DefPower, max_eirp=MaxEIRP}, DevAddr, TxQ, PHYPayload) ->
+downlink({MAC, GWState}, #network{gw_power=DefPower, max_eirp=MaxEIRP}, DevAddr, TxQ, PHYPayload) ->
     [#gateway{tx_rfch=RFCh, ant_gain=Gain}] = mnesia:dirty_read(gateways, MAC),
     Power = erlang:min(
         value_or_default(TxQ#txq.powe, DefPower),
@@ -45,7 +45,7 @@ value_or_default(Num, _Def) when is_number(Num) -> Num;
 value_or_default(_Num, Def) -> Def.
 
 init([]) ->
-    timer:send_interval(30*60000, submit_stats),
+    timer:send_interval(60000, submit_stats),
     {ok, #state{gateways=dict:new(), recent=dict:new(), request_cnt=0, error_cnt=0}}.
 
 handle_call(_Request, _From, State) ->
@@ -122,11 +122,11 @@ handle_info({rxq_ready, PHYPayload}, #state{recent=Recent}=State) ->
 handle_info(submit_stats, #state{request_cnt=RequestCnt, error_cnt=ErrorCnt}=State) ->
     {atomic, ok} = mnesia:transaction(
         fun() ->
-            Perf = {calendar:universal_time(), RequestCnt, ErrorCnt},
+            Perf = {calendar:universal_time(), {RequestCnt, ErrorCnt}},
             Server =
                 case mnesia:read(servers, node(), write) of
                     [S] -> S#server{router_perf=append_perf(Perf, S#server.router_perf)};
-                    [] -> #server{router_perf=[Perf]}
+                    [] -> #server{name=node(), router_perf=[Perf]}
                 end,
             mnesia:write(servers, Server, write)
         end),

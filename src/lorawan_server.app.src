@@ -25,55 +25,13 @@
         {http_content_security, <<"default-src * data: 'unsafe-inline' 'unsafe-eval';">>},
         {retained_rxframes, 50},
         {websocket_timeout, 3600000}, % ms
-        % regional parameters
-        {join1_delay, 5000000}, % us
-        {join2_delay, 6000000}, % us
-        {rx1_delay, 1000000}, % us
-        {rx2_delay, 2000000}, % us
-        {regions, [
-            {<<"EU868">>, [
-                % default RX2 frequency (MHz) and data rate (DRx)
-                {rx2_rf, {869.525, <<"SF12BW125">>, <<"4/5">>}}
-            ]},
-            {<<"US902">>, [
-                {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
-            ]},
-            % Multitech Private Hybrid Mode
-            % http://www.multitech.net/developer/software/lora/introduction-to-lora
-            {<<"US902-PR">>, [
-                {join1_delay, 1000000},
-                {join2_delay, 2000000},
-                {rx1_delay, 1000000},
-                {rx2_delay, 2000000},
-                % although the frequency is not used for this region, it is sent in RXParamSetupReq
-                {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
-            ]},
-            {<<"CN779">>, [
-                {rx2_rf, {786, <<"SF12BW125">>, <<"4/5">>}}
-            ]},
-            {<<"EU433">>, [
-                {rx2_rf, {434.665, <<"SF12BW125">>, <<"4/5">>}}
-            ]},
-            {<<"AU915">>, [
-                {rx2_rf, {923.3, <<"SF12BW500">>, <<"4/5">>}}
-            ]},
-            {<<"CN470">>, [
-                {rx2_rf, {505.3, <<"SF12BW125">>, <<"4/5">>}}
-            ]},
-            {<<"KR920">>, [
-                {rx2_rf, {921.9, <<"SF12BW125">>, <<"4/5">>}}
-            ]},
-            {<<"AS923-JP">>, [
-                {rx2_rf, {923.2, <<"SF10BW125">>, <<"4/5">>}}
-            ]}
-        ]},
         % {sec, fcnt} after which the device status should be request
         % by default: 5 days or 4*24 frames
         {devstat_gap, {432000, 96}},
         {max_lost_after_reset, 10},
-        % packet_forwarder's push_timeout_ms + transport + deduplication_delay
-        {preprocessing_delay, 300},
-        {deduplication_delay, 150},
+        % packet_forwarder's push_timeout_ms + network delay
+        {gateway_delay, 200},
+        {deduplication_delay, 200},
         {event_lifetime, 86400}
     ]},
     {applications, [kernel, stdlib, sasl, os_mon, mnesia, lager,

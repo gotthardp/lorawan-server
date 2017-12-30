@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac).
 
--export([ingest_frame/1, handle_accept/5, load_profile/1, encode_unicast/4, encode_multicast/2]).
+-export([ingest_frame/1, handle_accept/4, load_profile/1, encode_unicast/4, encode_multicast/2]).
 % for unit testing
 -export([cipher/5, b0/4]).
 -import(lorawan_utils, [binary_to_hex/1, hex_to_binary/1, reverse/1]).
@@ -242,8 +242,7 @@ check_fcnt({Network, Profile, Node}, FCnt) ->
             reset_node(Node#node.devaddr),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, uplink, Node#node{fcntup = FCnt, fcntdown=0,
-                adr_use=lorawan_mac_region:default_adr(Network#network.region),
-                rxwin_use=lorawan_mac_region:default_rxwin(Network#network.region),
+                adr_use=initial_adr(Network), rxwin_use=Network#network.rxwin_init,
                 last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
         Profile#profile.fcnt_check == 3 ->
             % checks disabled
@@ -293,16 +292,17 @@ fcnt32_inc(FCntUp, N) ->
     (FCntUp + N) band 16#FFFFFFFF.
 
 
-handle_accept(Gateways, Network, Device, DevAddr, DevNonce) ->
+handle_accept(Gateways, {Network, Profile, Device}, DevAddr, DevNonce) ->
     AppNonce = crypto:strong_rand_bytes(3),
     {atomic, Node} = mnesia:transaction(
         fun() ->
-            create_node(Gateways, Network, Device, AppNonce, DevAddr, DevNonce)
+            create_node(Gateways, {Network, Profile, Device}, AppNonce, DevAddr, DevNonce)
         end),
     reset_node(Node#node.devaddr),
     encode_accept(Network, Device, Node, AppNonce).
 
-create_node(Gateways, #network{netid=NetID}=Network, #device{deveui=DevEUI, appkey=AppKey}, AppNonce, DevAddr, DevNonce) ->
+create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=DevEUI, appkey=AppKey}},
+        AppNonce, DevAddr, DevNonce) ->
     NwkSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#01, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
     AppSKey = crypto:block_encrypt(aes_ecb, AppKey,
@@ -330,20 +330,37 @@ create_node(Gateways, #network{netid=NetID}=Network, #device{deveui=DevEUI, appk
         profile=Device#device.profile, appargs=Device#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
         last_reset=calendar:universal_time(), gateways=Gateways,
-        adr_flag=0, adr_set=undefined, adr_use=lorawan_mac_region:default_adr(Network#network.region), adr_failed=[],
-        rxwin_use=lorawan_mac_region:default_rxwin(Network#network.region), rxwin_failed=[],
+        adr_flag=0, adr_set=undefined, adr_use=initial_adr(Network), adr_failed=[],
+        rxwin_use=accept_rxwin(Profile, Network), rxwin_failed=[],
         devstat_fcnt=undefined, last_qs=[]},
     ok = mnesia:write(nodes, Node2, write),
     Node2.
 
-encode_accept(#network{netid=NetID, cflist=CFList}, #device{appkey=AppKey},
+initial_adr(#network{init_chans=Chans, max_power=MaxPower}) ->
+    {MaxPower, 0, Chans}.
+
+% values that can be set directly via Join Accept's DLsettings
+accept_rxwin(#profile{rxwin_set={A1,B1,_}}, #network{rxwin_init={A2,B2,C}}) ->
+    {if
+        is_integer(A1) -> A1;
+        true -> A2
+    end,
+    if
+        is_integer(B1) -> B1;
+        true -> B2
+    end,
+    C};
+accept_rxwin(_Else, ABC) ->
+    ABC.
+
+encode_accept(#network{netid=NetID, rx1_delay=RxDelay, cflist=CFList}, #device{appkey=AppKey},
         #node{devaddr=DevAddr, rxwin_use={RX1DROffset, RX2DataRate, _}}=Node, AppNonce) ->
     lager:debug("Join-Accept ~p, netid ~p, cflist ~p, rx1droff ~p, rx2dr ~p, appkey ~p, appnce ~p",
         [binary_to_hex(DevAddr), NetID, CFList, RX1DROffset, RX2DataRate,
         binary_to_hex(AppKey), binary_to_hex(AppNonce)]),
     MHDR = <<2#001:3, 0:3, 0:2>>,
     MACPayload = <<AppNonce/binary, NetID/binary, (reverse(DevAddr))/binary, 0:1,
-        RX1DROffset:3, RX2DataRate:4, 1, (encode_cflist(CFList))/binary>>,
+        RX1DROffset:3, RX2DataRate:4, RxDelay, (encode_cflist(CFList))/binary>>,
     MIC = aes_cmac:aes_cmac(AppKey, <<MHDR/binary, MACPayload/binary>>, 4),
 
     % yes, decrypt; see LoRaWAN specification, Section 6.2.5
@@ -354,7 +371,7 @@ encode_cflist(List) when is_list(List), length(List) > 0, length(List) =< 5 ->
     FreqList =
         lists:foldr(
             fun(Freq, Acc) ->
-                <<Freq:24/little-unsigned-integer, Acc/binary>>
+                <<(trunc(Freq*10000)):24/little-unsigned-integer, Acc/binary>>
             end,
             <<>>, List),
     padded(16, FreqList);

@@ -8,8 +8,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/api/');
 
     var servers = nga.entity('servers')
-        .identifier(nga.field('node'))
-        .readOnly();
+        .identifier(nga.field('name'));
     var applications = nga.entity('applications')
         .identifier(nga.field('name'));
     var users = nga.entity('users')
@@ -69,9 +68,23 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 'www-form', label: 'Web Form' }
     ];
 
+    power_choices = [
+        { value: 0, label: 'Max' },
+        { value: 1, label: 'Max - 2 dB' },
+        { value: 2, label: 'Max - 4 dB' },
+        { value: 3, label: 'Max - 6 dB' },
+        { value: 4, label: 'Max - 8 dB' },
+        { value: 5, label: 'Max - 10 dB' },
+        { value: 6, label: 'Max - 12 dB' },
+        { value: 7, label: 'Max - 14 dB' },
+        { value: 8, label: 'Max - 16 dB' },
+        { value: 9, label: 'Max - 18 dB' },
+        { value: 10, label: 'Max - 20 dB' }
+    ];
+
     // ---- servers
     servers.listView().fields([
-        nga.field('node'),
+        nga.field('name').isDetailLink(true),
         nga.field('modules.lorawan_server').label('Version'),
         nga.field('memory').label('Free Memory')
             .map(map_memstats_p),
@@ -80,6 +93,28 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('health_alerts', 'choices').label('Alerts')
     ])
     .batchActions([]);
+    servers.editionView().fields([
+        nga.field('health_alerts', 'choices').label('Alerts')
+            .editable(false),
+        nga.field('name', 'template').label('Performance')
+            .template('<sgraph value="value"></sgraph>'),
+        nga.field('modules.lorawan_server').label('Version')
+            .editable(false),
+        nga.field('memory').label('Free Memory')
+            .map(map_memstats_p)
+            .editable(false),
+        nga.field('disk', 'embedded_list').label('Disks')
+            .targetFields([
+                nga.field('id'),
+                nga.field('size_kb'),
+                nga.field('percent_used')
+            ])
+            .editable(false)
+    ]);
+    servers.editionView().template(editWithTabsTemplate([
+        {name:"General", min:0, max:2},
+        {name:"Status", min:2, max:5}
+    ]));
     // add to the admin application
     admin.addEntity(servers);
 
@@ -108,6 +143,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('region')
     ]);
     networks.creationView().fields([
+        // General
         nga.field('name')
             .validation({ required: true }),
         nga.field('netid').label('NetID')
@@ -122,49 +158,97 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices([
                 { value: 'EU868', label: 'EU 863-870MHz' },
                 { value: 'US902', label: 'US 902-928MHz' },
+                // Multitech Private Hybrid Mode
+                // http://www.multitech.net/developer/software/lora/introduction-to-lora
                 { value: 'US902-PR', label: 'US 902-928MHz (Private Hybrid)' },
                 { value: 'CN779', label: 'China 779-787MHz' },
                 { value: 'EU433', label: 'EU 433MHz' },
                 { value: 'AU915', label: 'Australia 915-928MHz' },
                 { value: 'CN470', label: 'China 470-510MHz' },
+                { value: 'AS923', label: 'Asia 923MHz' },
                 { value: 'KR920', label: 'South Korea 920-923MHz' },
-                { value: 'AS923-JP', label: 'Japan 920.6-923.4MHz' }
+                { value: 'IN925', label: 'India 865-867MHz' }
             ])
             .validation({ required: true }),
+        nga.field('tx_codr', 'choice').label('Coding Rate')
+            .choices([
+                { value: '4/5', label: '4/5' },
+                { value: '4/6', label: '4/6' },
+                { value: '4/7', label: '4/7' },
+                { value: '4/8', label: '4/8' }
+            ])
+            .validation({ required: true })
+            .defaultValue('4/5'),
+        nga.field('join1_delay', 'number').label('RX1 Join Delay (s)')
+            .attributes({ placeholder: 'e.g. 5' })
+            .validation({ required: true })
+            .defaultValue(5),
+        nga.field('join2_delay', 'number').label('RX2 Join Delay (s)')
+            .attributes({ placeholder: 'e.g. 6' })
+            .validation({ required: true })
+            .defaultValue(6),
+        nga.field('rx1_delay', 'number').label('RX1 Delay (s)')
+            .attributes({ placeholder: 'e.g. 1' })
+            .validation({ required: true })
+            .defaultValue(1),
+        nga.field('rx2_delay', 'number').label('RX2 Delay (s)')
+            .attributes({ placeholder: 'e.g. 2' })
+            .validation({ required: true })
+            .defaultValue(2),
+        nga.field('gw_power', 'number').label('Gateway Power (dBm)')
+            .attributes({ placeholder: 'e.g. 16' })
+            .validation({ required: true }),
+        // ADR
         nga.field('max_eirp', 'number').label('Max EIRP (dBm)')
             .attributes({ placeholder: 'e.g. 14' })
             .validation({ required: true }),
-        nga.field('min_eirp', 'choice').label('Min EIRP')
-            .choices([
-                { value: 0, label: 'Max' },
-                { value: 1, label: 'Max - 2 dB' },
-                { value: 2, label: 'Max - 4 dB' },
-                { value: 3, label: 'Max - 6 dB' },
-                { value: 4, label: 'Max - 8 dB' },
-                { value: 5, label: 'Max - 10 dB' },
-                { value: 6, label: 'Max - 12 dB' },
-                { value: 7, label: 'Max - 14 dB' },
-                { value: 8, label: 'Max - 16 dB' },
-                { value: 9, label: 'Max - 18 dB' },
-                { value: 10, label: 'Max - 20 dB' }
-            ])
+        nga.field('max_power', 'choice').label('Max Power')
+            .choices(power_choices)
             .validation({ required: true }),
-        nga.field('tx_powe', 'number').label('Gateway TX Power (dBm)')
-            .attributes({ placeholder: 'e.g. 16' })
+        nga.field('min_power', 'choice').label('Min Power')
+            .choices(power_choices)
             .validation({ required: true }),
+        nga.field('max_datr', 'choice').label('Max Data Rate')
+            .choices(function(entry) {
+                return choices_regions[entry.values.region].uplink_datar;
+            })
+            .validation({ required: true }),
+        nga.field('rxwin_init.rx1_dr_offset', 'number').label('Initial RX1 DR offset')
+            .validation({ required: true }),
+        nga.field('rxwin_init.rx2_dr', 'choice').label('Initial RX2 DR')
+            .choices(function(entry) {
+                return choices_regions[entry.values.region].downlink_datar;
+            })
+            .validation({ required: true }),
+        nga.field('rxwin_init.rx2_freq', 'float').label('Initial RX2 Freq (MHz)')
+            .validation({ required: true }),
+        // Channels
+        nga.field('init_chans').label('Initial Channels')
+            .attributes({ placeholder: 'e.g. 0-2' })
+            .validation({ required: true, pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
         nga.field('cflist', 'embedded_list').label('Channels')
             .targetFields([ // which comment fields to display in the datagrid / form
-                nga.field('freq', 'number').label('Frequency')
+                nga.field('freq', 'float').label('Frequency (MHz)')
             ])
-    ]);
+    ])
+    .prepare(['$http', function($http) {
+        return $http.get('/api/choices/regions')
+            .then(response => { choices_regions = response.data });
+    }]);
     networks.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:7},
-        {name:"Channels", min:7, max:8}
+        {name:"General", min:0, max:10},
+        {name:"ADR", min:10, max:17},
+        {name:"Channels", min:17, max:19}
     ]));
-    networks.editionView().fields(networks.creationView().fields());
+    networks.editionView().fields(networks.creationView().fields())
+    .prepare(['$http', function($http) {
+        return $http.get('/api/choices/regions')
+            .then(response => { choices_regions = response.data });
+    }]);
     networks.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:7},
-        {name:"Channels", min:7, max:8}
+        {name:"General", min:0, max:10},
+        {name:"ADR", min:10, max:17},
+        {name:"Channels", min:17, max:19}
     ]));
     // add to the admin application
     admin.addEntity(networks);
@@ -299,12 +383,19 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             }),
         nga.field('adr_set.datr', 'choice').label('Set data rate')
             .choices(function(entry) {
-                return choices_networks[entry.values.network].data_rate;
+                return choices_networks[entry.values.network].uplink_datar;
             }),
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
+
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset'),
+        nga.field('rxwin_set.rx2_dr', 'choice').label('Set RX2 DR')
+            .choices(function(entry) {
+                return choices_networks[entry.values.network].downlink_datar;
+            }),
+        nga.field('rxwin_set.rx2_freq', 'float').label('Set RX2 Freq (MHz)'),
+
         nga.field('request_devstat', 'boolean').label('Request Status?')
             .defaultValue(true)
     ])
@@ -314,7 +405,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     profiles.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:13}
+        {name:"ADR", min:7, max:15}
     ]));
     profiles.editionView().fields(profiles.creationView().fields())
     .prepare(['$http', function($http) {
@@ -323,7 +414,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     profiles.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:13}
+        {name:"ADR", min:7, max:15}
     ]));
     // add to the admin application
     admin.addEntity(profiles);
@@ -482,7 +573,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             }),
         nga.field('adr_set.datr', 'choice').label('Set data rate')
             .choices(function(entry) {
-                return choices_profiles[entry.values.profile].data_rate;
+                return choices_profiles[entry.values.profile].uplink_datar;
             }),
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
@@ -490,8 +581,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('adr_use.chans').label('Used channels')
             .editable(false),
         nga.field('adr_failed', 'choices').label('ADR Failed'),
+
         nga.field('rxwin_use.rx1_dr_offset', 'number').label('Used RX1 DR offset')
             .editable(false),
+        nga.field('rxwin_use.rx2_dr', 'choice').label('Used RX2 DR')
+            .choices(function(entry) {
+                return choices_profiles[entry.values.profile].downlink_datar;
+            })
+            .editable(false),
+        nga.field('rxwin_use.rx2_freq', 'float').label('Used RX2 Freq (MHz)')
+            .editable(false),
+
         nga.field('rxwin_failed', 'choices').label('RX Change Failed'),
         nga.field('devaddr', 'template').label('RX')
             .template('<rgraph value="value"></rgraph>'),
@@ -503,7 +603,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('devstat_time', 'datetime').label('Status Time'),
         nga.field('devstat_fcnt', 'number').label('Status FCnt'),
         nga.field('devaddr', 'template').label('Device Status')
-            .template('<dgraph value="value"></dgraph>')
+            .template('<ngraph value="value"></ngraph>')
     ])
     .prepare(['$http', function($http) {
         return $http.get('/api/choices/profiles')
@@ -511,8 +611,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     nodes.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:12},
-        {name:"ADR", min:12, max:22},
-        {name:"Status", min:22, max:26}
+        {name:"ADR", min:12, max:24},
+        {name:"Status", min:24, max:28}
     ]));
     // add to the admin application
     admin.addEntity(nodes);
@@ -716,7 +816,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     admin.dashboard(nga.dashboard()
         .addCollection(nga.collection(servers)
             .fields([
-                nga.field('node'),
+                nga.field('name').isDetailLink(true),
                 nga.field('modules.lorawan_server').label('Version'),
                 nga.field('memory').label('Memory')
                     .map(map_memstats),
@@ -1160,6 +1260,55 @@ myApp.config(function (uiGmapGoogleMapApiProvider) {
     });
 });
 
+myApp.directive('sgraph', ['$http', '$interval', function($http, $interval) {
+return {
+    restrict: 'E',
+    scope: {
+        value: '=',
+    },
+    link: function($scope) {
+            function updateData() {
+                $http({method: 'GET', url: '/admin/sgraph/'.concat($scope.value)})
+                    .then(function(response) {
+                        $scope.srvChartObject.data = response.data.array;
+                    });
+            }
+            $scope.srvChartObject = {};
+            $scope.srvChartObject.type = "LineChart";
+            $scope.srvChartObject.options = {
+                "vAxes": {
+                    0: {"title": 'Count'},
+                },
+                "series": {
+                    0: {"targetAxisIndex": 0},
+                    1: {"targetAxisIndex": 0}
+                },
+                "chartArea": {
+                    "top": 0, "bottom": "10%",
+                    "left": 0, "right": 0
+                },
+                "focusTarget": "category",
+                "legend": {
+                    "position": "none"
+                },
+                "pointSize": 3,
+                "hAxis": {
+                    "format": 'kk:mm'
+                },
+                "vAxis": {
+                    "textPosition": "in",
+                    "gridlines": {"count": -1}
+                }
+            };
+            updateData();
+            $scope.stopTime = $interval(updateData, 5000);
+            $scope.$on('$destroy', function() {
+                $interval.cancel($scope.stopTime);
+            });
+    },
+    template: '<div google-chart chart="srvChartObject"></div>'
+};}]);
+
 myApp.directive('pgraph', ['$http', '$interval', function($http, $interval) {
 return {
     restrict: 'E',
@@ -1364,7 +1513,7 @@ return {
     template: '<div google-chart chart="rxqChartObject"></div>'
 };}]);
 
-myApp.directive('dgraph', ['$http', '$interval', function($http, $interval) {
+myApp.directive('ngraph', ['$http', '$interval', function($http, $interval) {
 return {
     restrict: 'E',
     scope: {
@@ -1372,7 +1521,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                $http({method: 'GET', url: '/admin/devstat/'.concat($scope.value)})
+                $http({method: 'GET', url: '/admin/ngraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxdChartObject.data = response.data.array;
                     });

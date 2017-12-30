@@ -8,6 +8,7 @@
 -export([handle_authorization/2]).
 -export([check_health/1, check_health/3, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
+-export([timestamp_to_json_date/1]).
 
 -export([check_alive/1, check_dwell/1]).
 -export([check_reset/1, check_battery/1, check_margin/1, check_adr/1, check_rxwin/1]).
@@ -200,7 +201,9 @@ parse_field(Key, Value) when Key == gpspos ->
     parse_latlon(Value);
 parse_field(Key, Value) when Key == adr_use; Key == adr_set ->
     parse_adr(Value);
-parse_field(Key, Value) when Key == rxwin_use; Key == rxwin_set ->
+parse_field(Key, Value) when Key == init_chans ->
+    text_to_intervals(binary_to_list(Value));
+parse_field(Key, Value) when Key == rxwin_init; Key == rxwin_set; Key == rxwin_use ->
     parse_rxwin(Value);
 parse_field(Key, Value) when Key == rxq ->
     ?to_record(rxq, parse(Value));
@@ -226,6 +229,11 @@ parse_field(Key, Value) when Key == delays ->
     lists:map(
         fun(#{date:=Date, min:=Min, avg:=Avg, max:=Max}) ->
             {iso8601:parse(Date), {Min, Avg, Max}}
+        end, Value);
+parse_field(Key, Value) when Key == router_perf ->
+    lists:map(
+        fun(#{date:=Date, request_cnt:=ReqCnt, error_cnt:=ErrCnt}) ->
+            {iso8601:parse(Date), {ReqCnt, ErrCnt}}
         end, Value);
 parse_field(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> parse_qs(Item) end, Value);
@@ -264,7 +272,9 @@ build_field(Key, Value) when Key == gpspos ->
     build_latlon(Value);
 build_field(Key, Value) when Key == adr_use; Key == adr_set ->
     build_adr(Value);
-build_field(Key, Value) when Key == rxwin_use; Key == rxwin_set ->
+build_field(Key, Value) when Key == init_chans ->
+    list_to_binary(intervals_to_text(Value));
+build_field(Key, Value) when Key == rxwin_init; Key == rxwin_set; Key == rxwin_use ->
     build_rxwin(Value);
 build_field(Key, Value) when Key == rxq ->
     build(?to_map(rxq, Value));
@@ -286,6 +296,10 @@ build_field(Key, Value) when Key == dwell ->
 build_field(Key, Value) when Key == delays ->
     lists:map(fun({Date, {Min, Avg, Max}}) ->
                   #{date=>iso8601:format(Date), min=>Min, avg=>Avg, max=>Max}
+              end, Value);
+build_field(Key, Value) when Key == router_perf ->
+    lists:map(fun({Date, {ReqCnt, ErrCnt}}) ->
+                  #{date=>iso8601:format(Date), request_cnt=>ReqCnt, error_cnt=>ErrCnt}
               end, Value);
 build_field(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> build_qs(Item) end, Value);
@@ -350,7 +364,9 @@ build_adr({TXPower, DataRate, Chans}) ->
         case Chans of
             undefined -> null;
             Val -> list_to_binary(intervals_to_text(Val))
-        end}.
+        end};
+build_adr(_Else) ->
+    #{}.
 
 parse_rxwin(List) ->
     {parse_opt(rx1_dr_offset, List),
@@ -358,7 +374,9 @@ parse_rxwin(List) ->
 
 build_rxwin({RX1DROffset, RX2DataRate, Frequency}) ->
     #{rx1_dr_offset => build_opt(RX1DROffset),
-        rx2_dr => build_opt(RX2DataRate), rx2_freq => build_opt(Frequency)}.
+        rx2_dr => build_opt(RX2DataRate), rx2_freq => build_opt(Frequency)};
+build_rxwin(_Else) ->
+    #{}.
 
 parse_devstat(Value) ->
     lists:map(
@@ -429,6 +447,15 @@ text_to_intervals(Text) ->
                 [B, C] -> {list_to_integer(B), list_to_integer(C)}
             end
         end, string:tokens(Text, ";, ")).
+
+timestamp_to_json_date({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
+    list_to_binary(
+        lists:concat(["Date(",
+            % javascript counts months 0-11
+            integer_to_list(Yr), ",", integer_to_list(Mh-1), ",", integer_to_list(Dy), ",",
+            integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(trunc(Sc)), ")"]));
+timestamp_to_json_date(_Else) ->
+    null.
 
 -include_lib("eunit/include/eunit.hrl").
 

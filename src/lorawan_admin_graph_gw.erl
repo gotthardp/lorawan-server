@@ -3,7 +3,7 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_admin_gwgraph).
+-module(lorawan_admin_graph_gw).
 
 -export([init/2]).
 -export([is_authorized/2]).
@@ -46,7 +46,7 @@ get_array(pgraph, #gateway{delays=Delays}) when is_list(Delays) ->
     {rows, lists:filtermap(
         fun ({Date, SDelay, NDelay}) ->
             {true,  [{c, [
-                        [{v, encode_timestamp(Date)}],
+                        [{v, lorawan_admin:timestamp_to_json_date(Date)}],
                         [{v, SDelay}],
                         [{v, NDelay}]
                     ]}]};
@@ -63,7 +63,7 @@ get_array(tgraph, #gateway{dwell=Dwell}) when is_list(Dwell) ->
     {rows, lists:filtermap(
         fun ({Date, {_, Duration, Sum}}) ->
             {true,  [{c, [
-                        [{v, encode_timestamp(Date)}],
+                        [{v, lorawan_admin:timestamp_to_json_date(Date)}],
                         [{v, if Duration == 0 -> null; true -> round(Duration) end}],
                         [{v, Sum/36000}, {f, <<(integer_to_binary(round(Sum)))/binary,
                             " (", (float_to_binary(Sum/36000, [{decimals, 3}, compact]))/binary, "%)">>}]
@@ -74,13 +74,6 @@ get_array(tgraph, #gateway{dwell=Dwell}) when is_list(Dwell) ->
     }];
 get_array(_, _Else) ->
     [].
-
-encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
-    list_to_binary(
-        lists:concat(["Date(",
-            % javascript counts months 0-11
-            integer_to_list(Yr), ",", integer_to_list(Mh-1), ",", integer_to_list(Dy), ",",
-            integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(trunc(Sc)), ")"])).
 
 resource_exists(Req, State) ->
     case mnesia:dirty_read(gateways,

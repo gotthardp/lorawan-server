@@ -25,7 +25,6 @@
     lsnr :: number()}).
 
 -record(txq, {
-    region :: binary(),
     freq :: number(),
     datr :: binary() | integer(),
     codr :: binary(),
@@ -38,9 +37,18 @@
     netid :: binary(), % network id
     subid :: 'undefined' | bitstring(), % sub-network id
     region :: binary(),
+    tx_codr :: binary(),
+    join1_delay :: integer(),
+    join2_delay :: integer(),
+    rx1_delay :: integer(),
+    rx2_delay :: integer(),
+    gw_power :: integer(),
     max_eirp :: integer(),
-    min_eirp :: integer(),
-    tx_powe :: integer(),
+    max_power :: integer(),
+    min_power :: integer(),
+    max_datr :: number(),
+    rxwin_init :: rxwin_config(),
+    init_chans :: intervals(),
     cflist :: 'undefined' | [integer()]}).
 
 -record(gateway, {
@@ -158,8 +166,8 @@
 
 -record(rxframe, {
     frid :: frid(), % unique identifier
+    network :: nonempty_string(),
     app :: binary(),
-    region :: binary(),
     devaddr :: devaddr(),
     gateways :: [{binary(), #rxq{}}], % singnal quality at each gateway
     average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR

@@ -177,7 +177,7 @@ find_adr(FOptsIn) ->
         end,
         undefined, FOptsIn).
 
-handle_rxwin(FOptsIn, Network, Profile, Node) ->
+handle_rxwin(FOptsIn, _Network, Profile, Node) ->
     case find_rxwin(FOptsIn) of
         {1, 1, 1} ->
             if
@@ -186,9 +186,7 @@ handle_rxwin(FOptsIn, Network, Profile, Node) ->
                     {true, Node#node{rxwin_failed=[]}};
                 true ->
                     lager:debug("RXParamSetupAns ~s succeeded", [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
-                    {RX1DROffset, _, _} = Profile#profile.rxwin_set,
-                    {_, RX2DataRate, Frequency} = lorawan_mac_region:default_rxwin(Network#network.region),
-                    {true, Node#node{rxwin_use={RX1DROffset, RX2DataRate, Frequency}, rxwin_failed=[]}}
+                    {true, Node#node{rxwin_use=Profile#profile.rxwin_set, rxwin_failed=[]}}
             end;
         {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
             lorawan_utils:throw_warning({node, Node#node.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),
@@ -266,9 +264,8 @@ auto_adr(_Network, _Profile, Node) ->
     % ADR is Disabled (or undefined)
     Node.
 
-calculate_adr(#network{region=Region}, #node{average_qs={AvgRSSI, AvgSNR}, adr_use={TxPower, DataRate, Chans}}=Node) ->
-    {DefPower, _, _} = lorawan_mac_region:default_adr(Region),
-    {MinPower, MaxDR} = lorawan_mac_region:max_adr(Region),
+calculate_adr(#network{region=Region, max_datr=MaxDR, max_power=MaxPower, min_power=MinPower},
+        #node{average_qs={AvgRSSI, AvgSNR}, adr_use={TxPower, DataRate, Chans}}=Node) ->
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
     MaxSNR = lorawan_mac_region:max_uplink_snr(Region, DataRate)+10,
@@ -288,11 +285,11 @@ calculate_adr(#network{region=Region}, #node{average_qs={AvgRSSI, AvgSNR}, adr_u
                 lager:debug("Power ~s: average rssi ~w, power ~w -> up by ~w",
                     [lorawan_utils:binary_to_hex(Node#node.devaddr), round(AvgRSSI), TxPower, PwrStepUp]),
                 min(MinPower, TxPower+PwrStepUp);
-            AvgRSSI < -102, TxPower > DefPower ->
+            AvgRSSI < -102, TxPower > MaxPower ->
                 PwrStepDown = trunc((AvgRSSI+98)/2), % go faster
                 lager:debug("Power ~s: average rssi ~w, power ~w -> down by ~w",
                     [lorawan_utils:binary_to_hex(Node#node.devaddr), round(AvgRSSI), TxPower, PwrStepDown]),
-                max(DefPower, TxPower+PwrStepDown); % steps are negative
+                max(MaxPower, TxPower+PwrStepDown); % steps are negative
             true ->
                 TxPower
         end,
@@ -315,8 +312,6 @@ send_adr(_Network, _Node, FOptsOut) ->
     % the device has disabled ADR
     FOptsOut.
 
-merge_adr(undefined, ABC) ->
-    ABC;
 merge_adr({A1,B1,C1},{A2,B2,C2}) ->
     {if
         is_integer(A1) -> A1;
@@ -329,7 +324,9 @@ merge_adr({A1,B1,C1},{A2,B2,C2}) ->
     if
         is_list(C1), length(C1) > 0 -> C1;
         true -> C2
-    end}.
+    end};
+merge_adr(_Else, ABC) ->
+    ABC.
 
 set_rxwin(Profile, #node{adr_flag=1, rxwin_failed=[]}=Node, FOptsOut) ->
     case merge_rxwin(Profile#profile.rxwin_set, Node#node.rxwin_use) of
@@ -342,8 +339,6 @@ set_rxwin(Profile, #node{adr_flag=1, rxwin_failed=[]}=Node, FOptsOut) ->
 set_rxwin(_Profile, _Node, FOptsOut) ->
     FOptsOut.
 
-merge_rxwin(undefined, ABC) ->
-    ABC;
 merge_rxwin({A1,B1,C1},{A2,B2,C2}) ->
     {if
         is_integer(A1) -> A1;
@@ -356,7 +351,9 @@ merge_rxwin({A1,B1,C1},{A2,B2,C2}) ->
     if
         is_number(C1) -> C1;
         true -> C2
-    end}.
+    end};
+merge_rxwin(_Else, ABC) ->
+    ABC.
 
 request_status(#profile{request_devstat=false}, _Node, FOptsOut) ->
     FOptsOut;

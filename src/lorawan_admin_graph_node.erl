@@ -3,7 +3,7 @@
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
--module(lorawan_admin_devstat).
+-module(lorawan_admin_graph_node).
 
 -export([init/2]).
 -export([is_authorized/2]).
@@ -47,7 +47,7 @@ get_array(#node{last_reset=Reset, devstat=DevStat}) when is_list(DevStat) ->
     ]},
     {rows,
         [[{c, [
-            [{v, encode_timestamp(Reset)}],
+            [{v, lorawan_admin:timestamp_to_json_date(Reset)}],
             [{v, <<"Last Reset">>}],
             [{v, null}],
             [{v, null}],
@@ -55,7 +55,7 @@ get_array(#node{last_reset=Reset, devstat=DevStat}) when is_list(DevStat) ->
         ]}] | lists:map(
         fun({Timestamp, Batt, Margin, MaxSNR}) ->
             [{c, [
-                [{v, encode_timestamp(Timestamp)}],
+                [{v, lorawan_admin:timestamp_to_json_date(Timestamp)}],
                 [{v, null}],
                 [{v, Batt}],
                 % what the standard calls "margin" is simply the SNR
@@ -70,15 +70,6 @@ get_array(#node{last_reset=Reset, devstat=DevStat}) when is_list(DevStat) ->
     }];
 get_array(_Else) ->
     [].
-
-encode_timestamp({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
-    list_to_binary(
-        lists:concat(["Date(",
-            % javascript counts months 0-11
-            integer_to_list(Yr), ",", integer_to_list(Mh-1), ",", integer_to_list(Dy), ",",
-            integer_to_list(Hr), ",", integer_to_list(Me), ",", integer_to_list(Sc), ")"]));
-encode_timestamp(_Else) ->
-    null.
 
 resource_exists(Req, State) ->
     case mnesia:dirty_read(nodes,

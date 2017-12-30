@@ -94,14 +94,14 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
 join(cast, {rxq, Gateways0}, {{Network, Profile, Device}, DevAddr, DevNonce}) ->
     {MAC, RxQ, GWState} = hd(Gateways0),
     Gateways = extract_rxq(Gateways0),
-    {ok, Node, PHYPayload} = lorawan_mac:handle_accept(Gateways, Network, Device, DevAddr, DevNonce),
+    {ok, Node, PHYPayload} = lorawan_mac:handle_accept(Gateways, {Network, Profile, Device}, DevAddr, DevNonce),
     TxQ = case join_rxwin(Profile, Node) of
         0 ->
             lager:debug("Join-Accept in RX1: ~w", [Node#node.rxwin_use]),
             lorawan_mac_region:join1_window(Network, RxQ);
         1 ->
             lager:debug("Join-Accept in RX2: ~w", [Node#node.rxwin_use]),
-            lorawan_mac_region:join2_window(Network, RxQ)
+            lorawan_mac_region:join2_window(Network, Node, RxQ)
     end,
     lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload),
     % the task has been completed
@@ -163,17 +163,16 @@ extract_rxq(Gateways) ->
 
 choose_tx({Network, #profile{txwin=1}, Node}, RxQ, _Timestamp) ->
     lorawan_mac_region:rx1_window(Network, Node, RxQ);
-choose_tx({Network, #profile{txwin=2}, _Node}, RxQ, _Timestamp) ->
-    lorawan_mac_region:rx2_window(Network, RxQ);
-choose_tx({Network, _Profile, Node}, RxQ, TimeStamp) ->
-    {ok, Rx1Delay} = application:get_env(lorawan_server, rx1_delay),
-    {ok, GwDelay} = application:get_env(lorawan_server, preprocessing_delay),
+choose_tx({Network, #profile{txwin=2}, Node}, RxQ, _Timestamp) ->
+    lorawan_mac_region:rx2_window(Network, Node, RxQ);
+choose_tx({#network{rx1_delay=Rx1Delay}=Network, _Profile, Node}, RxQ, TimeStamp) ->
+    {ok, GwDelay} = application:get_env(lorawan_server, gateway_delay),
     % transmit as soon as possible
     case erlang:monotonic_time(milli_seconds) - TimeStamp of
-        Small when Small < Rx1Delay/1000 - GwDelay ->
+        Small when Small < Rx1Delay*1000 - GwDelay ->
             lorawan_mac_region:rx1_window(Network, Node, RxQ);
         _Big ->
-            lorawan_mac_region:rx2_window(Network, RxQ)
+            lorawan_mac_region:rx2_window(Network, Node, RxQ)
     end.
 
 send_unicast({MAC, GWState}, {Network, Profile, #node{devaddr=DevAddr}=Node}, TxQ, ACK, FOpts, #txdata{confirmed=Confirmed}=TxData) ->
@@ -235,8 +234,8 @@ invoke_handler2(Module, Fun, Params) ->
 % class C
 downlink(Node, Time, TxData) ->
     {ok, Network, Profile} = lorawan_mac:load_profile(Node),
-    {MAC, RxQ} = hd(Node#node.gateways),
-    TxQ = lorawan_mac_region:rx2_rf(Network#network.region, RxQ),
+    {MAC, _RxQ} = hd(Node#node.gateways),
+    TxQ = lorawan_mac_region:rx2_rf(Network, Node),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
     send_unicast({MAC, undefined}, {Network, Profile, Node}, TxQ#txq{time=Time}, 0,
         lorawan_mac_commands:build_fopts({Network, Profile, Node}, []), TxData).
@@ -253,9 +252,9 @@ multicast(#multicast_channel{devaddr=DevAddr, profiles=Profiles}, Time, #txdata{
 multicast(#multicast_channel{devaddr=DevAddr}, _Time, #txdata{confirmed=true}) ->
     lorawan_utils:throw_error({{multicast_channel, DevAddr}, confirmed_not_allowed}).
 
-multicast(DevAddr, #profile{name=Prof, network=Net}, Time, PHYPayload) ->
+multicast(DevAddr, #profile{name=Prof, network=Net}=Profile, Time, PHYPayload) ->
     [Network] = mnesia:dirty_read(networks, Net),
-    TxQ = lorawan_mac_region:rf_fixed(Network#network.region),
+    TxQ = lorawan_mac_region:rx2_rf(Network, Profile),
     lists:foreach(
         fun(MAC) ->
             lorawan_gw_router:downlink({MAC, undefined}, Network, DevAddr, TxQ#txq{time=Time}, PHYPayload)
@@ -270,12 +269,12 @@ multicast(DevAddr, #profile{name=Prof, network=Net}, Time, PHYPayload) ->
                     [{'==', '$1', Prof}], ['$2']}])
     ))).
 
-build_rxframe(Gateways, {#network{region=Region}, #profile{app=App},
+build_rxframe(Gateways, {#network{name=NetName}, #profile{app=App},
         #node{fcntup=FCnt, average_qs=AverageQs, adr_use={TXPower, _, _}}},
         #frame{conf=Confirm, devaddr=DevAddr, port=Port, data=Data}) ->
     % #rxframe{frid, gateways, average_qs, app, region, devaddr, powe, fcnt, confirm, port, data, datetime}
     #rxframe{frid= <<(erlang:system_time()):64>>, gateways=Gateways,
-        average_qs=AverageQs, app=App, region=Region, devaddr=DevAddr, powe=TXPower,
+        average_qs=AverageQs, network=NetName, app=App, devaddr=DevAddr, powe=TXPower,
         fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port, data=Data,
         datetime=calendar:universal_time()}.
 
