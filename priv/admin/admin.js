@@ -800,7 +800,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('text', 'wysiwyg'),
         nga.field('args', 'wysiwyg')
     ])
-    .sortField('last_rx');
+    .sortField('last_rx')
+    .listActions('<eventbtn entry="entry"></eventbtn>');
     events.listView().filters([
         nga.field('severity', 'choice')
             .choices([
@@ -1173,6 +1174,23 @@ function($delegate, $translate, notification) {
     }
     return $delegate;
 }]);
+
+myApp.directive('eventbtn', ['$http', function($http) {
+return {
+    restrict: 'E',
+    scope: {
+        entry: '='
+    },
+    link: function($scope) {
+        if($scope.entry.values.entity == "node" && $scope.entry.values.entity == "unknown_devaddr")
+            $scope.ShowIgnore = true;
+
+        $scope.addIgnored = function() {
+            $http({method: 'POST', url: '/api/ignored_nodes', data: {devaddr: $scope.entry.values.eid, mask: 'FFFFFFFF'}});
+        }
+    },
+    template: '<button ng-show="ShowIgnore" ng-click="addIgnored()" type="button" class="btn btn-default btn-xs">ignore</button>'
+};}]);
 
 myApp.directive('timeline', ['$http', '$interval', 'VisDataSet', function($http, $interval, VisDataSet) {
 return {
