@@ -216,14 +216,15 @@ handle_report(MAC, S) ->
             ok
     end,
     if
-        S#stat.txnb < S#stat.dwnb ->
-            lorawan_utils:throw_warning({gateway, MAC}, {downlinks_lost, S#stat.dwnb-S#stat.txnb});
+        S#stat.rxfw > 0, S#stat.ackr < 100 ->
+            % upstream datagrams sent, but not acknowledged
+            lorawan_utils:throw_warning({gateway, MAC}, {ack_lost, 100-S#stat.ackr});
         true ->
             ok
     end,
     if
-        S#stat.ackr < 100 ->
-            lorawan_utils:throw_warning({gateway, MAC}, {ack_lost, 100-S#stat.ackr});
+        S#stat.txnb < S#stat.dwnb ->
+            lorawan_utils:throw_warning({gateway, MAC}, {downlinks_lost, S#stat.dwnb-S#stat.txnb});
         true ->
             ok
     end,

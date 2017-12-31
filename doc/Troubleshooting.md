@@ -134,6 +134,12 @@ The problem is the Lorank8 proprietary message format. In your gateway config
 you likely have `stat_format` set to `idee_concise` or `idee_verbose`. You need
 to change `stat_format` to `semtech` to get this working.
 
+### Gateway *XYZ* had *n* uplink CRC errors
+
+This error is not related to any of the received frames. It means the gateway
+received some frame it couldn't decode. It is very often some noise or some
+very distant device. Nothing to worry about.
+
 
 ## Alarms
 
