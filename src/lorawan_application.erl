@@ -6,7 +6,7 @@
 -module(lorawan_application).
 
 -export([init/0]).
--export([store_frame/2, send_stored_frames/2]).
+-export([store_frame/2, get_stored_frames/1, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
 
@@ -19,7 +19,7 @@
         {MAC :: binary(), RxQ :: #rxq{}}, DevAddr :: devaddr()) ->
     ok | {error, Error :: term()}.
 -callback handle_uplink({Network :: #network{}, Profile :: #profile{}, Node :: #node{}},
-        {MAC :: binary(), RxQ :: #rxq{}}, {lost, State :: any()}, Frame :: #frame{}) ->
+        {MAC :: binary(), RxQ :: #rxq{}}, {lost, Receipt :: any()}, Frame :: #frame{}) ->
     ok | retransmit |
     {send, Port :: integer(), Data :: #txdata{}} |
     {error, Error :: term()}.
@@ -28,6 +28,9 @@
     ok | retransmit |
     {send, Port :: integer(), Data :: #txdata{}} |
     {error, Error :: term()}.
+-callback handle_delivery({Network :: #network{}, Profile :: #profile{}, Node :: #node{}},
+        Result :: atom(), Receipt :: any()) ->
+    ok.
 
 init() ->
     Modules = application:get_env(lorawan_server, applications, []),
@@ -59,8 +62,11 @@ store_frame(DevAddr, TxData) ->
         end),
     ok.
 
+get_stored_frames(DevAddr) ->
+    mnesia:dirty_select(txframes, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]).
+
 send_stored_frames(DevAddr, DefPort) ->
-    case mnesia:dirty_select(txframes, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]) of
+    case get_stored_frames(DevAddr) of
         [] ->
             mnesia:subscribe({table, txframes, simple}),
             receive

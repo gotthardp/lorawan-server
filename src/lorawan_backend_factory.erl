@@ -6,7 +6,7 @@
 -module(lorawan_backend_factory).
 -behaviour(gen_server).
 
--export([start_link/0, uplink/3]).
+-export([start_link/0, uplink/3, event/4]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([nodes_with_backend/1]).
 
@@ -137,6 +137,9 @@ find_module0(Scheme, []) ->
 uplink(App, Node, Vars) ->
     send_to_connectors(App, {uplink, Node, Vars}).
 
+event(Event, App, Node, Vars) ->
+    send_to_connectors(App, {event, Event, Node, Vars}).
+
 announce_profile_update(ProfId) ->
     case mnesia:dirty_read(profiles, ProfId) of
         [#profile{app=App}] ->
@@ -146,8 +149,7 @@ announce_profile_update(ProfId) ->
     end.
 
 announce_backend_update(App) ->
-    Nodes = nodes_with_backend(App),
-    send_to_connectors(App, {nodes_changed, Nodes}).
+    send_to_connectors(App, nodes_changed).
 
 nodes_with_backend(App) ->
     lists:foldl(
@@ -159,11 +161,12 @@ nodes_with_backend(App) ->
 
 send_to_connectors(App, Message) ->
     case pg2:get_members({backend, App}) of
+        {error, _Error} ->
+            % the application is internal or not defined
+            ok;
         [] ->
             lager:warning("Message not sent to any connector");
-        {error, Error} ->
-            lager:warning("Message not sent to any connector: ~w", [Error]);
-        List ->
+        List when is_list(List) ->
             lists:foreach(
                 fun(Pid) -> Pid ! Message end,
                 List)

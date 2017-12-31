@@ -9,7 +9,7 @@
 -module(lorawan_application_semtech_mote).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_uplink/4, handle_rxq/5]).
+-export([init/1, handle_join/3, handle_uplink/4, handle_rxq/5, handle_delivery/3]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -21,9 +21,9 @@ handle_join({_Network, _Profile, _Device}, {_MAC, _RxQ}, _DevAddr) ->
     % accept any device
     ok.
 
-handle_uplink({_Network, _Profile, _Node}, _RxQ, {lost, _State}, _Frame) ->
+handle_uplink({_Network, _Profile, _Node}, _RxQ, {missed, _Receipt}, _Frame) ->
     retransmit;
-handle_uplink(_Context, _RxQ, _LastAcked, _Frame) ->
+handle_uplink(_Context, _RxQ, _LastMissed, _Frame) ->
     % accept and wait for deduplication
     {ok, []}.
 
@@ -34,5 +34,8 @@ handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways, _WillReply,
     lager:debug("PUSH_DATA ~w ~w ~w ~w",[DevAddr, Press, Temp, Batt]),
     % blink with the LED indicator
     {send, #txdata{port=2, data= <<((LED+1) rem 2)>>}}.
+
+handle_delivery({_Network, _Profile, _Node}, _Result, _Receipt) ->
+    ok.
 
 % end of file

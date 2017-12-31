@@ -12,7 +12,7 @@
 
 -include("lorawan_db.hrl").
 
--record(state, {conn, connect, subscribe, published, consumed, hier}).
+-record(state, {conn, connect, subscribe, publish_uplinks, publish_events, consumed, hier}).
 -record(costa, {phase, cargs, last_connect, connect_count}).
 
 start_connector(#connector{connid=Id}=Connector) ->
@@ -25,18 +25,19 @@ start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
 init([#connector{connid=ConnId, app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
-        subscribe=Sub, published=Pub, consumed=Cons}=Connector]) ->
+        subscribe=Sub, publish_uplinks=PubUp, publish_events=PubEv, consumed=Cons}=Connector]) ->
     process_flag(trap_exit, true),
     lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     ok = pg2:join({backend, App}, self()),
-    self() ! connect_all,
+    self() ! nodes_changed,
     timer:send_interval(60*1000, ping),
 
     {ok, #state{
         conn=Connector,
         connect=lorawan_connector:prepare_filling([Uri, ClientId, UserName, Password]),
         subscribe=lorawan_connector:prepare_filling(Sub),
-        published=lorawan_connector:prepare_filling(Pub),
+        publish_uplinks=lorawan_connector:prepare_filling(PubUp),
+        publish_events=lorawan_connector:prepare_filling(PubEv),
         consumed=lorawan_connector:prepare_matching(Cons),
         hier=[]
     }}.
@@ -136,7 +137,7 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 
-handle_info(connect_all, #state{conn=Connector, connect=PatConn, subscribe=PatSub, hier=Hier}=State) ->
+handle_info(nodes_changed, #state{conn=Connector, connect=PatConn, subscribe=PatSub, hier=Hier}=State) ->
     NewH = build_hierarchy(PatConn, PatSub,
         lorawan_backend_factory:nodes_with_backend(Connector#connector.app)),
     Hier2 =
@@ -160,13 +161,14 @@ handle_info({mqttc, _C, disconnected}, State) ->
     {noreply, State};
 
 handle_info({uplink, Node, Vars0}, #state{conn=#connector{format=Format},
-        connect=PatConn, published=PatPub, hier=Hier}=State) ->
-    % determine the connection to use
-    Connect = lorawan_connector:fill_pattern(PatConn,
-        lorawan_admin:build(lorawan_connector:node_to_vars(Node))),
-    {Connect, C, _NewSub, _Costa} = lists:keyfind(Connect, 1, Hier),
-    % distribute
-    publish(C, PatPub, Format, Vars0),
+        publish_uplinks=PatPub}=State) ->
+    {ok, C} = connection_for_node(Node, State),
+    publish_uplink(C, PatPub, Format, Vars0),
+    {noreply, State};
+
+handle_info({event, Event, Node, Vars0}, #state{publish_events=PatPub}=State) ->
+    {ok, C} = connection_for_node(Node, State),
+    publish_event(C, PatPub, Event, Vars0),
     {noreply, State};
 
 handle_info({publish, Topic, Payload}, State=#state{conn=Connector, consumed=Pattern}) ->
@@ -238,14 +240,26 @@ switch_ver(#costa{phase=attempt311}=Costa) ->
 switch_ver(Costa) ->
     Costa#costa{phase=attempt311}.
 
-publish(C, PatPub, Format, Vars0) when is_list(Vars0) ->
+connection_for_node(Node, #state{connect=PatConn, hier=Hier}) ->
+    Connect = lorawan_connector:fill_pattern(PatConn,
+        lorawan_admin:build(lorawan_connector:node_to_vars(Node))),
+    {Connect, C, _NewSub, _Costa} = lists:keyfind(Connect, 1, Hier),
+    {ok, C}.
+
+publish_uplink(C, PatPub, Format, Vars0) when is_list(Vars0) ->
     lists:foreach(
-        fun(V0) -> publish(C, PatPub, Format, V0) end,
+        fun(V0) -> publish_uplink(C, PatPub, Format, V0) end,
         Vars0);
-publish(C, PatPub, Format, Vars0) when is_map(Vars0) ->
+publish_uplink(C, PatPub, Format, Vars0) when is_map(Vars0) ->
     emqttc:publish(C,
         lorawan_connector:fill_pattern(PatPub, lorawan_admin:build(Vars0)),
         encode_uplink(Format, Vars0)).
+
+publish_event(C, PatPub, Event, Vars0) ->
+    Vars = lorawan_admin:build(Vars0),
+    emqttc:publish(C,
+        lorawan_connector:fill_pattern(PatPub, Vars),
+        jsx:encode(#{atom_to_binary(Event, latin1) => Vars})).
 
 encode_uplink(<<"raw">>, Vars) ->
     maps:get(data, Vars, <<>>);

@@ -14,10 +14,8 @@
 -record(state, {connector, bindings}).
 
 start_connector(#connector{connid=Id, uri= <<"ws:", URI/binary>>}=Connector) ->
-    % convert our pattern to cowboy pattern
-    URI2 = re:replace(URI, "{([^}])}", ":\\1", [{return, binary}]),
     lorawan_http_registry:update_routes({ws, Id}, [
-        {URI2, ?MODULE, [Connector]}
+        {lorawan_connector:pattern_for_cowboy(URI), ?MODULE, [Connector]}
     ]).
 
 stop_connector(Id) ->
@@ -88,6 +86,9 @@ handle_downlink(Msg, #state{connector=Connector, bindings=Bindings}=State) ->
             {stop, State}
     end.
 
+websocket_info(nodes_changed, State) ->
+    % nothing to do here
+    {ok, State};
 websocket_info({uplink, _Node, Vars},
         #state{connector=#connector{format=Format}, bindings=Bindings} = State) ->
     case lorawan_connector:same_common_vars(Vars, Bindings) of

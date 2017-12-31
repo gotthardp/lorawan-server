@@ -48,26 +48,27 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
     case lorawan_mac:ingest_frame(PHYPayload) of
         {uplink, {Network, Profile, #node{devaddr=DevAddr}=Node}, #frame{ack=ACK}=Frame} ->
             % check whether last downlink transmission was lost
-            {LastAcked, LostDownlink} =
+            {LastMissed, MissedDownlink} =
                 case mnesia:dirty_read(pending, DevAddr) of
-                    [#pending{confirmed=true, phypayload=OldFrame, state=State}] when ACK == 0 ->
-                        lorawan_utils:throw_warning({node, DevAddr}, downlink_lost),
-                        {{lost, State}, OldFrame};
-                    [#pending{confirmed=true, state=State}] when ACK == 1 ->
+                    [#pending{confirmed=true, phypayload=OldFrame, receipt=Receipt}] when ACK == 0 ->
+                        lorawan_utils:throw_warning({node, DevAddr}, downlink_missed),
+                        {{missed, Receipt}, OldFrame};
+                    [#pending{confirmed=true, receipt=Receipt}] when ACK == 1 ->
                         ok = mnesia:dirty_delete(pending, DevAddr),
-                        {{ok, State}, undefined};
+                        invoke_handler(handle_delivered, {Network, Profile, Node}, Receipt),
+                        {undefined, undefined};
                     [_Msg] ->
                         ok = mnesia:dirty_delete(pending, DevAddr),
                         {undefined, undefined};
                     [] ->
                         {undefined, undefined}
                 end,
-            case invoke_handler(handle_uplink, {Network, Profile, Node}, [{MAC, RxQ}, LastAcked, Frame]) of
+            case invoke_handler(handle_uplink, {Network, Profile, Node}, [{MAC, RxQ}, LastMissed, Frame]) of
                 {ok, AppState} ->
                     {next_state, uplink, {TimeStamp, {Network, Profile, Node}, Frame, AppState}};
                 retransmit ->
                     % the application decided to retransmit last confirmed downlink
-                    {next_state, retransmit, {TimeStamp, {Network, Profile, Node}, Frame, LostDownlink}};
+                    {next_state, retransmit, {TimeStamp, {Network, Profile, Node}, Frame, MissedDownlink}};
                 {error, Error} ->
                     lorawan_utils:throw_error({node, Node#node.devaddr}, Error),
                     {next_state, log_only, Frame}
@@ -75,8 +76,8 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
         {retransmit, {Network, Profile, Node}, Frame} ->
             % the server already handled this request
             case mnesia:dirty_read(pending, Node#node.devaddr) of
-                [#pending{phypayload=LostDownlink}] ->
-                    {next_state, retransmit, {TimeStamp, {Network, Profile, Node}, Frame, LostDownlink}};
+                [#pending{phypayload=OldFrame}] ->
+                    {next_state, retransmit, {TimeStamp, {Network, Profile, Node}, Frame, OldFrame}};
                 [] ->
                     lager:error("Nothing to retransmit for ~p", [Node#node.devaddr]),
                     {next_state, drop, Data}
@@ -175,9 +176,19 @@ choose_tx({#network{rx1_delay=Rx1Delay}=Network, _Profile, Node}, RxQ, TimeStamp
             lorawan_mac_region:rx2_window(Network, Node, RxQ)
     end.
 
-send_unicast({MAC, GWState}, {Network, Profile, #node{devaddr=DevAddr}=Node}, TxQ, ACK, FOpts, #txdata{confirmed=Confirmed}=TxData) ->
+send_unicast({MAC, GWState}, {Network, Profile, #node{devaddr=DevAddr}=Node}, TxQ, ACK, FOpts,
+        #txdata{confirmed=Confirmed, receipt=Receipt}=TxData) ->
     {ok, PHYPayload} = lorawan_mac:encode_unicast({Network, Profile, Node}, ACK, FOpts, TxData),
-    ok = mnesia:dirty_write(pending, #pending{devaddr=DevAddr, confirmed=Confirmed, phypayload=PHYPayload}),
+    % we are about to overwrite the pending frame for this device
+    case mnesia:dirty_read(pending, DevAddr) of
+        [#pending{confirmed=true, receipt=Receipt}] ->
+            lorawan_utils:throw_error({node, DevAddr}, downlink_lost),
+            invoke_handler(handle_lost, {Network, Profile, Node}, [Receipt]);
+        _Else ->
+            ok
+    end,
+    ok = mnesia:dirty_write(pending,
+        #pending{devaddr=DevAddr, confirmed=Confirmed, phypayload=PHYPayload, receipt=Receipt}),
     lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload);
 % non #txdata received, invoke the application to perform payload encoding
 send_unicast(Gateway, {Network, Profile, Node}, TxQ, ACK, FOpts, TxData) ->

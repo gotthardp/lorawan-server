@@ -352,7 +352,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('name').isDetailLink(true),
         nga.field('network'),
         nga.field('app').label('Application'),
-        nga.field('appargs').label('Arguments')
+        nga.field('appid').label('Identifier')
     ]);
     profiles.creationView().fields([
         nga.field('name')
@@ -365,7 +365,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appargs').label('Arguments'),
+        nga.field('appid').label('Identifier'),
         nga.field('can_join', 'boolean').label('Can Join?')
             .defaultValue(true),
         nga.field('fcnt_check', 'choice').label('FCnt Check')
@@ -686,7 +686,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('format', 'choice')
             .choices(format_choices),
         nga.field('uri').label('URI'),
-        nga.field('published').label('Published Topic'),
+        nga.field('publish_uplinks'),
+        nga.field('publish_events'),
         nga.field('subscribe').label('Subscribe'),
         nga.field('consumed').label('Received Topic')
     ]);
@@ -695,15 +696,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('app', 'reference').label('Application')
             .targetEntity(handlers)
-            .targetField(nga.field('app'))
-            .validation({ required: true }),
+            .targetField(nga.field('app')),
         nga.field('format', 'choice')
             .choices(format_choices)
             .validation({ required: true }),
         nga.field('uri').label('URI')
             .attributes({ placeholder: 'e.g. mqtt://server:8883' })
             .validation({ required: true, pattern: '^(((amqp|mqtt|http)s?:\/)|ws:)\/[^\/?#]+[^?#]*' }),
-        nga.field('published').label('Published Topic'),
+        nga.field('publish_uplinks'),
+        nga.field('publish_events'),
         nga.field('subscribe').label('Subscribe'),
         nga.field('consumed').label('Received Topic'),
         nga.field('enabled', 'boolean')
@@ -737,7 +738,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- handlers
     handlers.listView().fields([
         nga.field('app').label('Application').isDetailLink(true),
-        nga.field('fields', 'choices')
+        nga.field('fields', 'choices'),
+        nga.field('retransmit')
     ]);
     handlers.creationView().fields([
         nga.field('app').label('Application')
@@ -746,6 +748,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices([
                 { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
+                { value: 'appargs', label: 'appargs' },
                 { value: 'battery', label: 'battery' },
                 { value: 'fcnt', label: 'fcnt' },
                 { value: 'port', label: 'port' },
@@ -760,6 +763,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             ]),
         nga.field('parse', 'text').label('Parse Uplink'),
         nga.field('build', 'text').label('Build Downlink'),
+        nga.field('retransmit', 'choice')
+            .choices([
+                { value: 'always', label: 'Always' },
+                { value: 'recent', label: 'Recent Only' }
+            ])
+            .validation({ required: true }),
         nga.field('connectors', 'referenced_list')
             .targetEntity(connectors)
             .targetReferenceField('app')

@@ -77,7 +77,7 @@
     name :: nonempty_string(),
     network :: nonempty_string(),
     app :: binary(),
-    appargs :: any(),
+    appid :: any(),
     can_join :: boolean(),
     fcnt_check :: integer(),
     txwin :: integer(),
@@ -125,14 +125,15 @@
     mask}).
 
 -record(connector, {
-    connid,
-    app,
+    connid :: binary(),
+    app :: binary(),
     format,
     uri,
-    published,
+    publish_uplinks,
+    publish_events,
     subscribe,
     consumed,
-    enabled,
+    enabled :: boolean(),
     client_id,
     auth,
     name,
@@ -141,22 +142,24 @@
     keyfile}).
 
 -record(handler, {
-    app,
-    fields,
-    parse,
-    build}).
+    app :: binary(),
+    fields :: [binary()],
+    parse :: fun(),
+    build :: fun(),
+    retransmit :: binary()}).
 
 -record(txdata, {
     confirmed=false :: boolean(),
     port :: 'undefined' | integer(),
     data :: 'undefined' | binary(),
-    pending :: 'undefined' | boolean()}).
+    pending :: 'undefined' | boolean(),
+    receipt :: any()}).
 
 -record(pending, {
     devaddr :: devaddr(),
     confirmed :: boolean(),
     phypayload :: binary(),
-    state :: any()}).
+    receipt :: any()}).
 
 -record(txframe, {
     frid :: frid(), % unique identifier

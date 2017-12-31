@@ -6,7 +6,7 @@
 -module(lorawan_application_backend).
 -behaviour(lorawan_application).
 
--export([init/1, handle_join/3, handle_uplink/4, handle_rxq/5]).
+-export([init/1, handle_join/3, handle_uplink/4, handle_rxq/5, handle_delivery/3]).
 -export([handle_downlink/2]).
 
 -include("lorawan.hrl").
@@ -15,35 +15,60 @@
 init(_App) ->
     ok.
 
-handle_join({_Network, _Profile, _Device}, {_MAC, _RxQ}, _DevAddr) ->
-    % accept any device
-    ok.
-
-handle_uplink({_Network, _Profile, _Node}, _RxQ, {lost, State}, _Frame) ->
-    retransmit;
-handle_uplink({_Network, #profile{app=AppID}, Node}, _RxQ, _LastAcked, Frame) ->
+handle_join({_Network, #profile{app=AppID}, #device{deveui=DevEUI, appargs=AppArgs}=Device},
+        {_MAC, _RxQ}, DevAddr) ->
     case mnesia:dirty_read(handlers, AppID) of
-        [#handler{fields=Fields}=Handler] ->
-            Vars = parse_uplink(Handler, Node, Frame),
-            case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>, <<"all_gw">>], Fields) of
-                true ->
-                    % we have to wait for the rx quality indicators
-                    {ok, {Handler, Vars}};
-                false ->
-                    lorawan_backend_factory:uplink(AppID, Node, Vars),
-                    {ok, undefined}
+        [#handler{fields=Fields}] ->
+            Vars =
+                vars_add(devaddr, DevAddr, Fields,
+                vars_add(deveui, DevEUI, Fields,
+                vars_add(appargs, AppArgs, Fields,
+                vars_add(datetime, calendar:universal_time(), Fields,
+                #{})))),
+            lorawan_backend_factory:event(join, AppID, {Device, DevAddr}, Vars),
+            ok;
+        [] ->
+            {error, {unknown_application, AppID}}
+    end.
+
+handle_uplink({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ, LastMissed, Frame) ->
+    case mnesia:dirty_read(handlers, AppID) of
+        [#handler{retransmit=Retransmit}=Handler] ->
+            case LastMissed of
+                {missed, _Receipt} ->
+                    case lorawan_application:get_stored_frames(DevAddr) of
+                        [] ->
+                            retransmit;
+                        List when length(List) > 0, Retransmit == <<"always">> ->
+                            retransmit;
+                        _Else ->
+                            handle_uplink0(Handler, Node, Frame)
+                    end;
+                undefined ->
+                    handle_uplink0(Handler, Node, Frame)
             end;
         [] ->
             {error, {unknown_application, AppID}}
+    end.
+
+handle_uplink0(#handler{app=AppID, fields=Fields}=Handler, Node, Frame) ->
+    Vars = parse_uplink(Handler, Node, Frame),
+    case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>, <<"all_gw">>], Fields) of
+        true ->
+            % we have to wait for the rx quality indicators
+            {ok, {Handler, Vars}};
+        false ->
+            lorawan_backend_factory:uplink(AppID, Node, Vars),
+            {ok, undefined}
     end.
 
 handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}},
         _Gateways, _WillReply, #frame{port=Port}, undefined) ->
     % we did already handle this uplink
     lorawan_application:send_stored_frames(DevAddr, Port);
-handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}},
+handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node},
         Gateways, _WillReply, #frame{port=Port}, {#handler{fields=Fields}, Vars}) ->
-    lorawan_backend_factory:uplink(AppID, parse_rxq(Gateways, Fields, Vars)),
+    lorawan_backend_factory:uplink(AppID, Node, parse_rxq(Gateways, Fields, Vars)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 
 any_is_member(List1, List2) ->
@@ -54,17 +79,18 @@ any_is_member(List1, List2) ->
         List1).
 
 parse_uplink(#handler{app=AppID, parse=Parse, fields=Fields},
-        #node{devstat=DevStat},
+        #node{appargs=AppArgs, devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
+        vars_add(appargs, AppArgs, Fields,
         vars_add(battery, get_battery(DevStat), Fields,
         vars_add(fcnt, FCnt, Fields,
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        #{}))))))),
+        #{})))))))),
     data_to_fields(AppID, Parse, Vars, Data).
 
 parse_rxq(Gateways, Fields, Vars) ->
@@ -115,6 +141,20 @@ data_to_fields(AppId, {_, Fun}, Vars, Data) when is_function(Fun) ->
 data_to_fields(_AppId, _Else, Vars, _) ->
     Vars.
 
+handle_delivery({_Network, #profile{app=AppID}, #node{devaddr=DevAddr, appargs=AppArgs}=Node}, Result, Receipt) ->
+    case mnesia:dirty_read(handlers, AppID) of
+        [#handler{fields=Fields}] ->
+            Vars =
+                vars_add(devaddr, DevAddr, Fields,
+                vars_add(deveui, get_deveui(DevAddr), Fields,
+                vars_add(appargs, AppArgs, Fields,
+                vars_add(datetime, calendar:universal_time(), Fields,
+                #{receipt => Receipt})))),
+            lorawan_backend_factory:event(Result, AppID, Node, Vars),
+            ok;
+        [] ->
+            {error, {unknown_application, AppID}}
+    end.
 
 handle_downlink(AppId, Vars) ->
     [#handler{build=Build}] = mnesia:dirty_read(handlers, AppId),
@@ -124,7 +164,8 @@ handle_downlink(AppId, Vars) ->
             confirmed = maps:get(confirmed, Vars, false),
             port = maps:get(port, Vars, undefined),
             data = fields_to_data(AppId, Build, Vars),
-            pending = maps:get(pending, Vars, undefined)
+            pending = maps:get(pending, Vars, undefined),
+            receipt = maps:get(receipt, Vars, undefined)
         }).
 
 fields_to_data(AppId, {_, Fun}, Vars) when is_function(Fun) ->

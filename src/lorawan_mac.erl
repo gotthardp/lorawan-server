@@ -206,7 +206,7 @@ in_our_network(DevAddr) ->
                     false
             end
         end,
-        mnesia:select(networks, [{#network{netid='$1', subid='$2', _='_'}, [], [{'$1', '$2'}]}], read)).
+        mnesia:select(networks, [{#network{netid='$1', subid='$2', _='_'}, [], [{{'$1', '$2'}}]}], read)).
 
 load_profile(ProfID) ->
     case mnesia:read(profiles, ProfID, read) of

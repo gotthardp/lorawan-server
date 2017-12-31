@@ -69,6 +69,7 @@ ensure_tables() ->
             {type, ordered_set},
             {record_name, txframe},
             {attributes, record_info(fields, txframe)},
+            {index, [devaddr]},
             {disc_copies, [node()]}]},
         {rxframes, [
             {record_name, rxframe},
@@ -196,6 +197,8 @@ ensure_fields(Name, TabDef) ->
 get_value(_Rec, node, PropList) ->
     % import data from old structure
     get_value0(link, node, PropList);
+get_value(connector, publish_uplinks, PropList) ->
+    get_value0(published, publish_uplinks, PropList);
 get_value(handler, app, PropList) ->
     get_value0(appid, app, PropList);
 get_value(_Rec, X, PropList) ->

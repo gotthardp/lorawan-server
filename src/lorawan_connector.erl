@@ -4,21 +4,27 @@
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 -module(lorawan_connector).
--export([node_to_vars/1, is_pattern/1]).
+-export([node_to_vars/1, is_pattern/1, pattern_for_cowboy/1]).
 -export([prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2, same_common_vars/2]).
 -export([shared_access_token/4]).
 -export([form_encode/1, decode_and_downlink/3]).
 
 -include("lorawan_db.hrl").
 
-node_to_vars(#node{devaddr=DevAddr}) ->
-    #{devaddr=>DevAddr}.
+node_to_vars(#node{devaddr=DevAddr, appargs=AppArgs}) ->
+    #{devaddr=>DevAddr, appargs=>AppArgs};
+node_to_vars({#device{appargs=AppArgs}, DevAddr}) ->
+    #{devaddr=>DevAddr, appargs=>AppArgs}.
 
 is_pattern(Pattern) ->
     case string:chr(Pattern, ${) of
         0 -> false;
         N when N > 0 -> true
     end.
+
+pattern_for_cowboy(URI) ->
+    % convert our pattern to cowboy pattern
+    re:replace(URI, "{([^}])}", ":\\1", [{return, binary}]).
 
 prepare_filling(List) when is_list(List) ->
     lists:map(
@@ -187,6 +193,8 @@ pattern_test_()-> [
     matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}/suffix">>, <<"00112233/suffix">>),
     matchtst(#{devaddr => <<"00112233">>}, <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>),
     matchtst(#{group => <<"test">>, devaddr => <<"00112233">>}, <<"{group}-{devaddr}">>, <<"test-00112233">>),
+    ?_assertEqual(<<"{unknown}/00112233">>,
+        fill_pattern(prepare_filling(<<"{unknown}/{devaddr}">>), #{devaddr => <<"00112233">>})),
     ?_assertEqual(#{devaddr => <<"00112233">>},
         match_pattern(<<"00112233/trailing/data">>, prepare_matching(<<"{devaddr}/#">>))),
     ?_assertEqual(#{devaddr => <<"00112233">>},

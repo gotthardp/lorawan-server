@@ -13,7 +13,7 @@
 -include("lorawan_db.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
 
--record(state, {conn, cpid, subc, published, consumed}).
+-record(state, {conn, cpid, subc, publish_uplinks, publish_events, consumed}).
 
 start_connector(#connector{connid=Id}=Connector) ->
     {ok, _} = lorawan_connector_sup:start_child({amqp, Id}, ?MODULE, [Connector]).
@@ -24,7 +24,7 @@ stop_connector(Id) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([#connector{connid=ConnId, app=App, uri=Uri, published=Pub, consumed=Cons}=Connector]) ->
+init([#connector{connid=ConnId, app=App, uri=Uri, publish_uplinks=PubUp, publish_events=PubEv, consumed=Cons}=Connector]) ->
     process_flag(trap_exit, true),
     lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     ok = pg2:join({backend, App}, self()),
@@ -32,7 +32,8 @@ init([#connector{connid=ConnId, app=App, uri=Uri, published=Pub, consumed=Cons}=
 
     {ok, #state{
         conn=Connector,
-        published=lorawan_connector:prepare_filling(Pub),
+        publish_uplinks=lorawan_connector:prepare_filling(PubUp),
+        publish_events=lorawan_connector:prepare_filling(PubEv),
         consumed=lorawan_connector:prepare_matching(Cons)
     }}.
 
@@ -86,10 +87,19 @@ handle_info(subscribe, State) ->
 handle_info({'basic.consume_ok', _Tag}, State) ->
     {noreply, State};
 
+handle_info(nodes_changed, State) ->
+    % nothing to do here
+    {noreply, State};
 handle_info({uplink, _Node, Vars0},
-        #state{conn=#connector{format=Format}, cpid=Connection, published=PatPub}=State) ->
+        #state{conn=#connector{format=Format}, cpid=Connection, publish_uplinks=PatPub}=State) ->
     {ok, PubChannel} = amqp_connection:open_channel(Connection),
-    publish(PubChannel, Format, PatPub, Vars0),
+    publish_uplink(PubChannel, Format, PatPub, Vars0),
+    amqp_channel:close(PubChannel),
+    {noreply, State};
+handle_info({event, Event, _Node, Vars0},
+        #state{cpid=Connection, publish_events=PatPub}=State) ->
+    {ok, PubChannel} = amqp_connection:open_channel(Connection),
+    publish_event(PubChannel, Event, PatPub, Vars0),
     amqp_channel:close(PubChannel),
     {noreply, State};
 
@@ -119,21 +129,28 @@ terminate(Reason, #state{conn=#connector{connid=ConnId}}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-publish(PubChannel, Format, PatPub, Vars0) when is_list(Vars0) ->
+publish_uplink(PubChannel, Format, PatPub, Vars0) when is_list(Vars0) ->
     lists:foreach(
-        fun(V0) -> publish(PubChannel, Format, PatPub, V0) end,
+        fun(V0) -> publish_uplink(PubChannel, Format, PatPub, V0) end,
         Vars0);
-publish(PubChannel, Format, PatPub, Vars0) when is_map(Vars0) ->
+publish_uplink(PubChannel, Format, PatPub, Vars0) when is_map(Vars0) ->
+    amqp_channel:cast(PubChannel, basic_publish(PatPub, lorawan_admin:build(Vars0)),
+        #amqp_msg{payload = encode_uplink(Format, Vars0)}).
+
+publish_event(PubChannel, Event, PatPub, Vars0) ->
+    Vars = lorawan_admin:build(Vars0),
+    amqp_channel:cast(PubChannel, basic_publish(PatPub, Vars0),
+        #amqp_msg{payload = jsx:encode(#{atom_to_binary(Event, latin1) => Vars})}).
+
+basic_publish(PatPub, Vars) ->
     {Exchange, RoutingKey} =
-        case binary:split(lorawan_connector:fill_pattern(PatPub, lorawan_admin:build(Vars0)), <<$/>>) of
+        case binary:split(lorawan_connector:fill_pattern(PatPub, Vars), <<$/>>) of
             [EX, RK | _] ->
                 {EX, RK};
             [RK] ->
                 {<<"amq.topic">>, RK}
         end,
-    Publish = #'basic.publish'{exchange = Exchange, routing_key = RoutingKey},
-    amqp_channel:cast(PubChannel, Publish,
-        #amqp_msg{payload = encode_uplink(Format, Vars0)}).
+    #'basic.publish'{exchange = Exchange, routing_key = RoutingKey}.
 
 encode_uplink(<<"raw">>, Vars) ->
     maps:get(data, Vars, <<>>);
