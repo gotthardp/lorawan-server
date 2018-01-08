@@ -32,7 +32,7 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 get_server(Req, #state{key=Key}=State) ->
-    Server = mnesia:dirty_read(servers, Key),
+    Server = mnesia:dirty_read(servers, node()),
     {jsx:encode([{name, Key}, {array, get_array(Server)}]), Req, State}.
 
 get_array([#server{router_perf=Perf}]) when is_list(Perf) ->

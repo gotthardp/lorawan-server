@@ -63,6 +63,15 @@ handle_info({uplink, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State)
     end;
 handle_info({uplink, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
     {noreply, handle_uplink(Vars0, State)};
+handle_info({event, Event, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
+    case connect(Connector) of
+        {ok, ConnPid} ->
+            {noreply, handle_event(Event, Vars0, State#state{pid=ConnPid})};
+        {error, _} ->
+            {noreply, State#state{pid=undefined}}
+    end;
+handle_info({event, Event, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
+    {noreply, handle_event(Event, Vars0, State)};
 
 handle_info({gun_up, C, http}, State=#state{pid=C}) ->
     {noreply, State};
@@ -159,6 +168,14 @@ handle_uplink(Vars0, #state{conn=#connector{format=Format}, publish_uplinks=Patt
         {initial,
             lorawan_connector:fill_pattern(Pattern, lorawan_admin:build(Vars0)),
             ContentType, Body},
+        [], State).
+
+handle_event(Event, Vars0, #state{publish_events=Pattern}=State) ->
+    Vars = lorawan_admin:build(Vars0),
+    do_publish(
+        {initial,
+            lorawan_connector:fill_pattern(Pattern, Vars),
+            <<"application/json">>, jsx:encode(#{atom_to_binary(Event, latin1) => Vars})},
         [], State).
 
 do_publish({_Type, URI, ContentType, Body}=Msg, Headers, State=#state{pid=C, streams=Streams}) ->

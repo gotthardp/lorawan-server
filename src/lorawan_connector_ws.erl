@@ -11,22 +11,23 @@
 
 -include("lorawan_db.hrl").
 
--record(state, {connector, bindings}).
+-record(state, {connector, type, bindings}).
 
-start_connector(#connector{connid=Id, uri= <<"ws:", URI/binary>>}=Connector) ->
+start_connector(#connector{connid=Id, publish_uplinks=PubUp, publish_events=PubEv}=Connector) ->
     lorawan_http_registry:update_routes({ws, Id}, [
-        {lorawan_connector:pattern_for_cowboy(URI), ?MODULE, [Connector]}
+        {lorawan_connector:pattern_for_cowboy(PubUp), ?MODULE, [Connector, uplink]},
+        {lorawan_connector:pattern_for_cowboy(PubEv), ?MODULE, [Connector, event]}
     ]).
 
 stop_connector(Id) ->
     lorawan_http_registry:delete_routes({ws, Id}).
 
-init(Req, [#connector{connid=Id}=Connector]) ->
-    Bindings = cowboy_req:bindings(Req),
+init(Req, [#connector{connid=Id}=Connector, Type]) ->
+    Bindings = lorawan_admin:parse(cowboy_req:bindings(Req)),
     case validate(maps:to_list(Bindings)) of
         ok ->
             {ok, Timeout} = application:get_env(lorawan_server, websocket_timeout),
-            {cowboy_websocket, Req, #state{connector=Connector, bindings=Bindings}, #{idle_timeout => Timeout}};
+            {cowboy_websocket, Req, #state{connector=Connector, type=Type, bindings=Bindings}, #{idle_timeout => Timeout}};
         {error, Error} ->
             lorawan_utils:throw_error({connector, Id}, Error),
             Req2 = cowboy_req:reply(404, Req),
@@ -89,14 +90,29 @@ handle_downlink(Msg, #state{connector=Connector, bindings=Bindings}=State) ->
 websocket_info(nodes_changed, State) ->
     % nothing to do here
     {ok, State};
-websocket_info({uplink, _Node, Vars},
-        #state{connector=#connector{format=Format}, bindings=Bindings} = State) ->
-    case lorawan_connector:same_common_vars(Vars, Bindings) of
+websocket_info({uplink, _Node, Vars0},
+        #state{connector=#connector{format=Format}, type=uplink, bindings=Bindings} = State) ->
+    case lorawan_connector:same_common_vars(Vars0, Bindings) of
         true ->
-            {reply, encode_uplink(Format, Vars), State};
+            {reply, encode_uplink(Format, Vars0), State};
         false ->
             {ok, State}
     end;
+websocket_info({uplink, _Node, _Vars}, #state{type=event}=State) ->
+    % this is not for me
+    {ok, State};
+websocket_info({event, Event, _Node, Vars0},
+        #state{type=event, bindings=Bindings} = State) ->
+    case lorawan_connector:same_common_vars(Vars0, Bindings) of
+        true ->
+            {reply, {text,
+                jsx:encode(#{atom_to_binary(Event, latin1) => lorawan_admin:build(Vars0)})}, State};
+        false ->
+            {ok, State}
+    end;
+websocket_info({event, _Event, _Node, _Vars0}, #state{type=uplink}=State) ->
+    % this is not for me
+    {ok, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~p", [Info]),
     {ok, State}.

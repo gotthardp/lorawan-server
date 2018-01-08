@@ -174,7 +174,7 @@ handle_info({event, Event, Node, Vars0}, #state{publish_events=PatPub}=State) ->
 handle_info({publish, Topic, Payload}, State=#state{conn=Connector, consumed=Pattern}) ->
     % we assume the Topic is sufficient to determine the target
     case lorawan_connector:decode_and_downlink(Connector, Payload,
-            lorawan_connector:match_vars(Topic, Pattern)) of
+            lorawan_admin:parse(lorawan_connector:match_vars(Topic, Pattern))) of
         ok ->
             ok;
         {error, {Object, Error}} ->

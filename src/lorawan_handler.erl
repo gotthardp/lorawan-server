@@ -55,7 +55,7 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
                         {{missed, Receipt}, OldFrame};
                     [#pending{confirmed=true, receipt=Receipt}] when ACK == 1 ->
                         ok = mnesia:dirty_delete(pending, DevAddr),
-                        invoke_handler(handle_delivered, {Network, Profile, Node}, Receipt),
+                        invoke_handler(handle_delivery, {Network, Profile, Node}, [delivered, Receipt]),
                         {undefined, undefined};
                     [_Msg] ->
                         ok = mnesia:dirty_delete(pending, DevAddr),
@@ -183,7 +183,7 @@ send_unicast({MAC, GWState}, {Network, Profile, #node{devaddr=DevAddr}=Node}, Tx
     case mnesia:dirty_read(pending, DevAddr) of
         [#pending{confirmed=true, receipt=Receipt}] ->
             lorawan_utils:throw_error({node, DevAddr}, downlink_lost),
-            invoke_handler(handle_lost, {Network, Profile, Node}, [Receipt]);
+            invoke_handler(handle_delivery, {Network, Profile, Node}, [lost, Receipt]);
         _Else ->
             ok
     end,

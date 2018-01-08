@@ -20,12 +20,13 @@ handle_join({_Network, #profile{app=AppID}, #device{deveui=DevEUI, appargs=AppAr
     case mnesia:dirty_read(handlers, AppID) of
         [#handler{fields=Fields}] ->
             Vars =
+                vars_add(app, AppID, Fields,
                 vars_add(devaddr, DevAddr, Fields,
                 vars_add(deveui, DevEUI, Fields,
                 vars_add(appargs, AppArgs, Fields,
                 vars_add(datetime, calendar:universal_time(), Fields,
-                #{})))),
-            lorawan_backend_factory:event(join, AppID, {Device, DevAddr}, Vars),
+                #{}))))),
+            lorawan_backend_factory:event(joined, AppID, {Device, DevAddr}, Vars),
             ok;
         [] ->
             {error, {unknown_application, AppID}}
@@ -82,6 +83,7 @@ parse_uplink(#handler{app=AppID, parse=Parse, fields=Fields},
         #node{appargs=AppArgs, devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
+        vars_add(app, AppID, Fields,
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
         vars_add(appargs, AppArgs, Fields,
@@ -90,7 +92,7 @@ parse_uplink(#handler{app=AppID, parse=Parse, fields=Fields},
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        #{})))))))),
+        #{}))))))))),
     data_to_fields(AppID, Parse, Vars, Data).
 
 parse_rxq(Gateways, Fields, Vars) ->
@@ -145,11 +147,12 @@ handle_delivery({_Network, #profile{app=AppID}, #node{devaddr=DevAddr, appargs=A
     case mnesia:dirty_read(handlers, AppID) of
         [#handler{fields=Fields}] ->
             Vars =
+                vars_add(app, AppID, Fields,
                 vars_add(devaddr, DevAddr, Fields,
                 vars_add(deveui, get_deveui(DevAddr), Fields,
                 vars_add(appargs, AppArgs, Fields,
                 vars_add(datetime, calendar:universal_time(), Fields,
-                #{receipt => Receipt})))),
+                #{receipt => Receipt}))))),
             lorawan_backend_factory:event(Result, AppID, Node, Vars),
             ok;
         [] ->

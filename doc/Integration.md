@@ -1,46 +1,5 @@
 # Integration Guide
 
-## Generic MQTT Server
-
-You can integrate with generic MQTT server (message broker), e.g. the
-[RabbitMQ](https://www.rabbitmq.com/mqtt.html) or
-[Mosquitto](https://mosquitto.org).
-
-First of all, make sure you understand the
-[terminology and principles of messaging](http://www.rabbitmq.com/tutorials/tutorial-one-php.html)
-and that the MQTT protocol [is enabled](https://www.rabbitmq.com/mqtt.html)
-in your broker.
-
-Open the lorawan-server web-administration and create a Backend Connector:
- * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
- * *Published Topic* is a pattern for constructing the message topic
-   of uplinks, e.g. `out/{devaddr}`.
- * *Subscribe* is a downlink topic to be subscribed by the lorawan-server,
-   e.g. `in/#`.
- * *Received Topic* is a template for parsing the topic of received downlink
-   messages, e.g. `in/{devaddr}`.
-
-On the Authentication tab:
- * *Auth* shall be set to *Username+Password*, even when the *Name* and
-   *Password/Key* are empty.
-
-In order to consume the uplink messages sent by your devices you have to subscribe
-at the message broker for the *Published Topic*, e.g. for `out/#` (or even just `#`) by:
-```bash
-mosquitto_sub -h 127.0.0.1 -p 1883 -t 'out/#' -u 'user' -P 'pass'
-```
-
-When using RabbitMQ, create a queue and then bind it to the `amq.topic` exchange
-using the `out.#` (or `#`) binding key. Note that while MQTT uses slashes ("/") for
-topic segment separators, RabbitMQ uses dots. RabbitMQ internally translates the two,
-so for example the MQTT topic `cities/london` becomes in RabbitMQ `cities.london`.
-
-To send a downlink message to one of your devices do e.g.
-```bash
-mosquitto_pub -h 127.0.0.1 -p 1883 -t 'in/00112233' -m '{"data":"00"}' -u 'user' -P 'pass'
-```
-
-
 ## AWS IoT
 
 Amazon Web Services (AWS) can be integrated via MQTT. All Nodes can share the same
@@ -62,7 +21,7 @@ First, follow the AWS IoT guidelines to configure your IoT device:
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the AWS *Endpoint* with the `mqtts://` prefix
- * *Published Topic* is a pattern for the publication topic, e.g. `out/{devaddr}`.
+ * *Published Uplinks* is a pattern for the publication topic, e.g. `out/{devaddr}`.
  * *Subscribe* is a topic to be subscribed by the lorawan-server, e.g. `in/#`.
  * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
 
@@ -94,7 +53,7 @@ First, follow the IBM Bluemix documentation to configure the IoT Gateway:
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* shall be `mqtt://orgid.messaging.internetofthings.ibmcloud.com`, where
    orgid is your *Organization ID* displayed on the web-page you didn't close.
- * *Published Topic* is a pattern for the publication topic,
+ * *Published Uplinks* is a pattern for the publication topic,
    e.g. `iot-2/type/loramote/id/{deveui}/evt/status/fmt/json`, where loramote is
    the *device type* you created.
  * *Subscribe* is a topic to be subscribed by the lorawan-server,
@@ -123,7 +82,7 @@ First, follow the ThingSpeak guidelines and create a New Channel:
 
 Open the lorawan-server web-administration and create an Backend Connector:
  * *URI* shall be either `mqtt://mqtt.thingspeak.com` or `mqtts://mqtt.thingspeak.com`
- * *Published Topic* shall be `channels/<channelID>/publish/<apikey>`, where
+ * *Published Uplinks* shall be `channels/<channelID>/publish/<apikey>`, where
    * `<channelID>` is the numeric *Channel ID*
    * `<apikey>` is the *Write API Key*
  * *Subscribe* and *Received Topic* shall be left empty.
@@ -155,7 +114,7 @@ First, follow the Azure guidelines to configure your IoT device:
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the IoT Hub *Hostname* with the `mqtts://` prefix
- * *Published Topic* shall be `devices/{devaddr}/messages/events/`.
+ * *Published Uplinks* shall be `devices/{devaddr}/messages/events/`.
    The trailing slash is mandatory.
  * *Subscribe* shall be `devices/xxxxxxxx/messages/devicebound/#`.
  * *Received Topic* shall be `devices/{devaddr}/messages/devicebound/#`.
@@ -184,7 +143,7 @@ you consult the following Adafruit articles:
 Once your Adafruit account, dashboards and feeds are set up, go to the
 lorawan-server web-administration and create a Backends->Connector:
  * *URI* - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
- * *Published Topic* - Name of the topic you will be publishing to in the form
+ * *Published Uplinks* - Name of the topic you will be publishing to in the form
    `YourUserName/feeds/YourFeed`.
  * *Subscribe* - Name of the topic you want to receive data from in the form
    `YourUserName/feeds/YourFeed`.

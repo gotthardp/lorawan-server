@@ -17,7 +17,7 @@
 -record(state, {connector, bindings}).
 
 init(Req, [Connector]) ->
-    Bindings = cowboy_req:bindings(Req),
+    Bindings = lorawan_admin:parse(cowboy_req:bindings(Req)),
     {cowboy_rest, Req, #state{connector=Connector, bindings=Bindings}}.
 
 is_authorized(Req, State) ->

@@ -729,8 +729,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]));
     connectors.editionView().fields(connectors.creationView().fields());
     connectors.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:8},
-        {name:"Authentication", min:8, max:14}
+        {name:"General", min:0, max:9},
+        {name:"Authentication", min:9, max:15}
     ]));
     // add to the admin application
     admin.addEntity(connectors);
@@ -746,6 +746,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('fields', 'choices').label('Uplink Fields')
             .choices([
+                { value: 'app', label: 'app' },
                 { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
                 { value: 'appargs', label: 'appargs' },
@@ -890,6 +891,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(rxframes).title('Received Frames')
             .fields([
                 nga.field('datetime', 'datetime').label('Received'),
+                nga.field('app').label('Application'),
                 nga.field('devaddr').label('DevAddr')
                     .template(function(entry) {
                         return "<a href='/admin/#nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
@@ -1305,7 +1307,7 @@ return {
             $scope.srvChartObject.type = "LineChart";
             $scope.srvChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Count'},
+                    0: {"title": 'Count', "minValue": 0},
                 },
                 "series": {
                     0: {"targetAxisIndex": 0},

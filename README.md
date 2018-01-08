@@ -20,6 +20,7 @@ The server:
    * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
  * Invokes external applications. It currently supports connections via:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
+   * HTTP/1.1 and HTTP/2 protocol (REST API)
    * [MQTT v3.1/v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html),
      including applications hosted in
      [Amazon AWS IoT](https://aws.amazon.com/iot/),
@@ -27,13 +28,14 @@ The server:
      [MathWorks ThingSpeak](https://thingspeak.com/),
      [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
      or [Adafruit IO](https://io.adafruit.com/)
+   * AMQP 0-9-1 to the [RabbitMQ](http://www.rabbitmq.com/)
  * Handles (any number of) Class A or Class C devices.
    * Supports both the node activation by personalization (ABP) and the
      over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
    * Supports multicast to user-defined groups.
-   * Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928, CN 470-510,
-     KR 920-923 and AS923-JP bands.
+   * Supports all regions standartized in LoRaWAN 1.0.2 Regional Parameters for
+     Europe, US, China, Australia, Asia, South Korea and India.
  * Provides a network management interface.
    * Monitors the server, gateways and node health status and displays device
      battery and connection quality indicators.
@@ -103,9 +105,11 @@ as described in the [Administration Guide](doc/Administration.md) and in the
 By default you can access the administration at http://*server*:8080, using
 "admin" as both username and password. After the installation you have to:
  * Change the default password to something more secure.
- * Add LoRaWAN gateways you want to use.
- * Configure each device you want to use, either as a personalized device (ABP) or
-   as an over-the-air activated (OTAA) device.
+ * Configure parameters of your *Networks*.
+ * Add LoRaWAN *Gateways* you want to use.
+ * Define the device *Profiles* that you will have.
+ * Configure each device you want to use, either as a personalized *Node* (ABP) or
+   as an *Commissioned* and over-the-air activated (OTAA) device.
 
 ### Integration
 
