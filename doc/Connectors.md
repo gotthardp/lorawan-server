@@ -6,20 +6,20 @@ connector is linked with one Handler and specifies:
  * Target endpoint, i.e server address and message topics
  * Encoding of the data fields
 
-## Configuration
+## Administration
 
 To create a new connector you set:
  * *Connector Name*
  * *Application* that references a specific backend *Handler*
  * *Format* of the message payload, which can be:
    * *JSON* to encode data fields as [JSON](http://www.json.org) structures like `{"NameOne":ValueOne, "NameTwo":ValueTwo}`.
-   * *Raw Data* to send just the content of the *data* field, without ant port numbers nor flags.
+   * *Raw Data* to send just the binary content of the *data* field, without ant port numbers nor flags.
    * *Web Form* to encode fields in a query strings like `NameOne=ValueOne&NameTwo=ValueTwo`.
  * *URI* defines the target host, which can be
-   * `ws:` for Web Sockets
-   * `http://host:port` for HTTP POST or `https://host:port` for HTTP/SSL
-   * `mqtt://host:port` for MQTT or `mqtts://host:port` for MQTT/SSL
-   * `amqp://host:port` for AMQP or `amqp://host:port` for AMQP/SSL
+   * `ws:` (with no host:port) for Web Sockets
+   * `http://` for HTTP POST or `https://` for HTTP/SSL
+   * `mqtt://` for MQTT or `mqtts://` for MQTT/SSL
+   * `amqp://` for AMQP or `amqp://` for AMQP/SSL
  * *Published Uplinks*, which is a server pattern for constructing the publication
    topic for uplink messages, e.g. `out/{devaddr}`. This can be used to include
    the actual DevEUI, DevAddr or other data field in the message topic.
@@ -109,7 +109,7 @@ without any spaces.
 Each byte is represented by exactly 2 digits. For example, "4849" represents ASCII string "01".
 
 
-## Generic MQTT Server
+## Generic MQTT Servers
 
 You can integrate with generic MQTT server (message broker), e.g. the
 [RabbitMQ](https://www.rabbitmq.com/mqtt.html) or
