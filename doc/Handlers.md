@@ -16,10 +16,9 @@ In addition to uplink frames the backend can receive device related events:
  * when a confirmed frame was *delivered*
  * when a confirmed frame was *lost*
 
+
+## Administration
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-handler.png)
-
-
-## Configuration
 
 To create a new handler you need to set:
  * *Application* name
@@ -42,7 +41,7 @@ Depending on the *Uplink Fields* settings the server sends to backend
 applications the following fields:
 
   Field      | Type        | Usage  | Meaning
- ------------|-------------|------------------------------------------------------
+ ------------|-------------|--------|----------------------------------------------
   app        | String      | U J DL | Application (Handler) name.
   devaddr    | Hex String  | U J DL | DevAddr of the active node.
   deveui     | Hex String  | U J DL | DevEUI of the device.
