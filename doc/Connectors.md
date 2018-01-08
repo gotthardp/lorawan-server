@@ -41,15 +41,40 @@ On the Authentication tab:
  * *Name* and *Password/Key* for plain authentication
  * *User Certificate* and *Private Key* if SSL authentication is needed
 
-To include node-specific attributes the Published and Received Topic may include
-data field names in curly brackets, e.g. `{deveui}` or `{port}`.
+If the Connector is *Enabled* and a *Subscribe* topic is defined the server will
+automatically connect to the backend server and subscribe this topic.
+
+Please read the [Integration Guide](Integration.md) for detailed information on
+how to connect to a specific IoT Platform like AWS IoT, IBM Watson IoT, MathWorks
+ThingSpeak, Azure IoT Hub or Adafruit IO.
+
+### Patterns
+
+To include and extract node-specific attributes the Published and Received Topic
+may include data field names in curly brackets, e.g. `{deveui}` or `{port}`
+(see the *Uplink Fields* of Backend Handlers).
+
+If you set *Published Topic* to `/device/{deveui}` and `#{deveui => "123456"}`,
+then the topic `/device/123456` will be used for the particulat frame.
+
+Similarly, if your *Received Topic* is `/device/{deveui}` and the backend
+publishes a downlink to `/device/123456`, the field `#{deveui => "123456"}`
+will be set and used for routing the downlink.
+
+The data fields you use in your patterns must be included as *Uplink Fields*
+of the respective Handler.
+
+The MQTT connector allows the `{devaddr}` and `{appargs}` parameter also for the
+*URI* and *Authentication* fields to create device-specific connections.
+
+If you set *Client ID* to `{devaddr}` the server will create as many MQTT
+connections as many devices you have, each using its `devaddr` as the ClientID.
 
 The Received Topic may also include the `#` (hash), which matches zero or more
 characters, including any '/' delimiters. It can be used to ignore the leading
 or training characters in the topic.
 
-If the Connector is *Enabled* and a *Subscribe* topic is defined the server will
-automatically connect to the backend server and subscribe this topic.
+### Certificates
 
 You can generate a self-signed *User Certificate* (`cert.pem`) and corresponding
 *Private Key* (`key.pem`) by:
@@ -57,11 +82,6 @@ You can generate a self-signed *User Certificate* (`cert.pem`) and corresponding
 openssl req -x509 -newkey rsa:4096 -keyout privkey.pem -out cert.pem -days 365
 openssl rsa -in privkey.pem -out key.pem
 ```
-
-Please read the [Integration Guide](Integration.md) for detailed information on
-how to connect to a specific IoT Platform like AWS IoT, IBM Watson IoT, MathWorks
-ThingSpeak, Azure IoT Hub or Adafruit IO.
-
 
 ## Web Sockets
 
@@ -108,6 +128,17 @@ In the **Raw** mode all information must be entered as a string of hexadecimal d
 without any spaces.
 Each byte is represented by exactly 2 digits. For example, "4849" represents ASCII string "01".
 
+## HTTP/REST
+
+To create a HTTP connector you set:
+ * *URI* to the target host either as `http://host:port` or `http://host:port
+ * *Publish Uplinks* to a URL pattern starting with a slash, e.g. '/uplink/{devaddr}'
+ * *Publish Events* to another URL pattern, e.g. '/events/{devaddr}'
+ * *Received Topic* is a template for parsing the topic of received downlink
+   messages, e.g. `in/{devaddr}`.
+
+The *Received Topic* must be different to all Web Socket *Publish* patterns.
+
 
 ## Generic MQTT Servers
 
@@ -132,6 +163,11 @@ Open the lorawan-server web-administration and create a Backend Connector:
 On the Authentication tab:
  * *Auth* shall be set to *Username+Password*, even when the *Name* and
    *Password/Key* are empty.
+
+Exclusively for MQTT, the *URI*, *Client ID*, *Name*, *Password/Key* and *Subscribe*
+may also include patterns, but limited to `{devaddr}` and `{appargs}` only. This
+can be used to create device-specific connections or subscriptions. Use with care:
+creating too many connections may cause overload.
 
 In order to consume the uplink messages sent by your devices you have to subscribe
 at the message broker for the *Published Topic*, e.g. for `out/#` (or even just `#`) by:

@@ -144,10 +144,8 @@ For example:
 ```erlang
 [{lorawan_server, [
     % update this list to add/remove applications
-    {plugins, [
-        {<<"semtech-mote">>, lorawan_application_semtech_mote},
-        {<<"microchip-mote">>, lorawan_application_microchip_mote},
-        {<<"websocket">>, lorawan_application_websocket}]},
+    {applications, [
+        {<<"semtech-mote">>, lorawan_application_semtech_mote}]},
     % UDP port listening for packets from the packet_forwarder Gateway
     {packet_forwarder_listen, [{port, 1680}]},
     % HTTP port for web-administration and REST API

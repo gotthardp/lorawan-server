@@ -1,17 +1,19 @@
 # Building Custom Applications
 
-By default you will see 4 different applications. Two wrappers for connecting to
-external applications:
- * *backend* for connecting to [MQTT Backends](Backends.md).
- * *websocket* for receiving connections from [WebSocket clients](WebSockets.md).
+The server applications include:
+ * External applications defined by the [Handlers](Handlers.md)
+ * Internal applications implemented in Erlang
 
-And two very simple internal applications for existing motes:
+After a fresh installation you will see only one internal application:
  * *semtech-mote* for
    [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
- * *microchip-mote* for
-   [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
 
-You may follow these examples and create your own internal applications.
+Sample lorawan-server extension, which implements a *microchip-mote* application
+for [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138),
+is available at
+https://github.com/gotthardp/lorawan-server-demoapp.
+
+You may fork this example and create your own internal applications.
 
 Each application may implement:
   * LoRaWAN application handlers (see `lorawan_application` behaviour);
@@ -25,7 +27,7 @@ module implementing the `lorawan_application` behaviour and register it in the
 [`sys.config`](../lorawan_server.config):
 ```erlang
 {lorawan_server, [
-    {plugins, [
+    {applications, [
         {<<"my-app">>, lorawan_application_xxx},
         ...
     ]}
@@ -35,29 +37,32 @@ The custom application may be implemented as a standalone Erlang application `ap
 In such case do:
 ```erlang
 {lorawan_server, [
-    {plugins, [
+    {applications, [
         {<<"my-app">>, {app_x, lorawan_application_xxx}},
         ...
     ]}
 ```
 
-This standalone Erlang application `app_x` may be included in the lorawan-server
-release defined in the `rebar.config`:
+You may write a new `rebar.config` and create a rebar release bundling together
+your custom `app_x` and the standard lorawan-server release.
 ```erlang
+{erl_opts, [
+    {parse_transform, lager_transform}
+]}.
 {deps, [
-    {app_x, {git, "https://github.com/your_account/app-x.git", {branch, "master"}}},
-    ...
+    {lorawan_server, {git, "https://github.com/gotthardp/lorawan-server.git", {branch, "master"}}}
 ]}.
 {relx, [
-    {release, {'lorawan-server', "0.0.0"},
-        [lorawan_server, app_x]},
-    ...
+    {release, {'lorawan-server-appx', "0.1.0"},
+        [lorawan_server, lorawan_appx]},
+    {sys_config, "lorawan_demoapp.config"}
 ]}.
 ```
 
 ## lorawan_application Behaviour
 
-Your module needs to export `init/1`, `handle_join/3` and `handle_rx/5` functions.
+Your module needs to export `init/1`, `handle_join/3`, `handle_uplink/4`,
+`handle_rxq/5` and `handle_delivery/3` functions.
 
 ### init(App)
 
@@ -66,30 +71,55 @@ The `init/1` will be called upon server initialization. It shall return either
 REST API or WebSockets). For more details see
 [Cowboy Routing](https://github.com/ninenines/cowboy/blob/master/doc/src/guide/routing.asciidoc).
 
-### handle_join(DevAddr, AppID, AppArgs)
+### handle_join({Network, Profile, Device}, {MAC, RxQ}, DevAddr)
 
 The `handle_join/3` will be called when a new node joins the network. The function
 shall return either `ok` or `{error, error_description}`.
 
-### handle_rx(DevAddr, AppID, AppArgs, RxData, RxQ)
+### handle_uplink({Network, Profile, Node}, {MAC, RxQ}, LastMissed, Frame)
 
-The `handle_rx/5` will be called upon reception of a LoRaWAN frame:
-  * *DevAddr* is the 4-byte device address
-  * *AppID* is an application-specific device group or behaviour
-  * *AppArgs* is an opaque string with application-specific settings
-  * *RxData* is the #rxdata{} record with:
+The `handle_uplink/4` will be called upon first reception of a LoRaWAN frame
+(before deduplication):
+  * *Network* parameters where the node is operating
+  * *Profile* of the node
+  * *Node* configuration
+  * *MAC* of the gateway that first received this frame (this doesn't have to be
+    the best gateway)
+  * *RxQ* with reception quality at the first gateway
+  * *LastMissed* can be
+    * {missed, *Receipt*} when the last downlink was confirmed and got lost
+    * `undefined` otherwise
+  * *Frame* is the #frame{} record with:
     * *fcnt*
     * *port* number
     * *data* binary
-    * *last_lost* flag indicating that the last confirmed response got lost
-    * *shall_reply* flag indicating the MAC has to reply to the device even if
-      the application sends no data
   * *RxQ* contains the #rxq{} record with frame reception details
 
 The *last_lost* flag allows the application to decide to send new data instead of
 retransmitting the old data.
 
-The *shall_reply* flag allows the application to send data when a downlink frame
+The function may return:
+  * {ok, State} to continue processing in `handle_rxq/5`
+  * *retransmit* to re-send the last frame (when *#rxdata.last_lost* was *true*)
+  * *{error, error_description}* to record a failure and send nothing
+
+### handle_rxq({Network, Profile, Node}, Gateways, WillReply, Frame, State)
+
+The `handle_rxq/5` will be called after receiving the frame from all gateways
+(after deduplication):
+  * *Network* parameters where the node is operating
+  * *Profile* of the node
+  * *Node* configuration
+  * *Gateways* that received the frame, sorted based on RSSI (the best first),
+    which is a list of tuples {MAC, RxQ}, where:
+    * *MAC* of the gateway that received the frame
+    * *RxQ* with reception quality at this gateway
+  * *WillReply* flag indicating the MAC is about to reply to the device even if
+    the application sends no data
+  * *Frame* is the #frame{} record
+  * *State* received from `handle_uplink/4`
+
+The *WillReply* flag allows the application to send data when a downlink frame
 needs to be transmitted anyway due to a MAC layer decision.
 This flag is set when:
   * Confirmed uplink was received, which needs to be acknowledged
@@ -98,23 +128,25 @@ This flag is set when:
 
 The function may return:
   * *ok* to not send any response
-  * *retransmit* to re-send the last frame (when *#rxdata.last_lost* was *true*)
   * *{send, #txdata{}}* to send a response back, where the #txdata{} record may include:
     * *port* number
     * *data* binary
     * *confirmed* flag to indicate a confirmed response (default is *false*)
     * *pending* flag to indicates the application has more data to send (default is *false*)
+    * *receipt* field to include any opaque data
   * *{error, error_description}* to record a failure and send nothing
 
-For example:
-```erlang
-handle_rx(DevAddr, <<"my-app">>, AppArgs, #rxdata{last_lost=true}) ->
-    retransmit;
-handle_rx(DevAddr, <<"my-app">>, AppArgs, #rxdata{port=PortIn, data= <<"DataIn">>}) ->
-    %% application logic
-    %% ...
-    {send, #txdata{port=PortOut, data= <<"DataOut">>}}.
-```
+### handle_delivery({Network, Profile, Node}, Result, Receipt)
+
+The `handle_delivery/3` will be called after successfull or unsuccessfull delivery
+of a confirmed downlink frame:
+  * *Network* parameters where the node is operating
+  * *Profile* of the node
+  * *Node* configuration
+  * *Result* can be
+    * *delivered*
+    * *lost*
+  * *Receipt* is the value included in the downlink #txdata
 
 ## HTTP Server
 

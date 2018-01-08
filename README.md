@@ -4,6 +4,11 @@ Open-source LoRaWAN Server that integrates both the network-server and the appli
 This is useful for application providers that operate their own LoRa network,
 or for device and application developers.
 
+**This is unstable relase 0.5.0.** Migrating to this version will preserve the
+Device/Node addresses and security keys, but will delete many ADR parameters, which
+got moved to the Profile settings. You are required to review and complete
+the configuration before connecting any gateway or device!
+
 The server:
  * Implements the LoRaWAN Specification v1.0.2
  * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
@@ -105,8 +110,7 @@ as described in the [Administration Guide](doc/Administration.md) and in the
 By default you can access the administration at http://*server*:8080, using
 "admin" as both username and password. After the installation you have to:
  * Change the default password to something more secure.
- * Configure parameters of your *Networks*.
- * Add LoRaWAN *Gateways* you want to use.
+ * Set parameters of your *Network* and add LoRaWAN *Gateways* you want to use.
  * Define the device *Profiles* that you will have.
  * Configure each device you want to use, either as a personalized *Node* (ABP) or
    as an *Commissioned* and over-the-air activated (OTAA) device.
