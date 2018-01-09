@@ -53,7 +53,6 @@
 
 -record(gateway, {
     mac :: binary(),
-    network :: nonempty_string(),
     group :: any(),
     tx_rfch :: integer(), % rf chain for downlinks
     ant_gain :: integer(), % antenna gain

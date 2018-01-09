@@ -256,9 +256,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- gateways
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
-        nga.field('network', 'reference')
-            .targetEntity(networks)
-            .targetField(nga.field('name')),
         nga.field('group'),
         nga.field('desc').label('Description'),
         nga.field('ip_address.ip').label('IP Address'),
@@ -276,10 +273,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 return value.replace(/[-:]/g, '')
             })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
-        nga.field('network', 'reference')
-            .targetEntity(networks)
-            .targetField(nga.field('name'))
-            .validation({ required: true }),
         nga.field('group'),
         nga.field('tx_rfch', 'number').label('TX Chain')
             .attributes({ placeholder: 'e.g. 0' })
@@ -310,8 +303,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]));
     gateways.editionView().fields(gateways.creationView().fields());
     gateways.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:8},
-        {name:"Status", min:8, max:14}
+        {name:"General", min:0, max:7},
+        {name:"Status", min:7, max:13}
     ]));
     // add to the admin application
     admin.addEntity(gateways);
