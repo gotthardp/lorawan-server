@@ -6,7 +6,7 @@
 -module(lorawan_application).
 
 -export([init/0]).
--export([store_frame/2, get_stored_frames/1, send_stored_frames/2]).
+-export([store_frame/2, get_stored_frames/1, take_previous_frames/2, send_stored_frames/2]).
 
 -define(MAX_DELAY, 250). % milliseconds
 
@@ -55,15 +55,24 @@ invoke_init({App, Module}) when is_atom(Module) ->
     apply(Module, init, [App]).
 
 store_frame(DevAddr, TxData) ->
-    {atomic, ok} =
-        mnesia:transaction(fun() ->
-            mnesia:write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
-                datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}, write)
-        end),
-    ok.
+    mnesia:dirty_write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
+        datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}).
 
 get_stored_frames(DevAddr) ->
     mnesia:dirty_select(txframes, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]).
+
+take_previous_frames(DevAddr, Port) ->
+    lists:foldl(
+        fun(#txframe{frid=Id, txdata=TxData}, Acc) ->
+            if
+                TxData#txdata.port == Port ->
+                    ok = mnesia:dirty_delete(txframes, Id),
+                    [TxData | Acc];
+                true ->
+                    Acc
+            end
+        end,
+        [], get_stored_frames(DevAddr)).
 
 send_stored_frames(DevAddr, DefPort) ->
     case get_stored_frames(DevAddr) of

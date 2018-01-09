@@ -34,13 +34,13 @@ handle_join({_Network, #profile{app=AppID}, #device{deveui=DevEUI, appargs=AppAr
 
 handle_uplink({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ, LastMissed, Frame) ->
     case mnesia:dirty_read(handlers, AppID) of
-        [#handler{retransmit=Retransmit}=Handler] ->
+        [#handler{downlink_expires=Expires}=Handler] ->
             case LastMissed of
                 {missed, _Receipt} ->
                     case lorawan_application:get_stored_frames(DevAddr) of
                         [] ->
                             retransmit;
-                        List when length(List) > 0, Retransmit == <<"always">> ->
+                        List when length(List) > 0, Expires == <<"never">> ->
                             retransmit;
                         _Else ->
                             handle_uplink0(Handler, Node, Frame)
@@ -143,25 +143,30 @@ data_to_fields(AppId, {_, Fun}, Vars, Data) when is_function(Fun) ->
 data_to_fields(_AppId, _Else, Vars, _) ->
     Vars.
 
-handle_delivery({_Network, #profile{app=AppID}, #node{devaddr=DevAddr, appargs=AppArgs}=Node}, Result, Receipt) ->
+handle_delivery({_Network, #profile{app=AppID}, Node}, Result, Receipt) ->
     case mnesia:dirty_read(handlers, AppID) of
-        [#handler{fields=Fields}] ->
-            Vars =
-                vars_add(app, AppID, Fields,
-                vars_add(devaddr, DevAddr, Fields,
-                vars_add(deveui, get_deveui(DevAddr), Fields,
-                vars_add(appargs, AppArgs, Fields,
-                vars_add(datetime, calendar:universal_time(), Fields,
-                #{receipt => Receipt}))))),
-            lorawan_backend_factory:event(Result, AppID, Node, Vars),
-            ok;
+        [Handler] ->
+            send_delivery_event(Handler, Node, Result, Receipt);
         [] ->
             {error, {unknown_application, AppID}}
     end.
 
+send_delivery_event(#handler{app=AppID, fields=Fields},
+        #node{devaddr=DevAddr, appargs=AppArgs}=Node, Result, Receipt) ->
+    Vars =
+        vars_add(app, AppID, Fields,
+        vars_add(devaddr, DevAddr, Fields,
+        vars_add(deveui, get_deveui(DevAddr), Fields,
+        vars_add(appargs, AppArgs, Fields,
+        vars_add(datetime, calendar:universal_time(), Fields,
+        #{receipt => Receipt}))))),
+    lorawan_backend_factory:event(Result, AppID, Node, Vars),
+    ok.
+
 handle_downlink(AppId, Vars) ->
-    [#handler{build=Build}] = mnesia:dirty_read(handlers, AppId),
-    send_downlink(Vars,
+    [#handler{build=Build}=Handler] = mnesia:dirty_read(handlers, AppId),
+    send_downlink(Handler,
+        Vars,
         maps:get(time, Vars, undefined),
         #txdata{
             confirmed = maps:get(confirmed, Vars, false),
@@ -181,32 +186,36 @@ fields_to_data(AppId, {_, Fun}, Vars) when is_function(Fun) ->
 fields_to_data(_AppId, _Else, Vars) ->
     maps:get(data, Vars, <<>>).
 
-send_downlink(#{deveui := DevEUI}, undefined, TxData) ->
+send_downlink(Handler, #{deveui := DevEUI}, undefined, TxData) ->
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
             {error, {{device, DevEUI}, unknown_deveui}};
         [Device] ->
+            [Node] = mnesia:dirty_read(nodes, Device#device.node),
             % standard downlink to an explicit node
+            purge_frames(Handler, Node, TxData),
             lorawan_application:store_frame(Device#device.node, TxData)
     end;
-send_downlink(#{deveui := DevEUI}, Time, TxData) ->
+send_downlink(Handler, #{deveui := DevEUI}, Time, TxData) ->
     case mnesia:dirty_read(devices, DevEUI) of
         [] ->
             {error, {{device, DevEUI}, unknown_deveui}};
         [Device] ->
             [Node] = mnesia:dirty_read(nodes, Device#device.node),
             % class C downlink to an explicit node
+            purge_frames(Handler, Node, TxData),
             lorawan_handler:downlink(Node, Time, TxData)
     end;
-send_downlink(#{devaddr := DevAddr}, undefined, TxData) ->
+send_downlink(Handler, #{devaddr := DevAddr}, undefined, TxData) ->
     case mnesia:dirty_read(nodes, DevAddr) of
         [] ->
             {error, {{node, DevAddr}, unknown_devaddr}};
-        [_Node] ->
+        [Node] ->
             % standard downlink to an explicit node
+            purge_frames(Handler, Node, TxData),
             lorawan_application:store_frame(DevAddr, TxData)
     end;
-send_downlink(#{devaddr := DevAddr}, Time, TxData) ->
+send_downlink(Handler, #{devaddr := DevAddr}, Time, TxData) ->
     case mnesia:dirty_read(nodes, DevAddr) of
         [] ->
             case mnesia:dirty_read(multicast_channels, DevAddr) of
@@ -218,22 +227,43 @@ send_downlink(#{devaddr := DevAddr}, Time, TxData) ->
             end;
         [Node] ->
             % class C downlink to an explicit node
+            purge_frames(Handler, Node, TxData),
             lorawan_handler:downlink(Node, Time, TxData)
     end;
-send_downlink(#{app := AppID}, undefined, TxData) ->
+send_downlink(Handler, #{app := AppID}, undefined, TxData) ->
     % downlink to a group
     filter_group_responses(AppID,
-        [lorawan_application:store_frame(DevAddr, TxData)
-            || #node{devaddr=DevAddr} <- lorawan_backend_factory:nodes_with_backend(AppID)]
-    );
-send_downlink(#{app := AppID}, Time, TxData) ->
+        lists:map(
+            fun(#node{devaddr=DevAddr}=Node) ->
+                purge_frames(Handler, Node, TxData),
+                lorawan_application:store_frame(DevAddr, TxData)
+            end,
+            lorawan_backend_factory:nodes_with_backend(AppID)));
+send_downlink(Handler, #{app := AppID}, Time, TxData) ->
     % class C downlink to a group of devices
     filter_group_responses(AppID,
-        [lorawan_handler:downlink(Node, Time, TxData)
-            || Node <- lorawan_backend_factory:nodes_with_backend(AppID)]
-    );
-send_downlink(Else, _Time, _TxData) ->
+        lists:map(
+            fun(Node) ->
+                purge_frames(Handler, Node, TxData),
+                lorawan_handler:downlink(Node, Time, TxData)
+            end,
+            lorawan_backend_factory:nodes_with_backend(AppID)));
+send_downlink(_Handler, Else, _Time, _TxData) ->
     lager:error("Unknown downlink target: ~p", [Else]).
+
+purge_frames(#handler{downlink_expires = <<"superseded">>}=Handler,
+        #node{devaddr=DevAddr}=Node, #txdata{port=Port}) ->
+    lists:foreach(
+        fun
+            (#txdata{confirmed=true, receipt=Receipt}) ->
+                lorawan_utils:throw_error({node, DevAddr}, downlink_lost),
+                send_delivery_event(Handler, Node, lost, Receipt);
+            (#txdata{}) ->
+                ok
+        end,
+        lorawan_application:take_previous_frames(DevAddr, Port));
+purge_frames(_Handler, _Node, _TxData) ->
+    ok.
 
 filter_group_responses(AppID, []) ->
     lager:warning("Group ~w is empty", [AppID]);

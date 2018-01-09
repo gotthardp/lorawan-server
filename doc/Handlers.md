@@ -25,9 +25,16 @@ To create a new handler you need to set:
  * *Uplink Fields* that will be forwarded to the backend Connector
  * *Parse Uplink* function to extract additional data fields from the uplink frame
  * *Build Downlink* function to create a downlink frame based on backend data fields
- * *Retransmit* behaviour to either:
-   * *Always* retransmit all unacknowledged downlinks, even when a new downlink is available
-   * *Recent Only* to drop unacknowledged downlinks if a new downlink is available
+ * *D/L Expires* defines when the downlinks may be dropped.
+   * *Never* means that:
+     * All class A downlinks for a device will be queued and eventually delivered.
+     * All confirmed downlinks will be retransmitted until acknowledged, even
+       when a new downlink is sent.
+   * *When Superseded* means that:
+     * Only the most recent class A downlink will be scheduled for delivery.
+       Superseded downlinks will be dropped.
+     * Unacknowledged downlinks will be dropped when a new downlink (either
+       class A or C) is sent.
 
 *Connectors* related to this Handler are displayed for your convenience. The table
 lists all backend connectors with the same *Application* name.

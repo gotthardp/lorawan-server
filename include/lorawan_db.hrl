@@ -145,7 +145,7 @@
     fields :: [binary()],
     parse :: fun(),
     build :: fun(),
-    retransmit :: binary()}).
+    downlink_expires :: binary()}).
 
 -record(txdata, {
     confirmed=false :: boolean(),

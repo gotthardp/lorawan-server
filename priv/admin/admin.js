@@ -732,7 +732,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     handlers.listView().fields([
         nga.field('app').label('Application').isDetailLink(true),
         nga.field('fields', 'choices'),
-        nga.field('retransmit')
+        nga.field('downlink_expires').label('D/L Expires')
     ]);
     handlers.creationView().fields([
         nga.field('app').label('Application')
@@ -757,10 +757,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             ]),
         nga.field('parse', 'text').label('Parse Uplink'),
         nga.field('build', 'text').label('Build Downlink'),
-        nga.field('retransmit', 'choice')
+        nga.field('downlink_expires', 'choice').label('D/L Expires')
             .choices([
-                { value: 'always', label: 'Always' },
-                { value: 'recent', label: 'Recent Only' }
+                { value: 'never', label: 'Never' },
+                { value: 'superseded', label: 'When Superseded' }
             ])
             .validation({ required: true }),
         nga.field('connectors', 'referenced_list')
