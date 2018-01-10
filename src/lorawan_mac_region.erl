@@ -89,6 +89,15 @@ datar_to_down(Region, DataRate, Offset) ->
     DR2 = dr_to_down(Region, datar_to_dr(Region, DataRate), Offset),
     dr_to_datar(Region, DR2).
 
+dr_to_down(<<"AS923">>, DR, Offset) ->
+    % TODO: should be derived based on DownlinkDwellTime
+    MinDR = 0,
+    EffOffset =
+        if
+            Offset > 5 -> 5 - Offset;
+            true -> Offset
+        end,
+    min(5, max(MinDR, DR-EffOffset));
 dr_to_down(Region, DR, Offset) ->
     lists:nth(Offset+1, drs_to_down(Region, DR)).
 
