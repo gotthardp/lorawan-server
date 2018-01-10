@@ -24,10 +24,9 @@ stop_connector(Id) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([#connector{connid=ConnId, app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
+init([#connector{app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
         subscribe=Sub, publish_uplinks=PubUp, publish_events=PubEv, consumed=Cons}=Connector]) ->
     process_flag(trap_exit, true),
-    lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     ok = pg2:join({backend, App}, self()),
     self() ! nodes_changed,
     timer:send_interval(60*1000, ping),
@@ -107,6 +106,7 @@ execute_hierarchy_updates(NewHier, CurrHier, Conn) ->
 
 % initial connect
 connect(Phase, [Uri, ClientId, UserName, Password], Conn) ->
+    lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Uri]),
     {ok, ConnUri} = http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{mqtt, 1883}, {mqtts, 8883}]}]),
     {Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
     CArgs = lists:append([
@@ -160,15 +160,27 @@ handle_info({mqttc, _C, disconnected}, State) ->
     % no action, waiting for 'EXIT'
     {noreply, State};
 
+handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=undefined}=State) ->
+    {noreply, State};
 handle_info({uplink, Node, Vars0}, #state{conn=#connector{format=Format},
         publish_uplinks=PatPub}=State) ->
-    {ok, C} = connection_for_node(Node, State),
-    publish_uplink(C, PatPub, Format, Vars0),
+    case connection_for_node(Node, State) of
+        {ok, C} ->
+            publish_uplink(C, PatPub, Format, Vars0);
+        {error, Error} ->
+            lager:debug("Connector not available: ~p", [Error])
+    end,
     {noreply, State};
 
+handle_info({event, _Event, _Node, _Vars0}, #state{publish_events=undefined}=State) ->
+    {noreply, State};
 handle_info({event, Event, Node, Vars0}, #state{publish_events=PatPub}=State) ->
-    {ok, C} = connection_for_node(Node, State),
-    publish_event(C, PatPub, Event, Vars0),
+    case connection_for_node(Node, State) of
+        {ok, C} ->
+            publish_event(C, PatPub, Event, Vars0);
+        {error, Error} ->
+            lager:debug("Connector not available: ~p", [Error])
+    end,
     {noreply, State};
 
 handle_info({publish, Topic, Payload}, State=#state{conn=Connector, consumed=Pattern}) ->
@@ -243,8 +255,12 @@ switch_ver(Costa) ->
 connection_for_node(Node, #state{connect=PatConn, hier=Hier}) ->
     Connect = lorawan_connector:fill_pattern(PatConn,
         lorawan_admin:build(lorawan_connector:node_to_vars(Node))),
-    {Connect, C, _NewSub, _Costa} = lists:keyfind(Connect, 1, Hier),
-    {ok, C}.
+    case lists:keyfind(Connect, 1, Hier) of
+        {Connect, C, _NewSub, _Costa} ->
+            {ok, C};
+        false ->
+            {error, disconnected}
+    end.
 
 publish_uplink(C, PatPub, Format, Vars0) when is_list(Vars0) ->
     lists:foreach(

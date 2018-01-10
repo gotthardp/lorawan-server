@@ -168,7 +168,9 @@ is_ignored(DevAddr, [Key|Rest]) ->
 match(<<DevAddr:32>>, <<MatchAddr:32>>, undefined) ->
     DevAddr == MatchAddr;
 match(<<DevAddr:32>>, <<MatchAddr:32>>, <<MatchMask:32>>) ->
-    (DevAddr band MatchMask) == MatchAddr.
+    (DevAddr band MatchMask) == MatchAddr;
+match(<<_DevAddr:32>>, _Else, _) ->
+    false.
 
 load_node(DevAddr) ->
     case mnesia:read(nodes, DevAddr, write) of
@@ -324,10 +326,9 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
                 #node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
 
-    lorawan_utils:throw_info({device, Device#device.deveui},
-        {join, binary_to_hex(Device#device.node)}),
-    Node2 = Node#node{devaddr=Device#device.node,
-        profile=Device#device.profile, appargs=Device#device.appargs,
+    lorawan_utils:throw_info({device, DevEUI}, {join, binary_to_hex(DevAddr)}),
+    Node2 = Node#node{devaddr=DevAddr,
+        profile=Device2#device.profile, appargs=Device2#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
         last_reset=calendar:universal_time(), gateways=Gateways,
         adr_flag=0, adr_set=undefined, adr_use=initial_adr(Network), adr_failed=[],

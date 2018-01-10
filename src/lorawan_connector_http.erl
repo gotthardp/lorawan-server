@@ -53,6 +53,8 @@ handle_info(nodes_changed, State) ->
     % nothing to do here
     {noreply, State};
 
+handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=undefined}=State) ->
+    {noreply, State};
 handle_info({uplink, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
     case connect(Connector) of
         {ok, ConnPid} ->
@@ -63,6 +65,8 @@ handle_info({uplink, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State)
     end;
 handle_info({uplink, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
     {noreply, handle_uplink(Vars0, State)};
+handle_info({event, _Event, _Node, _Vars0}, #state{publish_events=undefined}=State) ->
+    {noreply, State};
 handle_info({event, Event, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
     case connect(Connector) of
         {ok, ConnPid} ->

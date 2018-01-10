@@ -24,12 +24,10 @@ stop_connector(Id) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([#connector{connid=ConnId, app=App, uri=Uri, publish_uplinks=PubUp, publish_events=PubEv, consumed=Cons}=Connector]) ->
+init([#connector{app=App, publish_uplinks=PubUp, publish_events=PubEv, consumed=Cons}=Connector]) ->
     process_flag(trap_exit, true),
-    lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     ok = pg2:join({backend, App}, self()),
     self() ! connect,
-
     {ok, #state{
         conn=Connector,
         publish_uplinks=lorawan_connector:prepare_filling(PubUp),
@@ -43,13 +41,14 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(connect, #state{conn=#connector{uri=Uri, name=UserName, pass=Password}}=State) ->
+handle_info(connect, #state{conn=#connector{connid=ConnId, uri=Uri, name=UserName, pass=Password}}=State) ->
+    lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     case amqp_uri:parse(Uri) of
         {ok, Params} ->
             case amqp_connection:start(
                     Params#amqp_params_network{username=UserName, password=Password}) of
                 {ok, Connection} ->
-                    erlang:monitor(process, Connection),
+                    %%erlang:monitor(process, Connection),
                     self() ! subscribe,
                     {noreply, State#state{cpid=Connection}};
                 {error, Error} ->
@@ -61,10 +60,11 @@ handle_info(connect, #state{conn=#connector{uri=Uri, name=UserName, pass=Passwor
             {stop, shutdown, State}
     end;
 
-handle_info(subscribe, #state{conn=#connector{subscribe=Sub}, cpid=Connection}=State)
+handle_info(subscribe, #state{conn=#connector{connid=ConnId, subscribe=Sub}, cpid=Connection}=State)
         when is_pid(Connection), is_binary(Sub), byte_size(Sub) > 0 ->
+    lager:debug("Subscribing ~s to ~s", [ConnId, Sub]),
     {ok, SubChannel} = amqp_connection:open_channel(Connection),
-    erlang:monitor(process, SubChannel),
+    %%erlang:monitor(process, SubChannel),
     #'queue.declare_ok'{queue = Queue} =
         amqp_channel:call(SubChannel, #'queue.declare'{auto_delete = true}),
     {Exchange, RoutingKey} =
@@ -76,10 +76,13 @@ handle_info(subscribe, #state{conn=#connector{subscribe=Sub}, cpid=Connection}=S
         end,
     BindCmd = #'queue.bind'{queue = Queue,
         exchange = Exchange, routing_key = RoutingKey},
-    #'queue.bind_ok'{} = amqp_channel:call(SubChannel, BindCmd),
-
-    SubCmd = #'basic.consume'{queue = Queue},
-    #'basic.consume_ok'{} = amqp_channel:call(SubChannel, SubCmd),
+    try amqp_channel:call(SubChannel, BindCmd) of
+        #'queue.bind_ok'{} ->
+            SubCmd = #'basic.consume'{queue = Queue},
+            #'basic.consume_ok'{} = amqp_channel:call(SubChannel, SubCmd)
+        catch Type:Error ->
+            lager:error("Cannot bind ~p:~p", [Type, Error])
+    end,
     {noreply, State#state{subc=SubChannel}};
 handle_info(subscribe, State) ->
     {noreply, State#state{subc=undefined}};
@@ -90,11 +93,15 @@ handle_info({'basic.consume_ok', _Tag}, State) ->
 handle_info(nodes_changed, State) ->
     % nothing to do here
     {noreply, State};
+handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=undefined}=State) ->
+    {noreply, State};
 handle_info({uplink, _Node, Vars0},
         #state{conn=#connector{format=Format}, cpid=Connection, publish_uplinks=PatPub}=State) ->
     {ok, PubChannel} = amqp_connection:open_channel(Connection),
     publish_uplink(PubChannel, Format, PatPub, Vars0),
     amqp_channel:close(PubChannel),
+    {noreply, State};
+handle_info({event, _Event, _Node, _Vars0}, #state{publish_events=undefined}=State) ->
     {noreply, State};
 handle_info({event, Event, _Node, Vars0},
         #state{cpid=Connection, publish_events=PatPub}=State) ->
