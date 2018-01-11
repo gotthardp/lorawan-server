@@ -153,8 +153,13 @@ handle_info({mqttc, C, connected}, #state{hier=Hier}=State) ->
     {Connect, C, NewSub, Costa} = lists:keyfind(C, 2, Hier),
     % make all required subscriptions
     [emqttc:subscribe(C, S, 1) || S <- NewSub],
+    NewPhase =
+        case Costa#costa.phase of
+            attempt31 -> connected31;
+            attempt311 -> connected311
+        end,
     {noreply, State#state{hier=lists:keystore(C, 2, Hier,
-        {Connect, C, NewSub, Costa#costa{phase=connected}})}};
+        {Connect, C, NewSub, Costa#costa{phase=NewPhase}})}};
 
 handle_info({mqttc, _C, disconnected}, State) ->
     % no action, waiting for 'EXIT'
@@ -244,10 +249,10 @@ handle_reconnect(Connect, NewSub, #costa{last_connect=Last, connect_count=Count}
             % initially try to reconnect immediately
             reconnect(switch_ver(Costa#costa{connect_count=1}));
         _Diff ->
-            reconnect(Costa#costa{connect_count=0})
+            reconnect(switch_ver(Costa#costa{connect_count=0}))
     end.
 
-switch_ver(#costa{phase=attempt311}=Costa) ->
+switch_ver(#costa{phase=Phase}=Costa) when Phase == connected31; Phase == attempt311 ->
     Costa#costa{phase=attempt31};
 switch_ver(Costa) ->
     Costa#costa{phase=attempt311}.

@@ -24,6 +24,6 @@ stop_child(Id) ->
 
 init([]) ->
     % dynamically managed children, one for each connector
-    {ok, {{one_for_one, 10, 10}, []}}.
+    {ok, {{one_for_one, 2, 10}, []}}.
 
 % end of file

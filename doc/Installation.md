@@ -13,9 +13,13 @@ Unless you have Debian 9 (Stretch) you have to install the Erlang/OTP 19 or late
 ```bash
 wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
 sudo dpkg -i erlang-solutions_1.0_all.deb
+```
 
+```bash
 sudo apt-get update
-sudo apt-get install erlang
+sudo apt-get install erlang-base erlang-crypto erlang-syntax-tools erlang-inets \
+    erlang-mnesia erlang-runtime-tools erlang-ssl erlang-public-key erlang-asn1 \
+    erlang-os-mon erlang-snmp erlang-xmerl
 ```
 
 Download the Debian package
@@ -217,6 +221,20 @@ You will need the following prerequisites:
    * On Linux, try typing `yum install npm` or `apt-get install npm`.
    * On Windows, install the [Node.js](https://nodejs.org/en/).
    * On Mac OS, run `brew install node`.
+
+Obtain the run-time prerequisites:
+
+```bash
+sudo apt-get update
+sudo apt-get install erlang-base erlang-crypto erlang-syntax-tools erlang-inets \
+    erlang-mnesia erlang-runtime-tools erlang-ssl erlang-public-key erlang-asn1 \
+    erlang-os-mon erlang-snmp erlang-xmerl
+```
+
+but also the build prerequisites:
+```bash
+sudo apt-get install git erlang-dev erlang-src erlang-eunit nodejs
+```
 
 Note: It is [not recommended](https://www.debian.org/releases/stretch/amd64/release-notes/ch-information.en.html#libv8)
 to install Node.js (and npm) on the latest Debian 9 (Stretch) from the official

@@ -15,7 +15,7 @@ start_link() ->
 
 init([]) ->
     {ok, PktFwdOpts} = application:get_env(lorawan_server, packet_forwarder_listen),
-    {ok, {{one_for_one, 10, 10}, [
+    {ok, {{one_for_one, 2, 10}, [
         {gateway_router,
             {lorawan_gw_router, start_link, []},
             permanent, 5000, worker, [lorawan_gw_router]},

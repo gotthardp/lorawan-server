@@ -16,7 +16,7 @@ start_child() ->
     supervisor:start_child(?MODULE, []).
 
 init([]) ->
-    {ok, {{simple_one_for_one, 10, 10}, [
+    {ok, {{simple_one_for_one, 2, 10}, [
         {handler,
             {lorawan_handler, start_link, []},
             transient, 5000, worker, [lorawan_handler]}
