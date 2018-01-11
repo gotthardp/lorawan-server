@@ -111,6 +111,8 @@ static_routes() -> [
         [handlers, handler, record_info(fields, handler)]},
     {"/api/connectors/[:connid]", lorawan_admin_db_record,
         [connectors, connector, record_info(fields, connector)]},
+    {"/api/connections/[:app]", lorawan_admin_connections, []},
+    {"/api/connections/:app/:action", lorawan_admin_connections, []},
     {"/api/events/[:evid]", lorawan_admin_db_record,
         [events, event, record_info(fields, event)]},
     {"/api/upload", lorawan_admin_upload, []},

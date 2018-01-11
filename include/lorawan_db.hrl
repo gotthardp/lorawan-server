@@ -132,7 +132,7 @@
     publish_uplinks,
     publish_events,
     subscribe,
-    consumed,
+    received,
     enabled :: boolean(),
     client_id,
     auth,

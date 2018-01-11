@@ -15,6 +15,7 @@ In addition to uplink frames the backend can receive device related events:
  * when a device *joined*
  * when a confirmed frame was *delivered*
  * when a confirmed frame was *lost*
+ * for a connection *test*
 
 
 ## Administration
@@ -35,6 +36,9 @@ To create a new handler you need to set:
        Superseded downlinks will be dropped.
      * Unacknowledged downlinks will be dropped when a new downlink (either
        class A or C) is sent.
+
+*Test* button can be used to send a `test` event to all connections associated with this
+handler.
 
 *Connectors* related to this Handler are displayed for your convenience. The table
 lists all backend connectors with the same *Application* name.

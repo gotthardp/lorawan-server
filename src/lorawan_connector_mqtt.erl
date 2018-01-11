@@ -12,7 +12,7 @@
 
 -include("lorawan_db.hrl").
 
--record(state, {conn, connect, subscribe, publish_uplinks, publish_events, consumed, hier}).
+-record(state, {conn, connect, subscribe, publish_uplinks, publish_events, received, hier}).
 -record(costa, {phase, cargs, last_connect, connect_count}).
 
 start_connector(#connector{connid=Id}=Connector) ->
@@ -25,7 +25,7 @@ start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
 init([#connector{app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
-        subscribe=Sub, publish_uplinks=PubUp, publish_events=PubEv, consumed=Cons}=Connector]) ->
+        subscribe=Sub, publish_uplinks=PubUp, publish_events=PubEv, received=Cons}=Connector]) ->
     process_flag(trap_exit, true),
     ok = pg2:join({backend, App}, self()),
     self() ! nodes_changed,
@@ -37,7 +37,7 @@ init([#connector{app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Passw
         subscribe=lorawan_connector:prepare_filling(Sub),
         publish_uplinks=lorawan_connector:prepare_filling(PubUp),
         publish_events=lorawan_connector:prepare_filling(PubEv),
-        consumed=lorawan_connector:prepare_matching(Cons),
+        received=lorawan_connector:prepare_matching(Cons),
         hier=[]
     }}.
 
@@ -188,7 +188,7 @@ handle_info({event, Event, Node, Vars0}, #state{publish_events=PatPub}=State) ->
     end,
     {noreply, State};
 
-handle_info({publish, Topic, Payload}, State=#state{conn=Connector, consumed=Pattern}) ->
+handle_info({publish, Topic, Payload}, State=#state{conn=Connector, received=Pattern}) ->
     % we assume the Topic is sufficient to determine the target
     case lorawan_connector:decode_and_downlink(Connector, Payload,
             lorawan_admin:parse(lorawan_connector:match_vars(Topic, Pattern))) of

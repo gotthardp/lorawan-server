@@ -14,9 +14,9 @@
 
 -record(state, {conn, pid, streams, publish_uplinks, publish_events, auth, nc}).
 
-start_connector(#connector{connid=Id, consumed=Consumed}=Connector) ->
+start_connector(#connector{connid=Id, received=Received}=Connector) ->
     lorawan_http_registry:update_routes({http, Id}, [
-        {lorawan_connector:pattern_for_cowboy(Consumed), lorawan_connector_http_in, [Connector]}
+        {lorawan_connector:pattern_for_cowboy(Received), lorawan_connector_http_in, [Connector]}
     ]),
     lorawan_connector_sup:start_child(Id, ?MODULE, [Connector]).
 

@@ -199,6 +199,8 @@ get_value(_Rec, node, PropList) ->
     get_value0(link, node, PropList);
 get_value(connector, publish_uplinks, PropList) ->
     get_value0(published, publish_uplinks, PropList);
+get_value(connector, received, PropList) ->
+    get_value0(consumed, received, PropList);
 get_value(handler, app, PropList) ->
     get_value0(appid, app, PropList);
 get_value(_Rec, X, PropList) ->

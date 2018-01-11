@@ -7,7 +7,7 @@ Profile you can set:
  * *Name* of the profile.
  * *Network* for which are the devices in this profile configured.
  * *Application* the devices are using.
- * *Identifier*, which is a custom application id.
+ * *App Identifier*, which is a custom application id.
  * *Can Join?* flag that allows you to prevent the device from joining.
  * *FCnt Check* to be used for this device
    * *Strict 16-bit* (default) or *Strict 32-bit* indicate a standard compliant counter.
@@ -51,7 +51,7 @@ already joined or have been activated-by-personalization (ABP) are listed on the
 For each device, which may connect to your network, you can set:
  * *DevEUI* of the device
  * *Profile* that this device uses
- * *Arguments*, which is an opaque string with application-specific settings.
+ * *App Arguments*, which is an opaque string with application-specific settings.
  * *AppEUI* and *AppKey*
  * *Last Join* is a timestamp of the last successful Join request.
 
@@ -77,7 +77,7 @@ using the over-the-air activation (OTAA) or have been activated-by-personalizati
 For each active network Node you can set:
  * *DevAddr* of the node
  * *Profile* that this Node uses
- * *Arguments*, which is an opaque string with application-specific settings.
+ * *App Arguments*, which is an opaque string with application-specific settings.
  * *NwkSKey* and *AppSKey*
  * *FCnt Up* and *FCnt Down* frame counters
 

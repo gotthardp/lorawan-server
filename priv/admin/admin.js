@@ -36,6 +36,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('connid'));
     var handlers = nga.entity('handlers')
         .identifier(nga.field('app'));
+    var connections = nga.entity('connections')
+        .identifier(nga.field('app'));
     var events = nga.entity('events')
         .identifier(nga.field('evid'));
 
@@ -345,7 +347,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('name').isDetailLink(true),
         nga.field('network'),
         nga.field('app').label('Application'),
-        nga.field('appid').label('Identifier')
+        nga.field('appid').label('App Identifier')
     ]);
     profiles.creationView().fields([
         nga.field('name')
@@ -358,7 +360,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(applications)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appid').label('Identifier'),
+        nga.field('appid').label('App Identifier'),
         nga.field('can_join', 'boolean').label('Can Join?')
             .defaultValue(true),
         nga.field('fcnt_check', 'choice').label('FCnt Check')
@@ -420,7 +422,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     devices.listView().fields([
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('profile'),
-        nga.field('appargs').label('Arguments'),
+        nga.field('appargs').label('App Arguments'),
         nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('node', 'reference')
             .targetEntity(nodes)
@@ -442,7 +444,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(profiles)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appargs').label('Arguments'),
+        nga.field('appargs').label('App Arguments'),
         nga.field('appeui').label('AppEUI')
             .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
             .validation({ pattern: '[A-Fa-f0-9]{16}' }),
@@ -464,7 +466,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('profile', 'reference')
             .targetEntity(profiles)
             .targetField(nga.field('name')),
-        nga.field('appargs').label('Arguments'),
+        nga.field('appargs').label('App Arguments'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('battery', 'number')
@@ -492,7 +494,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(profiles)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appargs').label('Arguments'),
+        nga.field('appargs').label('App Arguments'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
@@ -519,7 +521,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(profiles)
             .targetField(nga.field('name'))
             .validation({ required: true }),
-        nga.field('appargs').label('Arguments'),
+        nga.field('appargs').label('App Arguments'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
@@ -680,13 +682,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('connid').label('Name').isDetailLink(true),
         nga.field('enabled', 'boolean'),
         nga.field('app').label('Application'),
-        nga.field('format', 'choice')
-            .choices(format_choices),
         nga.field('uri').label('URI'),
         nga.field('publish_uplinks'),
         nga.field('publish_events'),
-        nga.field('subscribe').label('Subscribe'),
-        nga.field('consumed').label('Received Topic')
+        nga.field('received').label('Received Topic')
     ]);
     connectors.creationView().fields([
         nga.field('connid').label('Connector Name')
@@ -703,7 +702,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('publish_uplinks'),
         nga.field('publish_events'),
         nga.field('subscribe').label('Subscribe'),
-        nga.field('consumed').label('Received Topic'),
+        nga.field('received').label('Received Topic'),
         nga.field('enabled', 'boolean')
             .validation({ required: true }),
         // Authentication
@@ -767,6 +766,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'superseded', label: 'When Superseded' }
             ])
             .validation({ required: true }),
+        nga.field('app', 'template').label('Test')
+            .template('<apptest value="value"></apptest>'),
         nga.field('connectors', 'referenced_list')
             .targetEntity(connectors)
             .targetReferenceField('app')
@@ -776,10 +777,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('format', 'choice'),
                 nga.field('uri').label('URI')
             ])
-    ]);
+        ]);
     handlers.editionView().fields(handlers.creationView().fields());
     // add to the admin application
     admin.addEntity(handlers);
+
+    admin.addEntity(connections);
 
     // ---- events
     events.listView().fields([
@@ -1597,3 +1600,35 @@ return {
     },
     template: '<div google-chart chart="rxdChartObject"></div>'
 };}]);
+
+myApp.directive('apptest', ['$http', function($http) {
+return {
+    restrict: 'E',
+    scope: {
+        value: '='
+    },
+    link: function($scope) {
+        $scope.data = 0;
+        $scope.CannotTest = true;
+        $http({method: 'GET', url: '/api/connections/'+$scope.value})
+            .then(function(response) {
+                if(response.data.count > 0)
+                    $scope.data = response.data;
+                    $scope.CannotTest = false;
+            })
+
+        $scope.sendTest = function() {
+            $http({method: 'POST', url: '/api/connections/'+$scope.value+'/send', data: {}});
+        }
+    },
+    template: `
+        <button ng-disabled="CannotTest" ng-click="sendTest()" type="button" class="btn btn-default">send</button>
+        <ng-pluralize count="data.count"
+            when = "{'0': 'to no connection',
+                     'one': 'to 1 connection',
+                     'other': 'to {} connections'}">
+        </ng-pluralize>
+`
+};}]);
+
+// end of file
