@@ -378,6 +378,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(function(entry) {
                 return choices_networks[entry.values.network].uplink_datar;
             }),
+        nga.field('max_datr', 'choice').label('Max Data Rate')
+            .choices(function(entry) {
+                return choices_networks[entry.values.network].uplink_datar;
+            }),
         nga.field('adr_set.chans').label('Set channels')
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
@@ -398,7 +402,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     profiles.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:15}
+        {name:"ADR", min:7, max:16}
     ]));
     profiles.editionView().fields(profiles.creationView().fields())
     .prepare(['$http', function($http) {
@@ -407,7 +411,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     profiles.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:15}
+        {name:"ADR", min:7, max:16}
     ]));
     // add to the admin application
     admin.addEntity(profiles);

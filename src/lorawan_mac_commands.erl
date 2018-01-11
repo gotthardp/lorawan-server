@@ -243,11 +243,11 @@ send_link_check([{_MAC, RxQ}|_]=Gateways) ->
     {link_check_ans, Margin, length(Gateways)}.
 
 
-auto_adr(Network, #profile{adr_mode=1}, #node{adr_flag=1, adr_failed=[]}=Node) ->
+auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=[]}=Node) ->
     case merge_adr(Node#node.adr_set, Node#node.adr_use) of
         Unchanged when Unchanged == Node#node.adr_use, is_tuple(Node#node.average_qs) ->
             % have enough data and no other change was requested
-            calculate_adr(Network, Node);
+            calculate_adr(Network, Profile, Node);
         _Else ->
             Node
     end;
@@ -264,8 +264,14 @@ auto_adr(_Network, _Profile, Node) ->
     % ADR is Disabled (or undefined)
     Node.
 
-calculate_adr(#network{region=Region, max_datr=MaxDR, max_power=MaxPower, min_power=MinPower},
+calculate_adr(#network{region=Region, max_datr=MaxDR1, max_power=MaxPower, min_power=MinPower},
+        #profile{max_datr=MaxDR2},
         #node{average_qs={AvgRSSI, AvgSNR}, adr_use={TxPower, DataRate, Chans}}=Node) ->
+    MaxDR =
+        if
+            MaxDR2 == undefined -> MaxDR1;
+            true -> min(MaxDR1, MaxDR2)
+        end,
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
     MaxSNR = lorawan_mac_region:max_uplink_snr(Region, DataRate)+10,

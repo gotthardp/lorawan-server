@@ -218,11 +218,11 @@ You will need the following prerequisites:
    * On Windows follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
    * On Mac OS, run `brew install rebar`.
  * npm, the JavaScript package manager.
-   * On Linux, try typing `yum install npm` or `apt-get install npm`.
+   * On Linux follow the instructions bellow.
    * On Windows, install the [Node.js](https://nodejs.org/en/).
    * On Mac OS, run `brew install node`.
 
-Obtain the run-time prerequisites:
+Make sure you have the run-time prerequisites:
 
 ```bash
 sudo apt-get update
@@ -231,19 +231,17 @@ sudo apt-get install erlang-base erlang-crypto erlang-syntax-tools erlang-inets 
     erlang-os-mon erlang-snmp erlang-xmerl
 ```
 
-but also the build prerequisites:
-```bash
-sudo apt-get install git erlang-dev erlang-src erlang-eunit nodejs
-```
-
-Note: It is [not recommended](https://www.debian.org/releases/stretch/amd64/release-notes/ch-information.en.html#libv8)
-to install Node.js (and npm) on the latest Debian 9 (Stretch) from the official
-Debian 9 repository. To use an
-[alternate repository](http://linuxbsdos.com/2017/06/26/how-to-install-node-js-lts-on-debian-9-stretch/),
-add the following to your `/etc/apt/sources.list` and run `apt-get update` before installation:
+Required `nodejs` can be installed from [here](https://github.com/nodesource/distributions).
+On Debian, add the following to your `/etc/apt/sources.list` and run `apt-get update`
+before installation:
 ```
 deb https://deb.nodesource.com/node_6.x stretch main
 deb-src https://deb.nodesource.com/node_6.x stretch main
+```
+
+Then, obtain the build prerequisites:
+```bash
+sudo apt-get install git erlang-dev erlang-src erlang-eunit nodejs
 ```
 
 Get the latest lorawan-server sources by:

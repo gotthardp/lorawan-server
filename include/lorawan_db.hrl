@@ -82,6 +82,7 @@
     txwin :: integer(),
     adr_mode :: 0..2, % server requests
     adr_set :: adr_config(), % requested after join
+    max_datr :: number(),
     rxwin_set :: rxwin_config(), % requested
     request_devstat :: boolean()}).
 

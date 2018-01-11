@@ -27,7 +27,8 @@ For each device Profile you can define "desired" ADR parameters. The server will
 handle these values as described in the [ADR](ADR.md) documentation.
  - **ADR Mode** determines the ADR mechanism for this device;
  - **Set Power** defines the power (in dBm) to be requested;
- - **Set Data Rate** defines the data rate;
+ - **Set Data Rate** defines the data rate to be requested;
+ - **Max Data Rate** defines the maximal data rate supported by the devices;
  - **Set Channels** defines the set of channels to be used. The channels are given
    as a comma-separated list of interfaces, e.g. `0-2` (for EU) or `0-71` (for US).
  - **Set RX1 DR offset** defines the offset between the uplink and the RX1 slot
