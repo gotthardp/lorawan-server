@@ -84,7 +84,7 @@ The main components of the lorawan-server are shown in the following figure:
 
 ### Usage
 
-The server behaviour is described in the [Communication Guide](doc/Communication.md).
+The server behaviour is described in the [Introduction](doc/Introduction.md).
 
 The [Installation Instructions](doc/Installation.md) describe how to build,
 install and configure the server. You can use a Debian package, download the binary
@@ -112,15 +112,14 @@ By default you can access the administration at http://*server*:8080, using
 "admin" as both username and password. After the installation you have to:
  * Change the default password to something more secure.
  * Set parameters of your *Network* and add LoRaWAN *Gateways* you want to use.
- * Define the device *Profiles* that you will have.
+ * Define the device *Profiles*, one for each device type that you will have.
  * Configure each device you want to use, either as a personalized *Node* (ABP) or
    as an *Commissioned* and over-the-air activated (OTAA) device.
 
 ### Integration
 
-You can integrate lorawan-server with external applications using the WebSocket
-interface as described in the [WebSocket Guide](doc/WebSockets.md), or using MQTT
-as described in the [Backend Administration](doc/Backends.md). Instructions on
+You can integrate lorawan-server with external applications using Backend
+[Handlers](doc/Handlers.md) and [Connectors](doc/Connectors.md). Instructions on
 how to integrate with some major clouds such as AWS or Azure are provided in the
 [Integration Guide](doc/Integration.md).
 

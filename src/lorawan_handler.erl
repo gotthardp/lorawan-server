@@ -265,7 +265,7 @@ multicast(#multicast_channel{devaddr=DevAddr, profiles=Profiles}, Time, #txdata{
         end,
         Profiles);
 multicast(#multicast_channel{devaddr=DevAddr}, _Time, #txdata{confirmed=true}) ->
-    lorawan_utils:throw_error({{multicast_channel, DevAddr}, confirmed_not_allowed}).
+    lorawan_utils:throw_error({multicast_channel, DevAddr}, confirmed_not_allowed).
 
 multicast(DevAddr, #profile{name=Prof, network=Net}=Profile, Time, PHYPayload) ->
     [Network] = mnesia:dirty_read(networks, Net),

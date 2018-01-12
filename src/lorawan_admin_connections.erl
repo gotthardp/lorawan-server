@@ -64,12 +64,13 @@ handle_action(Req, #state{app=App, action = <<"send">>}=State) ->
     case lorawan_backend_factory:nodes_with_backend(App) of
         [#node{devaddr=DevAddr, appargs=AppArgs}=Node|_] ->
             Vars = #{
+                event => <<"test">>,
                 app => App,
                 devaddr => DevAddr,
                 appargs => AppArgs,
                 datetime => calendar:universal_time()},
             lager:debug("Sending connector test ~p to ~p", [App, lorawan_utils:binary_to_hex(DevAddr)]),
-            lorawan_backend_factory:event(test, App, Node, Vars);
+            lorawan_backend_factory:event(App, Node, Vars);
         [] ->
             lager:debug("Connector not linked with any node")
     end,

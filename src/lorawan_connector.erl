@@ -26,6 +26,8 @@ pattern_for_cowboy(URI) ->
     % convert our pattern to cowboy pattern
     re:replace(URI, "{([^}])}", ":\\1", [{return, binary}]).
 
+-type fill_pattern_t() :: 'undefined' | {binary(), [{integer(), integer()}]}.
+-spec prepare_filling('undefined' | binary() | [binary()]) -> fill_pattern_t() | [fill_pattern_t()].
 prepare_filling(List) when is_list(List) ->
     lists:map(
         fun(Item) -> prepare_filling(Item) end, List);
@@ -41,6 +43,7 @@ prepare_filling(Pattern) ->
             {Pattern, []}
     end.
 
+-spec fill_pattern(fill_pattern_t() | [fill_pattern_t()], map()) -> 'undefined' | binary() | [binary()].
 fill_pattern(List, Values) when is_list(List) ->
     lists:map(
         fun(Item) -> fill_pattern(Item, Values) end, List);
@@ -180,7 +183,7 @@ decode(<<"json">>, Msg) ->
 
 matchtst(undefined = Vars, Pattern, Topic) ->
     [?_assertEqual(Vars, match_pattern(Topic, prepare_matching(Pattern))),
-    ?_assertEqual(Pattern, fill_pattern(prepare_filling(Pattern), Vars))];
+    ?_assertEqual(Pattern, fill_pattern(prepare_filling(Pattern), #{}))];
 matchtst(Vars, Pattern, Topic) ->
     [?_assertEqual(Vars, match_pattern(Topic, prepare_matching(Pattern))),
     ?_assertEqual(Topic, fill_pattern(prepare_filling(Pattern), Vars))].

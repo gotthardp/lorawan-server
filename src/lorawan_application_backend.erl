@@ -152,7 +152,7 @@ send_event(Event, Vars0, #handler{app=AppID, parse_event=Parse, fields=Fields}, 
                 vars_add(deveui, DevEUI, Fields,
                 vars_add(appargs, AppArgs, Fields,
                 Vars0)));
-            {#node{devaddr=DevAddr, appargs=AppArgs}} ->
+            #node{devaddr=DevAddr, appargs=AppArgs} ->
                 vars_add(devaddr, DevAddr, Fields,
                 vars_add(deveui, get_deveui(DevAddr), Fields,
                 vars_add(appargs, AppArgs, Fields,

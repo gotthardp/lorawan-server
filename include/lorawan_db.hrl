@@ -82,7 +82,7 @@
     txwin :: integer(),
     adr_mode :: 0..2, % server requests
     adr_set :: adr_config(), % requested after join
-    max_datr :: number(),
+    max_datr :: 'undefined' | number(),
     rxwin_set :: rxwin_config(), % requested
     request_devstat :: boolean()}).
 
@@ -95,13 +95,15 @@
     last_join :: calendar:datetime(),
     node :: devaddr()}).
 
+-type devstat() :: {calendar:datetime(), integer(), integer(), integer()}.
+
 -record(node, {
     devaddr :: devaddr(),
     profile :: nonempty_string(),
     appargs :: any(), % application arguments
     nwkskey :: seckey(),
     appskey :: seckey(),
-    fcntup :: integer(), % last uplink fcnt
+    fcntup :: 'undefined' | integer(), % last uplink fcnt
     fcntdown :: integer(), % last downlink fcnt
     first_reset :: calendar:datetime(),
     last_reset :: calendar:datetime(),
@@ -109,7 +111,7 @@
     last_rx :: 'undefined' | calendar:datetime(),
     gateways :: [{binary(), #rxq{}}], % last seen gateways
     adr_flag :: 0..1, % device supports
-    adr_set :: adr_config(), % auto-calculated
+    adr_set :: 'undefined' | adr_config(), % auto-calculated
     adr_use :: adr_config(), % used
     adr_failed=[] :: [atom()], % last request failed
     rxwin_use :: rxwin_config(), % used
@@ -118,37 +120,37 @@
     average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     devstat_time :: 'undefined' | calendar:datetime(),
     devstat_fcnt :: 'undefined' | integer(),
-    devstat :: [{calendar:datetime(), integer(), integer()}]}). % {time, battery, margin}
+    devstat :: [devstat()]}). % {time, battery, margin, max_snr}
 
 -record(ignored_node, {
-    devaddr,
-    mask}).
+    devaddr :: devaddr(),
+    mask :: devaddr()}).
 
 -record(connector, {
     connid :: binary(),
     app :: binary(),
-    format,
-    uri,
-    publish_uplinks,
-    publish_events,
-    subscribe,
-    received,
+    format :: binary(),
+    uri :: binary(),
+    publish_uplinks :: 'undefined' | binary(),
+    publish_events :: 'undefined' | binary(),
+    subscribe :: 'undefined' | binary(),
+    received :: 'undefined' | binary(),
     enabled :: boolean(),
-    client_id,
-    auth,
-    name,
-    pass,
-    certfile,
-    keyfile}).
+    client_id :: 'undefined' | binary(),
+    auth :: binary(),
+    name :: 'undefined' | binary(),
+    pass :: 'undefined' | binary(),
+    certfile :: 'undefined' | binary(),
+    keyfile :: 'undefined' | binary()}).
 
 -define(EMPTY_PATTERN, {<<>>,[]}).
 
 -record(handler, {
     app :: binary(),
     fields :: [binary()],
-    parse_uplink :: fun(),
-    parse_event :: fun(),
-    build :: fun(),
+    parse_uplink :: 'undefined' | {binary(), fun()},
+    parse_event :: 'undefined' | {binary, fun()},
+    build :: 'undefined' | {binary(), fun()},
     downlink_expires :: binary()}).
 
 -record(txdata, {

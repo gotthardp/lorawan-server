@@ -314,26 +314,26 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
     Device2 = Device#device{node=DevAddr, last_join=calendar:universal_time()},
     ok = mnesia:write(devices, Device2, write),
 
-    Node =
-        case mnesia:read(nodes, DevAddr, write) of
-            [#node{first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
-                    when is_integer(Cnt) ->
-                lorawan_utils:throw_warning({node, DevAddr}, {repeated_reset, Cnt+1}, First),
-                #node{reset_count=Cnt+1, devstat=Stats};
-            [#node{devstat=Stats}] ->
-                #node{first_reset=calendar:universal_time(), reset_count=0, devstat=Stats};
-            [] ->
-                #node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
-        end,
-
     lorawan_utils:throw_info({device, DevEUI}, {join, binary_to_hex(DevAddr)}),
-    Node2 = Node#node{devaddr=DevAddr,
+    Node = #node{
+        devaddr=DevAddr,
         profile=Device2#device.profile, appargs=Device2#device.appargs,
         nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
         last_reset=calendar:universal_time(), gateways=Gateways,
         adr_flag=0, adr_set=undefined, adr_use=initial_adr(Network), adr_failed=[],
         rxwin_use=accept_rxwin(Profile, Network), rxwin_failed=[],
         devstat_fcnt=undefined, last_qs=[]},
+    Node2 =
+        case mnesia:read(nodes, DevAddr, write) of
+            [#node{first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
+                    when is_integer(Cnt) ->
+                lorawan_utils:throw_warning({node, DevAddr}, {repeated_reset, Cnt+1}, First),
+                Node#node{reset_count=Cnt+1, devstat=Stats};
+            [#node{devstat=Stats}] ->
+                Node#node{first_reset=calendar:universal_time(), reset_count=0, devstat=Stats};
+            [] ->
+                Node#node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
+        end,
     ok = mnesia:write(nodes, Node2, write),
     Node2.
 

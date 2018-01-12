@@ -20,14 +20,10 @@
     ok | {error, Error :: term()}.
 -callback handle_uplink({Network :: #network{}, Profile :: #profile{}, Node :: #node{}},
         {MAC :: binary(), RxQ :: #rxq{}}, {lost, Receipt :: any()}, Frame :: #frame{}) ->
-    ok | retransmit |
-    {send, Port :: integer(), Data :: #txdata{}} |
-    {error, Error :: term()}.
+    retransmit | {ok, State :: any()} | {error, Error :: term()}.
 -callback handle_rxq({Network :: #network{}, Profile :: #profile{}, Node :: #node{}},
         Gateways :: [{MAC :: binary(), RxQ :: #rxq{}}], WillReply :: boolean(), Frame :: #frame{}, State :: any()) ->
-    ok | retransmit |
-    {send, Port :: integer(), Data :: #txdata{}} |
-    {error, Error :: term()}.
+    ok | {send, Data :: #txdata{}} | {error, Error :: term()}.
 -callback handle_delivery({Network :: #network{}, Profile :: #profile{}, Node :: #node{}},
         Result :: atom(), Receipt :: any()) ->
     ok.

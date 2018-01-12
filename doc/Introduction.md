@@ -1,4 +1,4 @@
-# Communication
+# Server Introduction
 
 This document describes how the lorawan-server handles LoRaWAN communication with
 active network Nodes.
@@ -47,51 +47,7 @@ Upon receiving a downlink frame for a given Node:
    and waits for the Node to send a next uplink. The queued *Downlinks* can
    be viewed via the [Node Administration](Nodes.md).
 
-The server uses the standard downlink frequencies and data rates. To modify the
-RX2 parameters you need to add a `regions` section into your
-`lorawan-server/releases/<VERSION>/sys.config` and modify it accordingly. The
-default values are:
-
-```erlang
-{join1_delay, 5000000}, % us
-{join2_delay, 6000000}, % us
-{rx1_delay, 1000000}, % us
-{rx2_delay, 2000000}, % us
-
-{regions, [
-    {<<"EU863-870">>, [
-        % default RX2 frequency (MHz) and data rate (DRx)
-        {rx2_rf, {869.525, <<"SF12BW125">>}}
-    ]},
-    {<<"US902-928">>, [
-        {rx2_rf, {923.3, <<"SF12BW500">>}}
-    ]},
-    % Multitech Private Hybrid Mode
-    % http://www.multitech.net/developer/software/lora/introduction-to-lora
-    {<<"US902-928-PR">>, [
-        {join1_delay, 1000000},
-        {join2_delay, 2000000},
-        {rx1_delay, 1000000},
-        {rx2_delay, 2000000},
-        {rx2_rf, {undefined, <<"SF12BW500">>}}
-    ]},
-    {<<"CN779-787">>, [
-        {rx2_rf, {786, <<"SF12BW125">>}}
-    ]},
-    {<<"EU433">>, [
-        {rx2_rf, {434.665, <<"SF12BW125">>}}
-    ]},
-    {<<"AU915-928">>, [
-        {rx2_rf, {923.3, <<"SF12BW500">>}}
-    ]},
-    {<<"CN470-510">>, [
-        {rx2_rf, {505.3, <<"SF12BW125">>}}
-    ]},
-    {<<"KR920-923">>, [
-        {rx2_rf, {921.9, <<"SF12BW125">>}}
-    ]}
-]},
-```
+The downlink frequencies and data rates are defined by the Network.
 
 ### Class B
 

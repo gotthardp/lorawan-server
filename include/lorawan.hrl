@@ -33,8 +33,8 @@
     roles :: [string()]}).
 
 -record(server, {
-    name :: nonempty_string(),
-    router_perf :: [{calendar:datetime(), integer(), integer()}]}).
+    name :: atom(),
+    router_perf :: [{calendar:datetime(), {integer(), integer()}}]}).
 
 -record(event, {
     evid :: binary(),

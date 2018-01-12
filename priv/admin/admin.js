@@ -371,14 +371,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('txwin', 'choice').label('TX Window')
             .choices(txwin_choices)
             .defaultValue(0), // Auto
-        nga.field('adr_mode', 'choice').label('ADR mode')
+        nga.field('adr_mode', 'choice').label('ADR Mode')
             .choices(adr_choices)
             .defaultValue(0),
-        nga.field('adr_set.power', 'choice').label('Set power')
+        nga.field('adr_set.power', 'choice').label('Set Power')
             .choices(function(entry) {
                 return choices_networks[entry.values.network].power;
             }),
-        nga.field('adr_set.datr', 'choice').label('Set data rate')
+        nga.field('adr_set.datr', 'choice').label('Set Data Rate')
             .choices(function(entry) {
                 return choices_networks[entry.values.network].uplink_datar;
             }),
@@ -386,7 +386,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(function(entry) {
                 return choices_networks[entry.values.network].uplink_datar;
             }),
-        nga.field('adr_set.chans').label('Set channels')
+        nga.field('adr_set.chans').label('Set Channels')
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
 
@@ -568,18 +568,18 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 1, label: 'ON' }
             ])
             .editable(false),
-        nga.field('adr_set.power', 'choice').label('Set power')
+        nga.field('adr_set.power', 'choice').label('Set Power')
             .choices(function(entry) {
                 return choices_profiles[entry.values.profile].power;
             }),
-        nga.field('adr_set.datr', 'choice').label('Set data rate')
+        nga.field('adr_set.datr', 'choice').label('Set Data Rate')
             .choices(function(entry) {
                 return choices_profiles[entry.values.profile].uplink_datar;
             }),
-        nga.field('adr_set.chans').label('Set channels')
+        nga.field('adr_set.chans').label('Set Channels')
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
-        nga.field('adr_use.chans').label('Used channels')
+        nga.field('adr_use.chans').label('Used Channels')
             .editable(false),
         nga.field('adr_failed', 'choices').label('ADR Failed'),
 
