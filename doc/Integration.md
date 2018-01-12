@@ -1,8 +1,16 @@
 # Integration Guide
 
-This document desribes specific configuration required to integrate with various
-IoT cloud platforms.
-Please refer to [Connectors](Connectors.md) guide for a generic description.
+This document desribes specific configuration required to integrate with the
+following IoT cloud platforms:
+ * [Amazon AWS IoT](https://aws.amazon.com/iot/)
+ * [IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things)
+ * [MathWorks ThingSpeak](https://thingspeak.com/)
+ * [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
+ * [ThingsBoard Open-source IoT Platform](https://thingsboard.io)
+ * [Adafruit IO](https://io.adafruit.com/)
+
+Please refer to [Connectors](Connectors.md) guide for a generic description if you
+need to integrate with another platform.
 
 ## AWS IoT
 
@@ -25,7 +33,7 @@ First, follow the AWS IoT guidelines to configure your IoT device:
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the AWS *Endpoint* with the `mqtts://` prefix
- * *Published Uplinks* is a pattern for the publication topic, e.g. `out/{devaddr}`.
+ * *Publish Uplinks* is a pattern for the publication topic, e.g. `out/{devaddr}`.
    Make sure you added `devaddr` to your [Handler](Handlers.md) Fields.
  * *Subscribe* is a topic to be subscribed by the lorawan-server, e.g. `in/#`.
  * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
@@ -58,7 +66,7 @@ First, follow the IBM Bluemix documentation to configure the IoT Gateway:
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* shall be `mqtt://orgid.messaging.internetofthings.ibmcloud.com`, where
    orgid is your *Organization ID* displayed on the web-page you didn't close.
- * *Published Uplinks* is a pattern for the publication topic,
+ * *Publish Uplinks* is a pattern for the publication topic,
    e.g. `iot-2/type/loramote/id/{deveui}/evt/status/fmt/json`, where loramote is
    the *device type* you created.
  * *Subscribe* is a topic to be subscribed by the lorawan-server,
@@ -88,7 +96,7 @@ First, follow the ThingSpeak guidelines and create a New Channel:
 
 Open the lorawan-server web-administration and create an Backend Connector:
  * *URI* shall be either `mqtt://mqtt.thingspeak.com` or `mqtts://mqtt.thingspeak.com`
- * *Published Uplinks* shall be `channels/<channelID>/publish/<apikey>`, where
+ * *Publish Uplinks* shall be `channels/<channelID>/publish/<apikey>`, where
    * `<channelID>` is the numeric *Channel ID*
    * `<apikey>` is the *Write API Key*
  * *Subscribe* and *Received Topic* shall be left empty.
@@ -125,7 +133,7 @@ First, follow the Azure IoT Hub guidelines to configure your IoT devices:
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the IoT Hub *Hostname* with the `mqtts://` prefix
- * *Published Uplinks* shall be `devices/{devaddr}/messages/events/`.
+ * *Publish Uplinks* shall be `devices/{devaddr}/messages/events/`.
    The trailing slash is mandatory.
  * *Subscribe* shall be `devices/{devaddr}/messages/devicebound/#`.
  * *Received Topic* shall be the same as *Subscribe*.
@@ -180,7 +188,7 @@ the integration, make sure you consult the following Adafruit articles:
 Once your Adafruit account, dashboards and feeds are set up, go to the
 lorawan-server web-administration and create a Backends->Connector:
  * *URI* - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
- * *Published Uplinks* - Name of the topic you will be publishing to in the form
+ * *Publish Uplinks* - Name of the topic you will be publishing to in the form
    `YourUserName/feeds/YourFeed`.
  * *Subscribe* - Name of the topic you want to receive data from in the form
    `YourUserName/feeds/YourFeed`.

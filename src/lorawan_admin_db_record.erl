@@ -15,7 +15,7 @@
 
 -export([handle_get/2, handle_write/2]).
 
--include("lorawan_db.hrl").
+-include("lorawan.hrl").
 
 -record(state, {table, record, fields, key, module}).
 
@@ -114,8 +114,11 @@ build_record(Rec, #state{fields=Fields, module=Module}) ->
         apply(Module, build, [
             maps:from_list(
                 lists:filter(
-                    % TODO: isn't this removed twice (see admin:build)
-                    fun ({_, undefined}) -> false;
+                    fun
+                        % the module may not removed the null entries
+                        ({_, undefined}) -> false;
+                        % password hash is never sent out
+                        ({pass_ha1, _}) -> false;
                         (_) -> true
                     end,
                     lists:zip(Fields, tl(tuple_to_list(Rec)))))
@@ -153,15 +156,38 @@ import_records(Object, State) when is_map(Object) ->
 
 write_record(List, #state{table=Table, record=Record, fields=Fields, module=Module}) ->
     List2 = apply(Module, parse, [List]),
-    Rec = list_to_tuple([Record | [maps:get(X, List2, undefined) || X <- Fields]]),
+    Rec = list_to_tuple([Record | [get_db_field(X, List2) || X <- Fields]]),
     % make sure there is a primary key
     case element(2, Rec) of
         undefined ->
             {error, null_key};
         _Else ->
-            mnesia:transaction(fun() ->
-                mnesia:write(Table, Rec, write) end)
+            mnesia:transaction(
+                fun() ->
+                    write_record0(Table, Rec)
+                end)
     end.
+
+get_db_field(pass_ha1, List) ->
+    case maps:is_key(pass, List) of
+        true ->
+            lorawan_http_digest:ha1({maps:get(name, List), ?REALM, maps:get(pass, List)});
+        false ->
+            undefined
+    end;
+get_db_field(Field, List) ->
+    maps:get(Field, List, undefined).
+
+% if password was not defined, use the previous value
+write_record0(users, #user{name=Name, pass_ha1=undefined}=Rec) ->
+    Hash =
+        case mnesia:read(users, Name, write) of
+            [#user{pass_ha1=H}] -> H;
+            _Else -> undefined
+        end,
+    mnesia:write(users, Rec#user{pass_ha1=Hash}, write);
+write_record0(Table, Rec) ->
+    mnesia:write(Table, Rec, write).
 
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};

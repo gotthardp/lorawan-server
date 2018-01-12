@@ -197,6 +197,14 @@ ensure_fields(Name, TabDef) ->
 get_value(_Rec, node, PropList) ->
     % import data from old structure
     get_value0(link, node, PropList);
+get_value(user, pass_ha1, PropList) ->
+    case proplists:is_defined(pass_ha1, PropList) of
+        true ->
+            proplists:get_value(pass_ha1, PropList);
+        false ->
+            lorawan_http_digest:ha1({proplists:get_value(name, PropList),
+                ?REALM, proplists:get_value(pass, PropList)})
+    end;
 get_value(connector, publish_uplinks, PropList) ->
     get_value0(published, publish_uplinks, PropList);
 get_value(connector, received, PropList) ->
@@ -215,7 +223,9 @@ get_value0(Old, New, PropList) ->
 set_defaults(users) ->
     lager:info("Database create default user:password"),
     {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),
-    mnesia:dirty_write(users, #user{name=User, pass=Pass});
+    mnesia:dirty_write(users, #user{
+        name=User,
+        pass_ha1=lorawan_http_digest:ha1({User, ?REALM, Pass})});
 set_defaults(_Else) ->
     ok.
 

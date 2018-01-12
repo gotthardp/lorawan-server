@@ -27,8 +27,8 @@ The server Dashboard shows:
  * Seven most recent [Events](Events.md) and seven most recent frames received.
 
 The following configuration pages are available:
- * *Users* contain a list of user identities that can manage the server. All
-   have the same access rights.
+ * *Users* contain a list of user identities that can manage the server. For now
+   only the `admin` *Role* is defined.
  * [*Infrastructure*](Infrastructure.md) covers configuration of LoRa Gateways,
    Multicast Channels and the list of Ignored Nodes.
  * *Devices* cover the entire device configuration:

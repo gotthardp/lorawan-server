@@ -127,10 +127,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(role_choices)
     ]);
     users.creationView().fields([
-        nga.field('name'),
-        nga.field('pass', 'password'),
+        nga.field('name')
+            .validation({ required: true }),
+        nga.field('pass', 'password').label('Password'),
         nga.field('roles', 'choices').label('Roles')
             .choices(role_choices)
+            .validation({ required: true })
     ]);
     users.editionView().fields(users.creationView().fields());
     // add to the admin application

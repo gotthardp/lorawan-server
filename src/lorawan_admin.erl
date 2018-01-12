@@ -16,19 +16,16 @@
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
 
--define(REALM, <<"lorawan-server">>).
-
 handle_authorization(Req, State) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {digest, Params} ->
             Method = cowboy_req:method(Req),
             UserName = proplists:get_value(<<"username">>, Params, <<>>),
-            Realm = proplists:get_value(<<"realm">>, Params, <<>>),
             Nonce = proplists:get_value(<<"nonce">>, Params, <<>>),
             URI = proplists:get_value(<<"uri">>, Params, <<>>),
             Response = proplists:get_value(<<"response">>, Params, <<>>),
             % retrieve and check password
-            case get_password_hash(<<"admin">>, UserName, Realm) of
+            case get_password_hash(<<"admin">>, UserName) of
                 undefined ->
                     {{false, digest_header()}, Req, State};
                 HA1 ->
@@ -48,15 +45,15 @@ digest_header() ->
     lorawan_http_digest:header(digest, [
         {<<"realm">>, ?REALM}, {<<"nonce">>, Nonce}]).
 
-get_password_hash(Role, UserName, Realm) ->
+get_password_hash(Role, UserName) ->
     case mnesia:dirty_read(users, UserName) of
-        [#user{pass=Pass, roles=undefined}] ->
+        [#user{pass_ha1=Hash, roles=undefined}] ->
             % temporary provisions for backward compatibility
-            lorawan_http_digest:ha1({UserName, Realm, Pass});
-        [#user{pass=Pass, roles=Roles}] ->
+            Hash;
+        [#user{pass_ha1=Hash, roles=Roles}] ->
             case lists:member(Role, Roles) of
                 true ->
-                    lorawan_http_digest:ha1({UserName, Realm, Pass});
+                    Hash;
                 false ->
                     undefined
             end;

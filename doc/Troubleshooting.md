@@ -140,6 +140,13 @@ This error is not related to any of the received frames. It means the gateway
 received some frame it couldn't decode. It is very often some noise or some
 very distant device. Nothing to worry about.
 
+### Lost admin password
+
+If you forgot your admin password
+ * connect to the cluster via remote shell by `erl -sname test -remsh lorawan@<hostname>`
+ * delete the `users` database by `mnesia:delete_table(users).`
+ * restart the server to recreate the `users` database with the default admin password
+
 
 ## Alarms
 

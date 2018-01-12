@@ -25,9 +25,11 @@
             lists:zip3(record_info(fields, Record), tl(tuple_to_list(RecData)), tl(tuple_to_list(#Record{})))
     ))).
 
+-define(REALM, <<"lorawan-server">>).
+
 -record(user, {
     name :: nonempty_string(),
-    pass :: string(),
+    pass_ha1 :: string(),
     roles :: [string()]}).
 
 -record(server, {
