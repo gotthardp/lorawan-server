@@ -25,6 +25,7 @@ To create a new handler you need to set:
  * *Application* name
  * *Uplink Fields* that will be forwarded to the backend Connector
  * *Parse Uplink* function to extract additional data fields from the uplink frame
+ * *Parse Event* function to amend event data fields
  * *Build Downlink* function to create a downlink frame based on backend data fields
  * *D/L Expires* defines when the downlinks may be dropped.
    * *Never* means that:
@@ -154,6 +155,27 @@ end.
 
 The `#{name1 => A, name2 => B, name3 => C}` creates a `fields` attribute with
 the JSON `{"name1":A, "name2":B, "name3":C}`.
+
+## Parse Event
+
+The *Parse Event* is an Erlang function that converts event name to custom
+data fields and can extend (or even amend) the *Uplink Fields*.
+
+To generate events like `{"devaddr":"00112233", "event":"joined"}` you can write:
+
+```erlang
+fun(Vars, Event) ->
+  Vars#{event => Event}
+end.
+```
+
+Alternatively, to generate `{"joined":{"devaddr":"00112233"}}` write:
+
+```erlang
+fun(Vars, Event) ->
+  #{Event => Vars}
+end.
+```
 
 ## Build Downlink
 

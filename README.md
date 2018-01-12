@@ -31,7 +31,8 @@ The server:
      [Amazon AWS IoT](https://aws.amazon.com/iot/),
      [IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things),
      [MathWorks ThingSpeak](https://thingspeak.com/),
-     [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
+     [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/),
+     [ThingsBoard Open-source IoT Platform](https://thingsboard.io),
      or [Adafruit IO](https://io.adafruit.com/)
    * AMQP 0-9-1 to the [RabbitMQ](http://www.rabbitmq.com/)
  * Handles (any number of) Class A or Class C devices.

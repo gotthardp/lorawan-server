@@ -6,7 +6,7 @@
 -module(lorawan_backend_factory).
 -behaviour(gen_server).
 
--export([start_link/0, uplink/3, event/4]).
+-export([start_link/0, uplink/3, event/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([nodes_with_backend/1]).
 
@@ -137,8 +137,8 @@ find_module0(Scheme, []) ->
 uplink(App, Node, Vars) ->
     send_to_connectors(App, {uplink, Node, Vars}).
 
-event(Event, App, Node, Vars) ->
-    send_to_connectors(App, {event, Event, Node, Vars}).
+event(App, Node, Vars) ->
+    send_to_connectors(App, {event, Node, Vars}).
 
 announce_profile_update(ProfId) ->
     case mnesia:dirty_read(profiles, ProfId) of

@@ -93,7 +93,9 @@ handle_info({'basic.consume_ok', _Tag}, State) ->
 handle_info(nodes_changed, State) ->
     % nothing to do here
     {noreply, State};
-handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=undefined}=State) ->
+
+handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=PatPub}=State)
+        when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
 handle_info({uplink, _Node, Vars0},
         #state{conn=#connector{format=Format}, cpid=Connection, publish_uplinks=PatPub}=State) ->
@@ -101,12 +103,14 @@ handle_info({uplink, _Node, Vars0},
     publish_uplink(PubChannel, Format, PatPub, Vars0),
     amqp_channel:close(PubChannel),
     {noreply, State};
-handle_info({event, _Event, _Node, _Vars0}, #state{publish_events=undefined}=State) ->
+
+handle_info({event, _Node, _Vars0}, #state{publish_events=PatPub}=State)
+        when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
-handle_info({event, Event, _Node, Vars0},
+handle_info({event, _Node, Vars0},
         #state{cpid=Connection, publish_events=PatPub}=State) ->
     {ok, PubChannel} = amqp_connection:open_channel(Connection),
-    publish_event(PubChannel, Event, PatPub, Vars0),
+    publish_event(PubChannel, PatPub, Vars0),
     amqp_channel:close(PubChannel),
     {noreply, State};
 
@@ -144,10 +148,10 @@ publish_uplink(PubChannel, Format, PatPub, Vars0) when is_map(Vars0) ->
     amqp_channel:cast(PubChannel, basic_publish(PatPub, lorawan_admin:build(Vars0)),
         #amqp_msg{payload = encode_uplink(Format, Vars0)}).
 
-publish_event(PubChannel, Event, PatPub, Vars0) ->
+publish_event(PubChannel, PatPub, Vars0) ->
     Vars = lorawan_admin:build(Vars0),
     amqp_channel:cast(PubChannel, basic_publish(PatPub, Vars0),
-        #amqp_msg{payload = jsx:encode(#{atom_to_binary(Event, latin1) => Vars})}).
+        #amqp_msg{payload = jsx:encode(Vars)}).
 
 basic_publish(PatPub, Vars) ->
     {Exchange, RoutingKey} =

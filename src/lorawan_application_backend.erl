@@ -15,19 +15,10 @@
 init(_App) ->
     ok.
 
-handle_join({_Network, #profile{app=AppID}, #device{deveui=DevEUI, appargs=AppArgs}=Device},
-        {_MAC, _RxQ}, DevAddr) ->
+handle_join({_Network, #profile{app=AppID}, Device}, {_MAC, _RxQ}, DevAddr) ->
     case mnesia:dirty_read(handlers, AppID) of
-        [#handler{fields=Fields}] ->
-            Vars =
-                vars_add(app, AppID, Fields,
-                vars_add(devaddr, DevAddr, Fields,
-                vars_add(deveui, DevEUI, Fields,
-                vars_add(appargs, AppArgs, Fields,
-                vars_add(datetime, calendar:universal_time(), Fields,
-                #{}))))),
-            lorawan_backend_factory:event(joined, AppID, {Device, DevAddr}, Vars),
-            ok;
+        [Handler] ->
+            send_event(joined, #{}, Handler, {Device, DevAddr});
         [] ->
             {error, {unknown_application, AppID}}
     end.
@@ -79,7 +70,7 @@ any_is_member(List1, List2) ->
         end,
         List1).
 
-parse_uplink(#handler{app=AppID, parse=Parse, fields=Fields},
+parse_uplink(#handler{app=AppID, parse_uplink=Parse, fields=Fields},
         #node{appargs=AppArgs, devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
@@ -146,22 +137,29 @@ data_to_fields(_AppId, _Else, Vars, _) ->
 handle_delivery({_Network, #profile{app=AppID}, Node}, Result, Receipt) ->
     case mnesia:dirty_read(handlers, AppID) of
         [Handler] ->
-            send_delivery_event(Handler, Node, Result, Receipt);
+            send_event(Result, #{receipt => Receipt}, Handler, Node);
         [] ->
             {error, {unknown_application, AppID}}
     end.
 
-send_delivery_event(#handler{app=AppID, fields=Fields},
-        #node{devaddr=DevAddr, appargs=AppArgs}=Node, Result, Receipt) ->
+send_event(Event, Vars0, #handler{app=AppID, parse_event=Parse, fields=Fields}, DeviceOrNode) ->
     Vars =
         vars_add(app, AppID, Fields,
-        vars_add(devaddr, DevAddr, Fields,
-        vars_add(deveui, get_deveui(DevAddr), Fields,
-        vars_add(appargs, AppArgs, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        #{receipt => Receipt}))))),
-    lorawan_backend_factory:event(Result, AppID, Node, Vars),
-    ok.
+        case DeviceOrNode of
+            {#device{deveui=DevEUI, appargs=AppArgs}, DevAddr} ->
+                vars_add(devaddr, DevAddr, Fields,
+                vars_add(deveui, DevEUI, Fields,
+                vars_add(appargs, AppArgs, Fields,
+                Vars0)));
+            {#node{devaddr=DevAddr, appargs=AppArgs}} ->
+                vars_add(devaddr, DevAddr, Fields,
+                vars_add(deveui, get_deveui(DevAddr), Fields,
+                vars_add(appargs, AppArgs, Fields,
+                Vars0)))
+        end)),
+    lorawan_backend_factory:event(AppID, DeviceOrNode,
+        data_to_fields(AppID, Parse, Vars, Event)).
 
 handle_downlink(AppId, Vars) ->
     [#handler{build=Build}=Handler] = mnesia:dirty_read(handlers, AppId),
@@ -257,7 +255,7 @@ purge_frames(#handler{downlink_expires = <<"superseded">>}=Handler,
         fun
             (#txdata{confirmed=true, receipt=Receipt}) ->
                 lorawan_utils:throw_error({node, DevAddr}, downlink_lost),
-                send_delivery_event(Handler, Node, lost, Receipt);
+                send_event(lost, #{receipt => Receipt}, Handler, Node);
             (#txdata{}) ->
                 ok
         end,

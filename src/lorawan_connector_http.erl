@@ -53,7 +53,8 @@ handle_info(nodes_changed, State) ->
     % nothing to do here
     {noreply, State};
 
-handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=undefined}=State) ->
+handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=PatPub}=State)
+        when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
 handle_info({uplink, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
     case connect(Connector) of
@@ -65,17 +66,19 @@ handle_info({uplink, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State)
     end;
 handle_info({uplink, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
     {noreply, handle_uplink(Vars0, State)};
-handle_info({event, _Event, _Node, _Vars0}, #state{publish_events=undefined}=State) ->
+
+handle_info({event, _Node, _Vars0}, #state{publish_events=PatPub}=State)
+        when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
-handle_info({event, Event, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
+handle_info({event, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
     case connect(Connector) of
         {ok, ConnPid} ->
-            {noreply, handle_event(Event, Vars0, State#state{pid=ConnPid})};
+            {noreply, handle_event(Vars0, State#state{pid=ConnPid})};
         {error, _} ->
             {noreply, State#state{pid=undefined}}
     end;
-handle_info({event, Event, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
-    {noreply, handle_event(Event, Vars0, State)};
+handle_info({event, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
+    {noreply, handle_event(Vars0, State)};
 
 handle_info({gun_up, C, http}, State=#state{pid=C}) ->
     {noreply, State};
@@ -174,12 +177,12 @@ handle_uplink(Vars0, #state{conn=#connector{format=Format}, publish_uplinks=Patt
             ContentType, Body},
         [], State).
 
-handle_event(Event, Vars0, #state{publish_events=Pattern}=State) ->
+handle_event(Vars0, #state{publish_events=Pattern}=State) ->
     Vars = lorawan_admin:build(Vars0),
     do_publish(
         {initial,
             lorawan_connector:fill_pattern(Pattern, Vars),
-            <<"application/json">>, jsx:encode(#{atom_to_binary(Event, latin1) => Vars})},
+            <<"application/json">>, jsx:encode(Vars)},
         [], State).
 
 do_publish({_Type, URI, ContentType, Body}=Msg, Headers, State=#state{pid=C, streams=Streams}) ->

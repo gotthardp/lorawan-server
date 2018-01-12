@@ -101,16 +101,16 @@ websocket_info({uplink, _Node, Vars0},
 websocket_info({uplink, _Node, _Vars}, #state{type=event}=State) ->
     % this is not for me
     {ok, State};
-websocket_info({event, Event, _Node, Vars0},
+websocket_info({event, _Node, Vars0},
         #state{type=event, bindings=Bindings} = State) ->
     case lorawan_connector:same_common_vars(Vars0, Bindings) of
         true ->
             {reply, {text,
-                jsx:encode(#{atom_to_binary(Event, latin1) => lorawan_admin:build(Vars0)})}, State};
+                jsx:encode(lorawan_admin:build(Vars0))}, State};
         false ->
             {ok, State}
     end;
-websocket_info({event, _Event, _Node, _Vars0}, #state{type=uplink}=State) ->
+websocket_info({event, _Node, _Vars0}, #state{type=uplink}=State) ->
     % this is not for me
     {ok, State};
 websocket_info(Info, State) ->

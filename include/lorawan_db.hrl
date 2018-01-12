@@ -141,10 +141,13 @@
     certfile,
     keyfile}).
 
+-define(EMPTY_PATTERN, {<<>>,[]}).
+
 -record(handler, {
     app :: binary(),
     fields :: [binary()],
-    parse :: fun(),
+    parse_uplink :: fun(),
+    parse_event :: fun(),
     build :: fun(),
     downlink_expires :: binary()}).
 

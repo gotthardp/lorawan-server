@@ -46,7 +46,6 @@ build_hierarchy(PatConn, PatSub, Nodes) ->
         fun(Node, Hier) ->
             Vars = lorawan_admin:build(lorawan_connector:node_to_vars(Node)),
             Connect = lorawan_connector:fill_pattern(PatConn, Vars),
-
             Subs = proplists:get_value(Connect, Hier, []),
             Subs2 =
                 if
@@ -95,8 +94,14 @@ execute_hierarchy_updates(NewHier, CurrHier, Conn) ->
             case not lists:keymember(Connect, 1, CurrHier) of
                 true ->
                     % connect, initially using MQTT 3.1.1
-                    {ok, C2, Costa2} = connect(attempt311, Connect, Conn),
-                    {true, {Connect, C2, NewSub, Costa2}};
+                    case connect(attempt311, Connect, Conn) of
+                        {ok, C2, Costa2} ->
+                            {true, {Connect, C2, NewSub, Costa2}};
+                        {error, Error} ->
+                            lager:error("Connector ~s has bad arguments (~p) ~p",
+                                [Conn#connector.connid, Error, Connect]),
+                            false
+                    end;
                 false ->
                     % already processed
                     false
@@ -105,20 +110,28 @@ execute_hierarchy_updates(NewHier, CurrHier, Conn) ->
         NewHier).
 
 % initial connect
-connect(Phase, [Uri, ClientId, UserName, Password], Conn) ->
+connect(Phase, Arguments, Conn) ->
+    try connection_args(Arguments, Conn) of
+        CArgs ->
+            {ok, C} = connect0(Phase, CArgs),
+            {ok, C, #costa{phase=Phase, cargs=CArgs, connect_count=0, last_connect=calendar:universal_time()}}
+    catch
+        _:Error ->
+            {error, Error}
+    end.
+
+connection_args([Uri, ClientId, UserName, Password], Conn) ->
     lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Uri]),
     {ok, ConnUri} = http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{mqtt, 1883}, {mqtts, 8883}]}]),
     {Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
-    CArgs = lists:append([
+    lists:append([
         [{host, HostName},
         {port, Port},
         {logger, warning},
         {keepalive, 0}],
         auth_args(HostName, Conn#connector.auth, ClientId, UserName, Password),
         ssl_args(Scheme, Conn)
-    ]),
-    {ok, C} = connect0(Phase, CArgs),
-    {ok, C, #costa{phase=Phase, cargs=CArgs, connect_count=0, last_connect=calendar:universal_time()}}.
+    ]).
 
 reconnect(#costa{phase=Phase, cargs=CArgs, connect_count=Count}=Costa) ->
     {ok, C} = connect0(Phase, CArgs),
@@ -165,7 +178,8 @@ handle_info({mqttc, _C, disconnected}, State) ->
     % no action, waiting for 'EXIT'
     {noreply, State};
 
-handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=undefined}=State) ->
+handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=PatPub}=State)
+        when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
 handle_info({uplink, Node, Vars0}, #state{conn=#connector{format=Format},
         publish_uplinks=PatPub}=State) ->
@@ -177,12 +191,14 @@ handle_info({uplink, Node, Vars0}, #state{conn=#connector{format=Format},
     end,
     {noreply, State};
 
-handle_info({event, _Event, _Node, _Vars0}, #state{publish_events=undefined}=State) ->
+handle_info({event, _Node, _Vars0}, #state{publish_events=PatPub}=State)
+        when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
-handle_info({event, Event, Node, Vars0}, #state{publish_events=PatPub}=State) ->
+handle_info({event, Node, Vars0}, #state{publish_events=PatPub}=State) ->
+lager:debug("WTF ~p", [PatPub]),
     case connection_for_node(Node, State) of
         {ok, C} ->
-            publish_event(C, PatPub, Event, Vars0);
+            publish_event(C, PatPub, Vars0);
         {error, Error} ->
             lager:debug("Connector not available: ~p", [Error])
     end,
@@ -276,11 +292,11 @@ publish_uplink(C, PatPub, Format, Vars0) when is_map(Vars0) ->
         lorawan_connector:fill_pattern(PatPub, lorawan_admin:build(Vars0)),
         encode_uplink(Format, Vars0)).
 
-publish_event(C, PatPub, Event, Vars0) ->
+publish_event(C, PatPub, Vars0) ->
     Vars = lorawan_admin:build(Vars0),
     emqttc:publish(C,
         lorawan_connector:fill_pattern(PatPub, Vars),
-        jsx:encode(#{atom_to_binary(Event, latin1) => Vars})).
+        jsx:encode(Vars)).
 
 encode_uplink(<<"raw">>, Vars) ->
     maps:get(data, Vars, <<>>);

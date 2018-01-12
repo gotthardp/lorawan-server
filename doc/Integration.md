@@ -1,9 +1,13 @@
 # Integration Guide
 
+This document desribes specific configuration required to integrate with various
+IoT cloud platforms.
+Please refer to [Connectors](Connectors.md) guide for a generic description.
+
 ## AWS IoT
 
-Amazon Web Services (AWS) can be integrated via MQTT. All Nodes can share the same
-connection to the server.
+[Amazon Web Services (AWS)](https://aws.amazon.com/iot/) can be integrated via MQTT.
+All Nodes can share the same connection to the server.
 
 First, follow the AWS IoT guidelines to configure your IoT device:
  * Create and activiate a Security Certificate. Make sure you download the certificate
@@ -22,6 +26,7 @@ First, follow the AWS IoT guidelines to configure your IoT device:
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the AWS *Endpoint* with the `mqtts://` prefix
  * *Published Uplinks* is a pattern for the publication topic, e.g. `out/{devaddr}`.
+   Make sure you added `devaddr` to your [Handler](Handlers.md) Fields.
  * *Subscribe* is a topic to be subscribed by the lorawan-server, e.g. `in/#`.
  * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
 
@@ -37,9 +42,9 @@ you can alternatively create a Thing Security Certificate. In such case the
 
 
 ## IBM Watson IoT Platform
-
-IBM Watson IoT Platform can be integrated via MQTT. The lorawan-server can act
-as a Gateway acting on behalf of multiple devices.
+[IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things)
+can be integrated via MQTT. The lorawan-server can act as a Gateway acting on
+behalf of multiple devices.
 
 First, follow the IBM Bluemix documentation to configure the IoT Gateway:
  * Create a *device type* for your devices, e.g. "loramote"
@@ -72,8 +77,9 @@ On the Authentication tab:
 
 ## MathWorks ThingSpeak
 
-MathWorks ThingSpeak can be integrated via MQTT. It supports only publishing to
-channels using MQTT, subscriptions are not supported by ThingSpeak.
+[MathWorks ThingSpeak](https://thingspeak.com/) can be integrated via MQTT. It
+supports only publishing to channels using MQTT, subscriptions are not supported
+by ThingSpeak.
 
 First, follow the ThingSpeak guidelines and create a New Channel:
  * Set a channel *Name*;
@@ -88,7 +94,7 @@ Open the lorawan-server web-administration and create an Backend Connector:
  * *Subscribe* and *Received Topic* shall be left empty.
 
 Then, create a new Handler:
- * *Group* shall correspond to a Group attribute of some [Nodes](Nodes.md).
+ * *Group* shall correspond to a Group attribute of some Nodes.
  * *Format* shall be *Web Form*.
  * *Parse Uplink* shall include a data parsing function. See the [Backends](Backends.md)
    guide for more information, but make sure the values are named "field1", "field2" etc.
@@ -96,44 +102,75 @@ Then, create a new Handler:
 
 For example, a *Parse Uplink* for the Semtech LoRaMote could be:
 ```erlang
-fun(_Port, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
+fun(Vars, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
   #{field1 => LED, field2 => Press, field3 => Temp/100, field4 => AltBar, field5 => Batt}
 end.
 ```
 
 ## Microsoft Azure IoT Hub
 
-Microsoft Azure IoT Hub can be integrated via MQTT. Azure uses per-device credentials
-so you cannot connect multiple devices (each with its own credentials) using the
-same connection. A dedicated Connector is needed for each Node.
+[Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
+can be integrated via MQTT. Azure uses per-device credentials so the Connector
+will create one connection for each Node (each with its own credentials).
 
-First, follow the Azure guidelines to configure your IoT device:
- * Create a new Device, use *Symmetric Key* authentication and let the system to
-   *Auto Generate Keys*.
- * Optionally you may also define a *Shared access policy*.
+First, follow the Azure IoT Hub guidelines to configure your IoT devices:
+ * Create a new Device:
+   * *Device ID* shall be set to Device *DevEUI* or Node *DevAddr.
+   * *Authentication Type* shall be *Symmetric Key*.
+   * *Auto Generate Keys* shall be checked.
+ * It is recommended to create also a *Shared access policy*, allowing
+   *Device connect*.
+ * Instead creating the access policy you may copy-paste the auto-generated device
+   *Primary key* (encoded using Base64) to *App Arguments* in the Node config.
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
  * *URI* is the IoT Hub *Hostname* with the `mqtts://` prefix
  * *Published Uplinks* shall be `devices/{devaddr}/messages/events/`.
    The trailing slash is mandatory.
- * *Subscribe* shall be `devices/xxxxxxxx/messages/devicebound/#`.
- * *Received Topic* shall be `devices/{devaddr}/messages/devicebound/#`.
+ * *Subscribe* shall be `devices/{devaddr}/messages/devicebound/#`.
+ * *Received Topic* shall be the same as *Subscribe*.
 
 On the Authentication tab:
- * *Client ID* is the *Device ID*
+ * *Client ID* is the `{devaddr}`
  * *Auth* shall be set to *Shared Access Signature*
+ * When authenticating using a *Shared access policy*:
+   * *Name* is the *Access policy name* you created above
+   * *Password/Key* is the access policy *Primary key* (encoded using Base64)
  * When authenticating using the device key:
    * *Name* shall be empty
-   * *Password/Key* is the device *Primary key* (encoded using Base64)
- * When authenticating using a *Shared access policy*:
-   * *Name* is the *Access policy name*
-   * *Password/Key* is the access policy *Primary key* (encoded using Base64)
+   * *Password/Key* shall be `{appargs}`. Make sure you added `appargs` to your
+     [Handler](Handlers.md) Fields.
 
+
+## ThingsBoard Open-source IoT Platform
+
+The [ThingsBoard](https://thingsboard.io) can be integrated via MQTT. The platform
+uses per-device credentials so the Connector will create one connection for each Node.
+
+First, follow the ThingsBoard documentation to configure your devices
+ * *Add new device*
+   * *Name* shall be set to Device *DevEUI* or Node *DevAddr.
+ * When created, enter the *Manage Credentials* tab and copy-paste *Access token*
+   to *App Arguments* in the Node config.
+
+Then, open the lorawan-server web-administration and create an Backend Connector:
+ * *URI* shall be `mqtt://demo.thingsboard.io` or URL of your local ThingsBoard.
+ * *Publish Uplinks* shall be `v1/devices/me/telemetry`.
+ * *Publish Events* can be left empty, or set to `v1/devices/me/attributes`.
+
+On the Authentication tab:
+ * *Auth* shall be set to *Username+Password*
+ * *Name* shall be `{appargs}`. Make sure you added `appargs` to your
+   [Handler](Handlers.md) Fields.
+ * Other fields are left empty.
+
+Make sure that your Handler *Parse Uplink* and *Parse Event* produce a flat
+list of string, boolean and numeric fields only.
 
 ## Adafruit IO
 
-AdafruitIO supports MQTT and MQTT/SSL. Before doing the integration, make sure
-you consult the following Adafruit articles:
+[Adafruit IO](https://io.adafruit.com/) supports MQTT and MQTT/SSL. Before doing
+the integration, make sure you consult the following Adafruit articles:
 
  * [Adafruit IO](https://learn.adafruit.com/adafruit-io)
  * [Adafruit IO Basics: Feeds](https://learn.adafruit.com/adafruit-io-basics-feeds)

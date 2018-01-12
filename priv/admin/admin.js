@@ -720,8 +720,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .uploadInformation({'url': 'upload'})
     ]);
     connectors.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:8},
-        {name:"Authentication", min:8, max:14}
+        {name:"General", min:0, max:9},
+        {name:"Authentication", min:9, max:15}
     ]));
     connectors.editionView().fields(connectors.creationView().fields());
     connectors.editionView().template(editWithTabsTemplate([
@@ -758,7 +758,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'best_gw', label: 'best_gw' },
                 { value: 'all_gw', label: 'all_gw' }
             ]),
-        nga.field('parse', 'text').label('Parse Uplink'),
+        nga.field('parse_uplink', 'text'),
+        nga.field('parse_event', 'text'),
         nga.field('build', 'text').label('Build Downlink'),
         nga.field('downlink_expires', 'choice').label('D/L Expires')
             .choices([
@@ -1608,13 +1609,11 @@ return {
         value: '='
     },
     link: function($scope) {
-        $scope.data = 0;
-        $scope.CannotTest = true;
+        $scope.count = 0;
         $http({method: 'GET', url: '/api/connections/'+$scope.value})
             .then(function(response) {
                 if(response.data.count > 0)
-                    $scope.data = response.data;
-                    $scope.CannotTest = false;
+                    $scope.count = response.data.count;
             })
 
         $scope.sendTest = function() {
@@ -1622,8 +1621,8 @@ return {
         }
     },
     template: `
-        <button ng-disabled="CannotTest" ng-click="sendTest()" type="button" class="btn btn-default">send</button>
-        <ng-pluralize count="data.count"
+        <button ng-disabled="count <= 0" ng-click="sendTest()" type="button" class="btn btn-default">send</button>
+        <ng-pluralize count="count"
             when = "{'0': 'to no connection',
                      'one': 'to 1 connection',
                      'other': 'to {} connections'}">

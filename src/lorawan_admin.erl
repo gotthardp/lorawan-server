@@ -66,8 +66,8 @@ get_password_hash(Role, UserName, Realm) ->
 
 check_health(#gateway{} = Gateway) ->
     check_health(Gateway, ?MODULE, [check_alive, check_dwell]);
-check_health(#node{} = Link) ->
-    check_health(Link, ?MODULE, [check_reset, check_battery, check_margin, check_adr, check_rxwin]);
+check_health(#node{} = Node) ->
+    check_health(Node, ?MODULE, [check_reset, check_battery, check_margin, check_adr, check_rxwin]);
 check_health(_Other) ->
     undefined.
 
@@ -239,7 +239,7 @@ parse_field(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> parse_qs(Item) end, Value);
 parse_field(Key, Value) when Key == average_qs ->
     parse_qs(Value);
-parse_field(Key, Value) when Key == build; Key == parse ->
+parse_field(Key, Value) when Key == parse_uplink; Key == parse_event; Key == build ->
     parse_fun(Value);
 parse_field(Key, #{ip:=IP, port:=Port, ver:=Ver}) when Key == ip_address ->
     {ok, IP2} = inet_parse:address(binary_to_list(IP)),
@@ -305,7 +305,7 @@ build_field(Key, Value) when Key == last_qs ->
     lists:map(fun(Item) -> build_qs(Item) end, Value);
 build_field(Key, Value) when Key == average_qs ->
     build_qs(Value);
-build_field(Key, Value) when Key == build; Key == parse ->
+build_field(Key, Value) when Key == parse_uplink; Key == parse_event; Key == build ->
     build_fun(Value);
 build_field(Key, Value) when Key == all_gw ->
     lists:map(
