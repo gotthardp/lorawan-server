@@ -243,8 +243,12 @@ invoke_handler2(Module, Fun, Params) ->
     end.
 
 % class C
-downlink(Node, Time, TxData) ->
-    {ok, Network, Profile} = lorawan_mac:load_profile(Node),
+downlink(#node{profile=ProfID}=Node, Time, TxData) ->
+    {atomic, {ok, Network, Profile}} =
+        mnesia:transaction(
+            fun() ->
+                lorawan_mac:load_profile(ProfID)
+            end),
     {MAC, _RxQ} = hd(Node#node.gateways),
     TxQ = lorawan_mac_region:rx2_rf(Network, Node),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0

@@ -131,13 +131,15 @@ Each byte is represented by exactly 2 digits. For example, "4849" represents ASC
 ## HTTP/REST
 
 To create a HTTP connector you set:
- * *URI* to the target host either as `http://host:port` or `http://host:port
+ * *URI* to the target host either as `http://host:port` or `http://host:port. Do
+   not append any path: use the *Publish Uplinks* or *Events* field instead.
  * *Publish Uplinks* to a URL pattern starting with a slash, e.g. '/uplink/{devaddr}'
  * *Publish Events* to another URL pattern, e.g. '/events/{devaddr}'
  * *Received Topic* is a template for parsing the topic of received downlink
    messages, e.g. `in/{devaddr}`.
 
-The *Received Topic* must be different to all Web Socket *Publish* patterns.
+Make sure that all URL paths start with a slash ('/'). The *Received Topic* must
+be different to all Web Socket *Publish* patterns.
 
 
 ## Generic MQTT Servers

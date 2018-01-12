@@ -87,6 +87,26 @@ handle_info(subscribe, #state{conn=#connector{connid=ConnId, subscribe=Sub}, cpi
 handle_info(subscribe, State) ->
     {noreply, State#state{subc=undefined}};
 
+handle_info({#'basic.deliver'{delivery_tag=Tag, exchange=Exchange, routing_key=RoutingKey}, Message},
+        #state{conn=Connector, subc=SubChannel, received=Pattern}=State) ->
+    amqp_channel:cast(SubChannel, #'basic.ack'{delivery_tag = Tag}),
+    Topic =
+        case Exchange of
+            <<"amq.topic">> -> RoutingKey;
+            EX -> <<EX/binary, $/, RoutingKey/binary>>
+        end,
+    #amqp_msg{payload = Payload} = Message,
+    case lorawan_connector:decode_and_downlink(Connector, Payload,
+            lorawan_connector:match_vars(Topic, Pattern)) of
+        ok ->
+            ok;
+        {error, {Object, Error}} ->
+            lorawan_utils:throw_error(Object, Error);
+        {error, Error} ->
+            lorawan_utils:throw_error({connector, Connector#connector.connid}, Error)
+    end,
+    {noreply, State};
+
 handle_info({'basic.consume_ok', _Tag}, State) ->
     {noreply, State};
 

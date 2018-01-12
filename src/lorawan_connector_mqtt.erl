@@ -207,7 +207,7 @@ lager:debug("WTF ~p", [PatPub]),
 handle_info({publish, Topic, Payload}, State=#state{conn=Connector, received=Pattern}) ->
     % we assume the Topic is sufficient to determine the target
     case lorawan_connector:decode_and_downlink(Connector, Payload,
-            lorawan_admin:parse(lorawan_connector:match_vars(Topic, Pattern))) of
+            lorawan_connector:match_vars(Topic, Pattern)) of
         ok ->
             ok;
         {error, {Object, Error}} ->
