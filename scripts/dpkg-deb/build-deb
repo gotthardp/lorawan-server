@@ -24,3 +24,4 @@ mkdir -p $ROOT/usr/share/doc/lorawan-server
 rsync -tp ${SCRIPT_DIR}/../../LICENSE $ROOT/usr/share/doc/lorawan-server/copyright
 
 fakeroot dpkg-deb --build $ROOT $REL
+rm -rf $ROOT
