@@ -522,9 +522,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appskey').label('AppSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
-        nga.field('fcntup', 'number').label('FCnt Up')
-            .defaultValue(0)
-            .validation({ required: true }),
+        nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0)
             .validation({ required: true })

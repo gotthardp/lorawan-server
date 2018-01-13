@@ -144,7 +144,8 @@ accept_node_frame(DevAddr, FCnt) ->
                 {ok, {Network, Profile, Node}} ->
                     case check_fcnt({Network, Profile, Node}, FCnt) of
                         {ok, Fresh, Node2} ->
-                            ok = mnesia:write(nodes, Node2, write),
+                            ok = mnesia:write(nodes,
+                                ensure_used_fields(Network, Node2), write),
                             {ok, Fresh, {Network, Profile, Node2}};
                         Error ->
                             Error
@@ -292,6 +293,30 @@ fcnt32_gap(A, B) ->
 fcnt32_inc(FCntUp, N) ->
     % L#node.fcntup is 32b, but the received FCnt may be 16b only
     (FCntUp + N) band 16#FFFFFFFF.
+
+ensure_used_fields(Network, Node) ->
+    ensure_adr(Network,
+        ensure_rxwin(Network, Node)).
+
+ensure_adr(#network{init_chans=InitChans, max_power=MaxPower}, Node) ->
+    case Node#node.adr_use of
+        {TXPower, DataRate, Chans}
+                when is_integer(TXPower), is_integer(DataRate), is_list(Chans) ->
+            Node;
+        _Else ->
+            lager:debug("~p ADR initialized", [binary_to_hex(Node#node.devaddr)]),
+            Node#node{adr_use={MaxPower, 0, InitChans}}
+    end.
+
+ensure_rxwin(#network{rxwin_init=WinInit}, Node) ->
+    case Node#node.rxwin_use of
+        {OffSet, RX2DataRate, Frequency}
+                when is_integer(OffSet), is_integer(RX2DataRate), is_number(Frequency) ->
+            Node;
+        _Else ->
+            lager:debug("~p RXWindow initialized", [binary_to_hex(Node#node.devaddr)]),
+            Node#node{rxwin_use=WinInit}
+    end.
 
 
 handle_accept(Gateways, {Network, Profile, Device}, DevAddr, DevNonce) ->

@@ -86,7 +86,7 @@ handle_cast({uplinks, PkList}, State) ->
     {noreply, State2};
 
 handle_cast({downlink, {MAC, GWState}, DevAddr, TxQ, RFCh, PHYPayload}, #state{gateways=Dict}=State) ->
-    % lager:debug("<-- datr ~s, codr ~s, tmst ~B, size ~B", [TxQ#txq.datr, TxQ#txq.codr, TxQ#txq.tmst, byte_size(PHYPayload)]),
+    % lager:debug("<-- freq ~p, datr ~s, codr ~s, tmst ~p, size ~B", [TxQ#txq.freq, TxQ#txq.datr, TxQ#txq.codr, TxQ#txq.tmst, byte_size(PHYPayload)]),
     case dict:find(MAC, Dict) of
         {ok, {Process, Target, TxTimes, NwkDelays}} ->
             % send data to the gateway interface handler

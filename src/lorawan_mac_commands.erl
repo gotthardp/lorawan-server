@@ -21,11 +21,8 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
         fun() ->
             [N0] = mnesia:read(nodes, Node#node.devaddr, write),
             {MC, N2} = handle_fopts0(
-                {Network, Profile,
-                    store_actual_adr(Gateways, ADR, Network,
-                        ensure_rxwin(Network, N0))},
-                Gateways,
-                FOptsIn),
+                {Network, Profile, store_actual_adr(Gateways, ADR, Network, N0)},
+                Gateways, FOptsIn),
             ok = mnesia:write(nodes, N2, write),
             {MC, N2}
         end),
@@ -142,19 +139,10 @@ store_actual_adr([{_MAC, RxQ}|_], ADR, #network{region=Region, init_chans=InitCh
             Node#node{adr_flag=ADR, adr_use={TXPower, DataRate, Chans},
                 devstat_fcnt=undefined, last_qs=[]};
         _Else ->
+            % this should not happen
             lager:debug("DataRate ~s initialized to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
             Node#node{adr_flag=ADR, adr_use={MaxPower, DataRate, InitChans},
                 devstat_fcnt=undefined, last_qs=[]}
-    end.
-
-ensure_rxwin(#network{rxwin_init=Init}, Node) ->
-    case Node#node.rxwin_use of
-        {OffSet, RX2DataRate, Frequency}
-                when is_integer(OffSet), is_integer(RX2DataRate), is_number(Frequency) ->
-            Node;
-        _Else ->
-            lager:debug("RXWindow initialized"),
-            Node#node{rxwin_use=Init}
     end.
 
 handle_adr(FOptsIn, Node) ->
