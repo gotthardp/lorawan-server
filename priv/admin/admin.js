@@ -270,14 +270,21 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('max_datr', 'choice').label('Max Data Rate')
             .choices(function(entry) {
-                return choices_regions[entry.values.region].uplink_datar;
+                if(entry.values.region)
+                    return choices_regions[entry.values.region].uplink_datar;
+                else
+                    return [];
             })
             .validation({ required: true }),
         nga.field('rxwin_init.rx1_dr_offset', 'number').label('Initial RX1 DR offset')
-            .validation({ required: true }),
+            .validation({ required: true })
+            .defaultValue(0),
         nga.field('rxwin_init.rx2_dr', 'choice').label('Initial RX2 DR')
             .choices(function(entry) {
-                return choices_regions[entry.values.region].downlink_datar;
+                if(entry.values.region)
+                    return choices_regions[entry.values.region].downlink_datar;
+                else
+                    return [];
             })
             .validation({ required: true }),
         nga.field('rxwin_init.rx2_freq', 'float').label('Initial RX2 Freq (MHz)')
@@ -376,15 +383,24 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(0),
         nga.field('adr_set.power', 'choice').label('Set Power')
             .choices(function(entry) {
-                return choices_networks[entry.values.network].power;
+                if(entry.values.network)
+                    return choices_networks[entry.values.network].power;
+                else
+                    return [];
             }),
         nga.field('adr_set.datr', 'choice').label('Set Data Rate')
             .choices(function(entry) {
-                return choices_networks[entry.values.network].uplink_datar;
+                if(entry.values.network)
+                    return choices_networks[entry.values.network].uplink_datar;
+                else
+                    return [];
             }),
         nga.field('max_datr', 'choice').label('Max Data Rate')
             .choices(function(entry) {
-                return choices_networks[entry.values.network].uplink_datar;
+                if(entry.values.network)
+                    return choices_networks[entry.values.network].uplink_datar;
+                else
+                    return [];
             }),
         nga.field('adr_set.chans').label('Set Channels')
             .attributes({ placeholder: 'e.g. 0-2' })
@@ -393,7 +409,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset'),
         nga.field('rxwin_set.rx2_dr', 'choice').label('Set RX2 DR')
             .choices(function(entry) {
-                return choices_networks[entry.values.network].downlink_datar;
+                if(entry.values.network)
+                    return choices_networks[entry.values.network].downlink_datar;
+                else
+                    return [];
             }),
         nga.field('rxwin_set.rx2_freq', 'float').label('Set RX2 Freq (MHz)'),
 
@@ -570,11 +589,17 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false),
         nga.field('adr_set.power', 'choice').label('Set Power')
             .choices(function(entry) {
-                return choices_profiles[entry.values.profile].power;
+                if(entry.values.profile)
+                    return choices_profiles[entry.values.profile].power;
+                else
+                    return [];
             }),
         nga.field('adr_set.datr', 'choice').label('Set Data Rate')
             .choices(function(entry) {
-                return choices_profiles[entry.values.profile].uplink_datar;
+                if(entry.values.profile)
+                    return choices_profiles[entry.values.profile].uplink_datar;
+                else
+                    return [];
             }),
         nga.field('adr_set.chans').label('Set Channels')
             .attributes({ placeholder: 'e.g. 0-2' })
@@ -587,7 +612,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false),
         nga.field('rxwin_use.rx2_dr', 'choice').label('Used RX2 DR')
             .choices(function(entry) {
-                return choices_profiles[entry.values.profile].downlink_datar;
+                if(entry.values.profile)
+                    return choices_profiles[entry.values.profile].downlink_datar;
+                else
+                    return [];
             })
             .editable(false),
         nga.field('rxwin_use.rx2_freq', 'float').label('Used RX2 Freq (MHz)')
