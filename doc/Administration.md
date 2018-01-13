@@ -20,11 +20,12 @@ The management web-pages are available under `/admin`. It is a wrapper around
 the REST API described below.
 
 The server Dashboard shows:
- * Rolling timeline displaying recent Frames and [Events](Events.md).
- * Server information and a list of [Gateways](Infrastructure.md),
-   and [Nodes](Nodes.md) that may need your attention.
+ * Rolling timeline displaying recent Frames and [Events](Events.md#events).
+ * Server information and a list of [Gateways](Infrastructure.md#gateways),
+   and [Nodes](Devices.md#activated-nodes) that may need your attention.
    The lines are sorted by severity.
- * Seven most recent [Events](Events.md) and seven most recent frames received.
+ * Seven most recent [Events](Infrastructure.md#events.md) and seven most recent
+   frames received.
 
 The following configuration pages are available:
  - **Users** contain a list of user identities that can manage the server. For now
@@ -43,13 +44,13 @@ The following configuration pages are available:
      backend servers.
 
 You (at least) have to:
- * Set parameters of your LoRaWAN **Networks** according to your region.
- * Add LoRaWAN gateways you want to use to the **Gateways** list.
- * For each type of a device define a device **Profile**.
- * Configure each device you want to use and assign them to one of the **Profiles**:
-   * To add a device activated by personalization (ABP), create a new **Nodes** list entry.
+ * Set parameters of your LoRaWAN *Networks* according to your region.
+ * Add LoRaWAN gateways you want to use to the *Gateways* list.
+ * For each type of a device define a device *Profile*.
+ * Configure each device you want to use and assign them to one of the *Profiles*:
+   * To add a device activated by personalization (ABP), create a new *Nodes* list entry.
    * To add an OTAA device, create a new *Devices* list entry and start the device.
-     The **Nodes** list will be updated automatically once the device joins the network.
+     The *Nodes* list will be updated automatically once the device joins the network.
 
 
 ## REST API

@@ -94,7 +94,7 @@ Upon receiving an uplink frame the server:
    * If the *FCnt Up* increased the respective [Application Handler](Applications.md)
      gets invoked.
    * If the *FCnt Up* is the same the device just retransmitted the previous frame.
-     The frame gets logged in the **Received Frames** list, but handler is not invoked.
+     The frame gets logged in the *Received Frames* list, but handler is not invoked.
    * If the *FCnt Up* decreased an error [Event](Events.md) is generated, unless
      the *FCnt Up* did reset and the Node *FCnt Check* is set to *Reset on zero*.
      Such frames are processed as if the *FCnt Up* increased.

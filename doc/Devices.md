@@ -23,8 +23,8 @@ For each Profile you can set:
      This destroys the device security.
  - **TX Window** to be used for downlinks to this device:
    - **Auto** to choose the earliest feasible option, either RX1 or RX2
-   - **RX1** to always use RX1
-   - **RX2** to always use RX2
+   - **RX1** to always use the first RX window
+   - **RX2** to always use the second RX window
 
 In addition to that, each Profile may belong to one or more multicast channels.
 
@@ -69,7 +69,7 @@ parameters. User can then make individual changes to these parameters.
 
 #### Auto-Adjust
 
-When ADR Mode is **Auto-Adjust** and the Node "Used" ADR parameters didn't
+When ADR Mode is *Auto-Adjust* and the Node "Used" ADR parameters didn't
 change for the last 20 frames the server will automatically adjust the Node
 "Set" ADR parameters depending on the uplink signal quality:
  * The *Data Rate* (Spreading Factor) is defined so that the LoRa demodulator SNR
@@ -139,10 +139,10 @@ For each active network Node you can set:
  - **NwkSKey** and **AppSKey**
  - **FCnt Up** and **FCnt Down** frame counters
 
-The *Downlinks* table contains frames created by the application, which are scheduled for
-transmission. Class A devices listen for downlinks only for 2 seconds after an uplink
-transmission, so it may take a while until all messages are transmitted. Class C
-downlinks are not listed there as these are scheduled immediately.
+The **Downlinks** table contains frames created by the application, which are
+scheduled for transmission. Class A devices listen for downlinks only for 2 seconds
+after an uplink transmission, so it may take a while until all messages are
+transmitted. Class C downlinks are not listed there as these are scheduled immediately.
 
 To clone an existing node, simply save it under a different *DevAddr*.
 
@@ -174,7 +174,7 @@ is not available, e.g. in an isolated network.
 
 ### Status
 
-Shows:
+This tab shows:
  - **Alerts** that may need your attention:
    * `battery_low` when the device battery is below 20% its capacity;
    * `downlink_noise` when the indicated D/L SNR is close to the sensitivity limit;
@@ -183,7 +183,7 @@ Shows:
  - **Status Time** and **Status FCnt** indicating when was the status last
    received by the server;
  - **Device Status** graph that shows the recent device **Battery** level (0-255)
-   and the Signal-to-Noise-Ratio of received downlinks (*D/L SNR*).
+   and the Signal-to-Noise-Ratio of received downlinks (**D/L SNR**).
 
 The server requests the device status upon join or reset and then at given
 time/fcnt intervals defined by the `devstat_gap` parameter. By default

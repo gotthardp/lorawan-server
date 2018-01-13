@@ -40,7 +40,7 @@ Then, open the lorawan-server web-administration and create an Backend Connector
 
 On the Authentication tab:
  - **Client ID** is the AWS *Account Id*
- - **Auth** shall be set to **Username+Password**
+ - **Auth** shall be set to *Username+Password*
  - **User Certificate** is the `xxx-certificate.pem.crt` file you downloaded
  - **Private Key** is the `xxx-private.pem.key` file
 
@@ -58,7 +58,7 @@ First, follow the IBM Bluemix documentation to configure the IoT Gateway:
  * Create a *device type* for your devices, e.g. "loramote"
  * Create a *gateway type* for the lorawan-server, e.g. "loraserver"
  * Create one gateway of the *gateway type* you just created using an arbitrary
-   *Device ID*. After you click **Add** don't close the web-page displaying the
+   *Device ID*. After you click *Add* **don't close** the web-page displaying the
    auto-generated *Authentication Token*.
  * Do not create any devices; these will be created automatically once they send
    some data.
@@ -79,7 +79,7 @@ On the Authentication tab:
    loraserver is *gateway type* you created and test is the gateway *Device ID*.
  - **Auth** shall be set to *Username+Password*
  - **Name** shall always be `use-token-auth`
- - **Password/Key* is the gateway *Authentication Token* displayed on the page you
+ - **Password/Key** is the gateway *Authentication Token* displayed on the page you
    didn't close.
 
 
@@ -141,10 +141,10 @@ Then, open the lorawan-server web-administration and create an Backend Connector
 On the Authentication tab:
  - **Client ID** is the `{devaddr}`
  - **Auth** shall be set to *Shared Access Signature*
- * When authenticating using a *Shared access policy*:
+ - When authenticating using a *Shared access policy*:
    - **Name** is the *Access policy name* you created above
    - **Password/Key** is the access policy *Primary key* (encoded using Base64)
- * When authenticating using the device key:
+ - When authenticating using the device key:
    - **Name** shall be empty
    - **Password/Key** shall be `{appargs}`. Make sure you added `appargs` to your
      [Handler](Handlers.md) Fields.

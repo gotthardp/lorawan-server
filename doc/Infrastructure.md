@@ -16,7 +16,7 @@ The list shows a single line describing the current server instance:
 
 The detailed view shows also:
  - **Performance** of the server in the number of requests and errors per minute
- * Detailed overview of all system *Disks*
+ - Detailed overview of all system **Disks**
 
 
 ## Gateways
@@ -121,7 +121,7 @@ received by a group of devices. See also the [Communication](Communication.md) g
 To define a multicast channel you need to set:
  - **DevAddr** of the channel; this must not collide with any *Node* address.
  - **Profiles** that have this multicast configured.
- - **NwkSKey** and *AppSKey*
+ - **NwkSKey** and **AppSKey**
  - **FCnt Down** is the broadcast frame counter.
 
 
@@ -138,7 +138,7 @@ Each record contains
  - **Count** of occurrences, which gets increased by 1.
  - **Entity** concerned by the event: server, gateway, device or node.
  - **EId**, which is an identifier of the concerned entity.
- - **Text** and *Args* of the event.
+ - **Text** and **Args** of the event.
 
 Description of the various errors and warnings is provided in the
 [Troubleshooting Guide](Troubleshooting.md).

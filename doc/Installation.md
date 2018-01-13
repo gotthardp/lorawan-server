@@ -87,10 +87,10 @@ in the `lorawan-server/bin` folder.
 You can also run the lorawan-server as a Windows service.
 The service can be managed from a Command Prompt (`cmd`) using
 `lorawan-service.bat <command>`, where the `<command>` could be:
- * *add* to add the service. Once added you can use the standard Windows control
+ - **add** to add the service. Once added you can use the standard Windows control
    panel administrative tools to start/stop or enable/disable the service.
- * *remove* to remove the previously added service.
- * *list* to display parameters of a previously added service.
+ - **remove** to remove the previously added service.
+ - **list** to display parameters of a previously added service.
 
 ### Using the Binary Release on Mac OS
 

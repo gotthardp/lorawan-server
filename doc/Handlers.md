@@ -12,10 +12,10 @@ The Handler will process every uplink frame and forward it to the backend. It
 will also process every downlink request received from the backend.
 
 In addition to uplink frames the backend can receive device related events:
- * when a device *joined*
- * when a confirmed frame was *delivered*
- * when a confirmed frame was *lost*
- * for a connection *test*
+ * when a device **joined**
+ * when a confirmed frame was **delivered**
+ * when a confirmed frame was **lost**
+ * for a connection **test**
 
 
 ## Administration
@@ -49,7 +49,7 @@ lists all backend connectors with the same *Application* name.
 
 ### Uplink
 
-Depending on the **Uplink Fields** settings the server sends to backend
+Depending on the *Uplink Fields* settings the server sends to backend
 applications the following fields:
 
   Field      | Type        | Usage  | Meaning

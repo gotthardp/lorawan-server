@@ -13,8 +13,8 @@ The LoRaWAN communication is handled by the following modules:
    deduplication and downlink gateway selection.
  - **lorawan_handler** is started for each uplink LoRaWAN frame
    - invokes **lorawan_mac** to decode and decrypt the performs the frame
-   - invokes **lorawan_mac_commands** to handle the MAC commands, including
-     [ADR](ADR.md) algorithms
+   - invokes **lorawan_mac_commands** to handle the MAC commands, including ADR
+     algorithms
    - invokes the desired internal application or **lorawan_application_backend**
  - **lorawan_backend_factory** starts and stops the individual backend connectors
  - **lorawan_application_backend** extracts desired data fields from the uplink frame
@@ -28,9 +28,9 @@ The [Cowboy HTTP sever](https://ninenines.eu/docs/en/cowboy/2.0/guide/introducti
 starts one process for each incoming each connection:
  - **lorawan_admin_...** modules provide handlers for the REST API. They interact with
    the mnesia database only.
- - **lorawan_connector_ws** provide handler for the [WebSocket](WebSockets.md) interface.
-   One handler invoked for each incoming connection, ot joins a given pg2 group
-   as every connector and then filters the uplink frames based on given URI.
+ - **lorawan_connector_ws** provide handler for the WebSocket interface. One
+   handler invoked for each incoming connection, ot joins a given pg2 group as
+   every connector and then filters the uplink frames based on given URI.
 
 
 ## Debugging

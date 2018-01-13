@@ -8,7 +8,7 @@ After a fresh installation you will see only one internal application:
  - **semtech-mote** for
    [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
 
-Sample lorawan-server extension, which implements a *microchip-mote* application
+Sample lorawan-server extension, which implements a **microchip-mote** application
 for [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138),
 is available at
 https://github.com/gotthardp/lorawan-server-demoapp.
@@ -87,7 +87,7 @@ The `handle_uplink/4` will be called upon first reception of a LoRaWAN frame
     the best gateway)
   - **RxQ** with reception quality at the first gateway
   - **LastMissed** can be
-    - {missed, **Receipt**} when the last downlink was confirmed and got lost
+    - {missed, Receipt} when the last downlink was confirmed and got lost
     - `undefined` otherwise
   - **Frame** is the #frame{} record with:
     - **fcnt**
@@ -99,8 +99,8 @@ The *last_lost* flag allows the application to decide to send new data instead o
 retransmitting the old data.
 
 The function may return:
-  - {ok, State} to continue processing in `handle_rxq/5`
-  - **retransmit** to re-send the last frame (when *#rxdata.last_lost* was *true*)
+  - **{ok, State}** to continue processing in `handle_rxq/5`
+  - **retransmit** to re-send the last frame (when #rxdata.last_lost was `true`)
   - **{error, error_description}** to record a failure and send nothing
 
 ### handle_rxq({Network, Profile, Node}, Gateways, WillReply, Frame, State)
@@ -114,7 +114,7 @@ The `handle_rxq/5` will be called after receiving the frame from all gateways
     which is a list of tuples {MAC, RxQ}, where:
     - **MAC** of the gateway that received the frame
     - **RxQ** with reception quality at this gateway
-  - **WillReply* flag indicating the MAC is about to reply to the device even if
+  - **WillReply** flag indicating the MAC is about to reply to the device even if
     the application sends no data
   - **Frame** is the #frame{} record
   - **State** received from `handle_uplink/4`
@@ -128,13 +128,13 @@ This flag is set when:
 
 The function may return:
   - **ok** to not send any response
-  - *{send, #txdata{}}* to send a response back, where the #txdata{} record may include:
+  - **{send, #txdata{}}** to send a response back, where the #txdata{} record may include:
     - **port** number
     - **data** binary
-    - **confirmed** flag to indicate a confirmed response (default is *false*)
-    - **pending** flag to indicates the application has more data to send (default is *false*)
+    - **confirmed** flag to indicate a confirmed response (default is `false`)
+    - **pending** flag to indicates the application has more data to send (default is `false`)
     - **receipt** field to include any opaque data
-  - *{error, error_description}* to record a failure and send nothing
+  - **{error, error_description}** to record a failure and send nothing
 
 ### handle_delivery({Network, Profile, Node}, Result, Receipt)
 

@@ -41,7 +41,7 @@ On the Authentication tab:
  - **Name** and **Password/Key** for plain authentication
  - **User Certificate** and **Private Key** if SSL authentication is needed
 
-If the Connector is **Enabled** the server will automatically connect to the
+If the Connector is *Enabled* the server will automatically connect to the
 backend server and subscribe this topic.
 
 Please read the [Integration Guide](Integration.md) for detailed information on
@@ -111,9 +111,9 @@ To keep the connection open for a longer time:
  * You can adjust the `{websocket_timeout, 360000}` configuration parameter to a higher
    value (in milliseconds).
  * You can even set `{websocket_timeout, infinity}` to disable the session expiration.
- * Or the client (browser) needs to keep sending **ping** frames.
+ * Or the client (browser) needs to keep sending *ping* frames.
 
-The **ping** frames may not be enabled by default. To enable **ping** frames in Firefox,
+The **ping** frames may not be enabled by default. To enable *ping* frames in Firefox,
 go to **about:config** and set **network.websocket.timeout.ping.request** to (for example)
 120 (seconds).
 
@@ -124,7 +124,7 @@ Enter the desired URL path (e.g. `/ws/events/11223344`) and the desired format
 (Raw or JSON) and then establish a WebSocket connection.
 The page will display data received from the device and allow you to send data back.
 
-In the **Raw** mode all information must be entered as a string of hexadecimal digits,
+In the *Raw* mode all information must be entered as a string of hexadecimal digits,
 without any spaces.
 Each byte is represented by exactly 2 digits. For example, "4849" represents ASCII string "01".
 
@@ -163,8 +163,8 @@ Open the lorawan-server web-administration and create a Backend Connector:
    messages, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
- - **Auth** shall be set to **Username+Password**, even when the **Name** and
-   **Password/Key** are empty.
+ - **Auth** shall be set to *Username+Password*, even when the *Name* and
+   *Password/Key* are empty.
 
 Exclusively for MQTT, the *URI*, *Client ID*, *Name*, *Password/Key* and *Subscribe*
 may also include patterns, but limited to `{devaddr}` and `{appargs}` only. This
