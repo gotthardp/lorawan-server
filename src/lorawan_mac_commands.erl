@@ -21,8 +21,11 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
         fun() ->
             [N0] = mnesia:read(nodes, Node#node.devaddr, write),
             {MC, N2} = handle_fopts0(
-                {Network, Profile, store_actual_adr(Gateways, ADR, Network, N0)},
-                Gateways, FOptsIn),
+                {Network, Profile,
+                    store_actual_adr(Gateways, ADR, Network,
+                        ensure_rxwin(Network, N0))},
+                Gateways,
+                FOptsIn),
             ok = mnesia:write(nodes, N2, write),
             {MC, N2}
         end),
@@ -121,24 +124,37 @@ encode_fopts([]) ->
     <<>>.
 
 
-store_actual_adr([{_MAC, RxQ}|_], ADR, Network, Node) ->
+store_actual_adr([{_MAC, RxQ}|_], ADR, #network{region=Region, init_chans=InitChans, max_power=MaxPower}, Node) ->
     % store parameters
-    DataRate = lorawan_mac_region:datar_to_dr(Network#network.region, RxQ#rxq.datr),
+    DataRate = lorawan_mac_region:datar_to_dr(Region, RxQ#rxq.datr),
     case Node#node.adr_use of
-        {_TXPower, DataRate, _Chans} when Node#node.adr_flag == ADR ->
+        {TXPower, DataRate, Chans}
+                when is_number(TXPower), is_list(Chans), Node#node.adr_flag == ADR ->
             % device didn't change any settings
             Node;
-        {_TXPower, DataRate, _Chans} ->
+        {TXPower, DataRate, Chans}
+                when is_number(TXPower), is_list(Chans) ->
             lager:debug("ADR indicator set to ~w", [ADR]),
             Node#node{adr_flag=ADR, devstat_fcnt=undefined, last_qs=[]};
-        {TXPower, _OldDataRate, Chans} ->
+        {TXPower, _OldDataRate, Chans}
+                when is_number(TXPower), is_list(Chans) ->
             lager:debug("DataRate ~s switched to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
             Node#node{adr_flag=ADR, adr_use={TXPower, DataRate, Chans},
                 devstat_fcnt=undefined, last_qs=[]};
-        undefined ->
-            lager:debug("DataRate ~s switched to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
-            Node#node{adr_flag=ADR, adr_use={undefined, DataRate, undefined},
+        _Else ->
+            lager:debug("DataRate ~s initialized to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
+            Node#node{adr_flag=ADR, adr_use={MaxPower, DataRate, InitChans},
                 devstat_fcnt=undefined, last_qs=[]}
+    end.
+
+ensure_rxwin(#network{rxwin_init=Init}, Node) ->
+    case Node#node.rxwin_use of
+        {OffSet, RX2DataRate, Frequency}
+                when is_integer(OffSet), is_integer(RX2DataRate), is_number(Frequency) ->
+            Node;
+        _Else ->
+            lager:debug("RXWindow initialized"),
+            Node#node{rxwin_use=Init}
     end.
 
 handle_adr(FOptsIn, Node) ->
@@ -209,10 +225,7 @@ handle_status(FOptsIn, #network{region=Region}, Node) ->
         {Battery, Margin} ->
             % compute a maximal D/L SNR
             {_, DataRate, _} = Node#node.adr_use,
-            OffUse = case Node#node.rxwin_use of
-                {Num2, _, _} when is_number(Num2) -> Num2;
-                _Else2 -> 0
-            end,
+            {OffUse, _, _} = Node#node.rxwin_use,
             MaxSNR = lorawan_mac_region:max_downlink_snr(Region, DataRate, OffUse),
             lager:debug("DevStatus: battery ~B, margin: ~B (max ~.1f)", [Battery, Margin, MaxSNR]),
             Node#node{devstat_time=calendar:universal_time(), devstat_fcnt=Node#node.fcntup,

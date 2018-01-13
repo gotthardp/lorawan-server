@@ -98,10 +98,10 @@ join(cast, {rxq, Gateways0}, {{Network, Profile, Device}, DevAddr, DevNonce}) ->
     {ok, Node, PHYPayload} = lorawan_mac:handle_accept(Gateways, {Network, Profile, Device}, DevAddr, DevNonce),
     TxQ = case join_rxwin(Profile, Node) of
         0 ->
-            lager:debug("Join-Accept in RX1: ~w", [Node#node.rxwin_use]),
+            lager:debug("Join-Accept in RX1: ~p", [RxQ]),
             lorawan_mac_region:join1_window(Network, RxQ);
         1 ->
-            lager:debug("Join-Accept in RX2: ~w", [Node#node.rxwin_use]),
+            lager:debug("Join-Accept in RX2: ~p ~p", [RxQ, Node#node.rxwin_use]),
             lorawan_mac_region:join2_window(Network, Node, RxQ)
     end,
     lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload),

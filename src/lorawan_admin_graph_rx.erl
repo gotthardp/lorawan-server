@@ -63,7 +63,7 @@ send_array(Req, #network{region=Region, max_eirp=MaxEIRP}, DevAddr, ActRec, #sta
                 ]},
             {rows, lists:map(
                 fun(#rxframe{fcnt=FCnt, powe=TXPower, gateways=Gateways})
-                        when is_binary(Region) ->
+                        when is_number(TXPower), is_binary(Region) ->
                     {_MAC, #rxq{datr=DatR, freq=Freq}} = hd(Gateways),
                     [{c, [
                         [{v, FCnt}],
