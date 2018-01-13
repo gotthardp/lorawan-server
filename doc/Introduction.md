@@ -3,11 +3,88 @@
 This document describes how the lorawan-server handles LoRaWAN communication with
 active network Nodes.
 
+## Infrastructure
+
+### Gateway
+
+The server can be connected to one or more LoRaWAN gateways. All gateways act
+as one distributed antenna, common to all Networks:
+ * The server receives device uplinks from all gateways that received the signal,
+   regardless to which Network does the device belong.
+ * Downlinks are them sent to the gateway that indicated best RSSI (Received
+   Signal Strength Indication).
+
+### Network
+
+The server can handle one or more networks. Each Network configuration covers:
+ * Network Identifier used to create DevAddr for newly joined nodes
+ * LoRaWAN Regional Parameters, including additional frequencies (channels)
+
+## Devices
+
+Each LoRaWAN network contains various devices.
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/device-relations.png)
+
+### Profile
+
+(Device) Profile represents one particular hardware and all static settings in the
+firmware, common for a group of devices. The configuration includes:
+ * Reference to a particular Network
+ * Ability of the device to perform ADR or provide battery status
+ * Application (syntax and semantics of the frames)
+
+In addition to that, each Profile may belong to one or more multicast channels.
+
+### Commissioned Device
+
+Represents
+[commissioning parameters](https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/Commissioning.h)
+for Over-the-Air Activation (OTAA) of one particular device. The configuration
+includes:
+ * Reference to a particular Profile
+ * DevEUI, AppEUI and AppKey
+
+### Activated Node
+
+Represents devices Activated-By-Personalization (ABP) and Over-the-Air Activated
+(OTAA) devices that already joined the network. The configuration includes:
+ * Reference to a particular Profile
+ * DevAddr, NwkSKey and AppSKey
+ * Frame counters, actual ADR settings and statistics
+
+
+## Backends
+
+Backend servers provide external applications, which receive and process uplink
+frames and (optionally) send downlink frames.
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/backend-relations.png)
+
+### Handlers
+
+Handlers define externally handled application, including:
+ * Format of the uplink and downlink messages
+ * Data fields forwared via the backend *Connectors*
+ * Retransmission logic for confirmed downlinks
+
+Each Handler may be linked with one or more backend Connectors, which handle
+the communication towards the backend server.
+
+### Connectors
+
+Connectors define transport of data fields to/from external servers. Each
+connector is linked with one Handler and specifies:
+ * Communication protocol
+ * Target endpoint, i.e server address and message topics
+ * Encoding of the data fields
+
+
 ## Uplink
 
-LoRaWAN gateways act like one distributed antenna. When a Node sends a
-LoRaWAN frame (message) it gets received by one (or multiple) gateways. The
-gateways are very simple and just forward all received frames to the server.
+When a Node sends a LoRaWAN frame (message) it gets received by one (or multiple)
+gateways. The gateways are very simple and just forward all received frames to
+the server.
 
 Upon receiving an uplink frame the server:
  * Filters duplicate frames, which were received by multiple gateways.
@@ -22,7 +99,7 @@ Upon receiving an uplink frame the server:
      the *FCnt Up* did reset and the Node *FCnt Check* is set to *Reset on zero*.
      Such frames are processed as if the *FCnt Up* increased.
 
-Every LoRa device can transmit for a short time only, usually 0.1% or 1% depending
+Every LoRaWAN device can transmit for a short time only, usually 0.1% or 1% depending
 on frequency. LoRaWAN is thus not suitable for continuous transmissions.
 
   Duty | Total TX in 1 hour | Each TX  | Gap between TX

@@ -27,29 +27,29 @@ The server Dashboard shows:
  * Seven most recent [Events](Events.md) and seven most recent frames received.
 
 The following configuration pages are available:
- * *Users* contain a list of user identities that can manage the server. For now
+ - **Users** contain a list of user identities that can manage the server. For now
    only the `admin` *Role* is defined.
- * [*Infrastructure*](Infrastructure.md) covers configuration of LoRa Gateways,
+ - [**Infrastructure**](Infrastructure.md) covers configuration of LoRa Gateways,
    Multicast Channels and the list of Ignored Nodes.
- * *Devices* cover the entire device configuration:
-   * [*Commissioned*](Commissioned.md) contain a list of devices that are allowed
-     to join using the over-the-air-activation (OTAA).
-   * *Activated [Nodes](Nodes.md)* contain a list of active network nodes, both
-     activated by personalization (ABP) as well as those that joined as OTAA.
- * *Backends* define applications at remote servers that shall receive the frames:
-   * [*Handlers*](Handlers.md) define the LoRaWAN frame structure and data
+ - [**Devices**](Devices.md) cover the entire device configuration:
+   - **Commissioned** contain a list of devices that are allowed to join using
+     the over-the-air-activation (OTAA).
+   - **Activated Nodes** contain a list of active network nodes, both activated
+    by personalization (ABP) as well as those that joined as OTAA.
+ - **Backends** define applications at remote servers that shall receive the frames:
+   - [**Handlers**](Handlers.md) define the LoRaWAN frame structure and data
      fields included.
-   * [*Connectors*](Connectors.md) define the communication protocol to the
+   - [**Connectors**](Connectors.md) define the communication protocol to the
      backend servers.
 
 You (at least) have to:
- * Set parameters of your LoRaWAN *Networks* according to your region.
- * Add LoRaWAN gateways you want to use to the *Gateways* list.
- * For each type of a device define a device *Profile*.
- * Configure each device you want to use and assign them to one of the *Profiles*:
-   * To add a device activated by personalization (ABP), create a new *Nodes* list entry.
+ * Set parameters of your LoRaWAN **Networks** according to your region.
+ * Add LoRaWAN gateways you want to use to the **Gateways** list.
+ * For each type of a device define a device **Profile**.
+ * Configure each device you want to use and assign them to one of the **Profiles**:
+   * To add a device activated by personalization (ABP), create a new **Nodes** list entry.
    * To add an OTAA device, create a new *Devices* list entry and start the device.
-     The *Nodes* list will be updated automatically once the device joins the network.
+     The **Nodes** list will be updated automatically once the device joins the network.
 
 
 ## REST API

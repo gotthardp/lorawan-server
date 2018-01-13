@@ -1,7 +1,7 @@
-# Compact server for private LoRa networks
+# Compact server for private LoRaWAN networks
 
 Open-source LoRaWAN Server that integrates both the network-server and the application-server.
-This is useful for application providers that operate their own LoRa network,
+This is useful for application providers that operate their own LoRaWAN network,
 or for device and application developers.
 
 **This is unstable relase 0.5.0.** Migrating to this version will preserve the
@@ -53,8 +53,8 @@ The server:
    designed for building fault-tolerant systems.
  * Is free, distributed under the MIT license.
 
-The server aims to be an all-in-one software package for small private LoRa networks.
-However:
+The server aims to be an all-in-one software package for small private LoRaWAN
+networks. However:
  * You still need to buy your LoRaWAN Gateway.
  * You will need to deploy and maintain it yourself. (With my support.)
  * It will probably never support the sophisticated management features of the
@@ -72,7 +72,7 @@ We will gladly assist you. If you find a bug, you may also
 
 ## Documentation
 
-The lorawan-server includes all functions required to run a private LoRa network.
+The lorawan-server includes all functions required to run a private LoRaWAN network.
 It integrates your LoRaWAN network directly with your backend IT systems.
 The server is provided as a comprehensive package with a single configuration file
 and a single administration tool.

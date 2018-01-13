@@ -13,10 +13,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('name'));
     var users = nga.entity('users')
         .identifier(nga.field('name'));
-    var networks = nga.entity('networks')
-        .identifier(nga.field('name'));
     var gateways = nga.entity('gateways')
         .identifier(nga.field('mac'));
+    var networks = nga.entity('networks')
+        .identifier(nga.field('name'));
     var multicast_channels = nga.entity('multicast_channels')
         .identifier(nga.field('devaddr'));
     var profiles = nga.entity('profiles')
@@ -138,6 +138,62 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(users);
 
+    // ---- gateways
+    gateways.listView().fields([
+        nga.field('mac').label('MAC').isDetailLink(true),
+        nga.field('group'),
+        nga.field('desc').label('Description'),
+        nga.field('ip_address.ip').label('IP Address'),
+        nga.field('last_alive', 'datetime').label('Last Alive'),
+        nga.field('health_decay', 'number').label('Status')
+            .template(function(entry){ return healthIndicator(entry.values) })
+    ])
+    .sortField('health_decay')
+    .sortDir('DESC');
+
+    gateways.creationView().fields([
+        nga.field('mac').label('MAC')
+            .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
+            .transform(function strip(value, entry) {
+                return value.replace(/[-:]/g, '')
+            })
+            .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
+        nga.field('group'),
+        nga.field('tx_rfch', 'number').label('TX Chain')
+            .attributes({ placeholder: 'e.g. 0' })
+            .validation({ required: true })
+            .defaultValue(0),
+        nga.field('ant_gain', 'number').label('Antenna Gain (dBi)')
+            .attributes({ placeholder: 'e.g. 6' }),
+        nga.field('desc').label('Description'),
+        nga.field('gpspos', 'template')
+            .validation({required: true })
+            .label('Location')
+            .template('<map location="value"></map>'),
+        nga.field('gpsalt', 'number').label('Altitude'),
+        // Status
+        nga.field('health_alerts', 'choices').label('Alerts')
+            .editable(false),
+        nga.field('ip_address.ip').label('IP Address')
+            .editable(false),
+        nga.field('last_alive', 'datetime').label('Last Alive'),
+        nga.field('last_report', 'datetime').label('Last Report'),
+        nga.field('mac', 'template').label('Delays')
+            .template('<pgraph value="value"></pgraph>'),
+        nga.field('mac', 'template').label('Transmissions')
+            .template('<tgraph value="value"></tgraph>')
+    ]);
+    gateways.creationView().template(createWithTabsTemplate([
+        {name:"General", min:0, max:8}
+    ]));
+    gateways.editionView().fields(gateways.creationView().fields());
+    gateways.editionView().template(editWithTabsTemplate([
+        {name:"General", min:0, max:7},
+        {name:"Status", min:7, max:13}
+    ]));
+    // add to the admin application
+    admin.addEntity(gateways);
+
     // ---- networks
     networks.listView().fields([
         nga.field('name').isDetailLink(true),
@@ -256,62 +312,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]));
     // add to the admin application
     admin.addEntity(networks);
-
-    // ---- gateways
-    gateways.listView().fields([
-        nga.field('mac').label('MAC').isDetailLink(true),
-        nga.field('group'),
-        nga.field('desc').label('Description'),
-        nga.field('ip_address.ip').label('IP Address'),
-        nga.field('last_alive', 'datetime').label('Last Alive'),
-        nga.field('health_decay', 'number').label('Status')
-            .template(function(entry){ return healthIndicator(entry.values) })
-    ])
-    .sortField('health_decay')
-    .sortDir('DESC');
-
-    gateways.creationView().fields([
-        nga.field('mac').label('MAC')
-            .attributes({ placeholder: 'e.g. 0123456789ABCDEF' })
-            .transform(function strip(value, entry) {
-                return value.replace(/[-:]/g, '')
-            })
-            .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
-        nga.field('group'),
-        nga.field('tx_rfch', 'number').label('TX Chain')
-            .attributes({ placeholder: 'e.g. 0' })
-            .validation({ required: true })
-            .defaultValue(0),
-        nga.field('ant_gain', 'number').label('Antenna Gain (dBi)')
-            .attributes({ placeholder: 'e.g. 6' }),
-        nga.field('desc').label('Description'),
-        nga.field('gpspos', 'template')
-            .validation({required: true })
-            .label('Location')
-            .template('<map location="value"></map>'),
-        nga.field('gpsalt', 'number').label('Altitude'),
-        // Status
-        nga.field('health_alerts', 'choices').label('Alerts')
-            .editable(false),
-        nga.field('ip_address.ip').label('IP Address')
-            .editable(false),
-        nga.field('last_alive', 'datetime').label('Last Alive'),
-        nga.field('last_report', 'datetime').label('Last Report'),
-        nga.field('mac', 'template').label('Delays')
-            .template('<pgraph value="value"></pgraph>'),
-        nga.field('mac', 'template').label('Transmissions')
-            .template('<tgraph value="value"></tgraph>')
-    ]);
-    gateways.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:8}
-    ]));
-    gateways.editionView().fields(gateways.creationView().fields());
-    gateways.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:7},
-        {name:"Status", min:7, max:13}
-    ]));
-    // add to the admin application
-    admin.addEntity(gateways);
 
     // ---- multicast_channels
     multicast_channels.listView().title('Multicast Channels');
@@ -844,9 +844,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addCollection(nga.collection(gateways)
             .fields([
                 nga.field('mac').label('MAC').isDetailLink(true),
-                nga.field('network', 'reference')
-                    .targetEntity(networks)
-                    .targetField(nga.field('name')),
                 nga.field('ip_address.ip').label('IP Address'),
                 nga.field('last_alive', 'datetime'),
                 nga.field('health_decay', 'number').label('Status')
@@ -920,8 +917,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
         .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
             .addChild(nga.menu(servers).icon('<span class="fa fa-server fa-fw"></span>'))
-            .addChild(nga.menu(networks).icon('<span class="fa fa-cloud fa-fw"></span>'))
             .addChild(nga.menu(gateways).icon('<span class="fa fa-wifi fa-fw"></span>'))
+            .addChild(nga.menu(networks).icon('<span class="fa fa-cloud fa-fw"></span>'))
             .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
             .addChild(nga.menu(events).icon('<span class="fa fa-exclamation-triangle fa-fw"></span>'))
         )

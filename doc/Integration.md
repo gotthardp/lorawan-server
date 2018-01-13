@@ -32,17 +32,17 @@ First, follow the AWS IoT guidelines to configure your IoT device:
  * Create a device and link it to the same certificate.
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
- * *URI* is the AWS *Endpoint* with the `mqtts://` prefix
- * *Publish Uplinks* is a pattern for the publication topic, e.g. `out/{devaddr}`.
+ - **URI** is the AWS *Endpoint* with the `mqtts://` prefix
+ - **Publish Uplinks** is a pattern for the publication topic, e.g. `out/{devaddr}`.
    Make sure you added `devaddr` to your [Handler](Handlers.md) Fields.
- * *Subscribe* is a topic to be subscribed by the lorawan-server, e.g. `in/#`.
- * *Received Topic* is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
+ - **Subscribe** is a topic to be subscribed by the lorawan-server, e.g. `in/#`.
+ - **Received Topic** is a template for parsing the topic of received messages, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
- * *Client ID* is the AWS *Account Id*
- * *Auth* shall be set to *Username+Password*
- * *User Certificate* is the `xxx-certificate.pem.crt` file you downloaded
- * *Private Key* is the `xxx-private.pem.key` file
+ - **Client ID** is the AWS *Account Id*
+ - **Auth** shall be set to **Username+Password**
+ - **User Certificate** is the `xxx-certificate.pem.crt` file you downloaded
+ - **Private Key** is the `xxx-private.pem.key` file
 
 Instead of creating a Security Certificate and then attaching it to the Thing
 you can alternatively create a Thing Security Certificate. In such case the
@@ -64,22 +64,22 @@ First, follow the IBM Bluemix documentation to configure the IoT Gateway:
    some data.
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
- * *URI* shall be `mqtt://orgid.messaging.internetofthings.ibmcloud.com`, where
+ - **URI** shall be `mqtt://orgid.messaging.internetofthings.ibmcloud.com`, where
    orgid is your *Organization ID* displayed on the web-page you didn't close.
- * *Publish Uplinks* is a pattern for the publication topic,
+ - **Publish Uplinks** is a pattern for the publication topic,
    e.g. `iot-2/type/loramote/id/{deveui}/evt/status/fmt/json`, where loramote is
    the *device type* you created.
- * *Subscribe* is a topic to be subscribed by the lorawan-server,
+ - **Subscribe** is a topic to be subscribed by the lorawan-server,
    e.g. `iot-2/type/loramote/id/+/cmd/+/fmt/+`.
- * *Received Topic* is a template for parsing the topic of received messages,
+ - **Received Topic** is a template for parsing the topic of received messages,
    e.g. `iot-2/type/loramote/id/{deveui}/cmd/status/fmt/json`.
 
 On the Authentication tab:
- * *Client ID* shall be `g:orgid:loraserver:test`, where orgid is the *Organization ID*,
+ - **Client ID** shall be `g:orgid:loraserver:test`, where orgid is the *Organization ID*,
    loraserver is *gateway type* you created and test is the gateway *Device ID*.
- * *Auth* shall be set to *Username+Password*
- * *Name* shall always be `use-token-auth`
- * *Password/Key* is the gateway *Authentication Token* displayed on the page you
+ - **Auth** shall be set to *Username+Password*
+ - **Name** shall always be `use-token-auth`
+ - **Password/Key* is the gateway *Authentication Token* displayed on the page you
    didn't close.
 
 
@@ -95,18 +95,18 @@ First, follow the ThingSpeak guidelines and create a New Channel:
  * Once you *Save Channel*, display the *Write API Key*.
 
 Open the lorawan-server web-administration and create an Backend Connector:
- * *URI* shall be either `mqtt://mqtt.thingspeak.com` or `mqtts://mqtt.thingspeak.com`
- * *Publish Uplinks* shall be `channels/<channelID>/publish/<apikey>`, where
+ - **URI** shall be either `mqtt://mqtt.thingspeak.com` or `mqtts://mqtt.thingspeak.com`
+ - **Publish Uplinks** shall be `channels/<channelID>/publish/<apikey>`, where
    * `<channelID>` is the numeric *Channel ID*
    * `<apikey>` is the *Write API Key*
- * *Subscribe* and *Received Topic* shall be left empty.
+ - **Subscribe** and **Received Topic** shall be left empty.
 
 Then, create a new Handler:
- * *Group* shall correspond to a Group attribute of some Nodes.
- * *Format* shall be *Web Form*.
- * *Parse Uplink* shall include a data parsing function. See the [Backends](Backends.md)
+ - **Group** shall correspond to a Group attribute of some Nodes.
+ - **Format** shall be **Web Form**.
+ - **Parse Uplink** shall include a data parsing function. See the [Backends](Backends.md)
    guide for more information, but make sure the values are named "field1", "field2" etc.
- * *Connector* shall link to the Backend Connector you just created.
+ - **Connector** shall link to the Backend Connector you just created.
 
 For example, a *Parse Uplink* for the Semtech LoRaMote could be:
 ```erlang
@@ -123,30 +123,30 @@ will create one connection for each Node (each with its own credentials).
 
 First, follow the Azure IoT Hub guidelines to configure your IoT devices:
  * Create a new Device:
-   * *Device ID* shall be set to Device *DevEUI* or Node *DevAddr.
-   * *Authentication Type* shall be *Symmetric Key*.
-   * *Auto Generate Keys* shall be checked.
+   - **Device ID** shall be set to Device *DevEUI* or Node *DevAddr.
+   - **Authentication Type** shall be *Symmetric Key*.
+   - **Auto Generate Keys** shall be checked.
  * It is recommended to create also a *Shared access policy*, allowing
    *Device connect*.
  * Instead creating the access policy you may copy-paste the auto-generated device
    *Primary key* (encoded using Base64) to *App Arguments* in the Node config.
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
- * *URI* is the IoT Hub *Hostname* with the `mqtts://` prefix
- * *Publish Uplinks* shall be `devices/{devaddr}/messages/events/`.
+ - **URI** is the IoT Hub *Hostname* with the `mqtts://` prefix
+ - **Publish Uplinks** shall be `devices/{devaddr}/messages/events/`.
    The trailing slash is mandatory.
- * *Subscribe* shall be `devices/{devaddr}/messages/devicebound/#`.
- * *Received Topic* shall be the same as *Subscribe*.
+ - **Subscribe** shall be `devices/{devaddr}/messages/devicebound/#`.
+ - **Received Topic** shall be the same as *Subscribe*.
 
 On the Authentication tab:
- * *Client ID* is the `{devaddr}`
- * *Auth* shall be set to *Shared Access Signature*
+ - **Client ID** is the `{devaddr}`
+ - **Auth** shall be set to *Shared Access Signature*
  * When authenticating using a *Shared access policy*:
-   * *Name* is the *Access policy name* you created above
-   * *Password/Key* is the access policy *Primary key* (encoded using Base64)
+   - **Name** is the *Access policy name* you created above
+   - **Password/Key** is the access policy *Primary key* (encoded using Base64)
  * When authenticating using the device key:
-   * *Name* shall be empty
-   * *Password/Key* shall be `{appargs}`. Make sure you added `appargs` to your
+   - **Name** shall be empty
+   - **Password/Key** shall be `{appargs}`. Make sure you added `appargs` to your
      [Handler](Handlers.md) Fields.
 
 
@@ -156,21 +156,21 @@ The [ThingsBoard](https://thingsboard.io) can be integrated via MQTT. The platfo
 uses per-device credentials so the Connector will create one connection for each Node.
 
 First, follow the ThingsBoard documentation to configure your devices
- * *Add new device*
-   * *Name* shall be set to Device *DevEUI* or Node *DevAddr.
+ * Add new device:
+   - **Name** shall be set to Device *DevEUI* or Node *DevAddr.
  * When created, enter the *Manage Credentials* tab and copy-paste *Access token*
    to *App Arguments* in the Node config.
 
 Then, open the lorawan-server web-administration and create an Backend Connector:
- * *URI* shall be `mqtt://demo.thingsboard.io` or URL of your local ThingsBoard.
- * *Publish Uplinks* shall be `v1/devices/me/telemetry`.
- * *Publish Events* can be left empty, or set to `v1/devices/me/attributes`.
+ - **URI** shall be `mqtt://demo.thingsboard.io` or URL of your local ThingsBoard.
+ - **Publish Uplinks** shall be `v1/devices/me/telemetry`.
+ - **Publish Events** can be left empty, or set to `v1/devices/me/attributes`.
 
 On the Authentication tab:
- * *Auth* shall be set to *Username+Password*
- * *Name* shall be `{appargs}`. Make sure you added `appargs` to your
+ - **Auth** shall be set to **Username+Password**
+ - **Name** shall be `{appargs}`. Make sure you added `appargs` to your
    [Handler](Handlers.md) Fields.
- * Other fields are left empty.
+ - Other fields are left empty.
 
 Make sure that your Handler *Parse Uplink* and *Parse Event* produce a flat
 list of string, boolean and numeric fields only.
@@ -187,17 +187,17 @@ the integration, make sure you consult the following Adafruit articles:
 
 Once your Adafruit account, dashboards and feeds are set up, go to the
 lorawan-server web-administration and create a Backends->Connector:
- * *URI* - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
- * *Publish Uplinks* - Name of the topic you will be publishing to in the form
+ - **URI** - `mqtt://io.adafruit.com` or `mqtts://io.adafruit.com`.
+ - **Publish Uplinks** - Name of the topic you will be publishing to in the form
    `YourUserName/feeds/YourFeed`.
- * *Subscribe* - Name of the topic you want to receive data from in the form
+ - **Subscribe** - Name of the topic you want to receive data from in the form
    `YourUserName/feeds/YourFeed`.
 
 On the Authentication tab:
- * *Client ID* - can be anything, but try to keep it unique among connectors.
- * *Auth* should be set to *Username+Password*:
-   * *Name* - Your Adafruit account name (see the last article in the list above).
-   * *Password/Key* - Your Adafruit Key, NOT your account password (see above).
+ - **Client ID** - can be anything, but try to keep it unique among connectors.
+ - **Auth** should be set to *Username+Password*:
+   - **Name** - Your Adafruit account name (see the last article in the list above).
+   - **Password/Key** - Your Adafruit Key, NOT your account password (see above).
 
 Adafruit supports only a single value feeds, so it is a _limitation_, if your mote sends multiple values in one packet. Also, Adafruit
 IO expects the payload of the MQTT message to be either a simple string value, like "17" or "string", or a proper formatted JSON of the form { "value": data } (ex. {"value": 23.5}, {"value": "sometext"}, etc). It should be noted, that if the source of data, especially

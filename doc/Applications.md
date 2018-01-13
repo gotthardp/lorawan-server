@@ -5,7 +5,7 @@ The server applications include:
  * Internal applications implemented in Erlang
 
 After a fresh installation you will see only one internal application:
- * *semtech-mote* for
+ - **semtech-mote** for
    [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
 
 Sample lorawan-server extension, which implements a *microchip-mote* application
@@ -80,46 +80,46 @@ shall return either `ok` or `{error, error_description}`.
 
 The `handle_uplink/4` will be called upon first reception of a LoRaWAN frame
 (before deduplication):
-  * *Network* parameters where the node is operating
-  * *Profile* of the node
-  * *Node* configuration
-  * *MAC* of the gateway that first received this frame (this doesn't have to be
+  - **Network** parameters where the node is operating
+  - **Profile** of the node
+  - **Node** configuration
+  - **MAC** of the gateway that first received this frame (this doesn't have to be
     the best gateway)
-  * *RxQ* with reception quality at the first gateway
-  * *LastMissed* can be
-    * {missed, *Receipt*} when the last downlink was confirmed and got lost
-    * `undefined` otherwise
-  * *Frame* is the #frame{} record with:
-    * *fcnt*
-    * *port* number
-    * *data* binary
-  * *RxQ* contains the #rxq{} record with frame reception details
+  - **RxQ** with reception quality at the first gateway
+  - **LastMissed** can be
+    - {missed, **Receipt**} when the last downlink was confirmed and got lost
+    - `undefined` otherwise
+  - **Frame** is the #frame{} record with:
+    - **fcnt**
+    - **port** number
+    - **data** binary
+  - **RxQ** contains the #rxq{} record with frame reception details
 
 The *last_lost* flag allows the application to decide to send new data instead of
 retransmitting the old data.
 
 The function may return:
-  * {ok, State} to continue processing in `handle_rxq/5`
-  * *retransmit* to re-send the last frame (when *#rxdata.last_lost* was *true*)
-  * *{error, error_description}* to record a failure and send nothing
+  - {ok, State} to continue processing in `handle_rxq/5`
+  - **retransmit** to re-send the last frame (when *#rxdata.last_lost* was *true*)
+  - **{error, error_description}** to record a failure and send nothing
 
 ### handle_rxq({Network, Profile, Node}, Gateways, WillReply, Frame, State)
 
 The `handle_rxq/5` will be called after receiving the frame from all gateways
 (after deduplication):
-  * *Network* parameters where the node is operating
-  * *Profile* of the node
-  * *Node* configuration
-  * *Gateways* that received the frame, sorted based on RSSI (the best first),
+  - **Network** parameters where the node is operating
+  - **Profile** of the node
+  - **Node** configuration
+  - **Gateways** that received the frame, sorted based on RSSI (the best first),
     which is a list of tuples {MAC, RxQ}, where:
-    * *MAC* of the gateway that received the frame
-    * *RxQ* with reception quality at this gateway
-  * *WillReply* flag indicating the MAC is about to reply to the device even if
+    - **MAC** of the gateway that received the frame
+    - **RxQ** with reception quality at this gateway
+  - **WillReply* flag indicating the MAC is about to reply to the device even if
     the application sends no data
-  * *Frame* is the #frame{} record
-  * *State* received from `handle_uplink/4`
+  - **Frame** is the #frame{} record
+  - **State** received from `handle_uplink/4`
 
-The *WillReply* flag allows the application to send data when a downlink frame
+The **WillReply** flag allows the application to send data when a downlink frame
 needs to be transmitted anyway due to a MAC layer decision.
 This flag is set when:
   * Confirmed uplink was received, which needs to be acknowledged
@@ -127,26 +127,26 @@ This flag is set when:
   * MAC layer needs to send a command back to the device
 
 The function may return:
-  * *ok* to not send any response
-  * *{send, #txdata{}}* to send a response back, where the #txdata{} record may include:
-    * *port* number
-    * *data* binary
-    * *confirmed* flag to indicate a confirmed response (default is *false*)
-    * *pending* flag to indicates the application has more data to send (default is *false*)
-    * *receipt* field to include any opaque data
-  * *{error, error_description}* to record a failure and send nothing
+  - **ok** to not send any response
+  - *{send, #txdata{}}* to send a response back, where the #txdata{} record may include:
+    - **port** number
+    - **data** binary
+    - **confirmed** flag to indicate a confirmed response (default is *false*)
+    - **pending** flag to indicates the application has more data to send (default is *false*)
+    - **receipt** field to include any opaque data
+  - *{error, error_description}* to record a failure and send nothing
 
 ### handle_delivery({Network, Profile, Node}, Result, Receipt)
 
 The `handle_delivery/3` will be called after successfull or unsuccessfull delivery
 of a confirmed downlink frame:
-  * *Network* parameters where the node is operating
-  * *Profile* of the node
-  * *Node* configuration
-  * *Result* can be
-    * *delivered*
-    * *lost*
-  * *Receipt* is the value included in the downlink #txdata
+  - **Network** parameters where the node is operating
+  - **Profile** of the node
+  - **Node** configuration
+  - **Result** can be
+    - **delivered**
+    - **lost**
+  - **Receipt** is the value included in the downlink #txdata
 
 ## HTTP Server
 

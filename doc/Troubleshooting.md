@@ -165,13 +165,13 @@ This indicates there is less than 20% of free disk space.
 
 If this guideline didn't help you to solve your problem, feel free to report a
 new issue. For the better understanding of the issue you are encouraged to provide:
- -  Distribution type: binary or built from source.
- -  Hardware type: PC Server, Just PC, MacBook, MacServer, Raspberry Pi1/2/3/x, Odroid, etc.
- -  OS type and version. Also, add the output of the `uname -a` command if you
+ *  Distribution type: binary or built from source.
+ *  Hardware type: PC Server, Just PC, MacBook, MacServer, Raspberry Pi1/2/3/x, Odroid, etc.
+ *  OS type and version. Also, add the output of the `uname -a` command if you
     are running on a sort of a Unix/Linux/MacOS system.
- -  Your Erlang/OTP version. Can be obtained by running `erl` at the command line:
+ *  Your Erlang/OTP version. Can be obtained by running `erl` at the command line:
     please provide all the text before 1> line.
- -  If you are experiencing problems with the web-interface or seeing lots of
+ *  If you are experiencing problems with the web-interface or seeing lots of
     http_error lines in the log , provide npm -v and node -v output too.
 
 Get ready to provide your server's debug.log file and, in hard cases,

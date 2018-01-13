@@ -7,25 +7,30 @@ The following figure shows a process hierarchy of the lorawan-server:
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/software-architecture.png)
 
 The LoRaWAN communication is handled by the following modules:
- * lorawan_gw_forwarder implements the
+ - **lorawan_gw_forwarder** implements the
    [packet_forwarder protocol](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT)
- * lorawan_gw_router handles communication to multiple gateways. It performs uplink frame
+ - **lorawan_gw_router** handles communication to multiple gateways. It performs uplink frame
    deduplication and downlink gateway selection.
- * lorawan_mac performs the LoRaWAN frame encoding and encryption.
- * lorawan_mac_commands implements the LoRaWAN MAC commands, including [ADR](ADR.md)
-   algorithms.
- * lorawan_mac_regions contains the region specific functions and constants.
- * lorawan_handler invokes application modules for uplink processing and provides
-   functions for downlink scheduling. This is the interface between the LoRaWAN layer
-   and the application layer of the server.
+ - **lorawan_handler** is started for each uplink LoRaWAN frame
+   - invokes **lorawan_mac** to decode and decrypt the performs the frame
+   - invokes **lorawan_mac_commands** to handle the MAC commands, including
+     [ADR](ADR.md) algorithms
+   - invokes the desired internal application or **lorawan_application_backend**
+ - **lorawan_backend_factory** starts and stops the individual backend connectors
+ - **lorawan_application_backend** extracts desired data fields from the uplink frame
+   and forwards the fields to a [pg2 process group](http://erlang.org/doc/man/pg2.html)
+   corresponding to the handler name
+ - **lorawan_connectors** open and maintain connections to backend systems and
+   transmits the data fields to/from them using a desired protocol. Each
+   connector joins a given pg2 group
 
 The [Cowboy HTTP sever](https://ninenines.eu/docs/en/cowboy/2.0/guide/introduction/)
 starts one process for each incoming each connection:
- * lorawan_admin_... modules provide handlers for the REST API. They interact with
+ - **lorawan_admin_...** modules provide handlers for the REST API. They interact with
    the mnesia database only.
- * lorawan_ws_frames provide handler for the [WebSocket](WebSockets.md) interface.
-   The handler joins a [pg2 process group](http://erlang.org/doc/man/pg2.html)
-   corresponding to the request URI.
+ - **lorawan_connector_ws** provide handler for the [WebSocket](WebSockets.md) interface.
+   One handler invoked for each incoming connection, ot joins a given pg2 group
+   as every connector and then filters the uplink frames based on given URI.
 
 
 ## Debugging
@@ -65,11 +70,9 @@ enter the cookie explicitly by the `-setcookie MyCookie` parameter.
 
 ## Release Process
 
-First, don't forget to release the lorawan-server-api.
-
-Then, create a new tag:
+To create a new tag do:
 
 ```bash
-git tag v0.4.0 master
-git push origin v0.4.0
+git tag v0.5.0 master
+git push origin v0.5.0
 ```

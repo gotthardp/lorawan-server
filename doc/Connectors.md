@@ -9,40 +9,40 @@ connector is linked with one Handler and specifies:
 ## Administration
 
 To create a new connector you set:
- * *Connector Name*
- * *Application* that references a specific backend *Handler*
- * *Format* of the message payload, which can be:
-   * *JSON* to encode data fields as [JSON](http://www.json.org) structures like `{"NameOne":ValueOne, "NameTwo":ValueTwo}`.
-   * *Raw Data* to send just the binary content of the *data* field, without ant port numbers nor flags.
-   * *Web Form* to encode fields in a query strings like `NameOne=ValueOne&NameTwo=ValueTwo`.
- * *URI* defines the target host, which can be
-   * `ws:` (with no host:port) for Web Sockets
-   * `http://` for HTTP POST or `https://` for HTTP/SSL
-   * `mqtt://` for MQTT or `mqtts://` for MQTT/SSL
-   * `amqp://` for AMQP or `amqp://` for AMQP/SSL
- * *Published Uplinks*, which is a server pattern for constructing the publication
+ - **Connector Name**
+ - **Application** that references a specific backend *Handler*
+ - **Format** of the message payload, which can be:
+   - **JSON** to encode data fields as [JSON](http://www.json.org) structures like `{"NameOne":ValueOne, "NameTwo":ValueTwo}`.
+   - **Raw Data** to send just the binary content of the *data* field, without ant port numbers nor flags.
+   - **Web Form** to encode fields in a query strings like `NameOne=ValueOne&NameTwo=ValueTwo`.
+ - **URI** defines the target host, which can be
+   - `ws:` (with no host:port) for Web Sockets
+   - `http://` for HTTP POST or `https://` for HTTP/SSL
+   - `mqtt://` for MQTT or `mqtts://` for MQTT/SSL
+   - `amqp://` for AMQP or `amqp://` for AMQP/SSL
+ - **Published Uplinks**, which is a server pattern for constructing the publication
    topic for uplink messages, e.g. `out/{devaddr}`. This can be used to include
    the actual DevEUI, DevAddr or other data field in the message topic.
- * *Published Events*, which is a server pattern for constructing the publication
+ - **Published Events**, which is a server pattern for constructing the publication
    topic for event messages.
- * *Subscribe*, which is a topic to be subscribed. It may include broker specific
+ - **Subscribe**, which is a topic to be subscribed. It may include broker specific
    wilcards, e.g. `in/#`. The MQTT broker will then send messages with a matching
    topic to this connector.
- * *Received Topic*, which is a template for parsing the topic of received
+ - **Received Topic**, which is a template for parsing the topic of received
    messages, e.g. `in/{devaddr}`. This can be used to obtain a DevEUI, DevAddr or
    a device group that shall receive a given downlink.
- * *Enabled* flag that allows you to temporarily disable an existing connector.
+ - **Enabled** flag that allows you to temporarily disable an existing connector.
 
 On the Authentication tab:
- * *Client ID* is the MQTT parameter
- * *Auth* identifies the type of authentication:
-   * *Username+Password* for common servers
-   * *Shared Access Signature* for Microsoft servers
- * *Name* and *Password/Key* for plain authentication
- * *User Certificate* and *Private Key* if SSL authentication is needed
+ - **Client ID** is the MQTT parameter
+ - **Auth** identifies the type of authentication:
+   - **Username+Password** for common servers
+   - **Shared Access Signature** for Microsoft servers
+ - **Name** and **Password/Key** for plain authentication
+ - **User Certificate** and **Private Key** if SSL authentication is needed
 
-If the Connector is *Enabled* and a *Subscribe* topic is defined the server will
-automatically connect to the backend server and subscribe this topic.
+If the Connector is **Enabled** the server will automatically connect to the
+backend server and subscribe this topic.
 
 Please read the [Integration Guide](Integration.md) for detailed information on
 how to connect to a specific IoT Platform like AWS IoT, IBM Watson IoT, MathWorks
@@ -86,9 +86,9 @@ openssl rsa -in privkey.pem -out key.pem
 ## Web Sockets
 
 To create a web socket connector you set:
- * *URI* to `ws:` (with no hostname)
- * *Publish Uplinks* to a URL pattern starting with a slash, e.g. '/ws/uplink/{devaddr}'
- * *Publish Events* to another URL pattern, e.g. '/ws/events/{devaddr}'
+ - **URI** to `ws:` (with no hostname)
+ - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/ws/uplink/{devaddr}'
+ - **Publish Events** to another URL pattern, e.g. '/ws/events/{devaddr}'
 
 To connect to the WebSocket, then open URL to the path you defined, i.e.
 `ws://server:8080/ws/uplink/<DevAddr>` or `ws://server:8080/ws/events/<DevAddr>`.
@@ -131,11 +131,11 @@ Each byte is represented by exactly 2 digits. For example, "4849" represents ASC
 ## HTTP/REST
 
 To create a HTTP connector you set:
- * *URI* to the target host either as `http://host:port` or `http://host:port. Do
+ - **URI** to the target host either as `http://host:port` or `http://host:port. Do
    not append any path: use the *Publish Uplinks* or *Events* field instead.
- * *Publish Uplinks* to a URL pattern starting with a slash, e.g. '/uplink/{devaddr}'
- * *Publish Events* to another URL pattern, e.g. '/events/{devaddr}'
- * *Received Topic* is a template for parsing the topic of received downlink
+ - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/uplink/{devaddr}'
+ - **Publish Events** to another URL pattern, e.g. '/events/{devaddr}'
+ - **Received Topic** is a template for parsing the topic of received downlink
    messages, e.g. `in/{devaddr}`.
 
 Make sure that all URL paths start with a slash ('/'). The *Received Topic* must
@@ -154,17 +154,17 @@ and that the MQTT protocol [is enabled](https://www.rabbitmq.com/mqtt.html)
 in your broker.
 
 Open the lorawan-server web-administration and create a Backend Connector:
- * *URI* defines the target host either as `mqtt://host:port` or `mqtts://host:port`
- * *Publish Uplinks* is a pattern for constructing the message topic
+ - **URI** defines the target host either as `mqtt://host:port` or `mqtts://host:port`
+ - **Publish Uplinks** is a pattern for constructing the message topic
    of uplinks, e.g. `out/{devaddr}`.
- * *Subscribe* is a downlink topic to be subscribed by the lorawan-server,
+ - **Subscribe** is a downlink topic to be subscribed by the lorawan-server,
    e.g. `in/#`.
- * *Received Topic* is a template for parsing the topic of received downlink
+ - **Received Topic** is a template for parsing the topic of received downlink
    messages, e.g. `in/{devaddr}`.
 
 On the Authentication tab:
- * *Auth* shall be set to *Username+Password*, even when the *Name* and
-   *Password/Key* are empty.
+ - **Auth** shall be set to **Username+Password**, even when the **Name** and
+   **Password/Key** are empty.
 
 Exclusively for MQTT, the *URI*, *Client ID*, *Name*, *Password/Key* and *Subscribe*
 may also include patterns, but limited to `{devaddr}` and `{appargs}` only. This

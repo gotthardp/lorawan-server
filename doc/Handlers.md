@@ -1,6 +1,6 @@
 # Backend Handlers
 
-Handlers define externally handled applications, including:
+Handlers define externally handled application, including:
  * Format of the uplink and downlink messages
  * Data fields forwared via the backend *Connectors*
  * Retransmission logic for confirmed downlinks
@@ -22,26 +22,26 @@ In addition to uplink frames the backend can receive device related events:
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-handler.png)
 
 To create a new handler you need to set:
- * *Application* name
- * *Uplink Fields* that will be forwarded to the backend Connector
- * *Parse Uplink* function to extract additional data fields from the uplink frame
- * *Parse Event* function to amend event data fields
- * *Build Downlink* function to create a downlink frame based on backend data fields
- * *D/L Expires* defines when the downlinks may be dropped.
-   * *Never* means that:
+ - **Application** name
+ - **Uplink Fields** that will be forwarded to the backend Connector
+ - **Parse Uplink** function to extract additional data fields from the uplink frame
+ - **Parse Event** function to amend event data fields
+ - **Build Downlink** function to create a downlink frame based on backend data fields
+ - **D/L Expires** defines when the downlinks may be dropped.
+   - **Never** means that:
      * All class A downlinks for a device will be queued and eventually delivered.
      * All confirmed downlinks will be retransmitted until acknowledged, even
        when a new downlink is sent.
-   * *When Superseded* means that:
+   - **When Superseded** means that:
      * Only the most recent class A downlink will be scheduled for delivery.
        Superseded downlinks will be dropped.
      * Unacknowledged downlinks will be dropped when a new downlink (either
        class A or C) is sent.
 
-*Test* button can be used to send a `test` event to all connections associated with this
+**Test** button can be used to send a `test` event to all connections associated with this
 handler.
 
-*Connectors* related to this Handler are displayed for your convenience. The table
+**Connectors** related to this Handler are displayed for your convenience. The table
 lists all backend connectors with the same *Application* name.
 
 
@@ -49,7 +49,7 @@ lists all backend connectors with the same *Application* name.
 
 ### Uplink
 
-Depending on the *Uplink Fields* settings the server sends to backend
+Depending on the **Uplink Fields** settings the server sends to backend
 applications the following fields:
 
   Field      | Type        | Usage  | Meaning
