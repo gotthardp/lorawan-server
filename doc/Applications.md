@@ -1,6 +1,6 @@
 # Building Custom Applications
 
-The server applications include:
+The server applications can be:
  * External applications defined by the [Handlers](Handlers.md)
  * Internal applications implemented in Erlang
 
@@ -15,7 +15,7 @@ https://github.com/gotthardp/lorawan-server-demoapp.
 
 You may fork this example and create your own internal applications.
 
-Each application may implement:
+Each internal application may implement:
   * LoRaWAN application handlers (see `lorawan_application` behaviour);
   * HTTP server handlers for
 [static files](https://ninenines.eu/docs/en/cowboy/2.0/guide/static_files/),
