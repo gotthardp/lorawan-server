@@ -5,7 +5,7 @@
 <p>
 The server:
 <ul>
- <li>Implements the LoRaWAN Specification v1.0.1</li>
+ <li>Implements the LoRaWAN Specification v1.0.2</li>
  <li>Communicates (any number of) with remote LoRaWAN gateways.</li>
  <li>Performs all required encryption and integrity checks.
     <ul>
@@ -16,7 +16,9 @@ The server:
  <li>Invokes external applications. It currently supports connections via:
     <ul>
     <li>WebSocket protocol</li>
+    <li>HTTP/1.1 and HTTP/2 protocol (REST API)</li>
     <li>MQTT, including applications hosted in Amazon AWS IoT, IBM Watson IoT or Microsoft Azure IoT Hub.</li>
+    <li>AMQP 0-9-1 to the RabbitMQ</li>
     </ul>
  </li>
  <li>Handles (any number of) Class A or Class C devices.
@@ -24,7 +26,7 @@ The server:
     <li>Supports both the activation by personalization and the over-the-air activation.</li>
     <li>Supports both unconfirmed and confirmed data uplink and downlink.</li>
     <li>Supports multicast to user-defined groups.</li>
-    <li>Supports EU 863-870, US 902-928, CN 779-787, EU 433, AU 915-928, CN 470-510, KR 920-923 and AS923-JP bands.</li>
+    <li>Supports all regions standartized in LoRaWAN 1.0.2 Regional Parameters for Europe, US, China, Australia, Asia, South Korea and India.</li>
     </ul>
  </li>
  <li>Provides a network management interface.
@@ -46,10 +48,6 @@ However:
  <li>You will need to deploy and maintain it yourself. (With my support.)</li>
  <li>It will probably never support the sophisticated management features of the commercial-grade network-servers.</li>
 </ul>
-</p>
-<p>
- The maximum amount of gateways, devices and nodes the server can support depends on the server load and hardware performance.
- There are no hard limits.
 </p>
 <h3>Support or Contact</h3>
 <p>
