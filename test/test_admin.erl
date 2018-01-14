@@ -5,7 +5,11 @@
 %
 -module(test_admin).
 
--export([add_network/1, add_gateway/2, add_profile/2, add_node/2]).
+-export([add_gateway/1, add_network/1, add_profile/2, add_node/2]).
+
+add_gateway(MAC) ->
+    post_json("gateways", [{mac, lorawan_utils:binary_to_hex(MAC)},
+        {tx_rfch, 0}, {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
 add_network(NetName) ->
     post_json("networks", [{name, NetName}, {netid, <<"000000">>},
@@ -13,10 +17,6 @@ add_network(NetName) ->
         {join1_delay, 5}, {join2_delay, 6}, {rx1_delay, 1}, {rx2_delay, 2},
         {gw_power, 16}, {max_eirp, 16},
         {rxwin_init, [{rx1_dr_offset, 0}, {rx2_dr, 0}, {rx2_freq, 869.525}]}]).
-
-add_gateway(NetName, MAC) ->
-    post_json("gateways", [{mac, lorawan_utils:binary_to_hex(MAC)}, {network, NetName},
-        {tx_rfch, 0}, {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
 add_profile(NetName, ProfName) ->
     post_json("profiles", [{name, ProfName}, {network, NetName}, {app, <<"semtech-mote">>},

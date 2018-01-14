@@ -20,8 +20,8 @@ loramote_test_() ->
         fun() ->
             {ok, _} = application:ensure_all_started(lorawan_server),
             lager:set_loglevel(lager_console_backend, debug),
+            test_admin:add_gateway(?GWMAC),
             test_admin:add_network(?NET),
-            test_admin:add_gateway(?NET, ?GWMAC),
             {ok, Gateway} = test_forwarder:start_link(?GWMAC, {"localhost", 1680}),
             test_admin:add_profile(?NET, ?PROF),
             test_admin:add_node(?PROF, ?NODE0),
