@@ -36,6 +36,9 @@ idle(cast, {frame, {MAC, RxQ, _}, <<2#000:3, _/bitstring>>=PHYPayload}, Data) ->
             end;
         ignore ->
             {next_state, drop, Data};
+        {error, Error} ->
+            lorawan_utils:throw_error(server, Error),
+            {next_state, drop, Data};
         {error, Object, Error} ->
             lorawan_utils:throw_error(Object, Error),
             {next_state, drop, Data};
@@ -84,6 +87,9 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
             end;
         {ignore, Frame} ->
             {next_state, log_only, Frame};
+        {error, Error} ->
+            lorawan_utils:throw_error(server, Error),
+            {next_state, drop, Data};
         {error, Object, Error} ->
             lorawan_utils:throw_error(Object, Error),
             {next_state, drop, Data};
