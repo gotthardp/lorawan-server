@@ -40,15 +40,17 @@ get_array(pgraph, #gateway{delays=Delays}) when is_list(Delays) ->
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     [{cols, [
         [{id, <<"timestamp">>}, {label, <<"Timestamp">>}, {type, <<"datetime">>}],
-        [{id, <<"srvdelay">>}, {label, <<"Server Delay [ms]">>}, {type, <<"number">>}],
-        [{id, <<"nwkdelay">>}, {label, <<"Network Delay [ms]">>}, {type, <<"number">>}]
+        [{id, <<"avgdelay">>}, {label, <<"Average [ms]">>}, {type, <<"number">>}],
+        [{type, <<"number">>}, {role, <<"interval">>}],
+        [{type, <<"number">>}, {role, <<"interval">>}]
     ]},
     {rows, lists:filtermap(
-        fun ({Date, SDelay, NDelay}) ->
+        fun ({Date, {Min, Avg, Max}}) ->
             {true,  [{c, [
                         [{v, lorawan_admin:timestamp_to_json_date(Date)}],
-                        [{v, SDelay}],
-                        [{v, NDelay}]
+                        [{v, Avg}],
+                        [{v, Min}],
+                        [{v, Max}]
                     ]}]};
         (_Else) ->
             false

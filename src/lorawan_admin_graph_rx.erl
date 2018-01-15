@@ -68,7 +68,7 @@ send_array(Req, #network{region=Region, max_eirp=MaxEIRP}, DevAddr, ActRec, #sta
                     [{c, [
                         [{v, FCnt}],
                         [{v, lorawan_mac_region:datar_to_dr(Region, DatR)}, {f, DatR}],
-                        [{v, TXPower}, {f, integer_to_binary(MaxEIRP - 2*TXPower)}],
+                        [{v, MaxEIRP/2-TXPower}, {f, integer_to_binary(MaxEIRP - 2*TXPower)}],
                         [{v, Freq}]
                     ]}];
                 % if there are some unexpected data, show nothing

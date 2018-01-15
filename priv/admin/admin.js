@@ -144,6 +144,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('group'),
         nga.field('desc').label('Description'),
         nga.field('ip_address.ip').label('IP Address'),
+        nga.field('dwell', 'float').label('Dwell [%]')
+            .map(function(value, entry){ return first(value, 'hoursum')/36000; }),
         nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
@@ -178,13 +180,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false),
         nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('last_report', 'datetime').label('Last Report'),
-        nga.field('mac', 'template').label('Delays')
+        nga.field('mac', 'template').label('Network Delay')
             .template('<pgraph value="value"></pgraph>'),
         nga.field('mac', 'template').label('Transmissions')
             .template('<tgraph value="value"></tgraph>')
     ]);
     gateways.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:8}
+        {name:"General", min:0, max:7}
     ]));
     gateways.editionView().fields(gateways.creationView().fields());
     gateways.editionView().template(editWithTabsTemplate([
@@ -869,6 +871,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .fields([
                 nga.field('mac').label('MAC').isDetailLink(true),
                 nga.field('ip_address.ip').label('IP Address'),
+                nga.field('dwell', 'float').label('Dwell [%]')
+                    .map(function(value, entry){ return first(value, 'hoursum')/36000; }),
                 nga.field('last_alive', 'datetime'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
@@ -1380,11 +1384,10 @@ return {
             $scope.prChartObject.type = "LineChart";
             $scope.prChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Delay [ms]', "minValue": 0, "maxValue": 1500},
+                    0: {"title": 'Network Delay [ms]', "minValue": 0, "maxValue": 500},
                 },
                 "series": {
-                    0: {"targetAxisIndex": 0},
-                    1: {"targetAxisIndex": 0}
+                    0: {"targetAxisIndex": 0}
                 },
                 "chartArea": {
                     "top": 0, "bottom": "10%",
