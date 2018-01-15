@@ -245,6 +245,7 @@ terminate(Reason, #state{conn=#connector{connid=ConnId}}) when Reason == normal;
     ok;
 terminate(Reason, #state{conn=#connector{connid=ConnId}}) ->
     lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]),
+    lorawan_connector:disable(ConnId),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

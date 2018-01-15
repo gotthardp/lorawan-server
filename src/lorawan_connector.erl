@@ -8,6 +8,7 @@
 -export([prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2, same_common_vars/2]).
 -export([shared_access_token/4]).
 -export([form_encode/1, decode_and_downlink/3]).
+-export([disable/1]).
 
 -include("lorawan_db.hrl").
 
@@ -177,6 +178,13 @@ decode(<<"json">>, Msg) ->
         _Else ->
             {error, json_syntax_error}
     end.
+
+disable(ConnId) ->
+    mnesia:transaction(
+        fun() ->
+            [Rec] = mnesia:read(connectors, ConnId, write),
+            mnesia:write(connectors, Rec#connector{enabled=false}, write)
+        end).
 
 
 -include_lib("eunit/include/eunit.hrl").

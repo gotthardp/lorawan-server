@@ -48,7 +48,7 @@ handle_info(connect, #state{conn=#connector{connid=ConnId, uri=Uri, name=UserNam
             case amqp_connection:start(
                     Params#amqp_params_network{username=UserName, password=Password}) of
                 {ok, Connection} ->
-                    %%erlang:monitor(process, Connection),
+                    erlang:monitor(process, Connection),
                     self() ! subscribe,
                     {noreply, State#state{cpid=Connection}};
                 {error, Error} ->
@@ -155,6 +155,7 @@ terminate(Reason, #state{conn=#connector{connid=ConnId}}) when Reason == normal;
     ok;
 terminate(Reason, #state{conn=#connector{connid=ConnId}}) ->
     lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]),
+    lorawan_connector:disable(ConnId),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
