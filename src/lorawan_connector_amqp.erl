@@ -45,8 +45,9 @@ handle_info(connect, #state{conn=#connector{connid=ConnId, uri=Uri, name=UserNam
     lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     case amqp_uri:parse(Uri) of
         {ok, Params} ->
+            Params2 =
             case amqp_connection:start(
-                    Params#amqp_params_network{username=UserName, password=Password}) of
+                    Params#amqp_params_network{username=ensure_binary(UserName), password=ensure_binary(Password)}) of
                 {ok, Connection} ->
                     erlang:monitor(process, Connection),
                     self() ! subscribe,
@@ -190,5 +191,10 @@ encode_uplink(<<"json">>, Vars) ->
     jsx:encode(lorawan_admin:build(Vars));
 encode_uplink(<<"www-form">>, Vars) ->
     lorawan_connector:form_encode(Vars).
+
+ensure_binary(undefined) ->
+    <<>>;
+ensure_binary(Value) ->
+    Value.
 
 % end of file

@@ -803,7 +803,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetFields([
                 nga.field('connid').label('Name').isDetailLink(true),
                 nga.field('enabled', 'boolean'),
-                nga.field('format', 'choice'),
+                nga.field('format', 'choice')
+                    .choices(format_choices),
                 nga.field('uri').label('URI')
             ])
         ]);
@@ -1384,7 +1385,7 @@ return {
             $scope.prChartObject.type = "LineChart";
             $scope.prChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Network Delay [ms]', "minValue": 0, "maxValue": 500},
+                    0: {"title": 'Network Delay [ms]', "minValue": 0, "maxValue": 100},
                 },
                 "series": {
                     0: {"targetAxisIndex": 0}
@@ -1432,7 +1433,7 @@ return {
             $scope.txChartObject.type = "LineChart";
             $scope.txChartObject.options = {
                 "vAxes": {
-                    0: {"title": 'Tx Time [ms]', "minValue": 0, "maxValue": 3000},
+                    0: {"title": 'Tx Time [ms]', "minValue": 0, "maxValue": 2000},
                     1: {"title": 'Tx in Hour [ms]', "minValue": 0, "maxValue": 1}
                 },
                 "series": {

@@ -235,6 +235,8 @@ invoke_handler(Fun, {_, #profile{app=App}, _}=Subject, Params) ->
         undefined ->
             % if it's not internal, then it must be external
             apply(lorawan_application_backend, Fun, [Subject|Params]);
+        {_, Module} ->
+            invoke_handler2(Module, Fun, [Subject|Params]);
         Module ->
             invoke_handler2(Module, Fun, [Subject|Params])
     end.
