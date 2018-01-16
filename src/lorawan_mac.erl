@@ -77,8 +77,9 @@ ingest_frame0(<<MType:3, _:5,
             end;
         {error, ignored_node} ->
             {ignore, Frame};
-        {error, Error, Attr} ->
-            {error, {node, DevAddr}, Error, Attr}
+        {error, Error, Args} ->
+            lorawan_utils:throw_error({node, DevAddr}, Error, Args),
+            {ignore, Frame}
     end;
 ingest_frame0(Msg, _MIC) ->
     lager:debug("Bad frame: ~p", [Msg]),

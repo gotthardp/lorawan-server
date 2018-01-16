@@ -1213,7 +1213,7 @@ return {
         entry: '='
     },
     link: function($scope) {
-        if($scope.entry.values.entity == "node" && $scope.entry.values.entity == "unknown_devaddr")
+        if($scope.entry.values.entity == "node" && $scope.entry.values.text == "unknown_devaddr")
             $scope.ShowIgnore = true;
 
         $scope.addIgnored = function() {

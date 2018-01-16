@@ -158,6 +158,18 @@ DELETE /api/users/backup HTTP/1.1
 HTTP/1.1 204 No Content
 ```
 
+This enables users to create simple script for auto-configuration. For example,
+to add a new Device programmatically you can do:
+
+```python
+#!/usr/bin/env python
+import requests
+from requests.auth import HTTPDigestAuth
+payload = [{'devaddr': '00000000', 'profile':'Semtech Mote',
+    'nwkskey':'00000000000000000000000000000000', 'appskey':'00000000000000000000000000000000', 'fcntdown':0}]
+print requests.post("http://localhost:8080/api/nodes", json=payload, auth=HTTPDigestAuth('admin', 'admin'))
+```
+
 ### Filtering
 
 To list only some items the REST API accepts the `_filters` query parameter, which
