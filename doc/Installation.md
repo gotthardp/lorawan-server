@@ -285,8 +285,7 @@ content.
 
 On the Debian Linux and its clones like Raspbian you can use the .deb package.
 
-Build the Debian package bu running `make dpkg`. It will request your `root`
-password and then create a package
+Build the Debian package bu running `make release dpkg`. This will create
 `lorawan-server/_build/default/rel/lorawan-server/lorawan-server_<VERSION>.deb`.
 
 You can then install the package by:
