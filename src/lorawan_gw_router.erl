@@ -45,7 +45,8 @@ value_or_default(Num, _Def) when is_number(Num) -> Num;
 value_or_default(_Num, Def) -> Def.
 
 init([]) ->
-    timer:send_interval(60000, submit_stats),
+    {ok, Interval} = application:get_env(lorawan_server, server_stats_interval),
+    timer:send_interval(Interval*1000, submit_stats),
     {ok, #state{gateways=dict:new(), recent=dict:new(), request_cnt=0, error_cnt=0}}.
 
 handle_call(_Request, _From, State) ->

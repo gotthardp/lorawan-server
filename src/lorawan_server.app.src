@@ -32,6 +32,7 @@
         % packet_forwarder's push_timeout_ms + network delay
         {gateway_delay, 200},
         {deduplication_delay, 200},
+        {server_stats_interval, 60}, % [s]
         {event_lifetime, 86400}
     ]},
     {applications, [kernel, stdlib, sasl, os_mon, mnesia, lager,
