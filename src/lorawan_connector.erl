@@ -23,9 +23,14 @@ is_pattern(Pattern) ->
         N when N > 0 -> true
     end.
 
-pattern_for_cowboy(URI) ->
+pattern_for_cowboy(Empty)
+        when Empty == undefined; Empty == <<>> ->
+    undefined;
+pattern_for_cowboy(<<"/", _/binary>>=URI) ->
     % convert our pattern to cowboy pattern
-    re:replace(URI, "{([^}])}", ":\\1", [{return, binary}]).
+    re:replace(URI, "{([^}])}", ":\\1", [{return, binary}]);
+pattern_for_cowboy(_Error) ->
+    error.
 
 -type fill_pattern_t() :: 'undefined' | {binary(), [{integer(), integer()}]}.
 -spec prepare_filling('undefined' | binary() | [binary()]) -> fill_pattern_t() | [fill_pattern_t()].

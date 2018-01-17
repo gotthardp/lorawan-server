@@ -65,7 +65,7 @@ handle_info(subscribe, #state{conn=#connector{connid=ConnId, subscribe=Sub}, cpi
         when is_pid(Connection), is_binary(Sub), byte_size(Sub) > 0 ->
     lager:debug("Subscribing ~s to ~s", [ConnId, Sub]),
     {ok, SubChannel} = amqp_connection:open_channel(Connection),
-    %%erlang:monitor(process, SubChannel),
+    erlang:monitor(process, SubChannel),
     #'queue.declare_ok'{queue = Queue} =
         amqp_channel:call(SubChannel, #'queue.declare'{auto_delete = true}),
     {Exchange, RoutingKey} =

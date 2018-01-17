@@ -15,9 +15,15 @@
 -record(state, {conn, pid, streams, publish_uplinks, publish_events, auth, nc}).
 
 start_connector(#connector{connid=Id, received=Received}=Connector) ->
-    lorawan_http_registry:update_routes({http, Id}, [
-        {lorawan_connector:pattern_for_cowboy(Received), lorawan_connector_http_in, [Connector]}
-    ]),
+    case lorawan_connector:pattern_for_cowboy(Received) of
+        undefined ->
+            ok;
+        error ->
+            lager:error("Connector ~p cannot listen at bad URL: ~s", [Id, Received]);
+        Pattern ->
+            lorawan_http_registry:update_routes({http, Id},
+                [{Pattern, lorawan_connector_http_in, [Connector]}])
+    end,
     lorawan_connector_sup:start_child(Id, ?MODULE, [Connector]).
 
 stop_connector(Id) ->
@@ -156,7 +162,8 @@ connect(#connector{connid=ConnId, uri=Uri}) ->
             lager:debug("~s connected to ~s (~p)", [ConnId, Uri, Protocol]),
             {ok, ConnPid};
         {error, Reason} ->
-            lager:debug("~s failed to connect to ~p: ~p", [ConnId, Uri, Reason]),
+            demonitor(MRef),
+            lager:error("~s failed to connect to ~p: ~p", [ConnId, Uri, Reason]),
             {error, Reason}
     end.
 

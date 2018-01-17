@@ -14,10 +14,25 @@
 -record(state, {connector, type, bindings}).
 
 start_connector(#connector{connid=Id, publish_uplinks=PubUp, publish_events=PubEv}=Connector) ->
-    lorawan_http_registry:update_routes({ws, Id}, [
-        {lorawan_connector:pattern_for_cowboy(PubUp), ?MODULE, [Connector, uplink]},
-        {lorawan_connector:pattern_for_cowboy(PubEv), ?MODULE, [Connector, event]}
-    ]).
+    lorawan_http_registry:update_routes({ws, Id},
+        case lorawan_connector:pattern_for_cowboy(PubUp) of
+            undefined ->
+                [];
+            error ->
+                lager:error("Connector ~p cannot send uplinks to bad URL: ~s", [Id, PubUp]),
+                [];
+            Pattern1 ->
+                [{Pattern1, ?MODULE, [Connector, uplink]}]
+        end ++
+        case lorawan_connector:pattern_for_cowboy(PubEv) of
+            undefined ->
+                [];
+            error ->
+                lager:error("Connector ~p cannot send events to bad URL: ~s", [Id, PubEv]),
+                [];
+            Pattern2 ->
+                [{Pattern2, ?MODULE, [Connector, event]}]
+        end).
 
 stop_connector(Id) ->
     lorawan_http_registry:delete_routes({ws, Id}).
