@@ -718,7 +718,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- connectors
     connectors.listView().fields([
         nga.field('connid').label('Name').isDetailLink(true),
-        nga.field('app').label('Application'),
+        nga.field('app', 'reference').label('Application')
+            .targetEntity(handlers)
+            .targetField(nga.field('app')),
         nga.field('uri').label('URI'),
         nga.field('publish_uplinks'),
         nga.field('received').label('Received Topic'),
@@ -759,9 +761,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('name'),
         nga.field('pass').label('Password/Key'),
         nga.field('certfile', 'file').label('User Certificate')
-            .uploadInformation({'url': 'upload'}),
+            .uploadInformation({'url': '/api/upload'}),
         nga.field('keyfile', 'file').label('Private Key')
-            .uploadInformation({'url': 'upload'})
+            .uploadInformation({'url': '/api/upload'})
     ]);
     connectors.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:10},
