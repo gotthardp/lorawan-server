@@ -93,7 +93,8 @@ item_deleted(#connector{}=Connector) ->
     stop_connector(Connector).
 
 
-start_connector(#connector{enabled=true, connid=Id, uri=Uri, app=App}=Connector) ->
+start_connector(#connector{connid=Id, app=App, uri=Uri, enabled=true,
+        failed=Failed}=Connector) when Failed == undefined; Failed == [] ->
     case find_module(Uri) of
         {ok, Module} ->
             pg2:create({backend, App}),
@@ -104,7 +105,8 @@ start_connector(#connector{enabled=true, connid=Id, uri=Uri, app=App}=Connector)
 start_connector(#connector{}) ->
     ok.
 
-stop_connector(#connector{enabled=true, connid=Id, uri=Uri}) ->
+stop_connector(#connector{connid=Id, uri=Uri, enabled=true, failed=Failed})
+        when Failed == undefined; Failed == [] ->
     case find_module(Uri) of
         {ok, Module} ->
             apply(Module, stop_connector, [Id]);

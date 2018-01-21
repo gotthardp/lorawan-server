@@ -45,7 +45,6 @@ handle_info(connect, #state{conn=#connector{connid=ConnId, uri=Uri, name=UserNam
     lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     case amqp_uri:parse(Uri) of
         {ok, Params} ->
-            Params2 =
             case amqp_connection:start(
                     Params#amqp_params_network{username=ensure_binary(UserName), password=ensure_binary(Password)}) of
                 {ok, Connection} ->
@@ -53,40 +52,24 @@ handle_info(connect, #state{conn=#connector{connid=ConnId, uri=Uri, name=UserNam
                     self() ! subscribe,
                     {noreply, State#state{cpid=Connection}};
                 {error, Error} ->
-                    lager:error("Connector failed: ~p", [Error]),
+                    lorawan_connector:raise_failed(ConnId, {network, Error}),
                     {stop, shutdown, State}
             end;
         {error, Error} ->
-            lager:error("Connector failed: ~p", [Error]),
+            lorawan_connector:raise_failed(ConnId, {badarg, Error}),
             {stop, shutdown, State}
     end;
 
-handle_info(subscribe, #state{conn=#connector{connid=ConnId, subscribe=Sub}, cpid=Connection}=State)
+handle_info(subscribe, #state{conn=#connector{subscribe=Sub}, cpid=Connection}=State)
         when is_pid(Connection), is_binary(Sub), byte_size(Sub) > 0 ->
-    lager:debug("Subscribing ~s to ~s", [ConnId, Sub]),
     {ok, SubChannel} = amqp_connection:open_channel(Connection),
     erlang:monitor(process, SubChannel),
-    #'queue.declare_ok'{queue = Queue} =
-        amqp_channel:call(SubChannel, #'queue.declare'{auto_delete = true}),
-    {Exchange, RoutingKey} =
-        case binary:split(Sub, <<$/>>) of
-            [EX, RK | _] ->
-                {EX, RK};
-            [RK] ->
-                {<<"amq.topic">>, RK}
-        end,
-    BindCmd = #'queue.bind'{queue = Queue,
-        exchange = Exchange, routing_key = RoutingKey},
-    try amqp_channel:call(SubChannel, BindCmd) of
-        #'queue.bind_ok'{} ->
-            SubCmd = #'basic.consume'{queue = Queue},
-            #'basic.consume_ok'{} = amqp_channel:call(SubChannel, SubCmd)
-        catch Type:Error ->
-            lager:error("Cannot bind ~p:~p", [Type, Error])
-    end,
-    {noreply, State#state{subc=SubChannel}};
+    handle_subscribe(State#state{subc=SubChannel});
 handle_info(subscribe, State) ->
     {noreply, State#state{subc=undefined}};
+
+handle_info(#'basic.cancel'{}, State) ->
+    handle_subscribe(State);
 
 handle_info({#'basic.deliver'{delivery_tag=Tag, exchange=Exchange, routing_key=RoutingKey}, Message},
         #state{conn=Connector, subc=SubChannel, received=Pattern}=State) ->
@@ -151,16 +134,52 @@ handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
 
-terminate(Reason, #state{conn=#connector{connid=ConnId}}) when Reason == normal; Reason == shutdown ->
-    lager:debug("Connector ~s terminated: ~p", [ConnId, Reason]),
+terminate(Reason, #state{conn=Connector}=State) ->
+    log_termination(Reason, Connector),
+    stop_connection(State).
+
+log_termination(Reason, #connector{connid=ConnId})
+        when Reason == normal; Reason == shutdown ->
+    lager:debug("Connector ~s terminated: ~p", [ConnId, Reason]);
+log_termination(Reason, #connector{connid=ConnId}) ->
+    lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]).
+
+stop_connection(#state{cpid=undefined}) ->
     ok;
-terminate(Reason, #state{conn=#connector{connid=ConnId}}) ->
-    lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]),
-    lorawan_connector:disable(ConnId),
+stop_connection(#state{cpid=Pid}) ->
+    amqp_connection:close(Pid),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+
+handle_subscribe(#state{conn=#connector{connid=ConnId, subscribe=Sub}, subc=SubChannel}=State) ->
+    lager:debug("Subscribing ~s to ~s", [ConnId, Sub]),
+    {Exchange, RoutingKey} =
+        case binary:split(Sub, <<$/>>) of
+            [EX, RK | _] ->
+                {EX, RK};
+            [RK] ->
+                {<<"amq.topic">>, RK}
+        end,
+    try amqp_channel:call(SubChannel, #'queue.declare'{auto_delete = true}) of
+        #'queue.declare_ok'{queue = Queue} ->
+            BindCmd = #'queue.bind'{queue = Queue,
+                exchange = Exchange, routing_key = RoutingKey},
+            try amqp_channel:call(SubChannel, BindCmd) of
+                #'queue.bind_ok'{} ->
+                    SubCmd = #'basic.consume'{queue = Queue},
+                    #'basic.consume_ok'{} = amqp_channel:call(SubChannel, SubCmd),
+                    {noreply, State#state{subc=SubChannel}}
+                catch _:{{shutdown,{_,_,Error}},_} ->
+                    lorawan_connector:raise_failed(ConnId, {topic, Error}),
+                    {stop, shutdown, State}
+            end
+        catch _:{{shutdown,{_,_,Error}},_} ->
+            lorawan_connector:raise_failed(ConnId, {topic, Error}),
+            {stop, shutdown, State}
+    end.
 
 publish_uplink(PubChannel, Format, PatPub, Vars0) when is_list(Vars0) ->
     lists:foreach(

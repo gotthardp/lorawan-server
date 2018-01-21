@@ -62,7 +62,7 @@ build_hierarchy(PatConn, PatSub, Nodes) ->
         end,
         [], Nodes).
 
-execute_hierarchy_updates(NewHier, CurrHier, Conn) ->
+execute_hierarchy_updates(NewHier, CurrHier, #connector{connid=Id}=Conn) ->
     lists:filtermap(
         fun({Connect, C, CurrSub, Costa}) ->
             case proplists:get_value(Connect, NewHier) of
@@ -98,8 +98,7 @@ execute_hierarchy_updates(NewHier, CurrHier, Conn) ->
                         {ok, C2, Costa2} ->
                             {true, {Connect, C2, NewSub, Costa2}};
                         {error, Error} ->
-                            lager:error("Connector ~s has bad arguments (~p) ~p",
-                                [Conn#connector.connid, Error, Connect]),
+                            lorawan_connector:raise_failed(Id, {badarg, Error}),
                             false
                     end;
                 false ->
@@ -133,9 +132,10 @@ connection_args([Uri, ClientId, UserName, Password], Conn) ->
         ssl_args(Scheme, Conn)
     ]).
 
-reconnect(#costa{phase=Phase, cargs=CArgs, connect_count=Count}=Costa) ->
+reconnect(#costa{phase=Phase, cargs=CArgs}=Costa) ->
+    lager:debug("Reconnecting"),
     {ok, C} = connect0(Phase, CArgs),
-    {ok, C, Costa#costa{connect_count=Count+1, last_connect=calendar:universal_time()}}.
+    {ok, C, Costa#costa{last_connect=calendar:universal_time()}}.
 
 connect0(attempt31, CArgs) ->
     emqttc:start_link([{proto_ver, 3} | CArgs]);
@@ -245,7 +245,6 @@ terminate(Reason, #state{conn=#connector{connid=ConnId}}) when Reason == normal;
     ok;
 terminate(Reason, #state{conn=#connector{connid=ConnId}}) ->
     lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]),
-    lorawan_connector:disable(ConnId),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -256,6 +255,7 @@ handle_reconnect(Connect, NewSub, #costa{last_connect=Last, connect_count=Count}
             - calendar:datetime_to_gregorian_seconds(Last) of
         Diff when Diff < 30, Count > 120 ->
             % give up after 2 hours
+            lorawan_connector:raise_failed(Connect#connector.connid, <<"network">>),
             remove;
         Diff when Diff < 30, Count > 0 ->
             % wait, then wait even longer, but no longer than 30 sec

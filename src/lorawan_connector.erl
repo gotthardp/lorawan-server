@@ -8,7 +8,7 @@
 -export([prepare_filling/1, fill_pattern/2, prepare_matching/1, match_vars/2, same_common_vars/2]).
 -export([shared_access_token/4]).
 -export([form_encode/1, decode_and_downlink/3]).
--export([disable/1]).
+-export([raise_failed/2]).
 
 -include("lorawan_db.hrl").
 
@@ -184,12 +184,24 @@ decode(<<"json">>, Msg) ->
             {error, json_syntax_error}
     end.
 
-disable(ConnId) ->
+raise_failed(ConnId, {Error, Args}) ->
+    lorawan_utils:throw_error({connector, ConnId}, {Error, Args}),
+    append_failed(ConnId, Error);
+raise_failed(ConnId, Error) ->
+    lorawan_utils:throw_error({connector, ConnId}, Error),
+    append_failed(ConnId, Error).
+
+append_failed(ConnId, Error) ->
     mnesia:transaction(
         fun() ->
             [Rec] = mnesia:read(connectors, ConnId, write),
-            mnesia:write(connectors, Rec#connector{enabled=false}, write)
+            mnesia:write(connectors, append_failed0(Rec, atom_to_binary(Error, latin1)), write)
         end).
+
+append_failed0(#connector{failed=Failed}=Conn, Error) when is_list(Failed) ->
+    Conn#connector{failed=[Error|Failed]};
+append_failed0(Conn, Error) ->
+    Conn#connector{failed=[Error]}.
 
 
 -include_lib("eunit/include/eunit.hrl").

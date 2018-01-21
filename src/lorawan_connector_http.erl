@@ -19,7 +19,7 @@ start_connector(#connector{connid=Id, received=Received}=Connector) ->
         undefined ->
             ok;
         error ->
-            lager:error("Connector ~p cannot listen at bad URL: ~s", [Id, Received]);
+            lorawan_connector:raise_failed(Id, {badarg, Received});
         Pattern ->
             lorawan_http_registry:update_routes({http, Id},
                 [{Pattern, lorawan_connector_http_in, [Connector]}])
@@ -163,7 +163,7 @@ connect(#connector{connid=ConnId, uri=Uri}) ->
             {ok, ConnPid};
         {error, Reason} ->
             demonitor(MRef),
-            lager:error("~s failed to connect to ~p: ~p", [ConnId, Uri, Reason]),
+            lager:error("~s failed to connect to ~p ~p", [ConnId, Uri, Reason]),
             {error, Reason}
     end.
 

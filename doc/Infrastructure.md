@@ -51,7 +51,7 @@ For the status:
  - **Last Alive** contains a timestamp of the last received pull request. A gateway is
    considered dead if it didn't sent anything for more than 60 seconds.
  - **Last Report** shows a timestamp of the last status report
- - **Delays** graph shows network (LAN) delay between the gateway and the server
+ - **Network Delay** graph shows network (LAN) delay between the gateway and the server
    measured during the [`PULL_RESP`](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT#L274)
    sequence. Note this requires packet_forwarder v3.0 or higher.
  - **Transmissions** graph shows how much did the gateway transmit in past hour.
@@ -98,7 +98,7 @@ On the ADR tab you can set the initial parameters of your devices:
  - **Max Power** defines the first item in the "TX Power Table"
  - **Min Power** defines the last item in the "TX Power Table"
  - **Max Data Rate** defines the last (lowest SF) item in the "TX Data rate table"
- - **Initial RX1 DR offset** defines the offset between the uplink data rate and
+ - **Initial RX1 DR Offset** defines the offset between the uplink data rate and
    the downlink data rate used to communicate with the end-device on the first
    reception slot (RX1).
  - **Initial RX2 DR** defines the data rate for the second reception slot (RX2).
@@ -136,7 +136,7 @@ Each record contains
  - **First Occurred** timestamp
  - **Last Occurred** timestamp, which gets updated everytime this event occurs.
  - **Count** of occurrences, which gets increased by 1.
- - **Entity** concerned by the event: server, gateway, device or node.
+ - **Entity** concerned by the event: server, gateway, device, node, connector.
  - **EId**, which is an identifier of the concerned entity.
  - **Text** and **Args** of the event.
 

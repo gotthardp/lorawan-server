@@ -20,10 +20,10 @@ To create a new connector you set:
    - `http://` for HTTP POST or `https://` for HTTP/SSL
    - `mqtt://` for MQTT or `mqtts://` for MQTT/SSL
    - `amqp://` for AMQP or `amqp://` for AMQP/SSL
- - **Published Uplinks**, which is a server pattern for constructing the publication
+ - **Publish Uplinks**, which is a server pattern for constructing the publication
    topic for uplink messages, e.g. `out/{devaddr}`. This can be used to include
    the actual DevEUI, DevAddr or other data field in the message topic.
- - **Published Events**, which is a server pattern for constructing the publication
+ - **Publish Events**, which is a server pattern for constructing the publication
    topic for event messages.
  - **Subscribe**, which is a topic to be subscribed. It may include broker specific
    wilcards, e.g. `in/#`. The MQTT broker will then send messages with a matching
@@ -32,6 +32,11 @@ To create a new connector you set:
    messages, e.g. `in/{devaddr}`. This can be used to obtain a DevEUI, DevAddr or
    a device group that shall receive a given downlink.
  - **Enabled** flag that allows you to temporarily disable an existing connector.
+ - **Failed** flag indicates what has failed. The Event list includes more
+   details.
+   - **badarg** when some of connector parameters is bad
+   - **network** when the destination server cannot be reached
+   - **topic** when the target broker configuration is wrong
 
 On the Authentication tab:
  - **Client ID** is the MQTT parameter

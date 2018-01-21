@@ -19,7 +19,7 @@ start_connector(#connector{connid=Id, publish_uplinks=PubUp, publish_events=PubE
             undefined ->
                 [];
             error ->
-                lager:error("Connector ~p cannot send uplinks to bad URL: ~s", [Id, PubUp]),
+                lorawan_connector:raise_failed(Id, {badarg, PubUp}),
                 [];
             Pattern1 ->
                 [{Pattern1, ?MODULE, [Connector, uplink]}]
@@ -28,7 +28,7 @@ start_connector(#connector{connid=Id, publish_uplinks=PubUp, publish_events=PubE
             undefined ->
                 [];
             error ->
-                lager:error("Connector ~p cannot send events to bad URL: ~s", [Id, PubEv]),
+                lorawan_connector:raise_failed(Id, {badarg, PubEv}),
                 [];
             Pattern2 ->
                 [{Pattern2, ?MODULE, [Connector, event]}]

@@ -113,9 +113,9 @@
     adr_flag :: 0..1, % device supports
     adr_set :: 'undefined' | adr_config(), % auto-calculated
     adr_use :: adr_config(), % used
-    adr_failed=[] :: [atom()], % last request failed
+    adr_failed=[] :: [binary()], % last request failed
     rxwin_use :: rxwin_config(), % used
-    rxwin_failed=[] :: [atom()], % last request failed
+    rxwin_failed=[] :: [binary()], % last request failed
     last_qs :: [{integer(), integer()}], % list of {RSSI, SNR} tuples
     average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     devstat_time :: 'undefined' | calendar:datetime(),
@@ -136,6 +136,7 @@
     subscribe :: 'undefined' | binary(),
     received :: 'undefined' | binary(),
     enabled :: boolean(),
+    failed=[] :: [binary()],
     client_id :: 'undefined' | binary(),
     auth :: binary(),
     name :: 'undefined' | binary(),

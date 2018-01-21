@@ -96,7 +96,12 @@ throw_event(Severity, {Entity, undefined}, Text, Mark) ->
     write_event(Severity, {Entity, undefined}, Text, Mark);
 
 throw_event(Severity, {Entity, EID}, Text, Mark) ->
-    lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_utils:binary_to_hex(EID), Text]),
+    if
+        Entity == gateway; Entity == device; Entity == node ->
+            lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_utils:binary_to_hex(EID), Text]);
+        true ->
+            lager:log(Severity, self(), "~s ~s ~p", [Entity, EID, Text])
+    end,
     write_event(Severity, {Entity, EID}, Text, Mark).
 
 write_event(Severity, {Entity, EID}, Text, unique) ->

@@ -163,8 +163,8 @@ handle_adr(FOptsIn, Node) ->
             lorawan_utils:throw_warning({node, Node#node.devaddr},
                 {adr_req_failed, {PowerACK, DataRateACK, ChannelMaskACK}}),
             % indicate the settings that failed
-            Node#node{adr_failed = add_when_one("power", PowerACK,
-                add_when_one("data_rate", DataRateACK, add_when_one("channel_mask", ChannelMaskACK, [])))};
+            Node#node{adr_failed = add_when_one(<<"power">>, PowerACK,
+                add_when_one(<<"data_rate">>, DataRateACK, add_when_one(<<"channel_mask">>, ChannelMaskACK, [])))};
         undefined ->
             Node
     end.
@@ -195,8 +195,8 @@ handle_rxwin(FOptsIn, _Network, Profile, Node) ->
         {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
             lorawan_utils:throw_warning({node, Node#node.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),
             % indicate the settings that failed
-            {true, Node#node{rxwin_failed = add_when_one("dr_offset", RX1DROffsetACK,
-                add_when_one("rx2_data_rate", RX2DataRateACK, add_when_one("channel", ChannelACK, [])))}};
+            {true, Node#node{rxwin_failed = add_when_one(<<"dr_offset">>, RX1DROffsetACK,
+                add_when_one(<<"rx2_data_rate">>, RX2DataRateACK, add_when_one(<<"channel">>, ChannelACK, [])))}};
         undefined ->
             {false, Node}
     end.
@@ -379,7 +379,7 @@ request_status(_Profile, #node{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Nod
             FOptsOut
     end.
 
-add_when_one(_Atom, 0, List) -> List;
-add_when_one(Atom, 1, List) -> [Atom|List].
+add_when_one(_Error, 0, List) -> List;
+add_when_one(Error, 1, List) -> [Error|List].
 
 % end of file

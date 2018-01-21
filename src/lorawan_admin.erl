@@ -158,13 +158,18 @@ check_rxwin(#node{}) ->
     {25, rxparamsetup_failed}.
 
 parse(Object) when is_map(Object) ->
-    maps:map(fun(Key, Value) -> parse_field(Key, Value) end,
+    maps:map(
+        fun
+            (eid, Value) -> parse_eid(Value, Object);
+            (Key, Value) -> parse_field(Key, Value)
+        end,
         Object).
 
 build(Object) when is_map(Object) ->
     maps:map(
         fun
             (_Key, Value) when is_map(Value) -> build(Value);
+            (eid, Value) -> build_eid(Value, Object);
             (Key, Value) -> build_field(Key, Value)
         end,
         maps:filter(
@@ -172,6 +177,13 @@ build(Object) when is_map(Object) ->
                 (_Key, undefined) -> false;
                 (_, _) -> true
             end, Object)).
+
+parse_eid(Value, _) when Value == null; Value == undefined ->
+    undefined;
+parse_eid(Value, #{entity:=Entity}) when Entity == server; Entity == connector ->
+    Value;
+parse_eid(Value, _) ->
+    lorawan_utils:hex_to_binary(Value).
 
 parse_field(_Key, Value) when Value == null; Value == undefined ->
     undefined;
@@ -243,6 +255,13 @@ parse_field(Key, #{ip:=IP, port:=Port, ver:=Ver}) when Key == ip_address ->
     {IP2, Port, Ver};
 parse_field(_Key, Value) ->
     Value.
+
+build_eid(undefined, _) ->
+    null;
+build_eid(Value, #{entity:=Entity}) when Entity == server; Entity == connector ->
+    Value;
+build_eid(Value, _) ->
+    lorawan_utils:binary_to_hex(Value).
 
 build_field(_Key, undefined) ->
     null;

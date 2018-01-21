@@ -278,7 +278,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                     return [];
             })
             .validation({ required: true }),
-        nga.field('rxwin_init.rx1_dr_offset', 'number').label('Initial RX1 DR offset')
+        nga.field('rxwin_init.rx1_dr_offset', 'number').label('Initial RX1 DR Offset')
             .validation({ required: true })
             .defaultValue(0),
         nga.field('rxwin_init.rx2_dr', 'choice').label('Initial RX2 DR')
@@ -408,7 +408,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
 
-        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR offset'),
+        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR Offset'),
         nga.field('rxwin_set.rx2_dr', 'choice').label('Set RX2 DR')
             .choices(function(entry) {
                 if(entry.values.network)
@@ -604,9 +604,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
         nga.field('adr_use.chans').label('Used Channels')
             .editable(false),
-        nga.field('adr_failed', 'choices').label('ADR Failed'),
+        nga.field('adr_failed', 'choices').label('ADR Failed')
+            .choices([
+                { value: 'power', label: 'power' },
+                { value: 'data_rate', label: 'data_rate' },
+                { value: 'channel_mask', label: 'channel_mask' }
+            ]),
 
-        nga.field('rxwin_use.rx1_dr_offset', 'number').label('Used RX1 DR offset')
+        nga.field('rxwin_use.rx1_dr_offset', 'number').label('Used RX1 DR Offset')
             .editable(false),
         nga.field('rxwin_use.rx2_dr', 'choice').label('Used RX2 DR')
             .choices(function(entry) {
@@ -619,7 +624,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('rxwin_use.rx2_freq', 'float').label('Used RX2 Freq (MHz)')
             .editable(false),
 
-        nga.field('rxwin_failed', 'choices').label('RX Change Failed'),
+        nga.field('rxwin_failed', 'choices').label('RX Change Failed')
+            .choices([
+                { value: 'dr_offset', label: 'dr_offset' },
+                { value: 'rx2_data_rate', label: 'rx2_data_rate' },
+                { value: 'channel', label: 'channel' }
+            ]),
         nga.field('devaddr', 'template').label('RX')
             .template('<rgraph value="value"></rgraph>'),
         nga.field('devaddr', 'template').label('RX Quality')
@@ -708,12 +718,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- connectors
     connectors.listView().fields([
         nga.field('connid').label('Name').isDetailLink(true),
-        nga.field('enabled', 'boolean'),
         nga.field('app').label('Application'),
         nga.field('uri').label('URI'),
         nga.field('publish_uplinks'),
-        nga.field('publish_events'),
-        nga.field('received').label('Received Topic')
+        nga.field('received').label('Received Topic'),
+        nga.field('enabled', 'boolean'),
+        nga.field('failed', 'choices')
     ]);
     connectors.creationView().fields([
         nga.field('connid').label('Connector Name')
@@ -733,6 +743,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('received').label('Received Topic'),
         nga.field('enabled', 'boolean')
             .validation({ required: true }),
+        nga.field('failed', 'choices')
+            .choices([
+                { value: 'badarg', label: 'badarg' },
+                { value: 'network', label: 'network' },
+                { value: 'topic', label: 'topic' }
+            ]),
         // Authentication
         nga.field('client_id').label('Client ID'),
         nga.field('auth', 'choice')
@@ -748,13 +764,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .uploadInformation({'url': 'upload'})
     ]);
     connectors.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:9},
-        {name:"Authentication", min:9, max:15}
+        {name:"General", min:0, max:10},
+        {name:"Authentication", min:10, max:16}
     ]));
     connectors.editionView().fields(connectors.creationView().fields());
     connectors.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:9},
-        {name:"Authentication", min:9, max:15}
+        {name:"General", min:0, max:10},
+        {name:"Authentication", min:10, max:16}
     ]));
     // add to the admin application
     admin.addEntity(connectors);
@@ -802,10 +818,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetReferenceField('app')
             .targetFields([
                 nga.field('connid').label('Name').isDetailLink(true),
-                nga.field('enabled', 'boolean'),
                 nga.field('format', 'choice')
                     .choices(format_choices),
-                nga.field('uri').label('URI')
+                nga.field('uri').label('URI'),
+                nga.field('enabled', 'boolean'),
+                nga.field('failed', 'choices')
             ])
         ]);
     handlers.editionView().fields(handlers.creationView().fields());

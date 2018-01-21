@@ -45,7 +45,7 @@ For each device Profile you can define "desired" ADR parameters:
  - **Max Data Rate** defines the maximal data rate supported by the devices;
  - **Set Channels** defines the set of channels. The channels are given
    as a comma-separated list of interfaces, e.g. `0-2` (for EU) or `0-71` (for US).
- - **Set RX1 DR offset** defines the offset between the uplink and the RX1 slot
+ - **Set RX1 DR Offset** defines the offset between the uplink and the RX1 slot
    downlink data rates
  - **Set RX2 DR** defines the data rate for the second reception slot (RX2).
  - **Set RX2 Freq** defines the default frequency in the RX2 receive window.
@@ -113,14 +113,9 @@ For each device, which may connect to your network, you can set:
  - **AppEUI** and **AppKey**
  - **Last Join** is a timestamp of the last successful Join request.
 
-The *US 902-928MHz* region allows a *Private Hybrid* mode introduced by
-[Multitech](www.multitech.net/developer/software/lora/introduction-to-lora).
-This is useful when you want to split the radio spectrum to 8 different sub-bands,
-but it requires custom device firmware.
+Once the device joins the network, the *Node* field will contain a reference to the *Nodes* list.
 
 To clone an existing device, simply save it under a different *DevEUI*.
-
-Once the device joins the network, the *Node* field will contain a reference to the *Nodes* list.
 
 
 ## Activated Nodes
@@ -138,6 +133,10 @@ For each active network Node you can set:
  - **App Arguments**, which is an opaque string with application-specific settings.
  - **NwkSKey** and **AppSKey**
  - **FCnt Up** and **FCnt Down** frame counters
+ - **Last Reset** indicates time of the last Join or reset
+ - **Last RX** indicates time of the last uplink frame
+ - **Device** shows a link to a corresponding Commissioned device
+ - **Gateways** that received the last uplink frame
 
 The **Downlinks** table contains frames created by the application, which are
 scheduled for transmission. Class A devices listen for downlinks only for 2 seconds
@@ -150,7 +149,7 @@ To clone an existing node, simply save it under a different *DevAddr*.
 
 Each Node follows the ADR Mode defined in the Device Profile (see above). The
 Node ADR parameters include:
- - **Used ADR** indicates whether the node can do ADR;
+ - **ADR Support** indicates whether the node can do ADR;
  - **Set Power** defines the power (in dBm);
  - **Set Data Rate** defines the data rate;
  - **Set Channels** defines the set of channels. The channels are given
@@ -158,7 +157,7 @@ Node ADR parameters include:
  - **Used Channels** indicates the set of channels used;
  - **ADR Failed** flag will indicate the device refused the last ADR command.
    The user is expected to resolve and clear this field before ADR will continue.
- - **Used RX1 DR offset** indicates the offset used;
+ - **Used RX1 DR Offset** indicates the offset used;
  - **Used RX2 DR** indicates the RX2 data rate used;
  - **Used RX2 Freq** indicates the RX2 frequency used (in MHz);
  - **RX Change Failed** flag will indicate the device refused the last command.
