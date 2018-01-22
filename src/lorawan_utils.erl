@@ -98,9 +98,9 @@ throw_event(Severity, {Entity, undefined}, Text, Mark) ->
 throw_event(Severity, {Entity, EID}, Text, Mark) ->
     if
         when Entity == server; Entity == connector ->
-            lager:log(Severity, self(), "~s ~s ~p", [Entity, EID, Text])
+            lager:log(Severity, self(), "~s ~s ~p", [Entity, EID, Text]);
         true ->
-            lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_utils:binary_to_hex(EID), Text]);
+            lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_utils:binary_to_hex(EID), Text])
     end,
     write_event(Severity, {Entity, EID}, Text, Mark).
 
