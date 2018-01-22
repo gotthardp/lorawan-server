@@ -683,7 +683,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('app').label('Application'),
         nga.field('devaddr').label('DevAddr')
             .template(function(entry) {
-                return "<a href='/admin/#nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
+                return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
             }),
         nga.field('mac').label('MAC')
             .template(function(entry) {
@@ -926,7 +926,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('eid')
                     .template(function(entry){
                         if (entry.values.eid != null) {
-                            return "<a href='/admin/#" + entry.values.entity + "s/edit/" + entry.values.eid + "'>" +
+                            return "<a href='#/" + entry.values.entity + "s/edit/" + entry.values.eid + "'>" +
                                 entry.values.eid + "</a>";
                         }
                     }),
@@ -942,7 +942,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('app').label('Application'),
                 nga.field('devaddr').label('DevAddr')
                     .template(function(entry) {
-                        return "<a href='/admin/#nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
+                        return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
                     }),
                 nga.field('mac').label('MAC')
                     .template(function(entry) {
