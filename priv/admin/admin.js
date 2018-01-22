@@ -843,7 +843,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('eid')
             .template(function(entry){
                 if (entry.values.eid != null) {
-                    return "<a href='/admin/#" + entry.values.entity + "s/edit/" + entry.values.eid + "'>" +
+                    return "<a href='#/" + entry.values.entity + "s/edit/" + entry.values.eid + "'>" +
                         entry.values.eid + "</a>";
                 }
             }),
