@@ -104,8 +104,6 @@ over-the-air activation (OTAA). The active network nodes that either have
 already joined or have been activated-by-personalization (ABP) are listed on the
 [Nodes](Nodes.md) page.
 
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-device.png)
-
 For each device, which may connect to your network, you can set:
  - **DevEUI** of the device
  - **Profile** that this device uses
@@ -146,6 +144,8 @@ transmitted. Class C downlinks are not listed there as these are scheduled immed
 To clone an existing node, simply save it under a different *DevAddr*.
 
 ### ADR
+
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-adr.png)
 
 Each Node follows the ADR Mode defined in the Device Profile (see above). The
 Node ADR parameters include:

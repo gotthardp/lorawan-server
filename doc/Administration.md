@@ -19,6 +19,8 @@ not be displayed, but other Web Admin functions and the REST API will work fine.
 The management web-pages are available under `/admin`. It is a wrapper around
 the REST API described below.
 
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-dashboard.png)
+
 The server Dashboard shows:
  * Rolling timeline displaying recent Frames and [Events](Events.md#events).
  * Server information and a list of [Gateways](Infrastructure.md#gateways),
