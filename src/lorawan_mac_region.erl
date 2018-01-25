@@ -73,7 +73,7 @@ ch2f(<<"EU433">>, Ch) ->
 ch2f(Region, Ch)
         when Region == <<"US902">>; Region == <<"US902-PR">>; Region == <<"AU915">> ->
     ch2fi(Ch, {9233, 6});
-ch2f(<<"CN470-510">>, Ch) ->
+ch2f(<<"CN470">>, Ch) ->
     ch2fi(Ch, {5003, 2}).
 
 ch2fi(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
