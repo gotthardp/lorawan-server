@@ -205,12 +205,6 @@ append_delays(NwkDelays, Delay) ->
 
 handle_report(MAC, S) ->
     if
-        S#stat.rxok < S#stat.rxnb ->
-            lager:debug("Gateway ~s had ~B uplink CRC errors", [lorawan_utils:binary_to_hex(MAC), S#stat.rxnb-S#stat.rxok]);
-        true ->
-            ok
-    end,
-    if
         S#stat.rxfw < S#stat.rxok ->
             lorawan_utils:throw_warning({gateway, MAC}, {uplinks_lost, S#stat.rxok-S#stat.rxfw});
         true ->
