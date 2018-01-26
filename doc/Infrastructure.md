@@ -67,7 +67,8 @@ The server can handle one or more networks. Each Network configuration covers:
  * LoRaWAN Regional Parameters, including additional frequencies (channels)
 
 To correctly define the Regional Parameters you should review the specification
-"LoRaWAN Regional Parameters v1.0.2".
+"LoRaWAN Regional Parameters v1.0.2" or the suggested
+[Default Regional Configuration](Regions.md) for your region.
 
 On the General tab you can set:
  - **Name** of the network.
