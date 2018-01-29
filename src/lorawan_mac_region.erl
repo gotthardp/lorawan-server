@@ -9,7 +9,7 @@
 -export([join1_window/2, join2_window/3, rx1_window/3, rx2_window/3, rx2_rf/2]).
 -export([max_uplink_snr/1, max_uplink_snr/2, max_downlink_snr/3]).
 -export([set_channels/3]).
--export([tx_time/2]).
+-export([tx_time/2, tx_time/3]).
 
 -include("lorawan_db.hrl").
 
@@ -308,12 +308,16 @@ append_mask(Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
 
 % transmission time estimation
 
-tx_time(#txdata{data=Data}, TxQ) ->
-    tx_time(byte_size(Data), TxQ);
-tx_time(Length, #txq{datr=DataRate, codr=CodingRate}) ->
+tx_time(FOpts, FRMPayloadSize, TxQ) ->
+    tx_time(phy_payload_size(FOpts, FRMPayloadSize), TxQ).
+
+phy_payload_size(FOpts, FRMPayloadSize) ->
+    1+7+byte_size(FOpts)+1+FRMPayloadSize+4.
+
+tx_time(PhyPayloadSize, #txq{datr=DataRate, codr=CodingRate}) ->
     {SF, BW} = datar_to_tuple(DataRate),
     {4, CR} = codr_to_tuple(CodingRate),
-    tx_time(Length, SF, CR, BW*1000).
+    tx_time(PhyPayloadSize, SF, CR, BW*1000).
 
 % see http://www.semtech.com/images/datasheet/LoraDesignGuide_STD.pdf
 tx_time(PL, SF, CR, 125000) when SF == 11; SF == 12 ->
@@ -358,7 +362,7 @@ region_test_()-> [
     ?_assertEqual(<<"SF10BW500">>, datar_to_down(<<"US902">>, <<"SF10BW125">>, 0))].
 
 test_tx_time(Packet, DataRate, CodingRate) ->
-    round(tx_time(#txdata{data=Packet},
+    round(tx_time(byte_size(Packet),
         % the constants are only to make Dialyzer happy
         #txq{freq=869.525, datr=DataRate, codr=CodingRate})).
 
