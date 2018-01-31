@@ -33,7 +33,10 @@ handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}}, _Gateways, _WillReply,
         #frame{port=2, data= <<LED, Press:16, Temp:16, _AltBar:16, Batt, _Lat:24, _Lon:24, _AltGps:16>>}, []) ->
     lager:debug("PUSH_DATA ~w ~w ~w ~w",[DevAddr, Press, Temp, Batt]),
     % blink with the LED indicator
-    {send, #txdata{port=2, data= <<((LED+1) rem 2)>>}}.
+    {send, #txdata{port=2, data= <<((LED+1) rem 2)>>}};
+
+handle_rxq(_Context, _Gateways, _WillReply, #frame{port=Port, data=Data}, []) ->
+    {error, {wrong_data, {Port, Data}}}.
 
 handle_delivery({_Network, _Profile, _Node}, _Result, _Receipt) ->
     ok.
