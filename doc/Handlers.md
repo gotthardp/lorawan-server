@@ -100,7 +100,7 @@ The client may send back to the server the following fields:
   deveui      | Hex String  | DevEUI of the device.
   devaddr     | Hex String  | DevAddr of the active node.
   port        | Integer     | LoRaWAN port number. If not specified for Class A, the port number of last uplink will be used. Mandatory for Class C.
-  time        | ISO 8601    | Requested downlink time or `immediately` (for class C devices only).
+  time        | ISO 8601    | For class C devices only, specifies requested downlink time or `immediately`.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
   confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
   pending     | Boolean     | Whether the application has more to send (false by default).
@@ -115,6 +115,7 @@ Or (for class C devices only):
     {"data":"00", "port":2, "time":"2017-03-04T21:05:30.2000"}
     {"data":"00", "port":2, "time":"immediately"}
 ```
+The `time` field must **not** be present for Class A.
 
 
 ## Parse Uplink
