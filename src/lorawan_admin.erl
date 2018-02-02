@@ -201,8 +201,8 @@ parse_field(Key, Value) when Key == subid ->
     parse_bitstring(Value);
 parse_field(Key, Values) when Key == cflist ->
     lists:map(
-        fun(#{freq:=Freq}) ->
-            Freq
+        fun(#{freq:=Freq}=Map) ->
+            {Freq, parse_opt(min_datr, Map), parse_opt(max_datr, Map)}
         end, Values);
 parse_field(Key, Value) when Key == severity; Key == entity ->
     binary_to_existing_atom(Value, latin1);
@@ -279,8 +279,12 @@ build_field(Key, Value) when Key == subid ->
     build_bitstring(Value);
 build_field(Key, Values) when Key == cflist ->
     lists:map(
-        fun(Freq) ->
-            #{freq=>Freq}
+        fun
+            ({Freq, MinDR, MaxDR}) ->
+                #{freq=>Freq, min_datr=>build_opt(MinDR), max_datr=>build_opt(MaxDR)};
+            % backwards compatibility
+            (Freq) ->
+                #{freq=>Freq}
         end, Values);
 build_field(Key, Value) when Key == severity; Key == entity ->
     atom_to_binary(Value, latin1);

@@ -404,13 +404,18 @@ encode_accept(#network{netid=NetID, rx1_delay=RxDelay, cflist=CFList}, #device{a
 encode_cflist(List) when is_list(List), length(List) > 0, length(List) =< 5 ->
     FreqList =
         lists:foldr(
-            fun(Freq, Acc) ->
-                <<(trunc(Freq*10000)):24/little-unsigned-integer, Acc/binary>>
+            fun
+                ({Freq, _, _}, Acc) -> encode_cf(Freq, Acc);
+                % backwards compatibility
+                (Freq, Acc) -> encode_cf(Freq, Acc)
             end,
             <<>>, List),
     padded(16, FreqList);
 encode_cflist(_Else) ->
     <<>>.
+
+encode_cf(Freq, Acc) ->
+    <<(trunc(Freq*10000)):24/little-unsigned-integer, Acc/binary>>.
 
 encode_unicast({_Network, #profile{adr_mode=ADR},
         #node{devaddr=DevAddr, nwkskey=NwkSKey, appskey=AppSKey}}, ACK, FOpts, TxData) ->

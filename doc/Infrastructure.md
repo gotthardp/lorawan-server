@@ -110,8 +110,13 @@ On the ADR tab you can set the initial parameters of your devices:
 
 On the Channels tab you can set:
  - **Initial Channels** enabled in your devices.
- - **Channels** define a list of additional channel frequencies sent to the device
-   during Join (CFList).
+ - **Channels** define a list of additional channels sent to the device during
+   Join (CFList)
+   - **Frequency (MHz)** defines the channel frequency
+   - **Min Data Rate** defines the lowest data rate allowed on this channel.
+     If not specified, equals to 0.
+   - **Max Data Rate** defines the highest data rate allowed on this channel.
+     If not specified, equals to the global value on the **ADR** tab.
 
 ## Multicast Channels
 

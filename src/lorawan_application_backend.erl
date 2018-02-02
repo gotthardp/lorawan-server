@@ -45,7 +45,8 @@ handle_uplink({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ
 
 handle_uplink0(#handler{app=AppID, fields=Fields}=Handler, Node, Frame) ->
     Vars = parse_uplink(Handler, Node, Frame),
-    case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>, <<"all_gw">>], Fields) of
+    case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>,
+            <<"mac">>, <<"lsnr">>, <<"rssi">>, <<"all_gw">>], Fields) of
         true ->
             % we have to wait for the rx quality indicators
             {ok, {Handler, Vars}};
@@ -87,7 +88,7 @@ parse_uplink(#handler{app=AppID, parse_uplink=Parse, fields=Fields},
     data_to_fields(AppID, Parse, Vars, Data).
 
 parse_rxq(Gateways, Fields, Vars) ->
-    {_MAC, #rxq{freq=Freq, datr=Datr, codr=Codr}} = hd(Gateways),
+    {MAC1, #rxq{freq=Freq, datr=Datr, codr=Codr, rssi=RSSI1, lsnr=SNR1}} = hd(Gateways),
     RxQ =
         lists:map(
             fun({MAC, #rxq{time=Time, rssi=RSSI, lsnr=SNR}}) ->
@@ -98,8 +99,11 @@ parse_rxq(Gateways, Fields, Vars) ->
         vars_add(datr, Datr, Fields,
         vars_add(codr, Codr, Fields,
         vars_add(best_gw, hd(RxQ), Fields,
+        vars_add(mac, MAC1, Fields,
+        vars_add(lsnr, SNR1, Fields,
+        vars_add(rssi, RSSI1, Fields,
         vars_add(all_gw, RxQ, Fields,
-        Vars))))).
+        Vars)))))))).
 
 vars_add(_Field, undefined, _Fields, Vars) ->
     Vars;

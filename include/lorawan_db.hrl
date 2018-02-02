@@ -49,7 +49,7 @@
     max_datr :: number(),
     rxwin_init :: rxwin_config(),
     init_chans :: intervals(),
-    cflist :: 'undefined' | [integer()]}).
+    cflist :: 'undefined' | [{number(), integer(), integer()}]}).
 
 -record(gateway, {
     mac :: binary(),

@@ -95,6 +95,10 @@ To create a web socket connector you set:
  - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/ws/uplink/{devaddr}'
  - **Publish Events** to another URL pattern, e.g. '/ws/events/{devaddr}'
 
+The pattern may contain uplink Fields of the corresponding [Handler](Handlers.md),
+mainly `{deveui}`, `{devaddr}` or `{app}` corresponding to a group of devices with
+the same application (Handler name).
+
 To connect to the WebSocket, then open URL to the path you defined, i.e.
 `ws://server:8080/ws/uplink/<DevAddr>` or `ws://server:8080/ws/events/<DevAddr>`.
 

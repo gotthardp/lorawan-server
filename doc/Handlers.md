@@ -67,6 +67,9 @@ applications the following fields:
   datr       | String      | U      | LoRa datarate identifier (eg. "SF12BW500").
   codr       | String      | U      | LoRa ECC coding rate identifier (usually "4/5").
   best_gw    | Object      | U      | Gateway with the strongest reception.
+  mac        | Hex String  | U      | MAC address of the gateway with the strongest reception.
+  lsnr       | Number      | U      | LoRa uplink SNR ratio in dB (signed float, 0.1 dB precision) (same as rxq.lsnr for best_gw)
+  rssi       | Number      | U      | RSSI in dBm (signed integer, 1 dB precision) (same as rxq.rssi for best_gw)
   all_gw     | Object List | U      | List of all gateways that received the frame.
   receipt    | Any         | DL     | Custom data sent along the confirmed downlink.
 
@@ -92,30 +95,37 @@ For example:
 
 ### Downlink
 
-The client may send back to the server the following fields:
+To send a downlink you must define a target node (or a group of nodes) by using
+*one of the following* fields either in the **Received Topic** template or in
+the message body:
+
+  Field       | Type        | Destination
+ -------------|-------------|-------------------------------------------------------------
+  app         | String      | All nodes for this application (Handler name).
+  deveui      | Hex String  | (Commissioned) Device with this DevEUI.
+  devaddr     | Hex String  | (Activated) Node with this DevAddr.
+
+In addition to that you may specify the following optional fields:
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
-  app         | String      | Application (Handler) name.
-  deveui      | Hex String  | DevEUI of the device.
-  devaddr     | Hex String  | DevAddr of the active node.
-  port        | Integer     | LoRaWAN port number. If not specified for Class A, the port number of last uplink will be used. Mandatory for Class C.
-  time        | ISO 8601    | For class C devices only, specifies requested downlink time or `immediately`.
+  time        | ISO 8601    | Specifies requested downlink time or `immediately`. When specified, the downlink is considered as Class C.
+  port        | Integer     | LoRaWAN port number. Optional for Class A: if not specified, the uplink port number will be used. Mandatory for Class C.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.
   confirmed   | Boolean     | Whether the message shall be confirmed (false by default).
   pending     | Boolean     | Whether the application has more to send (false by default).
   receipt     | Any         | Custom data to receive in the in Delivered and Lost events.
 
-For example:
+For example (class A):
 ```json
     {"devaddr":"11223344", "data":"0026BF08BD03CD35000000000000FFFF", "confirmed":true}
 ```
-Or (for class C devices only):
+Or (class C):
 ```json
     {"data":"00", "port":2, "time":"2017-03-04T21:05:30.2000"}
     {"data":"00", "port":2, "time":"immediately"}
 ```
-The `time` field must **not** be present for Class A.
+The `time` field must **not** be present if you want to send a Class A downlink.
 
 
 ## Parse Uplink
@@ -125,10 +135,12 @@ data fields and can extend (or even amend) the *Uplink Fields*. It shall be a
 [Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
 with two parameters, which matches the
 [binary data](http://erlang.org/doc/programming_examples/bit_syntax.html)
-and returns an
-[Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping).
+and returns a
+[map expression](https://github.com/talentdeficit/jsx#json---erlang-mapping)
+with the desired fields.
 
-For example:
+The selected **Uplink Fields** are provided in the `Fields` variable, which you
+extend, for example:
 
 ```erlang
 fun(Fields, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
@@ -136,17 +148,42 @@ fun(Fields, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16
 end.
 ```
 
-The `<<A, B, C>>` is a binary pattern, where A, B, C are "variables" corresponding
-to the values encoded in the binary. Erlang matches the incoming binary data against
-this pattern and fills the "variables" with the values in the binary. Here are some
-examples:
+Or even modify, for example:
+```erlang
+fun(#{fcnt := FCnt}, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
+  #{seq => FCnt, led => LED, pressure => Press, temp => Temp/100, alt_bar => AltBar, batt => Batt}
+end.
+```
+
+To send multiple messages based on one frame (or even discard the frame and send
+no message) the function may also return a list of map expressions, for example:
+
+```erlang
+fun(Fields, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
+  [
+    Fields#{led => LED},
+    Fields#{pressure => Press},
+    Fields#{temp => Temp/100},
+    Fields#{alt_bar => AltBar},
+    Fields#{batt => Batt}
+  ]
+end.
+```
+
+This will generate 5 messages, each including the selected **Uplink Fields**
+plus one data field.
+
+The `<<A, B, C>>` used to match the frame payload is a binary pattern, where A,
+B, C are "variables" corresponding to the values encoded in the binary. Erlang
+matches the incoming binary data against this pattern and fills the "variables"
+with the values in the binary. Here are some examples:
  * `<<A>>` matches 1 value, 1 byte long.
  * `<<A, B>>` matches 2 values, each 1 byte long.
  * `<<A:16>>` matches 1 unsigned int value, 2 bytes long in big-endian
  * `<<A:16/little-signed-integer>>` matches 1 signed int value, 2 byes long in little-endian
  * `<<A:2/binary>>` matches an array of 2 bytes
 
-To match a variable sized array of bytes you can do:
+To match a variable sized array of bytes, prefixed with a size byte, you can do:
 
 ```erlang
 fun(Fields, <<Count, Data:Count/binary>>) ->
@@ -154,8 +191,10 @@ fun(Fields, <<Count, Data:Count/binary>>) ->
 end.
 ```
 
-The `#{name1 => A, name2 => B, name3 => C}` creates a `fields` attribute with
-the JSON `{"name1":A, "name2":B, "name3":C}`.
+The expression `#{name1 => A, name2 => B, name3 => C}` then creates (depending on
+your [Connector](Connectors.md) settings) a JSON `{"name1":A, "name2":B, "name3":C}`,
+or a Web-Form `name1=A&name2=B&name3=C`.
+
 
 ## Parse Event
 
@@ -170,13 +209,17 @@ fun(Vars, Event) ->
 end.
 ```
 
-Alternatively, to generate `{"joined":{"devaddr":"00112233"}}` write:
+Alternatively, to generate an object like `{"joined":{"devaddr":"00112233"}}`
+write:
 
 ```erlang
 fun(Vars, Event) ->
   #{Event => Vars}
 end.
 ```
+
+Returning a list to send multiple event messages is not allowed.
+
 
 ## Build Downlink
 
