@@ -98,13 +98,19 @@ On the ADR tab you can set the initial parameters of your devices:
    "Data Rate and End-device Output Power encoding" section.
  - **Max Power** defines the first item in the "TX Power Table"
  - **Min Power** defines the last item in the "TX Power Table"
- - **Max Data Rate** defines the last (lowest SF) item in the "TX Data rate table"
+ - **Max Data Rate** defines the highest DR (lowest SF) supported by channels in
+   this network. Additional **Channels** may specify a different value.
  - **Initial RX1 DR Offset** defines the offset between the uplink data rate and
    the downlink data rate used to communicate with the end-device on the first
    reception slot (RX1).
  - **Initial RX2 DR** defines the data rate for the second reception slot (RX2).
    See the "Receive windows" section.
  - **Initial RX2 Freq** defines the default frequency in the RX2 receive window.
+
+The **Max Data Rate** is not always he last item (lowest SF) in the
+"TX Data rate table". Not all channels (frequencies) are allowed to use all data
+rates, for example in EU868 the default channels use SF12/125 to SF7/125 only.
+The SF7/250 is allowed for the 867.3 MHz channel only and FSK for 867.7 MHz only.
 
 ### Channels
 

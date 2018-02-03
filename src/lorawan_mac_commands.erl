@@ -265,13 +265,22 @@ auto_adr(_Network, _Profile, Node) ->
     % ADR is Disabled (or undefined)
     Node.
 
-calculate_adr(#network{region=Region, max_datr=MaxDR1, max_power=MaxPower, min_power=MinPower},
-        #profile{max_datr=MaxDR2},
+calculate_adr(#network{region=Region, max_datr=NwkMaxDR1, max_power=MaxPower,
+        min_power=MinPower, cflist=CFList}, #profile{max_datr=MaxDRLimit},
         #node{average_qs={AvgRSSI, AvgSNR}, adr_use={TxPower, DataRate, Chans}}=Node) ->
+    % maximum DR supported by some channel
+    NwkMaxDR2 =
+        lists:foldl(
+            fun
+                ({_,_,Max}, Acc) -> max(Max, Acc);
+                (_, Acc) -> Acc
+            end,
+            NwkMaxDR1, CFList),
+    % apply device limit for maximum DR
     MaxDR =
         if
-            MaxDR2 == undefined -> MaxDR1;
-            true -> min(MaxDR1, MaxDR2)
+            MaxDRLimit == undefined -> NwkMaxDR2;
+            true -> min(NwkMaxDR2, MaxDRLimit)
         end,
     % how many SF steps (per Table 13) are between current SNR and current sensitivity?
     % there is 2.5 dB between the DR, so divide by 3 to get more margin
