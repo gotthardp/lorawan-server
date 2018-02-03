@@ -272,7 +272,7 @@ calculate_adr(#network{region=Region, max_datr=NwkMaxDR1, max_power=MaxPower,
     NwkMaxDR2 =
         lists:foldl(
             fun
-                ({_,_,Max}, Acc) -> max(Max, Acc);
+                ({_,_,Max}, Acc) when is_integer(Max) -> max(Max, Acc);
                 (_, Acc) -> Acc
             end,
             NwkMaxDR1, CFList),
