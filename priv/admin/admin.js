@@ -805,6 +805,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'datr', label: 'datr' },
                 { value: 'codr', label: 'codr' },
                 { value: 'best_gw', label: 'best_gw' },
+                { value: 'mac', label: 'mac' },
+                { value: 'lsnr', label: 'lsnr' },
+                { value: 'rssi', label: 'rssi' },
                 { value: 'all_gw', label: 'all_gw' }
             ]),
         nga.field('parse_uplink', 'text'),
