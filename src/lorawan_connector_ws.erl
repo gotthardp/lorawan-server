@@ -60,18 +60,18 @@ validate([])->
     ok.
 
 validate0(deveui, DevEUI) ->
-    case mnesia:dirty_read(devices, lorawan_utils:hex_to_binary(DevEUI)) of
+    case mnesia:dirty_read(devices, DevEUI) of
         [#device{}] ->
             ok;
         _Else ->
-            {error, {unknown_deveui, DevEUI}}
+            {error, {unknown_deveui, lorawan_utils:binary_to_hex(DevEUI)}}
     end;
 validate0(devaddr, DevAddr) ->
-    case mnesia:dirty_read(nodes, lorawan_utils:hex_to_binary(DevAddr)) of
+    case mnesia:dirty_read(nodes, DevAddr) of
         [#node{}] ->
             ok;
         _Else ->
-            {error, {unknown_devaddr, DevAddr}}
+            {error, {unknown_devaddr, lorawan_utils:binary_to_hex(DevAddr)}}
     end.
 
 websocket_init(#state{connector=#connector{connid=Id, app=App}, bindings=Bindings} = State) ->
