@@ -28,7 +28,7 @@ pattern_for_cowboy(Empty)
     undefined;
 pattern_for_cowboy(<<"/", _/binary>>=URI) ->
     % convert our pattern to cowboy pattern
-    re:replace(URI, "{([^}])}", ":\\1", [{return, binary}]);
+    re:replace(URI, "{([^}]+)}", ":\\1", [{return, binary}]);
 pattern_for_cowboy(_Error) ->
     error.
 
@@ -226,7 +226,9 @@ pattern_test_()-> [
     ?_assertEqual(#{devaddr => <<"00112233">>},
         match_pattern(<<"00112233/trailing/data">>, prepare_matching(<<"{devaddr}/#">>))),
     ?_assertEqual(#{devaddr => <<"00112233">>},
-        match_pattern(<<"/leading/data/00112233">>, prepare_matching(<<"#/{devaddr}">>)))].
+        match_pattern(<<"/leading/data/00112233">>, prepare_matching(<<"#/{devaddr}">>))),
+    ?_assertEqual(<<"/without/template">>, pattern_for_cowboy(<<"/without/template">>)),
+    ?_assertEqual(<<"/some/:template">>, pattern_for_cowboy(<<"/some/{template}">>))].
 
 
 www_form_test_()-> [
