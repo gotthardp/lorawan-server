@@ -115,7 +115,8 @@ The SF7/250 is allowed for the 867.3 MHz channel only and FSK for 867.7 MHz only
 ### Channels
 
 On the Channels tab you can set:
- - **Initial Channels** enabled in your devices.
+ - **Initial Channels** enabled in your devices. This stall include a
+   comma-separated list of intervals, e.g. `0-7` or `0-7, 64`.
  - **Channels** define a list of additional channels sent to the device during
    Join (CFList)
    - **Frequency (MHz)** defines the channel frequency
