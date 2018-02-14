@@ -37,7 +37,10 @@ BBLAYERS ?= " \
     "
 ```
 
-And build the image
+Uncomment the mLinux line in `meta-lorawan/conf/layer.conf` or create your
+custom image recipe.
+
+And then build the image
 ```bash
 source env-oe.sh
 bitbake mlinux-lorawan-image
