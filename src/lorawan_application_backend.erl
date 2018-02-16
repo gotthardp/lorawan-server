@@ -71,7 +71,7 @@ any_is_member(List1, List2) ->
         end,
         List1).
 
-parse_uplink(#handler{app=AppID, parse_uplink=Parse, fields=Fields},
+parse_uplink(#handler{app=AppID, payload=Payload, parse_uplink=Parse, fields=Fields},
         #node{appargs=AppArgs, devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
@@ -84,7 +84,7 @@ parse_uplink(#handler{app=AppID, parse_uplink=Parse, fields=Fields},
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        #{}))))))))),
+        parse_payload(Payload, Data)))))))))),
     data_to_fields(AppID, Parse, Vars, Data).
 
 parse_rxq(Gateways, Fields, Vars) ->
@@ -275,5 +275,72 @@ filter_group_responses(_AppID, List) ->
             (Left, _) -> Left
         end,
         ok, List).
+
+parse_payload(<<"cayenne">>, Data) ->
+    cayenne_decode(Data);
+parse_payload(None, _Data) when None == <<>>; None == undefined ->
+    #{};
+parse_payload(Else, _Data) ->
+    lager:error("Unknown payload: ~p", [Else]),
+    #{}.
+
+cayenne_decode(Bin) ->
+    cayenne_decode(Bin, #{}).
+
+% digital input
+cayenne_decode(<<Ch, 0, Val, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val, Acc));
+% digital output
+cayenne_decode(<<Ch, 1, Val, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val, Acc));
+% analog input
+cayenne_decode(<<Ch, 2, Val:16/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/100, Acc));
+% analog output
+cayenne_decode(<<Ch, 3, Val:16/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/100, Acc));
+% illuminance
+cayenne_decode(<<Ch, 101, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val, Acc));
+% presence
+cayenne_decode(<<Ch, 102, Val, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val, Acc));
+% temperature
+cayenne_decode(<<Ch, 103, Val:16/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% humidity
+cayenne_decode(<<Ch, 104, Val, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/2, Acc));
+% accelerometer
+cayenne_decode(<<Ch, 113, X:16/signed-integer, Y:16/signed-integer, Z:16/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, #{x => X/1000, y => Y/1000, z => Z/1000}, Acc));
+% barometer
+cayenne_decode(<<Ch, 115, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% gyrometer
+cayenne_decode(<<Ch, 134, X:16/signed-integer, Y:16/signed-integer, Z:16/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, #{x => X/100, y => Y/100, z => Z/100}, Acc));
+% gps
+cayenne_decode(<<Ch, 136, Lat:24/signed-integer, Lon:24/signed-integer, Alt:24/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, #{lat => Lat/10000, lon => Lon/10000, alt => Alt/100}, Acc));
+cayenne_decode(<<>>, Acc) ->
+    Acc.
+
+add_field(Num, Value, Acc) ->
+    maps:put("field" ++ integer_to_list(Num), Value, Acc).
+
+-include_lib("eunit/include/eunit.hrl").
+
+% https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md
+cayenne_test_()-> [
+    ?_assertEqual(#{"field3" => 27.2, "field5" => 25.5},
+        cayenne_decode(lorawan_utils:hex_to_binary(<<"03670110056700FF">>))),
+    ?_assertEqual(#{"field1" => -4.1},
+        cayenne_decode(lorawan_utils:hex_to_binary(<<"0167FFD7">>))),
+    ?_assertEqual(#{"field6" => #{x => 1.234, y => -1.234, z => 0.0}},
+        cayenne_decode(lorawan_utils:hex_to_binary(<<"067104D2FB2E0000">>))),
+    ?_assertEqual(#{"field1" => #{lat => 42.3519, lon => -87.9094, alt => 10.0}},
+        cayenne_decode(lorawan_utils:hex_to_binary(<<"018806765ff2960a0003e8">>)))
+].
 
 % end of file

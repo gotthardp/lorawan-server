@@ -24,6 +24,8 @@ In addition to uplink frames the backend can receive device related events:
 To create a new handler you need to set:
  - **Application** name
  - **Uplink Fields** that will be forwarded to the backend Connector
+ - **Payload** format for automatic decoding
+   - [**Cayenne LPP**](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md)
  - **Parse Uplink** function to extract additional data fields from the uplink frame
  - **Parse Event** function to amend event data fields
  - **Build Downlink** function to create a downlink frame based on backend data fields
@@ -127,6 +129,76 @@ Or (class C):
 ```
 The `time` field must **not** be present if you want to send a Class A downlink.
 
+## Payload
+
+The server can auto-parse some well-known data formats.
+
+To parse a custom format leave the *Payload* field undefined and write own
+*Parse Uplink* function.
+
+### Cayenne Low Power Payload (LPP)
+
+For each Data Channel *N* the server will create a `fieldN` with the parsed value.
+See [Format Specification](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md#cayenne-low-power-payload).
+
+For example:
+
+<table style="width: 100%;">
+<tbody>
+<tr>
+<td style="font-size: 15px; padding: 10px;"><b>Payload (Hex)</b></td>
+<td style="font-size: 15px; padding: 10px;" colspan="2">03 67 01 10 05 67 00 FF</td>
+</tr>
+<tr>
+<td style="font-size: 15px; padding: 10px;"><b>Data Channel</b></td>
+<td style="font-size: 15px; padding: 10px;"><b>Type</b></td>
+<td style="font-size: 15px; padding: 10px;"><b>Value</b></td>
+</tr>
+<tr>
+<td>03 ⇒ 3</td>
+<td>67 ⇒ Temperature</td>
+<td>0110 = 272 ⇒ 27.2°C</td>
+</tr>
+<tr>
+<td>05 ⇒ 5</td>
+<td>67 ⇒ Temperature</td>
+<td>00FF = 255 ⇒ 25.5°C</td>
+</tr>
+<tr>
+<td style="font-size: 15px; padding: 10px;"><b>Fields</b></td>
+<td style="font-size: 15px; padding: 10px;" colspan="2">#{"field3" => 27.2, "field5" => 25.5}</td>
+</tr>
+</tbody>
+</table>
+
+<table style="width: 100%;">
+<tbody>
+<tr>
+<td style="font-size: 15px; padding: 10px;"><b>Payload (Hex)</b></td>
+<td style="font-size: 15px; padding: 10px;" colspan="2">01 88 06 76 5f <i>f2 96 0a</i> <i>00 03 e8</i></td>
+</tr>
+<tr>
+<td style="font-size: 15px; padding: 10px;"><b>Data Channel</b></td>
+<td style="font-size: 15px; padding: 10px;"><b>Type</b></td>
+<td style="font-size: 15px; padding: 10px;"><b>Value</b></td>
+</tr>
+<tr>
+<td rowspan="3">01 ⇒ 1</td>
+<td rowspan="3">88 ⇒ GPS</td>
+<td>Latitude: 06765f ⇒ 42.3519</td>
+</tr>
+<tr>
+<td><i>Longitude: F2960a ⇒ -87.9094</i></td>
+</tr>
+<tr>
+<td><i>Altitude: 0003E8 ⇒ 10 meters</i></td>
+</tr>
+<tr>
+<td style="font-size: 15px; padding: 10px;"><b>Fields</b></td>
+<td style="font-size: 15px; padding: 10px;" colspan="2">#{"field1" => #{lat => 42.3519, lon => -87.9094, alt => 10.0}</td>
+</tr>
+</tbody>
+</table>
 
 ## Parse Uplink
 

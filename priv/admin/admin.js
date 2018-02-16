@@ -784,6 +784,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     handlers.listView().fields([
         nga.field('app').label('Application').isDetailLink(true),
         nga.field('fields', 'choices'),
+        nga.field('payload'),
         nga.field('downlink_expires').label('D/L Expires')
     ]);
     handlers.creationView().fields([
@@ -809,6 +810,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'lsnr', label: 'lsnr' },
                 { value: 'rssi', label: 'rssi' },
                 { value: 'all_gw', label: 'all_gw' }
+            ]),
+        nga.field('payload', 'choice')
+            .choices([
+                { value: 'cayenne', label: 'Cayenne LPP' }
             ]),
         nga.field('parse_uplink', 'text'),
         nga.field('parse_event', 'text'),
