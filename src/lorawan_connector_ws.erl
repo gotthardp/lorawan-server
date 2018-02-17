@@ -93,14 +93,13 @@ websocket_handle(Data, State) ->
 handle_downlink(Msg, #state{connector=Connector, bindings=Bindings}=State) ->
     case lorawan_connector:decode_and_downlink(Connector, Msg, Bindings) of
         ok ->
-            {ok, State};
+            ok;
         {error, {Object, Error}} ->
-            lorawan_utils:throw_error(Object, Error),
-            {stop, State};
+            lorawan_utils:throw_error(Object, Error);
         {error, Error} ->
-            lorawan_utils:throw_error({connector, Connector#connector.connid}, Error),
-            {stop, State}
-    end.
+            lorawan_utils:throw_error({connector, Connector#connector.connid}, Error)
+    end,
+    {ok, State}.
 
 websocket_info(nodes_changed, State) ->
     % nothing to do here
