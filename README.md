@@ -13,6 +13,11 @@ The server:
     </ul>
  </li>
  <li>Invokes internal modules with application logic.</li>
+ <li>Automatically parses well-known payload formats. It currently supports:
+    <ul>
+    <li>Cayenne Low Power Payload</li>
+    </ul>
+ </li>
  <li>Invokes external applications. It currently supports connections via:
     <ul>
     <li>WebSocket protocol</li>
