@@ -327,19 +327,19 @@ cayenne_decode(<<>>, Acc) ->
     Acc.
 
 add_field(Num, Value, Acc) ->
-    maps:put("field" ++ integer_to_list(Num), Value, Acc).
+    maps:put(<<"field", (integer_to_binary(Num))/binary>>, Value, Acc).
 
 -include_lib("eunit/include/eunit.hrl").
 
 % https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md
 cayenne_test_()-> [
-    ?_assertEqual(#{"field3" => 27.2, "field5" => 25.5},
+    ?_assertEqual(#{<<"field3">> => 27.2, <<"field5">> => 25.5},
         cayenne_decode(lorawan_utils:hex_to_binary(<<"03670110056700FF">>))),
-    ?_assertEqual(#{"field1" => -4.1},
+    ?_assertEqual(#{<<"field1">> => -4.1},
         cayenne_decode(lorawan_utils:hex_to_binary(<<"0167FFD7">>))),
-    ?_assertEqual(#{"field6" => #{x => 1.234, y => -1.234, z => 0.0}},
+    ?_assertEqual(#{<<"field6">> => #{x => 1.234, y => -1.234, z => 0.0}},
         cayenne_decode(lorawan_utils:hex_to_binary(<<"067104D2FB2E0000">>))),
-    ?_assertEqual(#{"field1" => #{lat => 42.3519, lon => -87.9094, alt => 10.0}},
+    ?_assertEqual(#{<<"field1">> => #{lat => 42.3519, lon => -87.9094, alt => 10.0}},
         cayenne_decode(lorawan_utils:hex_to_binary(<<"018806765ff2960a0003e8">>)))
 ].
 

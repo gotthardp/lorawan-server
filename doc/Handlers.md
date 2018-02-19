@@ -166,7 +166,7 @@ For example:
 </tr>
 <tr>
 <td style="font-size: 15px; padding: 10px;"><b>Fields</b></td>
-<td style="font-size: 15px; padding: 10px;" colspan="2">#{"field3" => 27.2, "field5" => 25.5}</td>
+<td style="font-size: 15px; padding: 10px;" colspan="2">#{<<"field3">> => 27.2, <<"field5">> => 25.5}</td>
 </tr>
 </tbody>
 </table>
@@ -195,7 +195,7 @@ For example:
 </tr>
 <tr>
 <td style="font-size: 15px; padding: 10px;"><b>Fields</b></td>
-<td style="font-size: 15px; padding: 10px;" colspan="2">#{"field1" => #{lat => 42.3519, lon => -87.9094, alt => 10.0}}</td>
+<td style="font-size: 15px; padding: 10px;" colspan="2">#{<<"field1">> => #{lat => 42.3519, lon => -87.9094, alt => 10.0}}</td>
 </tr>
 </tbody>
 </table>
