@@ -800,6 +800,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'fcnt', label: 'fcnt' },
                 { value: 'port', label: 'port' },
                 { value: 'data', label: 'data' },
+                { value: 'event', label: 'event' },
                 { value: 'datetime', label: 'datetime' },
 
                 { value: 'freq', label: 'freq' },

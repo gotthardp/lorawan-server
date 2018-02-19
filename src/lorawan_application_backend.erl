@@ -149,6 +149,7 @@ handle_delivery({_Network, #profile{app=AppID}, Node}, Result, Receipt) ->
 send_event(Event, Vars0, #handler{app=AppID, parse_event=Parse, fields=Fields}, DeviceOrNode) ->
     Vars =
         vars_add(app, AppID, Fields,
+        vars_add(event, Event, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
         case DeviceOrNode of
             {#device{deveui=DevEUI, appargs=AppArgs}, DevAddr} ->
@@ -161,7 +162,7 @@ send_event(Event, Vars0, #handler{app=AppID, parse_event=Parse, fields=Fields}, 
                 vars_add(deveui, get_deveui(DevAddr), Fields,
                 vars_add(appargs, AppArgs, Fields,
                 Vars0)))
-        end)),
+        end))),
     lorawan_backend_factory:event(AppID, DeviceOrNode,
         data_to_fields(AppID, Parse, Vars, Event)).
 

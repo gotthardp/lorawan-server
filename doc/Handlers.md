@@ -64,6 +64,7 @@ applications the following fields:
   fcnt       | Integer     | U      | Received frame sequence number.
   port       | Integer     | U      | LoRaWAN port number.
   data       | Hex String  | U      | Raw application payload, encoded as a hexadecimal string.
+  event      | String      | J DL   | Event name (joined, delivered, lost).
   datetime   | ISO 8601    | U J DL | Timestamp using the server clock.
   freq       | Number      | U      | RX central frequency in MHz (unsigned float, Hz precision).
   datr       | String      | U      | LoRa datarate identifier (eg. "SF12BW500").
