@@ -59,6 +59,13 @@ validate([{Key, Value} | Other]) ->
 validate([])->
     ok.
 
+validate0(app, App) ->
+    case mnesia:dirty_read(handlers, App) of
+        [#handler{}] ->
+            ok;
+        _Else ->
+            {error, {unknown_application, App}}
+    end;
 validate0(deveui, DevEUI) ->
     case mnesia:dirty_read(devices, DevEUI) of
         [#device{}] ->
@@ -72,7 +79,9 @@ validate0(devaddr, DevAddr) ->
             ok;
         _Else ->
             {error, {unknown_devaddr, lorawan_utils:binary_to_hex(DevAddr)}}
-    end.
+    end;
+validate0(_Else, _) ->
+    ok.
 
 websocket_init(#state{connector=#connector{connid=Id, app=App}, bindings=Bindings} = State) ->
     lager:debug("WebSocket connector ~p with ~p", [Id, Bindings]),
