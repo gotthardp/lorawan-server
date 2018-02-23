@@ -4,7 +4,7 @@ Open-source LoRaWAN Server that integrates both the network-server and the appli
 This is useful for application providers that operate their own LoRaWAN network,
 or for device and application developers.
 
-**This is release 0.5.0.** Migrating to this version will preserve the
+**This is release 0.5.2.** Migrating to this version will preserve the
 Device/Node addresses and security keys, but will delete many ADR parameters, which
 got moved to the Profile settings. You are required to review and complete
 the configuration before connecting any gateway or device!
@@ -134,6 +134,8 @@ To implement an internal application you need to create a new module implementin
 
 ### Troubleshooting
 [![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)
+
+First of all, please read the documentation.
 
 If the server doesn't do what you expect, please review the server logs and consult the
 [Troubleshooting Instructions](doc/Troubleshooting.md) for the most common problems.
