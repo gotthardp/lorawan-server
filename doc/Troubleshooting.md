@@ -110,6 +110,12 @@ warning. It may be because:
  * No downlink frames delivered (see above)
  * Faulty device is periodically re-starting
 
+### not_semtech_mote
+
+The server is configured to use the *semtech-mote* application, but your device
+sent some other data. Make sure your firmware uses the
+[supported format](https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207).
+
 ### prerequisite_failed
 
 This is reported when the lorawan-server is started with older Erlang/OTP. At
