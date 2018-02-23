@@ -22,16 +22,16 @@ start(_Type, _Args) ->
         undefined ->
             ok;
         HttpOpts ->
-            {ok, _} = cowboy:start_clear(http, HttpOpts,
-                #{dispatch => Dispatch,
+            {ok, _} = cowboy:start_clear(http, HttpOpts, #{
+                env => #{dispatch => Dispatch},
                 stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
     end,
     case application:get_env(lorawan_server, http_admin_listen_ssl, undefined) of
         undefined ->
             ok;
         SslOpts ->
-            {ok, _} = cowboy:start_tls(https, SslOpts,
-                #{dispatch => Dispatch,
+            {ok, _} = cowboy:start_tls(https, SslOpts, #{
+                env => #{dispatch => Dispatch},
                 stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]})
     end,
     lorawan_sup:start_link().
