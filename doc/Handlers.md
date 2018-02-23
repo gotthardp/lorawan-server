@@ -204,11 +204,16 @@ For example:
 ## Parse Uplink
 
 The *Parse Uplink* is an Erlang function that converts binary data to custom
-data fields and can extend (or even amend) the *Uplink Fields*. It shall be a
+data fields and can extend (or even amend) the *Uplink Fields*.
+
+This function is optional. If not provided, only the *Uplink Fields* will be
+sent to the Backend.
+
+If provided, *Parse Uplink* shall be a
 [Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
-with two parameters, which matches the
+with two parameters: *Fields* and a binary pattern. The function shall match the
 [binary data](http://erlang.org/doc/programming_examples/bit_syntax.html)
-and returns a
+and return a
 [map expression](https://github.com/talentdeficit/jsx#json---erlang-mapping)
 with the desired fields.
 
@@ -274,6 +279,9 @@ or a Web-Form `name1=A&name2=B&name3=C`.
 The *Parse Event* is an Erlang function that converts event name to custom
 data fields and can extend (or even amend) the *Uplink Fields*.
 
+Also this function is optional. If not provided, only the *Uplink Fields* will be
+sent to the Backend.
+
 To generate events like `{"devaddr":"00112233", "event":"joined"}` you can write:
 
 ```erlang
@@ -297,13 +305,19 @@ Returning a list to send multiple event messages is not allowed.
 ## Build Downlink
 
 *Build Downlink* works in the opposite direction. It takes the data fields and
-constructs the binary payload. It shall be a
+constructs the binary payload.
+
+This function is optional. If not provided, the downlink data will be taken
+from the `data` field, e.g. when you send `{"devaddr":"11223344", "data":"01"}`.
+
+If provided, *Build Downlink* shall be a
 [Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
-with two parameters, which gets an
+with a single parameter, which gets an
 [Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping)
 and returns
 [binary data](http://erlang.org/doc/programming_examples/bit_syntax.html).
-If you send `{"fields":{"led":1}}`, you can have a function like this:
+For example, if you send `{"devaddr":"11223344", "led":1}`, you can have a function
+like this to convert the custom field (`led`) to downlink data:
 
 ```erlang
 fun(#{led := LED}) ->
