@@ -168,6 +168,8 @@ For example:
 ]}].
 ```
 
+To disable the plain HTTP web-admin, set `{http_admin_listen, undefined}`.
+
 Review the `lorawan-server/lib/lorawan_server-<VERSION>/priv/admin/admin.js` with the
 admin configuration:
  * You may need to obtain a [Google API](https://console.developers.google.com) key for
