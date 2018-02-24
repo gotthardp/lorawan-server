@@ -25,6 +25,7 @@ The server:
    * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
  * Automatically parses well-known payload formats. It currently supports:
    * [Cayenne Low Power Payload](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md#cayenne-low-power-payload)
+ * Stores uplink data directly do a MongoDB collection.
  * Invokes external applications. It currently supports connections via:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
    * HTTP/1.1 and HTTP/2 protocol (REST API)
