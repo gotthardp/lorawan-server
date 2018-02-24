@@ -64,6 +64,8 @@ handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node},
     lorawan_backend_factory:uplink(AppID, Node, parse_rxq(Gateways, Fields, Vars)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 
+any_is_member(_List1, undefined) ->
+    false;
 any_is_member(List1, List2) ->
     lists:any(
         fun(Item1) ->
@@ -105,10 +107,9 @@ parse_rxq(Gateways, Fields, Vars) ->
         vars_add(all_gw, RxQ, Fields,
         Vars)))))))).
 
-vars_add(_Field, undefined, _Fields, Vars) ->
+vars_add(_Field, Value, Fields, Vars)
+        when Value == undefined; Fields == undefined ->
     Vars;
-vars_add(Field, Value, undefined, Vars) ->
-    Vars#{Field => Value};
 vars_add(Field, Value, Fields, Vars) ->
     case lists:member(atom_to_binary(Field, latin1), Fields) of
         true ->
