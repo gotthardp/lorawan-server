@@ -195,3 +195,17 @@ To send a downlink message to one of your devices do e.g.
 ```bash
 mosquitto_pub -h 127.0.0.1 -p 1883 -t 'in/00112233' -m '{"data":"00"}' -u 'user' -P 'pass'
 ```
+
+
+## MongoDB
+
+You can store the received uplinks directly to a [MongoDB](https://www.mongodb.com).
+
+Open the lorawan-server web-administration and create a Backend Connector:
+ - **Format** is ignored, but should be set to *JSON*.
+ - **URI** defines the target host `mongodb://host:port` or `mongodb://host1:port,host2:port`
+   to list replica pairs/sets.
+ - **Publish Uplinks** and **Publish Events** must be in the format *Database*/*Collection*.
+   The *Database* is optional; if not provided, `local` is used by default.
+
+Authentication is not supported.

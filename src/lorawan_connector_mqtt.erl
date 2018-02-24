@@ -120,7 +120,7 @@ connect(Phase, Arguments, Conn) ->
     end.
 
 connection_args([Uri, ClientId, UserName, Password], Conn) ->
-    lager:debug("Connecting ~s to ~s", [Conn#connector.connid, Uri]),
+    lager:debug("Connecting ~s to ~p, id ~p, user ~p", [Conn#connector.connid, Uri, ClientId, UserName]),
     {ok, ConnUri} = http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{mqtt, 1883}, {mqtts, 8883}]}]),
     {Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
     lists:append([
