@@ -277,7 +277,11 @@ calculate_adr(#network{region=Region, max_datr=NwkMaxDR1, max_power=MaxPower,
                 ({_,_,Max}, Acc) when is_integer(Max) -> max(Max, Acc);
                 (_, Acc) -> Acc
             end,
-            NwkMaxDR1, CFList),
+            NwkMaxDR1,
+            if
+                is_list(CFList) -> CFList;
+                true -> []
+            end),
     % apply device limit for maximum DR
     MaxDR =
         if
