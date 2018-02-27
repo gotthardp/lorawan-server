@@ -215,7 +215,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .map(format_bitstring)
             .transform(parse_bitstring)
             .attributes({ placeholder: 'e.g. 0:3' })
-            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+' }),
+            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+', validator: validate_bitstring }),
         nga.field('region', 'choice')
             .choices([
                 { value: 'EU868', label: 'EU 863-870MHz' },
@@ -1081,6 +1081,14 @@ function format_bitstring(value, entry) {
         return entry["subid.val"] + ":" + entry["subid.len"];
     else
         return null;
+}
+function validate_bitstring(value) {
+    if(value && value.length > 0)
+    {
+        var parts = value.split(':', 2);
+        if(+parts[1] < 0 || +parts[1] > 25)
+            throw new Error ('SubID must be less than 25 bits');
+    }
 }
 function parse_bitstring(value, entry) {
     if(value && value.length > 0)
