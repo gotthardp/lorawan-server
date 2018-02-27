@@ -143,17 +143,13 @@ check_margin(#node{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
 check_margin(#node{}) ->
     undefined.
 
-check_adr(#node{adr_failed=[]}) ->
+check_adr(#node{adr_failed=Failed}) when Failed == undefined; Failed == [] ->
     ok;
-check_adr(#node{adr_failed=undefined}) ->
-    undefined;
 check_adr(#node{}) ->
     {25, linkadr_failed}.
 
-check_rxwin(#node{rxwin_failed=[]}) ->
+check_rxwin(#node{rxwin_failed=Failed}) when Failed == undefined; Failed == [] ->
     ok;
-check_rxwin(#node{rxwin_failed=undefined}) ->
-    undefined;
 check_rxwin(#node{}) ->
     {25, rxparamsetup_failed}.
 

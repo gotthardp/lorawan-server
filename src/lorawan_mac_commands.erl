@@ -244,7 +244,8 @@ send_link_check([{_MAC, RxQ}|_]=Gateways) ->
     {link_check_ans, Margin, length(Gateways)}.
 
 
-auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=[]}=Node) ->
+auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=Failed}=Node)
+        when Failed == undefined; Failed == [] ->
     case merge_adr(Node#node.adr_set, Node#node.adr_use) of
         Unchanged when Unchanged == Node#node.adr_use, is_tuple(Node#node.average_qs) ->
             % have enough data and no other change was requested
@@ -252,7 +253,8 @@ auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=[]}
         _Else ->
             Node
     end;
-auto_adr(_Network, #profile{adr_mode=2}=Profile, #node{adr_flag=1, adr_failed=[]}=Node) ->
+auto_adr(_Network, #profile{adr_mode=2}=Profile, #node{adr_flag=1, adr_failed=Failed}=Node)
+        when Failed == undefined; Failed == [] ->
     case merge_adr(Profile#profile.adr_set, Node#node.adr_use) of
         Unchanged when Unchanged == Node#node.adr_use ->
             % no change to profile settings
@@ -319,8 +321,8 @@ calculate_adr(#network{region=Region, max_datr=NwkMaxDR1, max_power=MaxPower,
     end.
 
 send_adr(#network{region=Region},
-        #node{adr_flag=1, adr_set={TxPower, DataRate, Chans}, adr_failed=[]}=Node, FOptsOut)
-        when is_integer(TxPower) or is_integer(DataRate) or is_list(Chans) ->
+        #node{adr_flag=1, adr_set={TxPower, DataRate, Chans}, adr_failed=Failed}=Node, FOptsOut)
+        when (is_integer(TxPower) or is_integer(DataRate) or is_list(Chans)), (Failed == undefined orelse Failed == []) ->
     Set = merge_adr(Node#node.adr_set, Node#node.adr_use),
     lager:debug("LinkADRReq ~w", [Set]),
     lorawan_mac_region:set_channels(Region, Set, FOptsOut);
@@ -344,7 +346,8 @@ merge_adr({A1,B1,C1},{A2,B2,C2}) ->
 merge_adr(_Else, ABC) ->
     ABC.
 
-set_rxwin(Profile, #node{adr_flag=1, rxwin_failed=[]}=Node, FOptsOut) ->
+set_rxwin(Profile, #node{adr_flag=1, rxwin_failed=Failed}=Node, FOptsOut)
+        when Failed == undefined; Failed == [] ->
     case merge_rxwin(Profile#profile.rxwin_set, Node#node.rxwin_use) of
         Unchanged when Unchanged == Node#node.rxwin_use ->
             FOptsOut;
