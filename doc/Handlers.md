@@ -27,6 +27,7 @@ To create a new handler you need to set:
  - **Payload** format for automatic decoding
    - [**Cayenne LPP**](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md)
  - **Parse Uplink** function to extract additional data fields from the uplink frame
+ - **Event Fields** that will be forwarded to the backend Connector
  - **Parse Event** function to amend event data fields
  - **Build Downlink** function to create a downlink frame based on backend data fields
  - **D/L Expires** defines when the downlinks may be dropped.
@@ -54,30 +55,25 @@ lists all backend connectors with the same *Application* name.
 Depending on the *Uplink Fields* settings the server sends to backend
 applications the following fields:
 
-  Field      | Type        | Usage  | Meaning
- ------------|-------------|--------|----------------------------------------------
-  app        | String      | U J DL | Application (Handler) name.
-  devaddr    | Hex String  | U J DL | DevAddr of the active node.
-  deveui     | Hex String  | U J DL | DevEUI of the device.
-  appargs    | Any         | U J DL | Application arguments for this node.
-  battery    | Integer     | U      | Most recent battery level reported by the device.
-  fcnt       | Integer     | U      | Received frame sequence number.
-  port       | Integer     | U      | LoRaWAN port number.
-  data       | Hex String  | U      | Raw application payload, encoded as a hexadecimal string.
-  event      | String      | J DL   | Event name (joined, delivered, lost).
-  datetime   | ISO 8601    | U J DL | Timestamp using the server clock.
-  freq       | Number      | U      | RX central frequency in MHz (unsigned float, Hz precision).
-  datr       | String      | U      | LoRa datarate identifier (eg. "SF12BW500").
-  codr       | String      | U      | LoRa ECC coding rate identifier (usually "4/5").
-  best_gw    | Object      | U      | Gateway with the strongest reception.
-  mac        | Hex String  | U      | MAC address of the gateway with the strongest reception.
-  lsnr       | Number      | U      | LoRa uplink SNR ratio in dB (signed float, 0.1 dB precision) (same as rxq.lsnr for best_gw)
-  rssi       | Number      | U      | RSSI in dBm (signed integer, 1 dB precision) (same as rxq.rssi for best_gw)
-  all_gw     | Object List | U      | List of all gateways that received the frame.
-  receipt    | Any         | DL     | Custom data sent along the confirmed downlink.
-
-The fields 'U' can be included in Uplink messages, fields 'J' in Join events,
-fields 'DL' in Delivered and Lost events.
+  Field      | Type        | Meaning
+ ------------|-------------|----------------------------------------------
+  app        | String      | Application (Handler) name.
+  devaddr    | Hex String  | DevAddr of the active node.
+  deveui     | Hex String  | DevEUI of the device.
+  appargs    | Any         | Application arguments for this node.
+  battery    | Integer     | Most recent battery level reported by the device.
+  fcnt       | Integer     | Received frame sequence number.
+  port       | Integer     | LoRaWAN port number.
+  data       | Hex String  | Raw application payload, encoded as a hexadecimal string.
+  datetime   | ISO 8601    | Timestamp using the server clock.
+  freq       | Number      | RX central frequency in MHz (unsigned float, Hz precision).
+  datr       | String      | LoRa datarate identifier (eg. "SF12BW500").
+  codr       | String      | LoRa ECC coding rate identifier (usually "4/5").
+  best_gw    | Object      | Gateway with the strongest reception.
+  mac        | Hex String  | MAC address of the gateway with the strongest reception.
+  lsnr       | Number      | LoRa uplink SNR ratio in dB (signed float, 0.1 dB precision) (same as rxq.lsnr for best_gw)
+  rssi       | Number      | RSSI in dBm (signed integer, 1 dB precision) (same as rxq.rssi for best_gw)
+  all_gw     | Object List | List of all gateways that received the frame.
 
 The Gateway object included in *best_gw* and *all_gw* has the following fields:
 
@@ -129,6 +125,22 @@ Or (class C):
     {"data":"00", "port":2, "time":"immediately"}
 ```
 The `time` field must **not** be present if you want to send a Class A downlink.
+
+### Events
+
+Depending on the *Event Fields* settings the server sends to backend
+applications the following fields:
+
+  Field      | Type        | Meaning
+ ------------|-------------|----------------------------------------------
+  app        | String      | Application (Handler) name.
+  event      | String      | Event name (joined, delivered, lost, test).
+  devaddr    | Hex String  | DevAddr of the active node.
+  deveui     | Hex String  | DevEUI of the device.
+  appargs    | Any         | Application arguments for this node.
+  datetime   | ISO 8601    | Timestamp using the server clock.
+  receipt    | Any         | Custom data sent along the confirmed downlink.
+
 
 ## Payload
 

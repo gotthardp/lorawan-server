@@ -783,14 +783,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- handlers
     handlers.listView().fields([
         nga.field('app').label('Application').isDetailLink(true),
-        nga.field('fields', 'choices'),
+        nga.field('uplink_fields', 'choices'),
         nga.field('payload'),
         nga.field('downlink_expires').label('D/L Expires')
     ]);
     handlers.creationView().fields([
         nga.field('app').label('Application')
             .validation({ required: true }),
-        nga.field('fields', 'choices').label('Uplink Fields')
+        nga.field('uplink_fields', 'choices')
             .choices([
                 { value: 'app', label: 'app' },
                 { value: 'devaddr', label: 'devaddr' },
@@ -800,7 +800,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'fcnt', label: 'fcnt' },
                 { value: 'port', label: 'port' },
                 { value: 'data', label: 'data' },
-                { value: 'event', label: 'event' },
                 { value: 'datetime', label: 'datetime' },
 
                 { value: 'freq', label: 'freq' },
@@ -817,6 +816,15 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'cayenne', label: 'Cayenne LPP' }
             ]),
         nga.field('parse_uplink', 'text'),
+        nga.field('event_fields', 'choices')
+            .choices([
+                { value: 'app', label: 'app' },
+                { value: 'event', label: 'event' },
+                { value: 'devaddr', label: 'devaddr' },
+                { value: 'deveui', label: 'deveui' },
+                { value: 'appargs', label: 'appargs' },
+                { value: 'datetime', label: 'datetime' }
+            ]),
         nga.field('parse_event', 'text'),
         nga.field('build', 'text').label('Build Downlink'),
         nga.field('downlink_expires', 'choice').label('D/L Expires')

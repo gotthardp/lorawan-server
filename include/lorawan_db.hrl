@@ -148,9 +148,10 @@
 
 -record(handler, {
     app :: binary(),
-    fields :: [binary()],
+    uplink_fields :: [binary()],
     payload :: 'undefined' | binary(),
     parse_uplink :: 'undefined' | {binary(), fun()},
+    event_fields :: [binary()],
     parse_event :: 'undefined' | {binary, fun()},
     build :: 'undefined' | {binary(), fun()},
     downlink_expires :: binary()}).
