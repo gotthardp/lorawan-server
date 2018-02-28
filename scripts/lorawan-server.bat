@@ -18,5 +18,6 @@ for /D %%A in ("%ROOT_DIR%\lib\*") do (
     set FILES=!FILES! "%%A\ebin"
 )
 
+echo Server started at http://localhost:8080
 set ERL_ARGS="-lager log_root "log""
 cd %ROOT_DIR% && %ERL_DIR% -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app %ERL_ARGS% -config releases/{{release_version}}/sys.config
