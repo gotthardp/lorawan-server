@@ -40,19 +40,20 @@ handle_fopts0({Network, Profile, Node0}, Gateways, FOptsIn) ->
     {MacConfirm, Node1} = handle_rxwin(FOptsIn, Network, Profile,
         handle_adr(FOptsIn,
         handle_status(FOptsIn, Network, Node0))),
+    {ok, FramesRequired} = application:get_env(lorawan_server, frames_before_adr),
     % maintain quality statistics
     {_, RxQ} = hd(Gateways),
-    {LastQs, AverageQs} = append_qs({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Node1#node.last_qs),
+    {LastQs, AverageQs} = append_qs({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Node1#node.last_qs, FramesRequired),
     Node2 = auto_adr(Network, Profile, Node1#node{last_qs=LastQs, average_qs=AverageQs}),
     {MacConfirm,
         Node2#node{last_rx=calendar:universal_time(), gateways=Gateways}}.
 
-append_qs(SNR, undefined) ->
+append_qs(SNR, undefined, _Required) ->
     {[SNR], undefined};
-append_qs(SNR, LastQs) when length(LastQs) < 49 ->
+append_qs(SNR, LastQs, Required) when length(LastQs) < Required ->
     {[SNR | LastQs], undefined};
-append_qs(SNR, LastQs) ->
-    LastQs2 = lists:sublist([SNR | LastQs], 50),
+append_qs(SNR, LastQs, Required) ->
+    LastQs2 = lists:sublist([SNR | LastQs], Required),
     AverageQs = average_qs(lists:unzip(LastQs2)),
     {LastQs2, AverageQs}.
 

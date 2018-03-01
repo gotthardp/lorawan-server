@@ -24,6 +24,7 @@
         {http_admin_listen, [{port, 8080}]},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},
         {http_content_security, <<"default-src * data: 'unsafe-inline' 'unsafe-eval';">>},
+        {frames_before_adr, 50},
         {retained_rxframes, 50},
         {websocket_timeout, 3600000}, % ms
         % {sec, fcnt} after which the device status should be request
