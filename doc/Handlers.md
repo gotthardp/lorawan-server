@@ -25,6 +25,7 @@ To create a new handler you need to set:
  - **Application** name
  - **Uplink Fields** that will be forwarded to the backend Connector
  - **Payload** format for automatic decoding
+   - **ASCII Text**
    - [**Cayenne LPP**](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md)
  - **Parse Uplink** function to extract additional data fields from the uplink frame
  - **Event Fields** that will be forwarded to the backend Connector
@@ -148,6 +149,10 @@ The server can auto-parse some well-known data formats.
 
 To parse a custom format leave the *Payload* field undefined and write own
 *Parse Uplink* function.
+
+### ASCII Text
+
+The payload will get stored into the `text` field as ASII characters.
 
 ### Cayenne Low Power Payload (LPP)
 

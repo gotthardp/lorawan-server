@@ -813,6 +813,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             ]),
         nga.field('payload', 'choice')
             .choices([
+                { value: 'ascii', label: 'ASCII Text' },
                 { value: 'cayenne', label: 'Cayenne LPP' }
             ]),
         nga.field('parse_uplink', 'text'),

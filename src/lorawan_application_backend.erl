@@ -278,6 +278,8 @@ filter_group_responses(_AppID, List) ->
         end,
         ok, List).
 
+parse_payload(<<"ascii">>, Data) ->
+    #{text => Data};
 parse_payload(<<"cayenne">>, Data) ->
     cayenne_decode(Data);
 parse_payload(None, _Data) when None == <<>>; None == undefined ->
