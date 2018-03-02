@@ -81,9 +81,9 @@ code_change(_OldVsn, State, _Extra) ->
 store_fields(_Pool, Pattern, _Vars0) when Pattern == undefined; Pattern == ?EMPTY_PATTERN ->
     ok;
 store_fields(Pool, Pattern, Vars0) ->
-    Vars = lorawan_admin:build(Vars0),
+    Target = lorawan_connector:fill_pattern(Pattern, lorawan_admin:build(Vars0)),
     {Database, Collection} =
-        case binary:split(lorawan_connector:fill_pattern(Pattern, Vars), <<$/>>) of
+        case binary:split(Target, <<$/>>) of
             [DB, CN | _] ->
                 {DB, CN};
             [CN] ->
@@ -91,6 +91,23 @@ store_fields(Pool, Pattern, Vars0) ->
         end,
     Mong = mongoapi:new(Pool, Database),
     Mong:createCollection(Collection),
-    {ok, _} = Mong:save(Collection, maps:to_list(Vars)).
+    {ok, _} = Mong:save(Collection, prepare_bson(Vars0)).
+
+prepare_bson(Data) ->
+    maps:map(
+        fun
+            (Key, Value) when Key == mac; Key == deveui; Key == devaddr; Key == data ->
+                lorawan_utils:binary_to_hex(Value);
+            (_Key, Value) when is_map(Value) ->
+                prepare_bson(Value);
+            (_Key, Value) ->
+                Value
+        end,
+        maps:filter(
+            fun
+                (_Key, undefined) -> false;
+                (_Key, _Value) -> true
+            end,
+            Data)).
 
 % end of file

@@ -211,6 +211,8 @@ get_value(connector, received, PropList) ->
     get_value0(consumed, received, PropList);
 get_value(handler, app, PropList) ->
     get_value0(appid, app, PropList);
+get_value(handler, uplink_fields, PropList) ->
+    get_value0(fields, uplink_fields, PropList);
 get_value(handler, parse_uplink, PropList) ->
     get_value0(parse, parse_uplink, PropList);
 get_value(_Rec, X, PropList) ->

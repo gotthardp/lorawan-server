@@ -253,7 +253,8 @@ check_fcnt({Network, Profile, Node}, FCnt) ->
             reset_node(Node#node.devaddr),
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, uplink, Node#node{fcntup = FCnt, fcntdown=0,
-                adr_use=initial_adr(Network), rxwin_use=Network#network.rxwin_init,
+                adr_use=initial_adr(Network), adr_failed=[],
+                rxwin_use=Network#network.rxwin_init, rxwin_failed=[],
                 last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
         Profile#profile.fcnt_check == 3 ->
             % checks disabled

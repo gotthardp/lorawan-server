@@ -43,7 +43,7 @@ handle_uplink({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ
             {error, {unknown_application, AppID}}
     end.
 
-handle_uplink0(#handler{app=AppID, fields=Fields}=Handler, Node, Frame) ->
+handle_uplink0(#handler{app=AppID, uplink_fields=Fields}=Handler, Node, Frame) ->
     Vars = parse_uplink(Handler, Node, Frame),
     case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>,
             <<"mac">>, <<"lsnr">>, <<"rssi">>, <<"all_gw">>], Fields) of
@@ -60,10 +60,12 @@ handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}},
     % we did already handle this uplink
     lorawan_application:send_stored_frames(DevAddr, Port);
 handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node},
-        Gateways, _WillReply, #frame{port=Port}, {#handler{fields=Fields}, Vars}) ->
+        Gateways, _WillReply, #frame{port=Port}, {#handler{uplink_fields=Fields}, Vars}) ->
     lorawan_backend_factory:uplink(AppID, Node, parse_rxq(Gateways, Fields, Vars)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 
+any_is_member(_List1, undefined) ->
+    false;
 any_is_member(List1, List2) ->
     lists:any(
         fun(Item1) ->
@@ -71,7 +73,7 @@ any_is_member(List1, List2) ->
         end,
         List1).
 
-parse_uplink(#handler{app=AppID, payload=Payload, parse_uplink=Parse, fields=Fields},
+parse_uplink(#handler{app=AppID, payload=Payload, parse_uplink=Parse, uplink_fields=Fields},
         #node{appargs=AppArgs, devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
@@ -105,10 +107,9 @@ parse_rxq(Gateways, Fields, Vars) ->
         vars_add(all_gw, RxQ, Fields,
         Vars)))))))).
 
-vars_add(_Field, undefined, _Fields, Vars) ->
+vars_add(_Field, Value, Fields, Vars)
+        when Value == undefined; Fields == undefined ->
     Vars;
-vars_add(Field, Value, undefined, Vars) ->
-    Vars#{Field => Value};
 vars_add(Field, Value, Fields, Vars) ->
     case lists:member(atom_to_binary(Field, latin1), Fields) of
         true ->
@@ -146,7 +147,7 @@ handle_delivery({_Network, #profile{app=AppID}, Node}, Result, Receipt) ->
             {error, {unknown_application, AppID}}
     end.
 
-send_event(Event, Vars0, #handler{app=AppID, parse_event=Parse, fields=Fields}, DeviceOrNode) ->
+send_event(Event, Vars0, #handler{app=AppID, event_fields=Fields, parse_event=Parse}, DeviceOrNode) ->
     Vars =
         vars_add(app, AppID, Fields,
         vars_add(event, Event, Fields,
@@ -277,6 +278,8 @@ filter_group_responses(_AppID, List) ->
         end,
         ok, List).
 
+parse_payload(<<"ascii">>, Data) ->
+    #{text => Data};
 parse_payload(<<"cayenne">>, Data) ->
     cayenne_decode(Data);
 parse_payload(None, _Data) when None == <<>>; None == undefined ->

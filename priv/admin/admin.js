@@ -215,7 +215,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .map(format_bitstring)
             .transform(parse_bitstring)
             .attributes({ placeholder: 'e.g. 0:3' })
-            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+' }),
+            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+', validator: validate_bitstring }),
         nga.field('region', 'choice')
             .choices([
                 { value: 'EU868', label: 'EU 863-870MHz' },
@@ -783,14 +783,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- handlers
     handlers.listView().fields([
         nga.field('app').label('Application').isDetailLink(true),
-        nga.field('fields', 'choices'),
+        nga.field('uplink_fields', 'choices'),
         nga.field('payload'),
         nga.field('downlink_expires').label('D/L Expires')
     ]);
     handlers.creationView().fields([
         nga.field('app').label('Application')
             .validation({ required: true }),
-        nga.field('fields', 'choices').label('Uplink Fields')
+        nga.field('uplink_fields', 'choices')
             .choices([
                 { value: 'app', label: 'app' },
                 { value: 'devaddr', label: 'devaddr' },
@@ -800,7 +800,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'fcnt', label: 'fcnt' },
                 { value: 'port', label: 'port' },
                 { value: 'data', label: 'data' },
-                { value: 'event', label: 'event' },
                 { value: 'datetime', label: 'datetime' },
 
                 { value: 'freq', label: 'freq' },
@@ -814,9 +813,19 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             ]),
         nga.field('payload', 'choice')
             .choices([
+                { value: 'ascii', label: 'ASCII Text' },
                 { value: 'cayenne', label: 'Cayenne LPP' }
             ]),
         nga.field('parse_uplink', 'text'),
+        nga.field('event_fields', 'choices')
+            .choices([
+                { value: 'app', label: 'app' },
+                { value: 'event', label: 'event' },
+                { value: 'devaddr', label: 'devaddr' },
+                { value: 'deveui', label: 'deveui' },
+                { value: 'appargs', label: 'appargs' },
+                { value: 'datetime', label: 'datetime' }
+            ]),
         nga.field('parse_event', 'text'),
         nga.field('build', 'text').label('Build Downlink'),
         nga.field('downlink_expires', 'choice').label('D/L Expires')
@@ -1073,6 +1082,14 @@ function format_bitstring(value, entry) {
         return entry["subid.val"] + ":" + entry["subid.len"];
     else
         return null;
+}
+function validate_bitstring(value) {
+    if(value && value.length > 0)
+    {
+        var parts = value.split(':', 2);
+        if(+parts[1] < 0 || +parts[1] > 25)
+            throw new Error ('SubID must be less than 25 bits');
+    }
 }
 function parse_bitstring(value, entry) {
     if(value && value.length > 0)

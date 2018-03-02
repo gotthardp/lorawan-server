@@ -40,19 +40,20 @@ handle_fopts0({Network, Profile, Node0}, Gateways, FOptsIn) ->
     {MacConfirm, Node1} = handle_rxwin(FOptsIn, Network, Profile,
         handle_adr(FOptsIn,
         handle_status(FOptsIn, Network, Node0))),
+    {ok, FramesRequired} = application:get_env(lorawan_server, frames_before_adr),
     % maintain quality statistics
     {_, RxQ} = hd(Gateways),
-    {LastQs, AverageQs} = append_qs({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Node1#node.last_qs),
+    {LastQs, AverageQs} = append_qs({RxQ#rxq.rssi, RxQ#rxq.lsnr}, Node1#node.last_qs, FramesRequired),
     Node2 = auto_adr(Network, Profile, Node1#node{last_qs=LastQs, average_qs=AverageQs}),
     {MacConfirm,
         Node2#node{last_rx=calendar:universal_time(), gateways=Gateways}}.
 
-append_qs(SNR, undefined) ->
+append_qs(SNR, undefined, _Required) ->
     {[SNR], undefined};
-append_qs(SNR, LastQs) when length(LastQs) < 49 ->
+append_qs(SNR, LastQs, Required) when length(LastQs) < Required ->
     {[SNR | LastQs], undefined};
-append_qs(SNR, LastQs) ->
-    LastQs2 = lists:sublist([SNR | LastQs], 50),
+append_qs(SNR, LastQs, Required) ->
+    LastQs2 = lists:sublist([SNR | LastQs], Required),
     AverageQs = average_qs(lists:unzip(LastQs2)),
     {LastQs2, AverageQs}.
 
@@ -163,8 +164,8 @@ handle_adr(FOptsIn, Node) ->
             lorawan_utils:throw_warning({node, Node#node.devaddr},
                 {adr_req_failed, {PowerACK, DataRateACK, ChannelMaskACK}}),
             % indicate the settings that failed
-            Node#node{adr_failed = add_when_one(<<"power">>, PowerACK,
-                add_when_one(<<"data_rate">>, DataRateACK, add_when_one(<<"channel_mask">>, ChannelMaskACK, [])))};
+            Node#node{adr_failed = add_when_zero(<<"power">>, PowerACK,
+                add_when_zero(<<"data_rate">>, DataRateACK, add_when_zero(<<"channel_mask">>, ChannelMaskACK, [])))};
         undefined ->
             Node
     end.
@@ -195,8 +196,8 @@ handle_rxwin(FOptsIn, _Network, Profile, Node) ->
         {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
             lorawan_utils:throw_warning({node, Node#node.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),
             % indicate the settings that failed
-            {true, Node#node{rxwin_failed = add_when_one(<<"dr_offset">>, RX1DROffsetACK,
-                add_when_one(<<"rx2_data_rate">>, RX2DataRateACK, add_when_one(<<"channel">>, ChannelACK, [])))}};
+            {true, Node#node{rxwin_failed = add_when_zero(<<"dr_offset">>, RX1DROffsetACK,
+                add_when_zero(<<"rx2_data_rate">>, RX2DataRateACK, add_when_zero(<<"channel">>, ChannelACK, [])))}};
         undefined ->
             {false, Node}
     end.
@@ -244,7 +245,8 @@ send_link_check([{_MAC, RxQ}|_]=Gateways) ->
     {link_check_ans, Margin, length(Gateways)}.
 
 
-auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=[]}=Node) ->
+auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=Failed}=Node)
+        when Failed == undefined; Failed == [] ->
     case merge_adr(Node#node.adr_set, Node#node.adr_use) of
         Unchanged when Unchanged == Node#node.adr_use, is_tuple(Node#node.average_qs) ->
             % have enough data and no other change was requested
@@ -252,7 +254,8 @@ auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=[]}
         _Else ->
             Node
     end;
-auto_adr(_Network, #profile{adr_mode=2}=Profile, #node{adr_flag=1, adr_failed=[]}=Node) ->
+auto_adr(_Network, #profile{adr_mode=2}=Profile, #node{adr_flag=1, adr_failed=Failed}=Node)
+        when Failed == undefined; Failed == [] ->
     case merge_adr(Profile#profile.adr_set, Node#node.adr_use) of
         Unchanged when Unchanged == Node#node.adr_use ->
             % no change to profile settings
@@ -275,7 +278,11 @@ calculate_adr(#network{region=Region, max_datr=NwkMaxDR1, max_power=MaxPower,
                 ({_,_,Max}, Acc) when is_integer(Max) -> max(Max, Acc);
                 (_, Acc) -> Acc
             end,
-            NwkMaxDR1, CFList),
+            NwkMaxDR1,
+            if
+                is_list(CFList) -> CFList;
+                true -> []
+            end),
     % apply device limit for maximum DR
     MaxDR =
         if
@@ -319,8 +326,8 @@ calculate_adr(#network{region=Region, max_datr=NwkMaxDR1, max_power=MaxPower,
     end.
 
 send_adr(#network{region=Region},
-        #node{adr_flag=1, adr_set={TxPower, DataRate, Chans}, adr_failed=[]}=Node, FOptsOut)
-        when is_integer(TxPower) or is_integer(DataRate) or is_list(Chans) ->
+        #node{adr_flag=1, adr_set={TxPower, DataRate, Chans}, adr_failed=Failed}=Node, FOptsOut)
+        when (is_integer(TxPower) or is_integer(DataRate) or is_list(Chans)), (Failed == undefined orelse Failed == []) ->
     Set = merge_adr(Node#node.adr_set, Node#node.adr_use),
     lager:debug("LinkADRReq ~w", [Set]),
     lorawan_mac_region:set_channels(Region, Set, FOptsOut);
@@ -344,7 +351,8 @@ merge_adr({A1,B1,C1},{A2,B2,C2}) ->
 merge_adr(_Else, ABC) ->
     ABC.
 
-set_rxwin(Profile, #node{adr_flag=1, rxwin_failed=[]}=Node, FOptsOut) ->
+set_rxwin(Profile, #node{adr_flag=1, rxwin_failed=Failed}=Node, FOptsOut)
+        when Failed == undefined; Failed == [] ->
     case merge_rxwin(Profile#profile.rxwin_set, Node#node.rxwin_use) of
         Unchanged when Unchanged == Node#node.rxwin_use ->
             FOptsOut;
@@ -388,7 +396,7 @@ request_status(_Profile, #node{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Nod
             FOptsOut
     end.
 
-add_when_one(_Error, 0, List) -> List;
-add_when_one(Error, 1, List) -> [Error|List].
+add_when_zero(Error, 0, List) -> [Error|List];
+add_when_zero(_Error, 1, List) -> List.
 
 % end of file

@@ -44,13 +44,30 @@ For each device Profile you can define "desired" ADR parameters:
  - **Set Data Rate** defines the data rate;
  - **Max Data Rate** defines the maximal data rate supported by the devices;
  - **Set Channels** defines the set of channels. The channels are given
-   as a comma-separated list of interfaces, e.g. `0-2` (for EU) or `0-71` (for US).
+   as a comma-separated list of interfaces, e.g. `0-2` for EU, `0-71` for the
+   whole US band, or `0-7,64` for the first US sub-band (see table below).
  - **Set RX1 DR Offset** defines the offset between the uplink and the RX1 slot
    downlink data rates
  - **Set RX2 DR** defines the data rate for the second reception slot (RX2).
  - **Set RX2 Freq** defines the default frequency in the RX2 receive window.
  - **Request Status** flag, which can be used to disable the status requests for
    simple devices that do not support it (by default true).
+
+The **Set Channels** field can be used to assign device groups to various
+sub-bands. Don't forget that the list shall include also a downlink channel.
+
+ Set Channels | Meaning
+--------------|---------------------
+ 0-71         | Whole US band
+ 0-7,64       | US sub-band 1
+ 8-15,65      | US sub-band 2
+ 16-23,66     | US sub-band 3
+ 24-31,67     | US sub-band 4
+ 32-39,68     | US sub-band 5
+ 40-47,69     | US sub-band 6
+ 48-55,70     | US sub-band 7
+ 56-63,71     | US sub-band 8
+ 0-2          | Default EU settings
 
 In all ADR modes the server will:
 
@@ -153,7 +170,8 @@ Node ADR parameters include:
  - **Set Power** defines the power (in dBm);
  - **Set Data Rate** defines the data rate;
  - **Set Channels** defines the set of channels. The channels are given
-   as a comma-separated list of interfaces, e.g. `0-2` (for EU) or `0-71` (for US).
+   as a comma-separated list of interfaces, e.g. `0-2` (for EU), `0-71` (for US),
+   or `0-7,64` (for the first US sub-band).
  - **Used Channels** indicates the set of channels used;
  - **ADR Failed** flag will indicate the device refused the last ADR command.
    The user is expected to resolve and clear this field before ADR will continue.
