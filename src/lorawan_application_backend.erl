@@ -282,6 +282,9 @@ parse_payload(<<"ascii">>, Data) ->
     #{text => Data};
 parse_payload(<<"cayenne">>, Data) ->
     cayenne_decode(Data);
+% TODO: IEEE1888 decode parse
+% parse_payload(<<"ieee1888">>, Data) ->
+%    ieee1888_decode(Data);
 parse_payload(None, _Data) when None == <<>>; None == undefined ->
     #{};
 parse_payload(Else, _Data) ->
@@ -321,6 +324,27 @@ cayenne_decode(<<Ch, 113, X:16/signed-integer, Y:16/signed-integer, Z:16/signed-
 % barometer
 cayenne_decode(<<Ch, 115, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
     cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% voltage
+cayenne_decode(<<Ch, 116, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% current
+cayenne_decode(<<Ch, 117, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% percentage
+cayenne_decode(<<Ch, 120, Val/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val, Acc));
+% prssure
+cayenne_decode(<<Ch, 123, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% power
+cayenne_decode(<<Ch, 128, Val:16/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% energy
+cayenne_decode(<<Ch, 131, Val:16/signed-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
+% direction 
+cayenne_decode(<<Ch, 132, Val/unsigned-integer, Rest/binary>>, Acc) ->
+    cayenne_decode(Rest, add_field(Ch, Val, Acc));
 % gyrometer
 cayenne_decode(<<Ch, 134, X:16/signed-integer, Y:16/signed-integer, Z:16/signed-integer, Rest/binary>>, Acc) ->
     cayenne_decode(Rest, add_field(Ch, #{x => X/100, y => Y/100, z => Z/100}, Acc));
