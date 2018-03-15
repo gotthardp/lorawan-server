@@ -290,7 +290,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             })
             .validation({ required: true }),
         nga.field('rxwin_init.rx2_freq', 'float').label('Initial RX2 Freq (MHz)')
-            .validation({ required: true }),
+            .validation({ required: true, validator: validate_frequency }),
         // Channels
         nga.field('init_chans').label('Initial Channels')
             .attributes({ placeholder: 'e.g. 0-2' })
@@ -298,7 +298,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('cflist', 'embedded_list').label('Channels')
             .targetFields([
                 nga.field('freq', 'float').label('Frequency (MHz)')
-                    .validation({ required: true }),
+                    .validation({ required: true, validator: validate_frequency }),
                 nga.field('min_datr', 'number').label('Min Data Rate'),
                 nga.field('max_datr', 'number').label('Max Data Rate')
             ])
@@ -419,7 +419,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 else
                     return [];
             }),
-        nga.field('rxwin_set.rx2_freq', 'float').label('Set RX2 Freq (MHz)'),
+        nga.field('rxwin_set.rx2_freq', 'float').label('Set RX2 Freq (MHz)')
+            .validation({ validator: validate_frequency }),
 
         nga.field('request_devstat', 'boolean').label('Request Status?')
             .defaultValue(true)
@@ -1099,6 +1100,11 @@ function parse_bitstring(value, entry) {
     }
     else
         return null;
+}
+
+function validate_frequency(value) {
+    if(value < 400 || value > 1000)
+        throw new Error ('Frequency must be 400..1000 MHz');
 }
 
 function enquote(items) {
