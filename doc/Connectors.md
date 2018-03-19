@@ -38,6 +38,9 @@ To create a new connector you set:
    - **network** when the destination server cannot be reached
    - **topic** when the target broker configuration is wrong
 
+When a *Failed* flag is raised, the connector is inactive. Fix the indicated root
+cause and then remove the flag to reactivate the connector.
+
 On the Authentication tab:
  - **Client ID** is the MQTT parameter
  - **Auth** identifies the type of authentication:
@@ -95,9 +98,11 @@ To create a web socket connector you set:
  - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/ws/uplink/{devaddr}'
  - **Publish Events** to another URL pattern, e.g. '/ws/events/{devaddr}'
 
-The pattern may contain uplink Fields of the corresponding [Handler](Handlers.md),
+The patterns may contain uplink Fields of the corresponding [Handler](Handlers.md),
 mainly `{deveui}`, `{devaddr}` or `{app}` corresponding to a group of devices with
 the same application (Handler name).
+
+The *Subscribe* and *Received Topic* fields are not used and can be left empty.
 
 To connect to the WebSocket, then open URL to the path you defined, i.e.
 `ws://server:8080/ws/uplink/<DevAddr>` or `ws://server:8080/ws/events/<DevAddr>`.
