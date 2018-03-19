@@ -118,15 +118,15 @@ handle_info({event, _Node, Vars0},
     amqp_channel:close(PubChannel),
     {noreply, State};
 
-handle_info({'DOWN', _Ref, process, Connection, {Reason, Info}}, #state{cpid=Connection}=State) ->
-    lager:warning("Connection ~p: ~p", [Reason, Info]),
+handle_info({'DOWN', _Ref, process, Connection, Reason}, #state{cpid=Connection}=State) ->
+    lager:warning("Connection ~p", [Reason]),
     self() ! connect,
     {noreply, State#state{cpid=undefined}};
 handle_info({'DOWN', _Ref, process, SubChannel, {shutdown, {connection_closing, _}}}, #state{subc=SubChannel}=State) ->
     % will subscribe after reconnecting
     {noreply, State#state{subc=undefined}};
-handle_info({'DOWN', _Ref, process, SubChannel, {Reason, Info}}, #state{subc=SubChannel}=State) ->
-    lager:warning("Channel ~p: ~p", [Reason, Info]),
+handle_info({'DOWN', _Ref, process, SubChannel, Reason}, #state{subc=SubChannel}=State) ->
+    lager:warning("Channel ~p", [Reason]),
     self() ! subscribe,
     {noreply, State#state{subc=undefined}};
 
