@@ -29,6 +29,9 @@ and install it by:
 dpkg -i lorawan-server-<VERSION>.deb
 ```
 
+If you want the server to start automatically after system reboot, run
+`systemctl enable lorawan-server`.
+
 Then start the server by `systemctl start lorawan-server`.
 
 ### Using the Binary Release on Linux
