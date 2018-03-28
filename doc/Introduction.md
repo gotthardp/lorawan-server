@@ -139,7 +139,7 @@ the applications (somehow) know this.
 
 When initiating a downlink applications can set requested downlink *time*. This
 can be either a specific timestamp, or an `immediately` flag. See the
-[JSON Payload](JSON.md) documentation for more details.
+[Downlink Fields](Handlers.md#downlink) documentation for more details.
 
 Upon receiving a downlink frame with the *time* parameter set the server sends the
 frame to the gateway and relies on its scheduling mechanism to transmit the frame.
