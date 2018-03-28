@@ -93,6 +93,9 @@ openssl rsa -in privkey.pem -out key.pem
 
 ## Web Sockets
 
+The lorwan-server can act as a Web Socket server. Clients can connect, receive
+uplinks and send downlinks.
+
 To create a web socket connector you set:
  - **URI** to `ws:` (with no hostname)
  - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/ws/uplink/{devaddr}'
@@ -144,6 +147,10 @@ Each byte is represented by exactly 2 digits. For example, "4849" represents ASC
 
 ## HTTP/REST
 
+The REST API works in both directions. The lorwan-server can send a HTTP PUT/POST
+request upon receiving an uplink frame. It can also listen for incoming
+HTTP PUT/POST requests and trigger downlink frames.
+
 To create a HTTP connector you set:
  - **URI** to the target host either as `http://host:port` or `http://host:port. Do
    not append any path: use the *Publish Uplinks* or *Events* field instead.
@@ -167,7 +174,9 @@ curl -v --digest -uadmin:admin -H "Content-Type: application/json" -X POST http:
 
 ## Generic MQTT Servers
 
-You can integrate with generic MQTT server (message broker), e.g. the
+The lorawan-server can acts as a MQTT client, publish uplink frames and subscribe
+for downlink frames. It can connect to any standard MQTT server (message broker),
+e.g. the
 [RabbitMQ](https://www.rabbitmq.com/mqtt.html) or
 [Mosquitto](https://mosquitto.org).
 
@@ -213,7 +222,8 @@ mosquitto_pub -h 127.0.0.1 -p 1883 -t 'in/00112233' -m '{"data":"00"}' -u 'user'
 
 ## MongoDB
 
-You can store the received uplinks directly to a [MongoDB](https://www.mongodb.com).
+The lorawan-server can store the received uplinks directly to a
+[MongoDB](https://www.mongodb.com).
 
 Open the lorawan-server web-administration and create a Backend Connector:
  - **Format** is ignored, but should be set to *JSON*.
