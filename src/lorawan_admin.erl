@@ -90,8 +90,8 @@ check_alive(#gateway{last_alive=undefined}) ->
 check_alive(#gateway{last_alive=LastAlive}) ->
     case calendar:datetime_to_gregorian_seconds(calendar:universal_time()) -
             calendar:datetime_to_gregorian_seconds(LastAlive) of
-        Silent when Silent > 20 ->
-            {min(Silent div 20, 100), disconnected};
+        Silent when Silent > 30 ->
+            {min(2*(Silent div 30), 100), disconnected};
         _Else ->
             ok
     end.
