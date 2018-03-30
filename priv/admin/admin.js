@@ -145,7 +145,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('desc').label('Description'),
         nga.field('ip_address.ip').label('IP Address'),
         nga.field('dwell', 'float').label('Dwell [%]')
-            .map(function(value, entry){ return first(value, 'hoursum')/36000; }),
+            .map(function(value, entry){ return first(value, 'hoursum', 36000); }),
         nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
@@ -690,16 +690,25 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
             }),
         nga.field('mac').label('MAC')
+            .map(function(value, entry) {
+                return array_slice_mac(entry.gateways);
+            })
             .template(function(entry) {
-                return array_slice_mac(entry.values.gateways);
+                return format_mac_array(entry.values.mac);
             }),
         nga.field('rssi', 'number').label('U/L RSSI')
+            .map(function(value, entry) {
+                return array_slice_rxq(entry.gateways, 'rssi');
+            })
             .template(function(entry) {
-                return array_slice_rxq(entry.values.gateways, 'rssi');
+                return entry.values.rssi.join('<br>');
             }),
         nga.field('lsnr', 'number').label('U/L SNR')
+            .map(function(value, entry) {
+                return array_slice_rxq(entry.gateways, 'lsnr');
+            })
             .template(function(entry) {
-                return array_slice_rxq(entry.values.gateways, 'lsnr');
+                return entry.values.lsnr.join('<br>');
             }),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('confirm', 'boolean'),
@@ -914,7 +923,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('mac').label('MAC').isDetailLink(true),
                 nga.field('ip_address.ip').label('IP Address'),
                 nga.field('dwell', 'float').label('Dwell [%]')
-                    .map(function(value, entry){ return first(value, 'hoursum')/36000; }),
+                    .map(function(value, entry){ return first(value, 'hoursum', 36000); }),
                 nga.field('last_alive', 'datetime'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
@@ -967,12 +976,18 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                         return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
                     }),
                 nga.field('mac').label('MAC')
+                    .map(function(value, entry) {
+                        return array_slice_mac(entry.gateways);
+                    })
                     .template(function(entry) {
-                        return array_slice_mac(entry.values.gateways);
+                        return format_mac_array(entry.values.mac);
                     }),
                 nga.field('lsnr', 'number').label('U/L SNR')
+                    .map(function(value, entry) {
+                        return array_slice_rxq(entry.gateways, 'lsnr');
+                    })
                     .template(function(entry) {
-                        return array_slice_rxq(entry.values.gateways, 'lsnr');
+                        return entry.values.lsnr.join('<br>');
                     }),
             ])
             .sortField('datetime')
@@ -1054,11 +1069,18 @@ function bytesToSize(bytes) {
 
 function array_slice_mac(array) {
     if(Array.isArray(array))
-        return array.map(x => '<a href="#/gateways/edit/' + x['mac'] + '">' + x['mac'] + '</a>' ).join('<br>');
+        return array.map( x => x['mac'].toString() );
+    else
+        return [];
 }
 function array_slice_rxq(array, slice) {
     if(Array.isArray(array))
-        return array.map(x => x['rxq'][slice].toString() ).join('<br>');
+        return array.map( x => x['rxq'][slice].toString() );
+    else
+        return [];
+}
+function format_mac_array(array) {
+    return array.map(mac => '<a href="#/gateways/edit/' + mac + '">' + mac + '</a>' ).join('<br>');
 }
 
 function hextoascii(val) {
@@ -1111,9 +1133,9 @@ function enquote(items) {
     return items.map(function(item) { return "'" + item + "'" }).join(',');
 }
 
-function first(array, element) {
+function first(array, element, divide = 1) {
     if(Array.isArray(array) && array.length > 0)
-        return array[0][element];
+        return array[0][element] / divide;
 }
 
 function dashboardTemplate(leftPanel, rightPanel) {
