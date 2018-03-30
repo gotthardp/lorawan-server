@@ -92,6 +92,7 @@
     appargs :: any(), % application arguments
     appeui :: eui(),
     appkey :: seckey(),
+    desc :: 'undefined' | string(),
     last_join :: calendar:datetime(),
     node :: devaddr()}).
 
@@ -103,6 +104,7 @@
     appargs :: any(), % application arguments
     nwkskey :: seckey(),
     appskey :: seckey(),
+    desc :: 'undefined' | string(),
     fcntup :: 'undefined' | integer(), % last uplink fcnt
     fcntdown :: integer(), % last downlink fcnt
     first_reset :: calendar:datetime(),

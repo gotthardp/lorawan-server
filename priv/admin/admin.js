@@ -145,7 +145,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('desc').label('Description'),
         nga.field('ip_address.ip').label('IP Address'),
         nga.field('dwell', 'float').label('Dwell [%]')
-            .map(function(value, entry){ return first(value, 'hoursum')/36000; }),
+            .map(function(value, entry){ return first(value, 'hoursum', 36000); }),
         nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
@@ -450,6 +450,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('deveui').label('DevEUI').isDetailLink(true),
         nga.field('profile'),
         nga.field('appargs').label('App Arguments'),
+        nga.field('desc').label('Description'),
         nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('node', 'reference')
             .targetEntity(nodes)
@@ -478,6 +479,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appkey').label('AppKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('desc').label('Description'),
         nga.field('last_join', 'datetime').label('Last Join'),
         nga.field('node')
             .attributes({ placeholder: 'e.g. ABC12345' })
@@ -494,6 +496,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetEntity(profiles)
             .targetField(nga.field('name')),
         nga.field('appargs').label('App Arguments'),
+        nga.field('desc').label('Description'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('battery', 'number')
@@ -528,13 +531,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appskey').label('AppSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('desc').label('Description'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0)
             .validation({ required: true })
     ]);
     nodes.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:14}
+        {name:"General", min:0, max:8}
     ]));
 
     nodes.editionView().fields([
@@ -553,6 +557,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('appskey').label('AppSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
+        nga.field('desc').label('Description'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down')
             .defaultValue(0)
@@ -651,9 +656,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_profiles = response.data });
     }]);
     nodes.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:12},
-        {name:"ADR", min:12, max:24},
-        {name:"Status", min:24, max:28}
+        {name:"General", min:0, max:13},
+        {name:"ADR", min:13, max:25},
+        {name:"Status", min:25, max:29}
     ]));
     // add to the admin application
     admin.addEntity(nodes);
@@ -690,16 +695,25 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
             }),
         nga.field('mac').label('MAC')
+            .map(function(value, entry) {
+                return array_slice_mac(entry.gateways);
+            })
             .template(function(entry) {
-                return array_slice_mac(entry.values.gateways);
+                return format_mac_array(entry.values.mac);
             }),
         nga.field('rssi', 'number').label('U/L RSSI')
+            .map(function(value, entry) {
+                return array_slice_rxq(entry.gateways, 'rssi');
+            })
             .template(function(entry) {
-                return array_slice_rxq(entry.values.gateways, 'rssi');
+                return entry.values.rssi.join('<br>');
             }),
         nga.field('lsnr', 'number').label('U/L SNR')
+            .map(function(value, entry) {
+                return array_slice_rxq(entry.gateways, 'lsnr');
+            })
             .template(function(entry) {
-                return array_slice_rxq(entry.values.gateways, 'lsnr');
+                return entry.values.lsnr.join('<br>');
             }),
         nga.field('fcnt', 'number').label('FCnt'),
         nga.field('confirm', 'boolean'),
@@ -914,7 +928,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('mac').label('MAC').isDetailLink(true),
                 nga.field('ip_address.ip').label('IP Address'),
                 nga.field('dwell', 'float').label('Dwell [%]')
-                    .map(function(value, entry){ return first(value, 'hoursum')/36000; }),
+                    .map(function(value, entry){ return first(value, 'hoursum', 36000); }),
                 nga.field('last_alive', 'datetime'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
@@ -967,12 +981,18 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                         return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
                     }),
                 nga.field('mac').label('MAC')
+                    .map(function(value, entry) {
+                        return array_slice_mac(entry.gateways);
+                    })
                     .template(function(entry) {
-                        return array_slice_mac(entry.values.gateways);
+                        return format_mac_array(entry.values.mac);
                     }),
                 nga.field('lsnr', 'number').label('U/L SNR')
+                    .map(function(value, entry) {
+                        return array_slice_rxq(entry.gateways, 'lsnr');
+                    })
                     .template(function(entry) {
-                        return array_slice_rxq(entry.values.gateways, 'lsnr');
+                        return entry.values.lsnr.join('<br>');
                     }),
             ])
             .sortField('datetime')
@@ -1054,11 +1074,18 @@ function bytesToSize(bytes) {
 
 function array_slice_mac(array) {
     if(Array.isArray(array))
-        return array.map(x => '<a href="#/gateways/edit/' + x['mac'] + '">' + x['mac'] + '</a>' ).join('<br>');
+        return array.map( x => x['mac'].toString() );
+    else
+        return [];
 }
 function array_slice_rxq(array, slice) {
     if(Array.isArray(array))
-        return array.map(x => x['rxq'][slice].toString() ).join('<br>');
+        return array.map( x => x['rxq'][slice].toString() );
+    else
+        return [];
+}
+function format_mac_array(array) {
+    return array.map(mac => '<a href="#/gateways/edit/' + mac + '">' + mac + '</a>' ).join('<br>');
 }
 
 function hextoascii(val) {
@@ -1111,9 +1138,9 @@ function enquote(items) {
     return items.map(function(item) { return "'" + item + "'" }).join(',');
 }
 
-function first(array, element) {
+function first(array, element, divide = 1) {
     if(Array.isArray(array) && array.length > 0)
-        return array[0][element];
+        return array[0][element] / divide;
 }
 
 function dashboardTemplate(leftPanel, rightPanel) {

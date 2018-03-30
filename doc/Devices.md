@@ -126,6 +126,7 @@ For each device, which may connect to your network, you can set:
  - **Profile** that this device uses
  - **App Arguments**, which is an opaque string with application-specific settings.
  - **AppEUI** and **AppKey**
+ - **Description** for your convenience
  - **Last Join** is a timestamp of the last successful Join request.
 
 Once the device joins the network, the *Node* field will contain a reference to the *Nodes* list.
@@ -147,6 +148,7 @@ For each active network Node you can set:
  - **Profile** that this Node uses
  - **App Arguments**, which is an opaque string with application-specific settings.
  - **NwkSKey** and **AppSKey**
+ - **Description** for your convenience
  - **FCnt Up** and **FCnt Down** frame counters
  - **Last Reset** indicates time of the last Join or reset
  - **Last RX** indicates time of the last uplink frame

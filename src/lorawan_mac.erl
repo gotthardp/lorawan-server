@@ -352,9 +352,10 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
     Node = #node{
         devaddr=DevAddr,
         profile=Device2#device.profile, appargs=Device2#device.appargs,
-        nwkskey=NwkSKey, appskey=AppSKey, fcntup=undefined, fcntdown=0,
-        last_reset=calendar:universal_time(), gateways=Gateways,
-        adr_flag=0, adr_set=undefined, adr_use=initial_adr(Network), adr_failed=[],
+        nwkskey=NwkSKey, appskey=AppSKey, desc=Device2#device.desc,
+        fcntup=undefined, fcntdown=0, last_reset=calendar:universal_time(),
+        gateways=Gateways, adr_flag=0, adr_set=undefined,
+        adr_use=initial_adr(Network), adr_failed=[],
         rxwin_use=accept_rxwin(Profile, Network), rxwin_failed=[],
         devstat_fcnt=undefined, last_qs=[]},
     Node2 =
