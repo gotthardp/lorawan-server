@@ -23,7 +23,7 @@ handle_join({_Network, #profile{app=AppID}, Device}, {_MAC, _RxQ}, DevAddr) ->
             {error, {unknown_application, AppID}}
     end.
 
-handle_uplink({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ, LastMissed, Frame) ->
+handle_uplink({Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ, LastMissed, Frame) ->
     case mnesia:dirty_read(handlers, AppID) of
         [#handler{downlink_expires=Expires}=Handler] ->
             case LastMissed of
@@ -34,17 +34,17 @@ handle_uplink({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ
                         List when length(List) > 0, Expires == <<"never">> ->
                             retransmit;
                         _Else ->
-                            handle_uplink0(Handler, Node, Frame)
+                            handle_uplink0(Handler, Network, Node, Frame)
                     end;
                 undefined ->
-                    handle_uplink0(Handler, Node, Frame)
+                    handle_uplink0(Handler, Network, Node, Frame)
             end;
         [] ->
             {error, {unknown_application, AppID}}
     end.
 
-handle_uplink0(#handler{app=AppID, uplink_fields=Fields}=Handler, Node, Frame) ->
-    Vars = parse_uplink(Handler, Node, Frame),
+handle_uplink0(#handler{app=AppID, uplink_fields=Fields}=Handler, Network, Node, Frame) ->
+    Vars = parse_uplink(Handler, Network, Node, Frame),
     case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>,
             <<"mac">>, <<"lsnr">>, <<"rssi">>, <<"all_gw">>], Fields) of
         true ->
@@ -74,9 +74,11 @@ any_is_member(List1, List2) ->
         List1).
 
 parse_uplink(#handler{app=AppID, payload=Payload, parse_uplink=Parse, uplink_fields=Fields},
+        #network{netid=NetID},
         #node{appargs=AppArgs, devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     Vars =
+        vars_add(netid, NetID, Fields,
         vars_add(app, AppID, Fields,
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
@@ -86,7 +88,7 @@ parse_uplink(#handler{app=AppID, payload=Payload, parse_uplink=Parse, uplink_fie
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        parse_payload(Payload, Data)))))))))),
+        parse_payload(Payload, Data))))))))))),
     data_to_fields(AppID, Parse, Vars, Data).
 
 parse_rxq(Gateways, Fields, Vars) ->

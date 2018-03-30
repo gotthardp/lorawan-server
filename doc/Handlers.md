@@ -58,6 +58,7 @@ applications the following fields:
 
   Field      | Type        | Meaning
  ------------|-------------|----------------------------------------------
+  netid      | Hex String  | Network identifier (NetID).
   app        | String      | Application (Handler) name.
   devaddr    | Hex String  | DevAddr of the active node.
   deveui     | Hex String  | DevEUI of the device.

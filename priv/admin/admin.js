@@ -807,6 +807,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('uplink_fields', 'choices')
             .choices([
+                { value: 'netid', label: 'netid' },
                 { value: 'app', label: 'app' },
                 { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
