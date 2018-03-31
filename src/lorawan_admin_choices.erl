@@ -39,7 +39,7 @@ handle_get(Req, regions=Opts) ->
                 ]}
             end,
             [<<"EU868">>, <<"CN779">>, <<"EU433">>, <<"AS923">>, <<"CN470">>,
-            <<"KR920">>, <<"IN925">>, <<"US902">>, <<"US902-PR">>, <<"AU915">>]),
+            <<"KR920">>, <<"IN865">>, <<"US902">>, <<"US902-PR">>, <<"AU915">>]),
     {jsx:encode(Regs), Req, Opts};
 handle_get(Req, networks=Opts) ->
     Nets =
@@ -104,7 +104,7 @@ both_datar_choices0(Region) ->
     if
         Region == <<"EU868">>; Region == <<"CN779">>; Region == <<"EU433">>;
         Region == <<"AS923">>;
-        Region == <<"CN470">>; Region == <<"KR920">>; Region == <<"IN925">> -> [
+        Region == <<"CN470">>; Region == <<"KR920">>; Region == <<"IN865">> -> [
             [{value, 0}, {label, <<"SF12 125 kHz (250 bit/s)">>}],
             [{value, 1}, {label, <<"SF11 125 kHz (440 bit/s)">>}],
             [{value, 2}, {label, <<"SF10 125 kHz (980 bit/s)">>}],

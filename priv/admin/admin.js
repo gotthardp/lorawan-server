@@ -229,7 +229,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'CN470', label: 'China 470-510MHz' },
                 { value: 'AS923', label: 'Asia 923MHz' },
                 { value: 'KR920', label: 'South Korea 920-923MHz' },
-                { value: 'IN925', label: 'India 865-867MHz' }
+                { value: 'IN865', label: 'India 865-867MHz' }
             ])
             .validation({ required: true }),
         nga.field('tx_codr', 'choice').label('Coding Rate')
