@@ -1131,7 +1131,7 @@ function parse_bitstring(value, entry) {
 }
 
 function validate_frequency(value) {
-    if(value < 400 || value > 1000)
+    if(value != null && (value < 400 || value > 1000))
         throw new Error ('Frequency must be 400..1000 MHz');
 }
 
