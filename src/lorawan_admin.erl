@@ -136,7 +136,7 @@ check_battery(#node{}) ->
 check_margin(#node{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
     if
         Margin =< MaxSNR+10 ->
-            {5*(Margin-MaxSNR), downlink_noise};
+            {5*abs(Margin-MaxSNR), downlink_noise};
         true ->
             ok
     end;
