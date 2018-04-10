@@ -206,7 +206,9 @@ retransmit(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node}, Frame, 
     Gateways = extract_rxq(Gateways0),
     % we want to see retransmissions too
     ok = mnesia:dirty_write(rxframes, build_rxframe(Gateways, {Network, Profile, Node}, Frame)),
-    TxQ = choose_tx({Network, Profile, Node}, RxQ, TimeStamp),
+    TxQ = lorawan_mac_region:rx2_window(Network, Node, RxQ),
+    %% FIXME: this is an emergency bugfix; we need choose RX2 for some retransmissions
+    %% TxQ = choose_tx({Network, Profile, Node}, RxQ, TimeStamp),
     lager:debug("~s retransmitting", [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
     lorawan_gw_router:downlink({MAC, GWState}, Network, Node#node.devaddr, TxQ, LostDownlink),
     {stop, normal, undefined}.
