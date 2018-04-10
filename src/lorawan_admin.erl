@@ -311,7 +311,10 @@ build_field(Key, Value) when Key == dwell ->
               end, Value);
 build_field(Key, Value) when Key == delays ->
     lists:map(fun({Date, {Min, Avg, Max}}) ->
-                  #{date=>iso8601:format(Date), min=>Min, avg=>Avg, max=>Max}
+                  #{date=>iso8601:format(Date), min=>Min, avg=>Avg, max=>Max};
+                 % backward compatibility with 0.4.x
+                 ({Date, _SDelay, NDelay}) ->
+                  #{date=>iso8601:format(Date), min=>NDelay, avg=>NDelay, max=>NDelay}
               end, Value);
 build_field(Key, Value) when Key == router_perf ->
     lists:map(fun({Date, {ReqCnt, ErrCnt}}) ->
