@@ -178,8 +178,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false),
         nga.field('ip_address.ip').label('IP Address')
             .editable(false),
-        nga.field('last_alive', 'datetime').label('Last Alive'),
-        nga.field('last_report', 'datetime').label('Last Report'),
+        nga.field('last_alive', 'datetime'),
+        nga.field('last_gps', 'datetime').label('Last GPS'),
+        nga.field('last_report', 'datetime'),
         nga.field('mac', 'template').label('Network Delay')
             .template('<pgraph value="value"></pgraph>'),
         nga.field('mac', 'template').label('Transmissions')
@@ -191,7 +192,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     gateways.editionView().fields(gateways.creationView().fields());
     gateways.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:7},
-        {name:"Status", min:7, max:13}
+        {name:"Status", min:7, max:14}
     ]));
     // add to the admin application
     admin.addEntity(gateways);

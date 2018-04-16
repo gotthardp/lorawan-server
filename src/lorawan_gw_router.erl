@@ -14,6 +14,7 @@
 -include("lorawan_db.hrl").
 
 -record(state, {gateways, recent, request_cnt, error_cnt}).
+-record(gwstats, {process, target, last_gps, tx_times=[], nwk_delays=[]}).
 
 start_link() ->
     gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
@@ -53,22 +54,24 @@ handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
 handle_cast({alive, MAC, Process, {Host, Port, _}=Target}, #state{gateways=Dict}=State) ->
-    case dict:find(MAC, Dict) of
-        {ok, {Process, Target, TxTimes, NwkDelays}} ->
-            handle_alive(MAC, Target, TxTimes, NwkDelays);
-        {ok, {_, _, TxTimes, NwkDelays}} ->
-            lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
-            handle_alive(MAC, Target, TxTimes, NwkDelays);
-        error ->
-            lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
-            handle_alive(MAC, Target, [], [])
-    end,
-    Dict2 = dict:store(MAC, {Process, Target, [], []}, Dict),
+    Stats =
+        case dict:find(MAC, Dict) of
+            {ok, #gwstats{process=Process, target=Target}=S} ->
+                S;
+            {ok, #gwstats{}=S} ->
+                lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
+                S;
+            error ->
+                lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
+                #gwstats{process=Process, target=Target}
+        end,
+    handle_alive(MAC, Stats),
+    Dict2 = dict:store(MAC, Stats#gwstats{tx_times=[], nwk_delays=[]}, Dict),
     {noreply, State#state{gateways=Dict2}};
 
 handle_cast({network_delay, MAC, Delay}, #state{gateways=Dict}=State) ->
-    {ok, {Process, Target, TxTimes, NwkDelays}} = dict:find(MAC, Dict),
-    Dict2 = dict:store(MAC, {Process, Target, TxTimes, [Delay | NwkDelays]}, Dict),
+    {ok, #gwstats{nwk_delays=NwkDelays}=Stats} = dict:find(MAC, Dict),
+    Dict2 = dict:store(MAC, Stats#gwstats{nwk_delays=[Delay | NwkDelays]}, Dict),
     {noreply, State#state{gateways=Dict2}};
 
 handle_cast({report, MAC, S}, State) ->
@@ -89,12 +92,12 @@ handle_cast({uplinks, PkList}, State) ->
 handle_cast({downlink, {MAC, GWState}, DevAddr, TxQ, RFCh, PHYPayload}, #state{gateways=Dict}=State) ->
     % lager:debug("<-- freq ~p, datr ~s, codr ~s, tmst ~p, size ~B", [TxQ#txq.freq, TxQ#txq.datr, TxQ#txq.codr, TxQ#txq.tmst, byte_size(PHYPayload)]),
     case dict:find(MAC, Dict) of
-        {ok, {Process, Target, TxTimes, NwkDelays}} ->
+        {ok, #gwstats{process=Process, target=Target, tx_times=TxTimes}=Stats} ->
             % send data to the gateway interface handler
             gen_server:cast(Process, {send, Target, GWState, DevAddr, TxQ, RFCh, PHYPayload}),
             % store statistics
             Time = lorawan_mac_region:tx_time(byte_size(PHYPayload), TxQ),
-            Dict2 = dict:store(MAC, {Process, Target, [{TxQ#txq.freq, Time} | TxTimes], NwkDelays}, Dict),
+            Dict2 = dict:store(MAC, Stats#gwstats{tx_times=[{TxQ#txq.freq, Time} | TxTimes]}, Dict),
             {noreply, State#state{gateways=Dict2}};
         error ->
             lager:warning("Downlink request ignored. Gateway ~w not connected.", [MAC]),
@@ -146,13 +149,15 @@ append_perf(Perf, undefined) ->
 append_perf(Perf, PerfList) ->
     lists:sublist([Perf | PerfList], 50).
 
-handle_alive(MAC, Target, TxTimes, NwkDelays) ->
+handle_alive(MAC, #gwstats{target=Target, last_gps=LastGPS, tx_times=TxTimes, nwk_delays=NwkDelays}) ->
     {atomic, ok} = mnesia:transaction(
         fun() ->
             case mnesia:read(gateways, MAC, write) of
                 [#gateway{dwell=Dwell, delays=Delay}=G] ->
                     mnesia:write(gateways,
-                        G#gateway{ip_address=Target, last_alive=calendar:universal_time(),
+                        G#gateway{ip_address=Target,
+                            last_alive=calendar:universal_time(),
+                            last_gps=LastGPS,
                             dwell=update_dwell(TxTimes, Dwell),
                             delays=append_delays(NwkDelays, Delay)}, write);
                 [] ->
@@ -276,7 +281,11 @@ remove_duplicates([{{MAC, RxQ, GWState}, PHYPayload} | Tail], Unique) ->
 remove_duplicates([], Unique) ->
     Unique.
 
-handle_uplink({GWData, PHYPayload}, #state{recent=Recent, request_cnt=Cnt}=State) ->
+handle_uplink({GWData, PHYPayload}, State) ->
+    store_last_gps(GWData,
+        handle_uplink0({GWData, PHYPayload}, State)).
+
+handle_uplink0({GWData, PHYPayload}, #state{recent=Recent, request_cnt=Cnt}=State) ->
     case dict:find(PHYPayload, Recent) of
         error ->
             % we are not yet processing this frame
@@ -290,5 +299,11 @@ handle_uplink({GWData, PHYPayload}, #state{recent=Recent, request_cnt=Cnt}=State
         {ok, {GWDataList, Handler}} ->
             State#state{recent=dict:store(PHYPayload, {[GWData|GWDataList], Handler}, Recent)}
     end.
+
+store_last_gps({_MAC, #rxq{time=undefined}, _GWState}, State) ->
+    State;
+store_last_gps({MAC, #rxq{time=Time}, _GWState}, #state{gateways=Dict}=State) ->
+    {ok, Stats} = dict:find(MAC, Dict),
+    State#state{gateways=dict:store(MAC, Stats#gwstats{last_gps=Time}, Dict)}.
 
 % end of file

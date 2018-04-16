@@ -61,6 +61,7 @@
     gpsalt :: 'undefined' | number(), % altitude
     ip_address :: {inet:ip_address(), inet:port_number(), integer()},
     last_alive :: 'undefined' | calendar:datetime(),
+    last_gps :: 'undefined' | calendar:datetime(),
     last_report :: 'undefined' | calendar:datetime(),
     dwell :: [{calendar:datetime(), {number(), number(), number()}}], % {frequency, duration, hoursum}
     delays :: [{calendar:datetime(), {integer(), integer(), integer()}}]}). % {min, avg, max}
