@@ -252,6 +252,16 @@ fun(#{fcnt := FCnt}, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, 
 end.
 ```
 
+To accept various frames in one function you can write alternative functions,
+for example:
+```erlang
+fun (Fields, <<16#0402:16, Temp:16/signed>>) ->
+        Fields#{temp => Temp};
+    (Fields, <<16#0405:16, Level>>) ->
+        Fields#{level => Level}
+end.
+```
+
 To send multiple messages based on one frame (or even discard the frame and send
 no message) the function may also return a list of map expressions, for example:
 
