@@ -75,6 +75,7 @@ On the General tab you can set:
  - **NetID** of the network. Private networks should use 000000 or 000001.
  - **SubID** in the format *HexValue*:*Length* specifies the (optional) fixed
    bits in the DevAddr (see below).
+   The *HexValue* must have an even number of hex-digits.
  - **Region** that determines the LoRaWAN regional characteristics that cannot be modified.
  - **Coding Rate** is always "4/5".
  - **RX1/RX2 Join Delay** defines the JOIN_ACCEPT_DELAY1 and JOIN_ACCEPT_DELAY2.
