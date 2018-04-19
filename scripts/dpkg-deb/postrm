@@ -4,7 +4,7 @@ case "$1" in
     remove|purge)
     systemctl disable lorawan-server
     rm -rf /var/log/lorawan-server
-    userdel -r $USER
+    id -u $USER >/dev/null 2>&1 && userdel -r $USER
     ;;
 
     *)
