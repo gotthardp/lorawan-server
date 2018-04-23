@@ -60,7 +60,7 @@ handle_cast({alive, MAC, Process, {Host, Port, _}=Target}, #state{gateways=Dict}
                 S;
             {ok, #gwstats{}=S} ->
                 lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
-                S;
+                S#gwstats{process=Process, target=Target};
             error ->
                 lorawan_utils:throw_info({gateway, MAC}, {connected, {Host, Port}}),
                 #gwstats{process=Process, target=Target}
