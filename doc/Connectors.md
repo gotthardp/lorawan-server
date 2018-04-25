@@ -38,8 +38,9 @@ To create a new connector you set:
    - **network** when the destination server cannot be reached
    - **topic** when the target broker configuration is wrong
 
-When a *Failed* flag is raised, the connector is inactive. Fix the indicated root
-cause and then remove the flag to reactivate the connector.
+When a *Failed* flag is raised, the connector is inactive and no connection is
+established. To re-establish the connection after an error occures, fix the
+indicated root cause and then remove the flag to reactivate the connector.
 
 On the Authentication tab:
  - **Client ID** is the MQTT parameter
