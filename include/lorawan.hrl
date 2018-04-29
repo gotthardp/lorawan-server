@@ -22,7 +22,7 @@
             fun ({_K, D, D}) -> false;
                 ({K, V, _D}) -> {true, {K, V}}
             end,
-            lists:zip3(record_info(fields, Record), tl(tuple_to_list(RecData)), tl(tuple_to_list(#Record{})))
+            lists:zip3(record_info(fields, Record), lorawan_db:record_fields(RecData), tl(tuple_to_list(#Record{})))
     ))).
 
 -define(REALM, <<"lorawan-server">>).

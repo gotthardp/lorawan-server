@@ -7,6 +7,7 @@
 
 -export([ensure_tables/0, ensure_table/2]).
 -export([get_rxframes/1, get_last_rxframes/2]).
+-export([record_fields/1]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -221,6 +222,12 @@ get_value(_Rec, X, PropList) ->
 get_value0(Old, New, PropList) ->
     proplists:get_value(New, PropList,
       proplists:get_value(Old, PropList)).
+
+record_fields({rxq, Freq, DatR, CodR, Time, TmSt, Rssi, LSnr}) ->
+    % backward compatibility 29.4.2018
+    [Freq, DatR, CodR, Time, undefined, TmSt, Rssi, LSnr];
+record_fields(Record) ->
+    tl(tuple_to_list(Record)).
 
 set_defaults(users) ->
     lager:info("Database create default user:password"),
