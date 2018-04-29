@@ -95,8 +95,8 @@ parse_rxq(Gateways, Fields, Vars) ->
     {MAC1, #rxq{freq=Freq, datr=Datr, codr=Codr, rssi=RSSI1, lsnr=SNR1}} = hd(Gateways),
     RxQ =
         lists:map(
-            fun({MAC, #rxq{time=Time, rssi=RSSI, lsnr=SNR}}) ->
-                #{mac=>MAC, rssi=>RSSI, lsnr=>SNR, time=>Time}
+            fun({MAC, #rxq{time=Time, tmms=TmMs, rssi=RSSI, lsnr=SNR}}) ->
+                #{mac=>MAC, rssi=>RSSI, lsnr=>SNR, time=>Time, tmms=>TmMs}
             end,
             Gateways),
     vars_add(freq, Freq, Fields,

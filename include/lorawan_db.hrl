@@ -20,6 +20,7 @@
     datr :: binary() | integer(),
     codr :: binary(),
     time :: calendar:datetime(),
+    tmms :: integer(),
     tmst :: integer(),
     rssi :: number(),
     lsnr :: number()}).
