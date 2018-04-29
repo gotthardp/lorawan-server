@@ -43,7 +43,7 @@ handle_authorization(Req, State) ->
 digest_header() ->
     Nonce = lorawan_http_digest:nonce(16),
     lorawan_http_digest:header(digest, [
-        {<<"realm">>, ?REALM}, {<<"nonce">>, Nonce}]).
+        {<<"realm">>, ?REALM}, {<<"nonce">>, Nonce}, {<<"domain">>, <<"/">>}]).
 
 get_password_hash(Role, UserName) ->
     case mnesia:dirty_read(users, UserName) of
