@@ -147,17 +147,39 @@ rxpk(MAC, PkList) ->
 
 parse_rxpk(Pk) ->
     Data = base64:decode(maps:get(data, Pk)),
+    % search for a rsig entry with the best RSSI
+    Ant =
+        lists:foldl(
+            fun
+                (A1, undefined) ->
+                    A1;
+                (#{rssic := RSSI1}=A1, #{rssic := RSSI2}) when RSSI1 > RSSI2 ->
+                    A1;
+                (_Else, A2) ->
+                    A2
+            end,
+            undefined, maps:get(rsig, Pk, [])),
     % the modu field is ignored
     % we assume "LORA" datr is a binary string and "FSK" datr is an integer
-    RxQ = list_to_tuple([rxq|[get_rxpk_field(X, Pk) || X <- record_info(fields, rxq)]]),
+    RxQ = list_to_tuple([rxq|[get_rxpk_field(X, Pk, Ant) || X <- record_info(fields, rxq)]]),
     {RxQ, Data}.
 
-get_rxpk_field(time, List) ->
+get_rxpk_field(time, List, _Ant) ->
     case maps:get(time, List, undefined) of
         undefined -> undefined;
         Value -> iso8601:parse_exact(Value)
     end;
-get_rxpk_field(Field, List) ->
+% search for RSSI/SNR values
+get_rxpk_field(rssi, #{rssi := RSSI}, _Ant) when is_number(RSSI) ->
+    RSSI;
+get_rxpk_field(lsnr, #{lsnr := SNR}, _Ant) when is_number(SNR) ->
+    SNR;
+get_rxpk_field(rssi, _List, #{rssic := RSSI}) when is_number(RSSI) ->
+    RSSI;
+get_rxpk_field(lsnr, _List, #{lsnr := SNR}) when is_number(SNR) ->
+    SNR;
+% just get the required field
+get_rxpk_field(Field, List, _Ant) ->
     maps:get(Field, List, undefined).
 
 
