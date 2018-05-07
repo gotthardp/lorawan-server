@@ -919,7 +919,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     admin.dashboard(nga.dashboard()
         .addCollection(nga.collection(servers)
             .fields([
-                nga.field('name').isDetailLink(true),
+                nga.field('sname').label('Name').isDetailLink(true),
                 nga.field('modules.lorawan_server').label('Version'),
                 nga.field('memory').label('Memory')
                     .map(map_memstats),

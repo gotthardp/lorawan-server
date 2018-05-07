@@ -14,9 +14,15 @@ The list shows a single line describing the current server instance:
    * `disk_almost_full` if any disk partition uses more than 80% of the available
      space
 
-The detailed view shows also:
+In the detailed view you can set server-wide configuration parameters and view
+more details on the server status and performance:
+ - **Version**
+ - **Log Ignored?** indicates whether uplink frames from unknown and ignored nodes
+   shall be logged as *Received Frames*
+ - **Alerts**
  - **Performance** of the server in the number of requests and errors per minute
- - Detailed overview of all system **Disks**
+ - **Free Memory**
+ - **Disks** of the server and their utilization
 
 
 ## Gateways
