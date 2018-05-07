@@ -172,6 +172,7 @@ and institutions. It was mentioned by the following blogs and articles:
  * [LoraWAN server running on OpenWrt/LEDE](http://matchx.io/community/box/5-lorawan-server-running-on-the-box)
  * [Espruino RN2483 LoRa Modules](http://www.espruino.com/RN2483)
  * [1-Gate LoRaWAN Gateway COMPACT](http://www.1-gate.com/english/lorawan-gateways)
+ * [LoRaWAN evaluation by Witekio](https://witekio.com/blog/lorawan-dedicated-iot-network)
 
 Please let me know if you use the lorawan-server and want to be listed here.
 
