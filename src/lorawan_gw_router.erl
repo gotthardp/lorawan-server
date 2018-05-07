@@ -130,7 +130,7 @@ handle_info(submit_stats, #state{request_cnt=RequestCnt, error_cnt=ErrorCnt}=Sta
             Server =
                 case mnesia:read(servers, node(), write) of
                     [S] -> S#server{router_perf=append_perf(Perf, S#server.router_perf)};
-                    [] -> #server{name=node(), router_perf=[Perf]}
+                    [] -> #server{sname=node(), router_perf=[Perf]}
                 end,
             mnesia:write(servers, Server, write)
         end),

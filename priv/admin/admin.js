@@ -8,7 +8,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/api/');
 
     var servers = nga.entity('servers')
-        .identifier(nga.field('name'));
+        .identifier(nga.field('sname'));
     var applications = nga.entity('applications')
         .identifier(nga.field('name'));
     var users = nga.entity('users')
@@ -86,7 +86,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     // ---- servers
     servers.listView().fields([
-        nga.field('name').isDetailLink(true),
+        nga.field('sname').label('Name').isDetailLink(true),
         nga.field('modules.lorawan_server').label('Version'),
         nga.field('memory').label('Free Memory')
             .map(map_memstats_p),
@@ -96,12 +96,16 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ])
     .batchActions([]);
     servers.editionView().fields([
-        nga.field('health_alerts', 'choices').label('Alerts')
-            .editable(false),
-        nga.field('name', 'template').label('Performance')
-            .template('<sgraph value="value"></sgraph>'),
+        // General
         nga.field('modules.lorawan_server').label('Version')
             .editable(false),
+        nga.field('log_ignored', 'boolean').label('Log Ignored?')
+            .defaultValue(true),
+        // Status
+        nga.field('health_alerts', 'choices').label('Alerts')
+            .editable(false),
+        nga.field('sname', 'template').label('Performance')
+            .template('<sgraph value="value"></sgraph>'),
         nga.field('memory').label('Free Memory')
             .map(map_memstats_p)
             .editable(false),
@@ -115,7 +119,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]);
     servers.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:2},
-        {name:"Status", min:2, max:5}
+        {name:"Status", min:2, max:6}
     ]));
     // add to the admin application
     admin.addEntity(servers);

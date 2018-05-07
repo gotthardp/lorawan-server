@@ -198,6 +198,8 @@ ensure_fields(Name, TabDef) ->
 get_value(_Rec, node, PropList) ->
     % import data from old structure
     get_value0(link, node, PropList);
+get_value(server, sname, PropList) ->
+    get_value0(name, sname, PropList);
 get_value(user, pass_ha1, PropList) ->
     case proplists:is_defined(pass_ha1, PropList) of
         true ->
@@ -235,6 +237,8 @@ set_defaults(users) ->
     mnesia:dirty_write(users, #user{
         name=User,
         pass_ha1=lorawan_http_digest:ha1({User, ?REALM, Pass})});
+set_defaults(servers) ->
+    mnesia:dirty_write(servers, #server{sname=node(), router_perf=[]});
 set_defaults(_Else) ->
     ok.
 

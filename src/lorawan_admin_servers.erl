@@ -43,7 +43,7 @@ get_server() ->
     Server =
         case mnesia:dirty_read(servers, node()) of
             [S] -> S;
-            [] -> #server{name=node(), router_perf=[]}
+            [] -> #server{sname=node(), router_perf=[]}
         end,
     Config = lorawan_admin:build(?to_map(server, Server)),
     Alarms = get_alarms(),

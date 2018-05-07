@@ -188,6 +188,8 @@ parse_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_utils:hex_to_binary(Value);
+parse_field(Key, Value) when Key == sname; Key == severity; Key == entity ->
+    binary_to_existing_atom(Value, latin1);
 parse_field(Key, Value) when Key == gateways ->
     lists:map(
         fun(#{mac:=MAC, rxq:=RxQ}) ->
@@ -200,8 +202,6 @@ parse_field(Key, Values) when Key == cflist ->
         fun(#{freq:=Freq}=Map) ->
             {Freq, parse_opt(min_datr, Map), parse_opt(max_datr, Map)}
         end, Values);
-parse_field(Key, Value) when Key == severity; Key == entity ->
-    binary_to_existing_atom(Value, latin1);
 parse_field(Key, Value) when Key == gpspos ->
     parse_latlon(Value);
 parse_field(Key, Value) when Key == adr_use; Key == adr_set ->
@@ -266,6 +266,8 @@ build_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == devaddr; Key == nwkskey; Key == appskey;
                         Key == data; Key == frid; Key == evid; Key == eid ->
     lorawan_utils:binary_to_hex(Value);
+build_field(Key, Value) when Key == sname; Key == severity; Key == entity ->
+    atom_to_binary(Value, latin1);
 build_field(Key, Value) when Key == gateways ->
     lists:map(
         fun({MAC, RxQ}) ->
@@ -282,8 +284,6 @@ build_field(Key, Values) when Key == cflist ->
             (Freq) ->
                 #{freq=>Freq}
         end, Values);
-build_field(Key, Value) when Key == severity; Key == entity ->
-    atom_to_binary(Value, latin1);
 build_field(Key, Value) when Key == gpspos ->
     build_latlon(Value);
 build_field(Key, Value) when Key == adr_use; Key == adr_set ->
