@@ -8,11 +8,11 @@
 
 -export([init/3, data/4, info/3, terminate/3, early_error/5]).
 
--record(state, {next, path}).
+-record(state, {next, peer, path}).
 
 init(StreamId, Req, Opts) ->
     {Command, Next} = cowboy_stream:init(StreamId, Req, Opts),
-    {Command, #state{next=Next, path=path(Req)}}.
+    {Command, #state{next=Next, peer=cowboy_req:peer(Req), path=path(Req)}}.
 
 path(#{path := Path, qs := <<>>}) ->
     Path;
@@ -23,25 +23,25 @@ data(StreamId, IsFin, Data, #state{next=Next0}=State) ->
     {Command, Next} = cowboy_stream:data(StreamId, IsFin, Data, Next0),
     {Command, State#state{next=Next}}.
 
-info(StreamId, Response, #state{next=Next0, path=Path}=State) ->
-    {Command, Next} = cowboy_stream:info(StreamId, handle_response(Response, Path), Next0),
+info(StreamId, Response, #state{next=Next0, peer=Peer, path=Path}=State) ->
+    {Command, Next} = cowboy_stream:info(StreamId, handle_response(Response, Peer, Path), Next0),
     {Command, State#state{next=Next}}.
 
-handle_response({response, Status, Headers, Body}, _Path)
+handle_response({response, Status, Headers, Body}, _Peer, _Path)
         when Status div 100 == 2 ->
     {response, Status, add_security_headers(Headers), Body};
-handle_response({headers, Status, Headers}, _Path)
+handle_response({headers, Status, Headers}, _Peer, _Path)
         when Status div 100 == 2 ->
     {headers, Status, add_security_headers(Headers)};
 
-handle_response({response, Status, _Headers, _Body}=Response, Path) ->
-    log_error(Status, Path),
+handle_response({response, Status, _Headers, _Body}=Response, Peer, Path) ->
+    log_error(Status, Peer, Path),
     Response;
-handle_response({headers, Status, _Headers}=Response, Path) ->
-    log_error(Status, Path),
+handle_response({headers, Status, _Headers}=Response, Peer, Path) ->
+    log_error(Status, Peer, Path),
     Response;
 
-handle_response(Else, _Path) ->
+handle_response(Else, _Peer, _Path) ->
     Else.
 
 add_security_headers(Headers) ->
@@ -50,10 +50,10 @@ add_security_headers(Headers) ->
         <<"content-security-policy">> => ContentSecurity
     }.
 
-log_error(Status, _Path) when Status == 304; Status == 401 ->
+log_error(Status, _Peer, _Path) when Status == 304; Status == 401 ->
     ok;
-log_error(Status, Path) ->
-    lorawan_utils:throw_warning(server, {http_error, {Status, binary_to_list(Path)}}).
+log_error(Status, {IP, _Port}, Path) ->
+    lorawan_utils:throw_warning(server, {http_error, {Status, binary_to_list(Path), IP}}).
 
 terminate(StreamId, Reason, #state{next=Next0}) ->
     cowboy_stream:terminate(StreamId, Reason, Next0).
