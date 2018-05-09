@@ -86,7 +86,7 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
                     {next_state, drop, Data}
             end;
         {ignore, Frame} ->
-            case mnesia:read(servers, node(), write) of
+            case mnesia:dirty_read(servers, node()) of
                 [#server{log_ignored=true}] ->
                     {next_state, log_only, Frame};
                 _Else ->
