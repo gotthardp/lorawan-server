@@ -308,7 +308,12 @@ handle_uplink0({GWData, PHYPayload}, #state{recent=Recent, request_cnt=Cnt}=Stat
 store_last_gps(_MAC, #rxq{time=undefined}, State) ->
     State;
 store_last_gps(MAC, #rxq{time=Time}, #state{gateways=Dict}=State) ->
-    {ok, Stats} = dict:find(MAC, Dict),
-    State#state{gateways=dict:store(MAC, Stats#gwstats{last_gps=Time}, Dict)}.
+    case dict:find(MAC, Dict) of
+        {ok, Stats} ->
+            State#state{gateways=dict:store(MAC, Stats#gwstats{last_gps=Time}, Dict)};
+        error ->
+            % not yet initialized
+            State
+    end.
 
 % end of file
