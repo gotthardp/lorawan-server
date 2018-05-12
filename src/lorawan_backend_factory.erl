@@ -38,6 +38,12 @@ handle_info(start_all, State) ->
         end,
         mnesia:dirty_all_keys(connectors)),
     {noreply, State};
+% ignore schema changes
+handle_info({mnesia_table_event, {write, schema, _NewRec, _OldRec, _Activity}}, State) ->
+    {noreply, State};
+handle_info({mnesia_table_event, {delete, schema, _What, _OldRec0, _Activity}}, State) ->
+    {noreply, State};
+% handle database updates
 handle_info({mnesia_table_event, {write, _Table, NewRec0, [], _Activity}}, State) ->
     item_created(NewRec0),
     {noreply, State};
@@ -47,8 +53,6 @@ handle_info({mnesia_table_event, {write, _Table, NewRec0, [OldRec0], _Activity}}
 handle_info({mnesia_table_event, {delete, _Table, _What, [OldRec0], _Activity}}, State) ->
     item_deleted(OldRec0),
     {noreply, State};
-
-    %%% case setelement(1, Record0, connector) of
 
 handle_info(Info, State) ->
     lager:debug("unknown info ~p", [Info]),
