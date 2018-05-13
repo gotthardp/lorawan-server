@@ -1,7 +1,7 @@
 FROM erlang:20-slim
 MAINTAINER Petr Gotthard <petr.gotthard@centrum.cz>
 
-RUN echo "deb [allow-insecure=yes] http://deb.nodesource.com/node_6.x stretch main" > /etc/apt/sources.list && apt-get update && apt-get install -y wget git nodejs && rm -r /var/cache/
+RUN curl -sL https://deb.nodesource.com/setup_6.x | bash - && apt-get install -y wget git nodejs && rm -r /var/cache/
 RUN git clone https://github.com/gotthardp/lorawan-server.git && cd lorawan-server && make release && make clean
 
 # volume for the mnesia database and logs
