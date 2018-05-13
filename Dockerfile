@@ -1,4 +1,4 @@
-FROM erlang:19-slim
+FROM erlang:20-slim
 MAINTAINER Petr Gotthard <petr.gotthard@centrum.cz>
 
 RUN apt-get update && apt-get install -y wget git npm && rm -r /var/cache/
