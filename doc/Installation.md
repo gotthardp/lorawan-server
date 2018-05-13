@@ -240,8 +240,8 @@ Required `nodejs` can be installed from [here](https://github.com/nodesource/dis
 On Debian, add the following to your `/etc/apt/sources.list` and run `apt-get update`
 before installation:
 ```
-deb https://deb.nodesource.com/node_6.x stretch main
-deb-src https://deb.nodesource.com/node_6.x stretch main
+deb http://deb.nodesource.com/node_6.x stretch main
+deb-src http://deb.nodesource.com/node_6.x stretch main
 ```
 
 Then, obtain the build prerequisites:
