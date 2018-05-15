@@ -49,7 +49,7 @@ build_hierarchy(PatConn, PatSub, Nodes) ->
             Subs = proplists:get_value(Connect, Hier, []),
             Subs2 =
                 if
-                    PatSub == undefined; PatSub == <<>> ->
+                    PatSub == undefined; PatSub == ?EMPTY_PATTERN ->
                         Subs;
                     true ->
                         Subscribe = lorawan_connector:fill_pattern(PatSub, Vars),
