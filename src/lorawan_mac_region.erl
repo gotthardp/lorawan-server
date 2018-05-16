@@ -57,19 +57,6 @@ f2ch(Freq, {Start1, Inc1}, _) when round(10*Freq-Start1) rem Inc1 == 0 ->
 f2ch(Freq, _, {Start2, Inc2}) when round(10*Freq-Start2) rem Inc2 == 0 ->
     64 + round(10*Freq-Start2) div Inc2.
 
-ch2f(<<"EU868">>, Ch) ->
-    if
-        Ch >= 0, Ch =< 2 ->
-            ch2fi(Ch, {8681, 2});
-        Ch >= 3, Ch =< 7 ->
-            ch2fi(Ch, {8671, 2});
-        Ch == 8 ->
-            868.8
-    end;
-ch2f(<<"CN779">>, Ch) ->
-    ch2fi(Ch, {7795, 2});
-ch2f(<<"EU433">>, Ch) ->
-    ch2fi(Ch, {4331.75, 2});
 ch2f(Region, Ch)
         when Region == <<"US902">>; Region == <<"US902-PR">>; Region == <<"AU915">> ->
     ch2fi(Ch, {9233, 6});
