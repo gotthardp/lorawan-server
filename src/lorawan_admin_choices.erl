@@ -39,7 +39,8 @@ handle_get(Req, regions=Opts) ->
                 ]}
             end,
             [<<"EU868">>, <<"CN779">>, <<"EU433">>, <<"AS923">>, <<"CN470">>,
-            <<"KR920">>, <<"IN865">>, <<"US902">>, <<"US902-PR">>, <<"AU915">>]),
+            <<"KR920">>, <<"IN865">>, <<"RU868">>,
+            <<"US902">>, <<"US902-PR">>, <<"AU915">>]),
     {jsx:encode(Regs), Req, Opts};
 handle_get(Req, networks=Opts) ->
     Nets =
@@ -103,7 +104,7 @@ downlink_datar_choices0(Region) ->
 both_datar_choices0(Region) ->
     if
         Region == <<"EU868">>; Region == <<"CN779">>; Region == <<"EU433">>;
-        Region == <<"AS923">>;
+        Region == <<"AS923">>; Region == <<"RU868">>;
         Region == <<"CN470">>; Region == <<"KR920">>; Region == <<"IN865">> -> [
             [{value, 0}, {label, <<"SF12 125 kHz (250 bit/s)">>}],
             [{value, 1}, {label, <<"SF11 125 kHz (440 bit/s)">>}],
@@ -113,7 +114,7 @@ both_datar_choices0(Region) ->
             [{value, 5}, {label, <<"SF7 125 kHz (5470 bit/s)">>}]] ++
         if
             Region == <<"EU868">>; Region == <<"CN779">>; Region == <<"EU433">>;
-            Region == <<"AS923">> -> [
+            Region == <<"AS923">>; Region == <<"RU868">> -> [
                 [{value, 6}, {label, <<"SF7 250 kHz (11000 bit/s)">>}],
                 [{value, 7}, {label, <<"50 kbps (50000 bit/s)">>}]];
             true ->

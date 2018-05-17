@@ -198,7 +198,8 @@ freq_range(<<"AU915">>) -> {915, 928};
 freq_range(<<"CN470">>) -> {470, 510};
 freq_range(<<"AS923">>) -> {915, 928};
 freq_range(<<"KR920">>) -> {920, 923};
-freq_range(<<"IN865">>) -> {865, 867}.
+freq_range(<<"IN865">>) -> {865, 867};
+freq_range(<<"RU868">>) -> {864, 870}.
 
 max_uplink_snr(DataRate) ->
     {SF, _} = datar_to_tuple(DataRate),
