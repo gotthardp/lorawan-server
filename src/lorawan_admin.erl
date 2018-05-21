@@ -122,9 +122,9 @@ check_battery(#node{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
         Battery == 0 ->
             % connected to external power
             ok;
-        Battery < 50 ->
+        Battery < 100 ->
             % TODO: should estimate trend instead
-            {100-2*Battery, battery_low};
+            {100-Battery, battery_low};
         Battery == 255 ->
             {25, cannot_measure_battery};
         true ->

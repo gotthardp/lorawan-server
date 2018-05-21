@@ -384,13 +384,20 @@ request_status(#profile{request_devstat=false}, _Node, FOptsOut) ->
 request_status(_Profile, #node{devstat_time=LastDate, devstat_fcnt=LastFCnt}, FOptsOut)
         when LastDate == undefined; LastFCnt == undefined ->
     [dev_status_req | FOptsOut];
-request_status(_Profile, #node{devstat_time=LastDate, devstat_fcnt=LastFCnt}=Node, FOptsOut) ->
+request_status(_Profile, #node{devstat=Stats, devstat_time=LastDate, devstat_fcnt=LastFCnt}=Node, FOptsOut) ->
     {ok, {MaxTime, MaxFCnt}} = application:get_env(lorawan_server, devstat_gap),
     TimeDiff = calendar:datetime_to_gregorian_seconds(calendar:universal_time())
                 - calendar:datetime_to_gregorian_seconds(LastDate),
+    Divider =
+        case Stats of
+            [{_Time, Battery, _Margin, _MaxSNR} | _] when Battery < 100 ->
+                2;
+            _Else ->
+                1
+        end,
     if
-        TimeDiff > MaxTime;
-        Node#node.fcntup - LastFCnt > MaxFCnt ->
+        TimeDiff > MaxTime / Divider;
+        Node#node.fcntup - LastFCnt > MaxFCnt / Divider ->
             [dev_status_req | FOptsOut];
         true ->
             FOptsOut
