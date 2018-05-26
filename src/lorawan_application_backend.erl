@@ -262,7 +262,7 @@ purge_frames(#handler{downlink_expires = <<"superseded">>}=Handler,
     lists:foreach(
         fun
             (#txdata{confirmed=true, receipt=Receipt}) ->
-                lorawan_utils:throw_error({node, DevAddr}, downlink_lost),
+                lorawan_utils:throw_error({node, DevAddr}, downlink_expired),
                 send_event(lost, #{receipt => Receipt}, Handler, Node);
             (#txdata{}) ->
                 ok

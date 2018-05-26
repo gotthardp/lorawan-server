@@ -193,7 +193,7 @@ send_unicast({MAC, GWState}, {Network, Profile, #node{devaddr=DevAddr}=Node}, Tx
     % we are about to overwrite the pending frame for this device
     case mnesia:dirty_read(pending, DevAddr) of
         [#pending{confirmed=true, receipt=Receipt}] ->
-            lorawan_utils:throw_error({node, DevAddr}, downlink_lost),
+            lorawan_utils:throw_error({node, DevAddr}, downlink_expired),
             invoke_handler(handle_delivery, {Network, Profile, Node}, [lost, Receipt]);
         _Else ->
             ok

@@ -118,6 +118,16 @@ The server is configured to use the *semtech-mote* application, but your device
 sent some other data. Make sure your firmware uses the
 [supported format](https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207).
 
+### downlink_missed
+
+Confirmed downlink was sent, but the device indicated it did not received it.
+Depending on the application logic the downlink may be retransmitted.
+
+### downlink_expired
+
+Confirmed downlink was superseded before it could be transmitted to the device.
+See the **D/L Expires** setting of the corresponding [Handler](Handlers.md).
+
 ### prerequisite_failed
 
 This is reported when the lorawan-server is started with older Erlang/OTP. At
