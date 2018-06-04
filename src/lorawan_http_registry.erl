@@ -70,7 +70,8 @@ compile_routes(Dict) ->
     Routes = get_routes(Dict),
     lager:debug("New routes ~p", [Routes]),
     cowboy_router:compile([
-        {'_', Routes++static_routes()}
+        % static routes take precedence
+        {'_', static_routes()++Routes}
     ]).
 
 get_routes(Dict) ->
