@@ -16,7 +16,7 @@
 -record(state, {conn, pool, publish_uplinks, publish_events}).
 
 start_connector(#connector{connid=Id}=Connector) ->
-    {ok, _} = lorawan_connector_sup:start_child({mongodb, Id}, ?MODULE, [Connector]).
+    lorawan_connector_sup:start_child({mongodb, Id}, ?MODULE, [Connector]).
 
 stop_connector(Id) ->
     lorawan_connector_sup:stop_child({mongodb, Id}).
@@ -34,12 +34,18 @@ init([#connector{connid=Id, app=App, uri= <<"mongodb://", Servers0/binary>>,
     mongodb:replicaSets(Pool, 10,
         string:tokens(binary_to_list(Servers0), ", ")),
     mongodb:connect(Pool),
-    {ok, #state{
-        conn=Connector,
-        pool=Pool,
-        publish_uplinks=lorawan_connector:prepare_filling(PubUp),
-        publish_events=lorawan_connector:prepare_filling(PubEv)
-    }}.
+    try
+        {ok, #state{
+            conn=Connector,
+            pool=Pool,
+            publish_uplinks=lorawan_connector:prepare_filling(PubUp),
+            publish_events=lorawan_connector:prepare_filling(PubEv)
+        }}
+    catch
+        _:Error ->
+            lorawan_connector:raise_failed(Id, Error),
+            {stop, shutdown}
+    end.
 
 handle_call(_Request, _From, State) ->
     {reply, {error, unknownmsg}, State}.

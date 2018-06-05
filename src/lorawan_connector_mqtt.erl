@@ -16,7 +16,7 @@
 -record(costa, {phase, cargs, last_connect, connect_count}).
 
 start_connector(#connector{connid=Id}=Connector) ->
-    {ok, _} = lorawan_connector_sup:start_child({mqtt, Id}, ?MODULE, [Connector]).
+    lorawan_connector_sup:start_child({mqtt, Id}, ?MODULE, [Connector]).
 
 stop_connector(Id) ->
     lorawan_connector_sup:stop_child({mqtt, Id}).
@@ -24,22 +24,27 @@ stop_connector(Id) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([#connector{app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
+init([#connector{connid=Id, app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
         subscribe=Sub, publish_uplinks=PubUp, publish_events=PubEv, received=Cons}=Connector]) ->
     process_flag(trap_exit, true),
     ok = pg2:join({backend, App}, self()),
     self() ! nodes_changed,
     timer:send_interval(60*1000, ping),
-
-    {ok, #state{
-        conn=Connector,
-        connect=lorawan_connector:prepare_filling([Uri, ClientId, UserName, Password]),
-        subscribe=lorawan_connector:prepare_filling(Sub),
-        publish_uplinks=lorawan_connector:prepare_filling(PubUp),
-        publish_events=lorawan_connector:prepare_filling(PubEv),
-        received=lorawan_connector:prepare_matching(Cons),
-        hier=[]
-    }}.
+    try
+        {ok, #state{
+            conn=Connector,
+            connect=lorawan_connector:prepare_filling([Uri, ClientId, UserName, Password]),
+            subscribe=lorawan_connector:prepare_filling(Sub),
+            publish_uplinks=lorawan_connector:prepare_filling(PubUp),
+            publish_events=lorawan_connector:prepare_filling(PubEv),
+            received=lorawan_connector:prepare_matching(Cons),
+            hier=[]
+        }}
+    catch
+        _:Error ->
+            lorawan_connector:raise_failed(Id, Error),
+            {stop, shutdown}
+    end.
 
 build_hierarchy(PatConn, PatSub, Nodes) ->
     lists:foldl(

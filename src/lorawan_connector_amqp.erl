@@ -16,7 +16,7 @@
 -record(state, {conn, cpid, subc, publish_uplinks, publish_events, received}).
 
 start_connector(#connector{connid=Id}=Connector) ->
-    {ok, _} = lorawan_connector_sup:start_child({amqp, Id}, ?MODULE, [Connector]).
+    lorawan_connector_sup:start_child({amqp, Id}, ?MODULE, [Connector]).
 
 stop_connector(Id) ->
     lorawan_connector_sup:stop_child({amqp, Id}).
@@ -24,16 +24,22 @@ stop_connector(Id) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([#connector{app=App, publish_uplinks=PubUp, publish_events=PubEv, received=Cons}=Connector]) ->
+init([#connector{connid=Id, app=App, publish_uplinks=PubUp, publish_events=PubEv, received=Cons}=Connector]) ->
     process_flag(trap_exit, true),
     ok = pg2:join({backend, App}, self()),
     self() ! connect,
-    {ok, #state{
-        conn=Connector,
-        publish_uplinks=lorawan_connector:prepare_filling(PubUp),
-        publish_events=lorawan_connector:prepare_filling(PubEv),
-        received=lorawan_connector:prepare_matching(Cons)
-    }}.
+    try
+        {ok, #state{
+            conn=Connector,
+            publish_uplinks=lorawan_connector:prepare_filling(PubUp),
+            publish_events=lorawan_connector:prepare_filling(PubEv),
+            received=lorawan_connector:prepare_matching(Cons)
+        }}
+    catch
+        _:Error ->
+            lorawan_connector:raise_failed(Id, Error),
+            {stop, shutdown}
+    end.
 
 handle_call(_Request, _From, State) ->
     {reply, {error, unknownmsg}, State}.
