@@ -50,7 +50,7 @@ add_security_headers(Headers) ->
         <<"content-security-policy">> => ContentSecurity
     }.
 
-log_error(Status, _Peer, _Path) when Status == 304; Status == 401 ->
+log_error(Status, _Peer, _Path) when Status == 301; Status == 304; Status == 401 ->
     ok;
 log_error(Status, {IP, _Port}, Path) ->
     lorawan_utils:throw_warning(server, {http_error, {Status, binary_to_list(Path), IP}}).

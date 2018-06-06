@@ -53,17 +53,22 @@ code_change(_OldVsn, State, _Extra) ->
 
 update_routes(State) ->
     Dispatch = compile_routes(State),
-    case application:get_env(lorawan_server, http_admin_listen, undefined) of
-        undefined ->
+    case {application:get_env(lorawan_server, http_admin_listen, []),
+            application:get_env(lorawan_server, http_admin_listen_ssl, [])} of
+        {[], []} ->
             ok;
-        _HttpOpts ->
-            cowboy:set_env(http, dispatch, Dispatch)
-    end,
-    case application:get_env(lorawan_server, http_admin_listen_ssl, undefined) of
-        undefined ->
-            ok;
-        _SslOpts ->
-            cowboy:set_env(https, dispatch, Dispatch)
+        {_HttpOpts, []} ->
+            cowboy:set_env(http, dispatch, Dispatch);
+        {[], _SslOpts} ->
+            cowboy:set_env(https, dispatch, Dispatch);
+        {_HttpOpts, _SslOpts} ->
+            cowboy:set_env(https, dispatch, Dispatch),
+            case application:get_env(lorawan_server, http_admin_redirect_ssl, true) of
+                false ->
+                    cowboy:set_env(http, dispatch, Dispatch);
+                true ->
+                    ok
+            end
     end.
 
 compile_routes(Dict) ->
