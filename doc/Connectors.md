@@ -102,6 +102,9 @@ To create a web socket connector you set:
  - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/ws/uplink/{devaddr}'
  - **Publish Events** to another URL pattern, e.g. '/ws/events/{devaddr}'
 
+The patterns may have any structure (doesn't have to start with `/ws`), but must
+be unique across the entire server, including the web-admin itself.
+
 The patterns may contain uplink Fields of the corresponding [Handler](Handlers.md),
 mainly `{deveui}`, `{devaddr}` or `{app}` corresponding to a group of devices with
 the same application (Handler name).
