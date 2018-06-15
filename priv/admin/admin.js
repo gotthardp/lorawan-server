@@ -467,6 +467,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     devices.listView().filters([
         nga.field('deveui').label('DevEUI')
             .validation({ pattern: '[A-Fa-f0-9]{16}' }),
+        nga.field('node'),
         nga.field('profile')
     ]);
 
