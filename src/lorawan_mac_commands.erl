@@ -30,6 +30,7 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
     FOptsOut =
         lists:foldl(
             fun (link_check_req, Acc) -> [send_link_check(Gateways) | Acc];
+                (device_time_req, Acc) -> [send_device_time(Gateways) | Acc];
                 (_Else, Acc) -> Acc
             end,
             [], FOptsIn),
@@ -88,12 +89,14 @@ parse_fopts(<<16#06, Battery:8, _RFU:2, Margin:6/signed, Rest/binary>>) ->
     [{dev_status_ans, Battery, Margin} | parse_fopts(Rest)];
 parse_fopts(<<16#07, _RFU:6, DataRateRangeOK:1, ChannelFreqOK:1, Rest/binary>>) ->
     [{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | parse_fopts(Rest)];
-parse_fopts(<<16#0A, _RFU:6, UplinkFreqExists:1, ChannelFreqOK:1, Rest/binary>>) ->
-    [{di_channel_ans, UplinkFreqExists, ChannelFreqOK} | parse_fopts(Rest)];
 parse_fopts(<<16#08, Rest/binary>>) ->
     [rx_timing_setup_ans | parse_fopts(Rest)];
 parse_fopts(<<16#09, Rest/binary>>) ->
     [tx_param_setup_ans | parse_fopts(Rest)];
+parse_fopts(<<16#0A, _RFU:6, UplinkFreqExists:1, ChannelFreqOK:1, Rest/binary>>) ->
+    [{di_channel_ans, UplinkFreqExists, ChannelFreqOK} | parse_fopts(Rest)];
+parse_fopts(<<16#0D, Rest/binary>>) ->
+    [device_time_req | parse_fopts(Rest)];
 parse_fopts(<<>>) ->
     [];
 parse_fopts(Unknown) ->
@@ -112,12 +115,15 @@ encode_fopts([dev_status_req | Rest]) ->
     <<16#06, (encode_fopts(Rest))/binary>>;
 encode_fopts([{new_channel_req, ChIndex, Freq, MaxDR, MinDR} | Rest]) ->
     <<16#07, ChIndex, Freq:24/little-unsigned-integer, MaxDR:4, MinDR:4, (encode_fopts(Rest))/binary>>;
-encode_fopts([{di_channel_req, ChIndex, Freq} | Rest]) ->
-    <<16#0A, ChIndex, Freq:24/little-unsigned-integer, (encode_fopts(Rest))/binary>>;
 encode_fopts([{rx_timing_setup_req, Delay} | Rest]) ->
     <<16#08, 0:4, Delay:4, (encode_fopts(Rest))/binary>>;
 encode_fopts([{tx_param_setup_req, DownDwell, UplinkDwell, MaxEIRP} | Rest]) ->
     <<16#09, 0:2, DownDwell:1, UplinkDwell:1, MaxEIRP:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{di_channel_req, ChIndex, Freq} | Rest]) ->
+    <<16#0A, ChIndex, Freq:24/little-unsigned-integer, (encode_fopts(Rest))/binary>>;
+encode_fopts([{device_time_ans, MsSinceEpoch} | Rest]) ->
+    Ms = trunc((MsSinceEpoch rem 1000) / 3.90625), % 0.5^8
+    <<16#0D, (MsSinceEpoch div 1000):32/little-unsigned-integer, Ms, (encode_fopts(Rest))/binary>>;
 encode_fopts([]) ->
     <<>>.
 
@@ -243,6 +249,27 @@ send_link_check([{_MAC, RxQ}|_]=Gateways) ->
     Margin = trunc(SNR - lorawan_mac_region:max_uplink_snr(DataRate)),
     lager:debug("LinkCheckAns: margin: ~B, gateways: ~B", [Margin, length(Gateways)]),
     {link_check_ans, Margin, length(Gateways)}.
+
+send_device_time([{_MAC, #rxq{time=undefined}}|_]) ->
+    MsSinceEpoch = time_to_gps(lorawan_utils:precise_universal_time()),
+    lager:debug("DeviceTimeAns: time: ~B (from local)", [MsSinceEpoch]),
+    % no time provided by the gateway, we do our best
+    {device_time_ans, MsSinceEpoch};
+send_device_time([{_MAC, #rxq{time=Time, tmms=undefined}}|_]) ->
+    MsSinceEpoch = time_to_gps(Time),
+    lager:debug("DeviceTimeAns: time: ~B (from gateway)", [MsSinceEpoch]),
+    % we got GPS time, but not milliseconds
+    {device_time_ans, MsSinceEpoch};
+send_device_time([{_MAC, #rxq{tmms=MsSinceEpoch}}|_]) ->
+    lager:debug("DeviceTimeAns: time: ~B", [MsSinceEpoch]),
+    % this is the easiest
+    {device_time_ans, MsSinceEpoch}.
+
+time_to_gps({Date, {Hours, Min, Secs}}) ->
+    TotalSecs = calendar:datetime_to_gregorian_seconds({Date, {Hours, Min, trunc(Secs)}})
+            - calendar:datetime_to_gregorian_seconds({{1980, 1, 6}, {0, 0, 0}})
+            + 17, % leap seconds
+    1000*TotalSecs + (Secs - trunc(Secs)).
 
 
 auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=Failed}=Node)
@@ -405,5 +432,13 @@ request_status(_Profile, #node{devstat=Stats, devstat_time=LastDate, devstat_fcn
 
 add_when_zero(Error, 0, List) -> [Error|List];
 add_when_zero(_Error, 1, List) -> List.
+
+-include_lib("eunit/include/eunit.hrl").
+
+command_test_()-> [
+    % from the LoRaWAN Specification 1.0.3, Section 5.9
+    ?_assertEqual({device_time_ans,1139322288000},
+        send_device_time([{<<>>, #rxq{time={{2016, 2, 12}, {14, 24, 31}}, tmms=undefined}}]))
+].
 
 % end of file

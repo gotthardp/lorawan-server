@@ -10,7 +10,7 @@ got moved to the Profile settings. You are required to review and complete
 the configuration before connecting any gateway or device!
 
 The server:
- * Implements the LoRaWAN Specification v1.0.2
+ * Implements the LoRaWAN Specification v1.0.3
  * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
    * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
      such as the Semtech LoRa demo kit,
