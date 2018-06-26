@@ -4,7 +4,7 @@ Open-source LoRaWAN Server that integrates both the network-server and the appli
 This is useful for application providers that operate their own LoRaWAN network,
 or for device and application developers.
 
-**This is release 0.5.4.** Migrating to this version will preserve the
+**This is release 0.5.5.** Migrating to this version will preserve the
 Device/Node addresses and security keys, but will delete many ADR parameters, which
 got moved to the Profile settings. You are required to review and complete
 the configuration before connecting any gateway or device!
@@ -44,8 +44,8 @@ The server:
      over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
    * Supports multicast to user-defined groups.
-   * Supports all regions standartized in LoRaWAN 1.0.2 Regional Parameters for
-     Europe, US, China, Australia, Asia, South Korea and India.
+   * Supports all regions standartized in LoRaWAN 1.0.3 Regional Parameters for
+     Europe, US, China, Australia, Asia, South Korea, India and Russia.
  * Provides a network management interface.
    * Monitors the server, gateways and node health status and displays device
      battery and connection quality indicators.
