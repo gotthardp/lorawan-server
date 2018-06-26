@@ -5,7 +5,7 @@
 <p>
 The server:
 <ul>
- <li>Implements the LoRaWAN Specification v1.0.2</li>
+ <li>Implements the LoRaWAN Specification v1.0.3</li>
  <li>Communicates (any number of) with remote LoRaWAN gateways.</li>
  <li>Performs all required encryption and integrity checks.
     <ul>
@@ -31,7 +31,7 @@ The server:
     <li>Supports both the activation by personalization and the over-the-air activation.</li>
     <li>Supports both unconfirmed and confirmed data uplink and downlink.</li>
     <li>Supports multicast to user-defined groups.</li>
-    <li>Supports all regions standartized in LoRaWAN 1.0.2 Regional Parameters for Europe, US, China, Australia, Asia, South Korea and India.</li>
+    <li>Supports all regions standartized in LoRaWAN 1.0.3 Regional Parameters for Europe, US, China, Australia, Asia, South Korea, India and Russia.</li>
     </ul>
  </li>
  <li>Provides a network management interface.
