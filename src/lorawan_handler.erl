@@ -86,10 +86,15 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
                     {next_state, drop, Data}
             end;
         {ignore, Frame} ->
-            case mnesia:dirty_read(servers, node()) of
-                [#server{log_ignored=true}] ->
-                    {next_state, log_only, Frame};
-                _Else ->
+            case mnesia:dirty_read(gateways, MAC) of
+                [#gateway{area=AreaName}] ->
+                    case mnesia:dirty_read(areas, AreaName) of
+                        [#area{log_ignored=true}] ->
+                            {next_state, log_only, Frame};
+                        _ ->
+                            {next_state, drop, Data}
+                    end;
+                _ ->
                     {next_state, drop, Data}
             end;
         {error, Error} ->
@@ -275,15 +280,16 @@ multicast(#multicast_channel{devaddr=DevAddr, profiles=Profiles}, Time, #txdata{
     {ok, PHYPayload} = lorawan_mac:encode_multicast(DevAddr, TxData),
     lists:foreach(
         fun(Prof) ->
-            [Profile] = mnesia:dirty_read(profiles, Prof),
-            multicast(DevAddr, Profile, Time, PHYPayload)
+            [#profile{group=GroupName}=Profile] = mnesia:dirty_read(profiles, Prof),
+            [#group{network=NetName}] = mnesia:dirty_read(groups, GroupName),
+            [Network] = mnesia:dirty_read(networks, NetName),
+            multicast(DevAddr, Profile, Network, Time, PHYPayload)
         end,
         Profiles);
 multicast(#multicast_channel{devaddr=DevAddr}, _Time, #txdata{confirmed=true}) ->
     lorawan_utils:throw_error({multicast_channel, DevAddr}, confirmed_not_allowed).
 
-multicast(DevAddr, #profile{name=Prof, network=Net}=Profile, Time, PHYPayload) ->
-    [Network] = mnesia:dirty_read(networks, Net),
+multicast(DevAddr, #profile{name=Prof}=Profile, Network, Time, PHYPayload) ->
     TxQ = lorawan_mac_region:rx2_rf(Network, Profile),
     lists:foreach(
         fun(MAC) ->

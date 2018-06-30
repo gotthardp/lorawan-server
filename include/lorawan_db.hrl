@@ -33,28 +33,14 @@
     time :: 'undefined' | 'immediately' | calendar:datetime(),
     powe :: 'undefined' | integer()}).
 
--record(network, {
+-record(area, {
     name :: nonempty_string(),
-    netid :: binary(), % network id
-    subid :: 'undefined' | bitstring(), % sub-network id
-    region :: binary(),
-    tx_codr :: binary(),
-    join1_delay :: integer(),
-    join2_delay :: integer(),
-    rx1_delay :: integer(),
-    rx2_delay :: integer(),
-    gw_power :: integer(),
-    max_eirp :: integer(),
-    max_power :: integer(),
-    min_power :: integer(),
-    max_datr :: number(),
-    rxwin_init :: rxwin_config(),
-    init_chans :: intervals(),
-    cflist :: 'undefined' | [{number(), integer(), integer()}]}).
+    admins :: [nonempty_string()],
+    log_ignored :: boolean()}).
 
 -record(gateway, {
     mac :: binary(),
-    group :: any(),
+    area :: 'undefined' | nonempty_string(),
     tx_rfch :: integer(), % rf chain for downlinks
     ant_gain :: integer(), % antenna gain
     desc :: 'undefined' | string(),
@@ -74,12 +60,36 @@
     appskey :: seckey(),
     fcntdown :: integer()}). % last downlink fcnt
 
--record(profile, {
+-record(network, {
+    name :: nonempty_string(),
+    netid :: binary(), % network id
+    region :: binary(),
+    tx_codr :: binary(),
+    join1_delay :: integer(),
+    join2_delay :: integer(),
+    rx1_delay :: integer(),
+    rx2_delay :: integer(),
+    gw_power :: integer(),
+    max_eirp :: integer(),
+    max_power :: integer(),
+    min_power :: integer(),
+    max_datr :: number(),
+    rxwin_init :: rxwin_config(),
+    init_chans :: intervals(),
+    cflist :: 'undefined' | [{number(), integer(), integer()}]}).
+
+-record(group, {
     name :: nonempty_string(),
     network :: nonempty_string(),
+    subid :: 'undefined' | bitstring(), % sub-network id
+    admins :: [nonempty_string()],
+    can_join :: boolean()}).
+
+-record(profile, {
+    name :: nonempty_string(),
+    group :: nonempty_string(),
     app :: binary(),
     appid :: any(),
-    can_join :: boolean(),
     fcnt_check :: integer(),
     txwin :: integer(),
     adr_mode :: 0..2, % server requests

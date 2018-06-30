@@ -4,10 +4,13 @@ Open-source LoRaWAN Server that integrates both the network-server and the appli
 This is useful for application providers that operate their own LoRaWAN network,
 or for device and application developers.
 
-**This is release 0.5.5.** Migrating to this version will preserve the
-Device/Node addresses and security keys, but will delete many ADR parameters, which
-got moved to the Profile settings. You are required to review and complete
+**Warning** After a major version upgrade you are required to review and complete
 the configuration before connecting any gateway or device!
+ * Migrating from version 0.4.x to 0.5.x will preserve the Device/Node addresses
+   and security keys, but will delete many ADR parameters, which got moved to the
+   Profile settings.
+ * After migrating from version 0.5.x to 0.6.x you need to assign Profiles to
+   Groups and Gateways to Areas.
 
 The server:
  * Implements the LoRaWAN Specification v1.0.3
@@ -80,7 +83,8 @@ The lorawan-server includes all functions required to run a private LoRaWAN netw
 It integrates your LoRaWAN network directly with your backend IT systems.
 The server is provided as a comprehensive package with a single configuration file
 and a single administration tool.
-You only need to install the [Erlang/OTP](http://www.erlang.org) 19 or later.
+You only need to install the [Erlang/OTP](http://www.erlang.org) 19 or 20.
+**Erlang 21 is not yet supported.**
 
 The main components of the lorawan-server are shown in the following figure:
 

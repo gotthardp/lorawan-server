@@ -96,23 +96,28 @@ handle_join(#device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
     case mnesia:read(profiles, ProfID, read) of
         [] ->
             {error, {device, DevEUI}, {unknown_profile, ProfID}, aggregated};
-        [#profile{can_join=false}] ->
-            lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
-            ignore;
-        [#profile{network=NetName}=Profile] ->
-            case mnesia:read(networks, NetName, read) of
+        [#profile{group=GroupName}=Profile] ->
+            case mnesia:read(groups, GroupName, read) of
                 [] ->
-                    {error, {device, DevEUI}, {unknown_network, NetName}, aggregated};
-                [Network] ->
-                    DevAddr = get_devaddr(Network, Device),
-                    {join, {Network, Profile, Device}, DevAddr, DevNonce}
+                    {error, {device, DevEUI}, {unknown_group, GroupName}, aggregated};
+                [#group{can_join=false}] ->
+                    lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
+                    ignore;
+                [#group{network=NetName, subid=SubID}] ->
+                    case mnesia:read(networks, NetName, read) of
+                        [] ->
+                            {error, {device, DevEUI}, {unknown_network, NetName}, aggregated};
+                        [#network{netid=NetID}=Network] ->
+                            DevAddr = get_devaddr(Device, NetID, SubID),
+                            {join, {Network, Profile, Device}, DevAddr, DevNonce}
+                    end
             end
     end.
 
-get_devaddr(#network{}, #device{node=DevAddr})
+get_devaddr(#device{node=DevAddr}, _, _)
         when is_binary(DevAddr), byte_size(DevAddr) == 4 ->
     DevAddr;
-get_devaddr(#network{netid=NetID, subid=SubID}, #device{}) ->
+get_devaddr(#device{}, NetID, SubID) ->
     create_devaddr(NetID, SubID, 3).
 
 create_devaddr(NetID, SubID, Attempts) ->
@@ -202,9 +207,9 @@ load_node(DevAddr) ->
 
 in_our_network(DevAddr) ->
     lists:any(
-        fun({<<_:17, NwkID:7>>, SubId}) ->
+        fun({<<_:17, NwkID:7>>, SubID}) ->
             {MyPrefix, MyPrefixSize} =
-                case SubId of
+                case SubID of
                     undefined ->
                         {NwkID, 7};
                     Bits ->
@@ -217,18 +222,28 @@ in_our_network(DevAddr) ->
                     false
             end
         end,
-        mnesia:select(networks, [{#network{netid='$1', subid='$2', _='_'}, [], [{{'$1', '$2'}}]}], read)).
+        lists:map(
+            fun(#group{network=NetName, subid=SubId}) ->
+                [#network{netid=NetId}] = mnesia:read(network, NetName, read),
+                {NetId, SubId}
+            end,
+            mnesia:select(groups, [{#group{_='_'}, [], ['$_']}], read))).
 
 load_profile(ProfID) ->
     case mnesia:read(profiles, ProfID, read) of
         [] ->
             {error, {unknown_profile, ProfID}, aggregated};
-        [#profile{network=NetName}=Profile] ->
-            case mnesia:read(networks, NetName, read) of
+        [#profile{group=GroupName}=Profile] ->
+            case mnesia:read(groups, GroupName, read) of
                 [] ->
-                    {error, {unknown_network, NetName}, aggregated};
-                [Network] ->
-                    {ok, Network, Profile}
+                    {error, {unknown_group, GroupName}, aggregated};
+                [#group{network=NetName}] ->
+                    case mnesia:read(networks, NetName, read) of
+                        [] ->
+                            {error, {unknown_network, NetName}, aggregated};
+                        [Network] ->
+                            {ok, Network, Profile}
+                    end
             end
     end.
 

@@ -31,9 +31,9 @@ ensure_tables() ->
             {record_name, server},
             {attributes, record_info(fields, server)},
             {disc_copies, [node()]}]},
-        {networks, [
-            {record_name, network},
-            {attributes, record_info(fields, network)},
+        {areas, [
+            {record_name, area},
+            {attributes, record_info(fields, area)},
             {disc_copies, [node()]}]},
         {gateways, [
             {record_name, gateway},
@@ -42,6 +42,14 @@ ensure_tables() ->
         {multicast_channels, [
             {record_name, multicast_channel},
             {attributes, record_info(fields, multicast_channel)},
+            {disc_copies, [node()]}]},
+        {networks, [
+            {record_name, network},
+            {attributes, record_info(fields, network)},
+            {disc_copies, [node()]}]},
+        {groups, [
+            {record_name, group},
+            {attributes, record_info(fields, group)},
             {disc_copies, [node()]}]},
         {profiles, [
             {record_name, profile},

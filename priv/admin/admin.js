@@ -13,12 +13,16 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('name'));
     var users = nga.entity('users')
         .identifier(nga.field('name'));
+    var areas = nga.entity('areas')
+        .identifier(nga.field('name'));
     var gateways = nga.entity('gateways')
         .identifier(nga.field('mac'));
-    var networks = nga.entity('networks')
-        .identifier(nga.field('name'));
     var multicast_channels = nga.entity('multicast_channels')
         .identifier(nga.field('devaddr'));
+    var networks = nga.entity('networks')
+        .identifier(nga.field('name'));
+    var groups = nga.entity('groups')
+        .identifier(nga.field('name'));
     var profiles = nga.entity('profiles')
         .identifier(nga.field('name'));
     var devices = nga.entity('devices')
@@ -99,8 +103,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         // General
         nga.field('modules.lorawan_server').label('Version')
             .editable(false),
-        nga.field('log_ignored', 'boolean').label('Log Ignored?')
-            .defaultValue(true),
         // Status
         nga.field('health_alerts', 'choices').label('Alerts')
             .editable(false),
@@ -128,7 +130,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     users.listView().fields([
         nga.field('name').isDetailLink(true),
         nga.field('roles', 'choices').label('Roles')
-            .choices(role_choices)
+            .choices(role_choices),
+        nga.field('email').label('E-Mail')
     ]);
     users.creationView().fields([
         nga.field('name')
@@ -136,16 +139,37 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('pass', 'password').label('Password'),
         nga.field('roles', 'choices').label('Roles')
             .choices(role_choices)
-            .validation({ required: true })
+            .validation({ required: true }),
+        nga.field('email').label('E-Mail')
+            .validation({ pattern: '[^@\s]+@[^@\s]+\.[^@\s]+' })
     ]);
     users.editionView().fields(users.creationView().fields());
     // add to the admin application
     admin.addEntity(users);
 
+    // ---- areas
+    areas.listView().fields([
+        nga.field('name').isDetailLink(true),
+        nga.field('log_ignored', 'boolean').label('Log Ignored?')
+    ]);
+
+    areas.creationView().fields([
+        nga.field('name')
+            .validation({ required: true }),
+        nga.field('admins', 'reference_many').label('Administrators')
+            .targetEntity(users)
+            .targetField(nga.field('name')),
+        nga.field('log_ignored', 'boolean').label('Log Ignored?')
+            .defaultValue(true)
+    ]);
+    areas.editionView().fields(areas.creationView().fields());
+    // add to the admin application
+    admin.addEntity(areas);
+
     // ---- gateways
     gateways.listView().fields([
         nga.field('mac').label('MAC').isDetailLink(true),
-        nga.field('group'),
+        nga.field('area'),
         nga.field('desc').label('Description'),
         nga.field('ip_address.ip').label('IP Address'),
         nga.field('dwell', 'float').label('Dwell [%]')
@@ -164,7 +188,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 return value.replace(/[-:]/g, '')
             })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
-        nga.field('group'),
+        nga.field('area', 'reference')
+            .targetEntity(areas)
+            .targetField(nga.field('name')),
         nga.field('tx_rfch', 'number').label('TX Chain')
             .attributes({ placeholder: 'e.g. 0' })
             .validation({ required: true })
@@ -205,8 +231,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     networks.listView().fields([
         nga.field('name').isDetailLink(true),
         nga.field('netid').label('NetID'),
-        nga.field('subid').label('SubID')
-            .map(format_bitstring),
         nga.field('region')
     ]);
     networks.creationView().fields([
@@ -216,11 +240,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('netid').label('NetID')
             .attributes({ placeholder: 'e.g. 0123AB' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
-        nga.field('subid').label('SubID')
-            .map(format_bitstring)
-            .transform(parse_bitstring)
-            .attributes({ placeholder: 'e.g. 0:3' })
-            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+', validator: validate_bitstring }),
         nga.field('region', 'choice')
             .choices([
                 { value: 'EU868', label: 'EU 863-870MHz' },
@@ -362,18 +381,49 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // add to the admin application
     admin.addEntity(multicast_channels);
 
+    // ---- groups
+    groups.listView().fields([
+        nga.field('name').isDetailLink(true),
+        nga.field('network'),
+        nga.field('subid').label('SubID')
+            .map(format_bitstring),
+        nga.field('can_join', 'boolean').label('Can Join?')
+    ]);
+
+    groups.creationView().fields([
+        nga.field('name')
+            .validation({ required: true }),
+        nga.field('network', 'reference')
+            .targetEntity(networks)
+            .targetField(nga.field('name'))
+            .validation({ required: true }),
+        nga.field('subid').label('SubID')
+            .map(format_bitstring)
+            .transform(parse_bitstring)
+            .attributes({ placeholder: 'e.g. 0:3' })
+            .validation({ pattern: '([A-Fa-f0-9]{2})*:[0-9]+', validator: validate_bitstring }),
+        nga.field('admins', 'reference_many').label('Administrators')
+            .targetEntity(users)
+            .targetField(nga.field('name')),
+        nga.field('can_join', 'boolean').label('Can Join?')
+            .defaultValue(true)
+    ]);
+    groups.editionView().fields(groups.creationView().fields());
+    // add to the admin application
+    admin.addEntity(groups);
+
     // ---- profiles
     profiles.listView().fields([
         nga.field('name').isDetailLink(true),
-        nga.field('network'),
+        nga.field('group'),
         nga.field('app').label('Application'),
         nga.field('appid').label('App Identifier')
     ]);
     profiles.creationView().fields([
         nga.field('name')
             .validation({ required: true }),
-        nga.field('network', 'reference')
-            .targetEntity(networks)
+        nga.field('group', 'reference')
+            .targetEntity(groups)
             .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('app', 'reference').label('Application')
@@ -381,8 +431,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('appid').label('App Identifier'),
-        nga.field('can_join', 'boolean').label('Can Join?')
-            .defaultValue(true),
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
@@ -436,8 +484,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_networks = response.data });
     }]);
     profiles.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:16}
+        {name:"General", min:0, max:6},
+        {name:"ADR", min:6, max:15}
     ]));
     profiles.editionView().fields(profiles.creationView().fields())
     .prepare(['$http', function($http) {
@@ -445,8 +493,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_networks = response.data });
     }]);
     profiles.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:7},
-        {name:"ADR", min:7, max:16}
+        {name:"General", min:0, max:6},
+        {name:"ADR", min:6, max:15}
     ]));
     // add to the admin application
     admin.addEntity(profiles);
@@ -1012,15 +1060,19 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     // ---- menu
     admin.menu(nga.menu()
-        .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
+        .addChild(nga.menu().title('Server').icon('<span class="fa fa-server fa-fw"></span>')
+            .addChild(nga.menu(users).icon('<span class="fa fa-user fa-fw"></span>'))
+            .addChild(nga.menu(servers).icon('<span class="fa fa-desktop fa-fw"></span>'))
+            .addChild(nga.menu(events).icon('<span class="fa fa-exclamation-triangle fa-fw"></span>'))
+        )
         .addChild(nga.menu().title('Infrastructure').icon('<span class="fa fa-sitemap fa-fw"></span>')
-            .addChild(nga.menu(servers).icon('<span class="fa fa-server fa-fw"></span>'))
+            .addChild(nga.menu(areas).icon('<span class="fa fa-street-view fa-fw"></span>'))
             .addChild(nga.menu(gateways).icon('<span class="fa fa-wifi fa-fw"></span>'))
             .addChild(nga.menu(networks).icon('<span class="fa fa-cloud fa-fw"></span>'))
             .addChild(nga.menu(multicast_channels).icon('<span class="fa fa-bullhorn fa-fw"></span>'))
-            .addChild(nga.menu(events).icon('<span class="fa fa-exclamation-triangle fa-fw"></span>'))
         )
         .addChild(nga.menu().title('Devices').icon('<span class="fa fa-cubes fa-fw"></span>')
+            .addChild(nga.menu(groups).icon('<span class="fa fa-th fa-fw"></span>'))
             .addChild(nga.menu(profiles).title('Profiles').icon('<span class="fa fa-pencil-square-o fa-fw"></span>'))
             .addChild(nga.menu(devices).title('Commissioned').icon('<span class="fa fa-cube fa-fw"></span>'))
             .addChild(nga.menu(nodes).title('Activated (Nodes)').icon('<span class="fa fa-rss fa-fw"></span>'))

@@ -30,12 +30,12 @@
 -record(user, {
     name :: nonempty_string(),
     pass_ha1 :: string(),
-    roles :: [string()]}).
+    roles :: [string()],
+    email :: string()}).
 
 -record(server, {
     sname :: atom(),
-    router_perf :: [{calendar:datetime(), {integer(), integer()}}],
-    log_ignored :: boolean()}).
+    router_perf :: [{calendar:datetime(), {integer(), integer()}}]}).
 
 -record(event, {
     evid :: binary(),

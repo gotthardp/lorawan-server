@@ -11,6 +11,7 @@
 -define(FRAMES_PER_NODE, 5).
 
 -define(NET, <<"testnet">>).
+-define(GROUP, <<"testgroup">>).
 -define(PROF, <<"testprof">>).
 -define(NWKSKEY, <<"2B7E151628AED2A6ABF7158809CF4F3C">>).
 -define(APPSKEY, <<"2B7E151628AED2A6ABF7158809CF4F3C">>).
@@ -33,7 +34,8 @@ load_test_() ->
                     end,
                     lists:seq(1,?GW_COUNT)),
             test_admin:add_network(?NET),
-            test_admin:add_profile(?NET, ?PROF),
+            test_admin:add_group(?NET, ?GROUP),
+            test_admin:add_profile(?GROUP, ?PROF),
             Nodes =
                 lists:foldl(
                     fun({ID1, Gateway}, Acc) ->

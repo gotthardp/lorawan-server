@@ -54,7 +54,8 @@ handle_get(Req, profiles=Opts) ->
     Profs =
         lists:map(
             fun(Prof) ->
-                [#profile{network=Net}] = mnesia:dirty_read(profiles, Prof),
+                [#profile{group=Group}] = mnesia:dirty_read(profiles, Prof),
+                [#group{network=Net}] = mnesia:dirty_read(groups, Group),
                 {Prof, network_choices(Net)}
             end,
             mnesia:dirty_all_keys(profiles)),
