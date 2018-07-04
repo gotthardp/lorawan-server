@@ -102,7 +102,7 @@ ensure_table(Name, TabDef) ->
             ok = mnesia:wait_for_tables([Name], 2000),
             ensure_indexes(Name, TabDef);
         false ->
-            OldName = prolists:get_value(old_table, TabDef),
+            OldName = proplists:get_value(old_table, TabDef),
             case table_exists(OldName) of
                 true ->
                     rename_table(OldName, Name, TabDef);
@@ -209,6 +209,11 @@ get_value(handler, uplink_fields, PropList) ->
     get_value0(fields, uplink_fields, PropList);
 get_value(handler, parse_uplink, PropList) ->
     get_value0(parse, parse_uplink, PropList);
+%temporary until RELEASE 0.6
+get_value(site, area, PropList) ->
+    get_value0(group, area, PropList);
+get_value(yard, area, PropList) ->
+    get_value0(group, area, PropList);
 get_value(_Rec, X, PropList) ->
     proplists:get_value(X, PropList).
 
