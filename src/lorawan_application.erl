@@ -51,18 +51,18 @@ invoke_init({App, Module}) when is_atom(Module) ->
     apply(Module, init, [App]).
 
 store_frame(DevAddr, TxData) ->
-    mnesia:dirty_write(txframes, #txframe{frid= <<(erlang:system_time()):64>>,
+    mnesia:dirty_write(#txframe{frid= <<(erlang:system_time()):64>>,
         datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}).
 
 get_stored_frames(DevAddr) ->
-    mnesia:dirty_select(txframes, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]).
+    mnesia:dirty_select(txframe, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]).
 
 take_previous_frames(DevAddr, Port) ->
     lists:foldl(
         fun(#txframe{frid=Id, txdata=TxData}, Acc) ->
             if
                 TxData#txdata.port == Port ->
-                    ok = mnesia:dirty_delete(txframes, Id),
+                    ok = mnesia:dirty_delete(txframe, Id),
                     [TxData | Acc];
                 true ->
                     Acc
@@ -73,11 +73,10 @@ take_previous_frames(DevAddr, Port) ->
 send_stored_frames(DevAddr, DefPort) ->
     case get_stored_frames(DevAddr) of
         [] ->
-            mnesia:subscribe({table, txframes, simple}),
+            mnesia:subscribe({table, txframe, simple}),
             receive
-                % the record name returned is 'txframes' regardless any record_name settings
-                {mnesia_table_event, {write, TxFrame, _ActivityId}} when element(#txframe.devaddr, TxFrame) == DevAddr ->
-                    transmit_and_delete(DefPort, setelement(1, TxFrame, txframe), false)
+                {mnesia_table_event, {write, #txframe{devaddr=DevAddr}=TxFrame, _ActivityId}} ->
+                    transmit_and_delete(DefPort, TxFrame, false)
                 after ?MAX_DELAY ->
                     ok
             end;
@@ -88,7 +87,7 @@ send_stored_frames(DevAddr, DefPort) ->
     end.
 
 transmit_and_delete(DefPort, TxFrame, Pending) ->
-    ok = mnesia:dirty_delete(txframes, TxFrame#txframe.frid),
+    ok = mnesia:dirty_delete(txframe, TxFrame#txframe.frid),
     TxData = TxFrame#txframe.txdata,
     % raw websocket does not define port
     OutPort = if

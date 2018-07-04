@@ -30,7 +30,7 @@ ingest_frame(PHYPayload) ->
 ingest_frame0(<<2#000:3, _:5,
         AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = Msg, MIC) ->
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
-    case mnesia:read(devices, DevEUI, read) of
+    case mnesia:read(device, DevEUI, read) of
         [] ->
             {error, {device, DevEUI}, unknown_deveui, aggregated};
         [D] when D#device.appeui /= undefined, D#device.appeui /= AppEUI ->
@@ -93,18 +93,18 @@ ingest_data_frame(MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr
     {ignore, Frame}.
 
 handle_join(#device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
-    case mnesia:read(profiles, ProfID, read) of
+    case mnesia:read(profile, ProfID, read) of
         [] ->
             {error, {device, DevEUI}, {unknown_profile, ProfID}, aggregated};
         [#profile{group=GroupName}=Profile] ->
-            case mnesia:read(groups, GroupName, read) of
+            case mnesia:read(group, GroupName, read) of
                 [] ->
                     {error, {device, DevEUI}, {unknown_group, GroupName}, aggregated};
                 [#group{can_join=false}] ->
                     lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
                     ignore;
                 [#group{network=NetName, subid=SubID}] ->
-                    case mnesia:read(networks, NetName, read) of
+                    case mnesia:read(network, NetName, read) of
                         [] ->
                             {error, {device, DevEUI}, {unknown_network, NetName}, aggregated};
                         [#network{netid=NetID}=Network] ->
@@ -130,7 +130,7 @@ create_devaddr(NetID, SubID, Attempts) ->
                 <<NwkID:7, Bits/bitstring, (rand_bitstring(25-bit_size(Bits)))/bitstring>>
         end,
     % assert uniqueness
-    case mnesia:read(nodes, DevAddr, read) of
+    case mnesia:read(node, DevAddr, read) of
         [] ->
             DevAddr;
         [#node{}] when Attempts > 0 ->
@@ -151,14 +151,14 @@ reset_node(DevAddr) ->
 
 
 accept_node_frame(DevAddr, FCnt) ->
-    case is_ignored(DevAddr, mnesia:dirty_all_keys(ignored_nodes)) of
+    case is_ignored(DevAddr, mnesia:dirty_all_keys(ignored_node)) of
         false ->
             case load_node(DevAddr) of
                 {ok, {Network, Profile, Node}} ->
                     case check_fcnt({Network, Profile, Node}, FCnt) of
                         {ok, Fresh, Node2} ->
-                            ok = mnesia:write(nodes,
-                                ensure_used_fields(Network, Node2), write),
+                            ok = lorawan_db_guard:write(
+                                    ensure_used_fields(Network, Node2)),
                             {ok, Fresh, {Network, Profile, Node2}};
                         Error ->
                             Error
@@ -173,7 +173,7 @@ accept_node_frame(DevAddr, FCnt) ->
 is_ignored(_DevAddr, []) ->
     false;
 is_ignored(DevAddr, [Key|Rest]) ->
-    [#ignored_node{devaddr=MatchAddr, mask=MatchMask}] = mnesia:dirty_read(ignored_nodes, Key),
+    [#ignored_node{devaddr=MatchAddr, mask=MatchMask}] = mnesia:dirty_read(ignored_node, Key),
     case match(DevAddr, MatchAddr, MatchMask) of
         true -> true;
         false -> is_ignored(DevAddr, Rest)
@@ -187,7 +187,7 @@ match(<<_DevAddr:32>>, _Else, _) ->
     false.
 
 load_node(DevAddr) ->
-    case mnesia:read(nodes, DevAddr, write) of
+    case mnesia:read(node, DevAddr, write) of
         [] ->
             case in_our_network(DevAddr) of
                 true ->
@@ -227,18 +227,18 @@ in_our_network(DevAddr) ->
                 [#network{netid=NetId}] = mnesia:read(network, NetName, read),
                 {NetId, SubId}
             end,
-            mnesia:select(groups, [{#group{_='_'}, [], ['$_']}], read))).
+            mnesia:select(group, [{#group{_='_'}, [], ['$_']}], read))).
 
 load_profile(ProfID) ->
-    case mnesia:read(profiles, ProfID, read) of
+    case mnesia:read(profile, ProfID, read) of
         [] ->
             {error, {unknown_profile, ProfID}, aggregated};
         [#profile{group=GroupName}=Profile] ->
-            case mnesia:read(groups, GroupName, read) of
+            case mnesia:read(group, GroupName, read) of
                 [] ->
                     {error, {unknown_group, GroupName}, aggregated};
                 [#group{network=NetName}] ->
-                    case mnesia:read(networks, NetName, read) of
+                    case mnesia:read(network, NetName, read) of
                         [] ->
                             {error, {unknown_network, NetName}, aggregated};
                         [Network] ->
@@ -359,9 +359,9 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
     AppSKey = crypto:block_encrypt(aes_ecb, AppKey,
         padded(16, <<16#02, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
 
-    [Device] = mnesia:read(devices, DevEUI, write),
+    [Device] = mnesia:read(device, DevEUI, write),
     Device2 = Device#device{node=DevAddr, last_join=calendar:universal_time()},
-    ok = mnesia:write(devices, Device2, write),
+    ok = mnesia:write(Device2),
 
     lorawan_utils:throw_info({device, DevEUI}, {join, binary_to_hex(DevAddr)}),
     Node = #node{
@@ -374,7 +374,7 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
         rxwin_use=accept_rxwin(Profile, Network), rxwin_failed=[],
         devstat_fcnt=undefined, last_qs=[]},
     Node2 =
-        case mnesia:read(nodes, DevAddr, write) of
+        case mnesia:read(node, DevAddr, write) of
             [#node{first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
                     when is_integer(Cnt) ->
                 lorawan_utils:throw_warning({node, DevAddr}, {repeated_reset, Cnt+1}, First),
@@ -384,7 +384,7 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
             [] ->
                 Node#node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
-    ok = mnesia:write(nodes, Node2, write),
+    ok = lorawan_db_guard:write(Node2),
     Node2.
 
 initial_adr(#network{init_chans=Chans, max_power=MaxPower}) ->
@@ -438,9 +438,9 @@ encode_unicast({_Network, #profile{adr_mode=ADR},
         #node{devaddr=DevAddr, nwkskey=NwkSKey, appskey=AppSKey}}, ACK, FOpts, TxData) ->
     {atomic, FCntDown} = mnesia:transaction(
         fun() ->
-            [D] = mnesia:read(nodes, DevAddr, write),
+            [D] = mnesia:read(node, DevAddr, write),
             FCnt = (D#node.fcntdown + 1) band 16#FFFFFFFF,
-            ok = mnesia:write(nodes, D#node{fcntdown=FCnt}, write),
+            ok = lorawan_db_guard:write(D#node{fcntdown=FCnt}),
             FCnt
         end),
     encode_frame(DevAddr, NwkSKey, AppSKey, FCntDown, get_adr_flag(ADR), ACK, FOpts, TxData).
@@ -448,10 +448,10 @@ encode_unicast({_Network, #profile{adr_mode=ADR},
 encode_multicast(DevAddr, TxData) ->
     {atomic, G} = mnesia:transaction(
         fun() ->
-            [D] = mnesia:read(multicast_channels, DevAddr, write),
+            [D] = mnesia:read(multicast_channel, DevAddr, write),
             FCnt = (D#multicast_channel.fcntdown + 1) band 16#FFFFFFFF,
             NewD = D#multicast_channel{fcntdown=FCnt},
-            ok = mnesia:write(multicast_channels, NewD, write),
+            ok = mnesia:write(NewD),
             NewD
         end),
     encode_frame(DevAddr, G#multicast_channel.nwkskey, G#multicast_channel.appskey,

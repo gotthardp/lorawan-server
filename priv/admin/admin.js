@@ -103,6 +103,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         // General
         nga.field('modules.lorawan_server').label('Version')
             .editable(false),
+        nga.field('admin_url').label('Admin URL'),
+        nga.field('slack_token'),
+        // E-Mail
+        nga.field('email_from').label('From'),
+        nga.field('email_server').label('SMTP Server'),
+        nga.field('email_user').label('User'),
+        nga.field('email_password','password').label('Password'),
         // Status
         nga.field('health_alerts', 'choices').label('Alerts')
             .editable(false),
@@ -120,8 +127,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false)
     ]);
     servers.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:2},
-        {name:"Status", min:2, max:6}
+        {name:"General", min:0, max:3},
+        {name:"E-Mail", min:3, max:7},
+        {name:"Status", min:7, max:11}
     ]));
     // add to the admin application
     admin.addEntity(servers);
@@ -131,7 +139,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('name').isDetailLink(true),
         nga.field('roles', 'choices').label('Roles')
             .choices(role_choices),
-        nga.field('email').label('E-Mail')
+        nga.field('email').label('E-Mail'),
+        nga.field('send_alerts', 'boolean')
     ]);
     users.creationView().fields([
         nga.field('name')
@@ -141,7 +150,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices(role_choices)
             .validation({ required: true }),
         nga.field('email').label('E-Mail')
-            .validation({ pattern: '[^@\s]+@[^@\s]+\.[^@\s]+' })
+            .validation({ pattern: '[^@\s]+@[^@\s]+\.[^@\s]+' }),
+        nga.field('send_alerts', 'boolean')
+            .validation({ required: true })
+            .defaultValue(true)
     ]);
     users.editionView().fields(users.creationView().fields());
     // add to the admin application
@@ -159,6 +171,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('admins', 'reference_many').label('Administrators')
             .targetEntity(users)
             .targetField(nga.field('name')),
+        nga.field('slack_channel'),
         nga.field('log_ignored', 'boolean').label('Log Ignored?')
             .defaultValue(true)
     ]);
@@ -405,6 +418,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('admins', 'reference_many').label('Administrators')
             .targetEntity(users)
             .targetField(nga.field('name')),
+        nga.field('slack_channel'),
         nga.field('can_join', 'boolean').label('Can Join?')
             .defaultValue(true)
     ]);

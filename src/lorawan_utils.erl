@@ -109,23 +109,23 @@ write_event(Severity, {Entity, EID}, Text, unique) ->
     Time = calendar:universal_time(),
     {Event, Args} = event_args(Text),
     EvId = evid({Entity, EID}, Event, Time),
-    mnesia:dirty_write(events, #event{evid=EvId, severity=Severity,
+    mnesia:dirty_write(event, #event{evid=EvId, severity=Severity,
         first_rx=Time, last_rx=Time, count=1, entity=Entity, eid=EID, text=Event, args=Args});
 write_event(Severity, {Entity, EID}, Text, Mark) ->
     {Event, Args} = event_args(Text),
     EvId = evid({Entity, EID}, Event, Mark),
     {atomic, ok} =
         mnesia:transaction(fun() ->
-            case mnesia:read(events, EvId, write) of
+            case mnesia:read(event, EvId, write) of
                 [E] ->
-                    mnesia:write(events, E#event{last_rx=calendar:universal_time(),
-                        count=inc(E#event.count), text=Event, args=Args}, write);
+                    mnesia:write(E#event{last_rx=calendar:universal_time(),
+                        count=inc(E#event.count), text=Event, args=Args});
                 [] ->
                     % first_rx and last_rx shall be identical
                     Time = calendar:universal_time(),
-                    mnesia:write(events, #event{evid=EvId, severity=Severity,
+                    mnesia:write(#event{evid=EvId, severity=Severity,
                         first_rx=Time, last_rx=Time, count=1,
-                        entity=Entity, eid=EID, text=Event, args=Args}, write)
+                        entity=Entity, eid=EID, text=Event, args=Args})
             end
         end),
     ok.

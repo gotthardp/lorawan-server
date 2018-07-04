@@ -6,12 +6,9 @@
 -module(lorawan_admin).
 
 -export([handle_authorization/2]).
--export([check_health/1, check_health/3, parse/1, build/1]).
+-export([parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
 -export([timestamp_to_json_date/1]).
-
--export([check_alive/1, check_dwell/1]).
--export([check_reset/1, check_battery/1, check_margin/1, check_adr/1, check_rxwin/1]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -46,7 +43,7 @@ digest_header() ->
         {<<"realm">>, ?REALM}, {<<"nonce">>, Nonce}, {<<"domain">>, <<"/">>}]).
 
 get_password_hash(Role, UserName) ->
-    case mnesia:dirty_read(users, UserName) of
+    case mnesia:dirty_read(user, UserName) of
         [#user{pass_ha1=Hash, roles=undefined}] ->
             % temporary provisions for backward compatibility
             Hash;
@@ -60,98 +57,6 @@ get_password_hash(Role, UserName) ->
         _Else ->
             undefined
     end.
-
-check_health(#gateway{} = Gateway) ->
-    check_health(Gateway, ?MODULE, [check_alive, check_dwell]);
-check_health(#node{} = Node) ->
-    check_health(Node, ?MODULE, [check_reset, check_battery, check_margin, check_adr, check_rxwin]);
-check_health(_Other) ->
-    undefined.
-
-check_health(Rec, Module, Funs) ->
-    lists:foldl(
-        fun
-            (_Fun, undefined) ->
-                undefined;
-            (Fun, {Decay, Alerts}) ->
-                case apply(Module, Fun, [Rec]) of
-                    {DecayInc, AlertInc} ->
-                        {Decay + DecayInc, [AlertInc | Alerts]};
-                    ok ->
-                        {Decay, Alerts};
-                    undefined ->
-                        undefined
-                end
-        end,
-        {0, []}, Funs).
-
-check_alive(#gateway{last_alive=undefined}) ->
-    {100, disconnected};
-check_alive(#gateway{last_alive=LastAlive}) ->
-    case calendar:datetime_to_gregorian_seconds(calendar:universal_time()) -
-            calendar:datetime_to_gregorian_seconds(LastAlive) of
-        Silent when Silent > 30 ->
-            {min(2*(Silent div 30), 100), disconnected};
-        _Else ->
-            ok
-    end.
-
-check_dwell(#gateway{dwell=Dwell}) when is_list(Dwell) ->
-    MaxSum =
-        lists:foldl(
-            fun({_, {_, _, Sum}}, Max) -> max(Sum, Max) end,
-            0, Dwell),
-    Percent = MaxSum/36000,
-    if
-        Percent > 1 ->
-            {trunc(10*Percent), dwell_time_violated};
-        true ->
-            ok
-    end;
-check_dwell(_Other) ->
-    ok.
-
-check_reset(#node{last_reset=LastRes, reset_count=Count, last_rx=LastRx})
-        when LastRes /= undefined, is_number(Count), Count > 1, (LastRx == undefined orelse LastRes > LastRx) ->
-    {20*(Count-1), many_resets};
-check_reset(#node{}) ->
-    ok.
-
-check_battery(#node{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
-    if
-        Battery == 0 ->
-            % connected to external power
-            ok;
-        Battery < 100 ->
-            % TODO: should estimate trend instead
-            {100-Battery, battery_low};
-        Battery == 255 ->
-            {25, cannot_measure_battery};
-        true ->
-            ok
-    end;
-check_battery(#node{}) ->
-    undefined.
-
-check_margin(#node{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
-    if
-        Margin =< MaxSNR+10 ->
-            {5*abs(Margin-MaxSNR), downlink_noise};
-        true ->
-            ok
-    end;
-check_margin(#node{}) ->
-    undefined.
-
-check_adr(#node{adr_failed=Failed}) when Failed == undefined; Failed == [] ->
-    ok;
-check_adr(#node{}) ->
-    {25, linkadr_failed}.
-
-check_rxwin(#node{rxwin_failed=Failed}) when Failed == undefined; Failed == [] ->
-    ok;
-check_rxwin(#node{}) ->
-    {25, rxparamsetup_failed}.
 
 parse(Object) when is_map(Object) ->
     maps:map(

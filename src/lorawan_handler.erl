@@ -86,9 +86,9 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, Data) ->
                     {next_state, drop, Data}
             end;
         {ignore, Frame} ->
-            case mnesia:dirty_read(gateways, MAC) of
+            case mnesia:dirty_read(gateway, MAC) of
                 [#gateway{area=AreaName}] ->
-                    case mnesia:dirty_read(areas, AreaName) of
+                    case mnesia:dirty_read(area, AreaName) of
                         [#area{log_ignored=true}] ->
                             {next_state, log_only, Frame};
                         _ ->
@@ -157,7 +157,7 @@ uplink(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node},
             % else
             false
     end,
-    ok = mnesia:dirty_write(rxframes, build_rxframe(Gateways, {Network, Profile, Node2}, Frame)),
+    ok = mnesia:dirty_write(build_rxframe(Gateways, {Network, Profile, Node2}, Frame)),
     TxQ = choose_tx({Network, Profile, Node2}, RxQ, TimeStamp),
     % invoke applications
     case invoke_handler(handle_rxq, {Network, Profile, Node2}, [Gateways, ShallReply, Frame, AppState]) of
@@ -215,7 +215,7 @@ retransmit(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node}, Frame, 
     {MAC, RxQ, GWState} = hd(Gateways0),
     Gateways = extract_rxq(Gateways0),
     % we want to see retransmissions too
-    ok = mnesia:dirty_write(rxframes, build_rxframe(Gateways, {Network, Profile, Node}, Frame)),
+    ok = mnesia:dirty_write(build_rxframe(Gateways, {Network, Profile, Node}, Frame)),
     TxQ = lorawan_mac_region:rx2_window(Network, Node, RxQ),
     %% FIXME: this is an emergency bugfix; we need choose RX2 for some retransmissions
     %% TxQ = choose_tx({Network, Profile, Node}, RxQ, TimeStamp),
@@ -226,7 +226,7 @@ retransmit(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node}, Frame, 
 log_only(cast, {rxq, Gateways0}, #frame{conf=Confirm, devaddr=DevAddr, fcnt=FCnt, port=Port}) ->
     Gateways = extract_rxq(Gateways0),
     % log ignored frames too
-    ok = mnesia:dirty_write(rxframes,
+    ok = mnesia:dirty_write(
         #rxframe{frid= <<(erlang:system_time()):64>>, gateways=Gateways, devaddr=DevAddr,
             fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port,
             datetime=calendar:universal_time()}),
@@ -280,9 +280,9 @@ multicast(#multicast_channel{devaddr=DevAddr, profiles=Profiles}, Time, #txdata{
     {ok, PHYPayload} = lorawan_mac:encode_multicast(DevAddr, TxData),
     lists:foreach(
         fun(Prof) ->
-            [#profile{group=GroupName}=Profile] = mnesia:dirty_read(profiles, Prof),
-            [#group{network=NetName}] = mnesia:dirty_read(groups, GroupName),
-            [Network] = mnesia:dirty_read(networks, NetName),
+            [#profile{group=GroupName}=Profile] = mnesia:dirty_read(profile, Prof),
+            [#group{network=NetName}] = mnesia:dirty_read(group, GroupName),
+            [Network] = mnesia:dirty_read(network, NetName),
             multicast(DevAddr, Profile, Network, Time, PHYPayload)
         end,
         Profiles);
@@ -301,7 +301,7 @@ multicast(DevAddr, #profile{name=Prof}=Profile, Network, Time, PHYPayload) ->
                     {MAC2, _RxQ} = hd(Gateway),
                     MAC2
                 end,
-                mnesia:dirty_select(nodes, [{#node{profile='$1', gateways='$2', _='_'},
+                mnesia:dirty_select(node, [{#node{profile='$1', gateways='$2', _='_'},
                     [{'==', '$1', Prof}], ['$2']}])
     ))).
 

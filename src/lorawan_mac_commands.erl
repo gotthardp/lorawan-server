@@ -19,11 +19,11 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
     {atomic, {MacConfirm, Node2}} =
         mnesia:transaction(
         fun() ->
-            [N0] = mnesia:read(nodes, Node#node.devaddr, write),
+            [N0] = mnesia:read(node, Node#node.devaddr, write),
             {MC, N2} = handle_fopts0(
                 {Network, Profile, store_actual_adr(Gateways, ADR, Network, N0)},
                 Gateways, FOptsIn),
-            ok = mnesia:write(nodes, N2, write),
+            ok = lorawan_db_guard:write(N2),
             {MC, N2}
         end),
     % process requests

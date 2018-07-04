@@ -41,7 +41,7 @@ handle_get(Req, State) ->
 
 get_server() ->
     Server =
-        case mnesia:dirty_read(servers, node()) of
+        case mnesia:dirty_read(server, node()) of
             [S] -> S;
             [] -> #server{sname=node(), router_perf=[]}
         end,
@@ -85,7 +85,7 @@ handle_write(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
         Struct when is_map(Struct) ->
-            ok = mnesia:dirty_write(servers, ?to_record(server, lorawan_admin:parse(Struct), undefined)),
+            ok = mnesia:dirty_write(?to_record(server, lorawan_admin:parse(Struct), undefined)),
             {true, Req2, State};
         _Else ->
             lager:debug("Bad JSON in HTTP request"),

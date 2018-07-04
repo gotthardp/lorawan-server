@@ -38,7 +38,7 @@ handle_get(Req, #state{name=undefined}=State) ->
             Modules),
     B = lists:map(
             fun(Name) -> [{name, Name}] end,
-            mnesia:dirty_all_keys(handlers)),
+            mnesia:dirty_all_keys(handler)),
     {jsx:encode(A++B), Req, State};
 handle_get(Req, #state{name=Name}=State) ->
     {jsx:encode([{name, Name}]), Req, State}.
@@ -52,7 +52,7 @@ resource_exists(Req, #state{name=Name}=State) ->
             {true, Req, State};
         false ->
             % if it's not internal, then it must be external
-            case mnesia:dirty_read(handlers, Name) of
+            case mnesia:dirty_read(handler, Name) of
                 [#handler{}] ->
                     {true, Req, State};
                 [] ->

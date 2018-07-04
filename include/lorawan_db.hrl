@@ -36,6 +36,7 @@
 -record(area, {
     name :: nonempty_string(),
     admins :: [nonempty_string()],
+    slack_channel :: 'undefined' | string(),
     log_ignored :: boolean()}).
 
 -record(gateway, {
@@ -51,7 +52,11 @@
     last_gps :: 'undefined' | calendar:datetime(),
     last_report :: 'undefined' | calendar:datetime(),
     dwell :: [{calendar:datetime(), {number(), number(), number()}}], % {frequency, duration, hoursum}
-    delays :: [{calendar:datetime(), {integer(), integer(), integer()}}]}). % {min, avg, max}
+    delays :: [{calendar:datetime(), {integer(), integer(), integer()}}], % {min, avg, max}
+    health_alerts :: [atom()],
+    health_decay :: integer(),
+    health_reported :: integer(),
+    health_next :: 'undefined' | calendar:datetime()}).
 
 -record(multicast_channel, {
     devaddr :: devaddr(), % multicast address
@@ -83,6 +88,7 @@
     network :: nonempty_string(),
     subid :: 'undefined' | bitstring(), % sub-network id
     admins :: [nonempty_string()],
+    slack_channel :: 'undefined' | string(),
     can_join :: boolean()}).
 
 -record(profile, {
@@ -134,7 +140,11 @@
     average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     devstat_time :: 'undefined' | calendar:datetime(),
     devstat_fcnt :: 'undefined' | integer(),
-    devstat :: [devstat()]}). % {time, battery, margin, max_snr}
+    devstat :: [devstat()], % {time, battery, margin, max_snr}
+    health_alerts :: [atom()],
+    health_decay :: integer(),
+    health_reported :: integer(),
+    health_next :: 'undefined' | calendar:datetime()}).
 
 -record(ignored_node, {
     devaddr :: devaddr(),

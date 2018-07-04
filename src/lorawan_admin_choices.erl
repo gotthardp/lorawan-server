@@ -48,21 +48,21 @@ handle_get(Req, networks=Opts) ->
             fun(Net) ->
                 {Net, network_choices(Net)}
             end,
-            mnesia:dirty_all_keys(networks)),
+            mnesia:dirty_all_keys(network)),
     {jsx:encode(Nets), Req, Opts};
 handle_get(Req, profiles=Opts) ->
     Profs =
         lists:map(
             fun(Prof) ->
-                [#profile{group=Group}] = mnesia:dirty_read(profiles, Prof),
-                [#group{network=Net}] = mnesia:dirty_read(groups, Group),
+                [#profile{group=Group}] = mnesia:dirty_read(profile, Prof),
+                [#group{network=Net}] = mnesia:dirty_read(group, Group),
                 {Prof, network_choices(Net)}
             end,
-            mnesia:dirty_all_keys(profiles)),
+            mnesia:dirty_all_keys(profile)),
     {jsx:encode(Profs), Req, Opts}.
 
 network_choices(Net) ->
-    [#network{region=Region, max_eirp=Max, min_power=Min}] = mnesia:dirty_read(networks, Net),
+    [#network{region=Region, max_eirp=Max, min_power=Min}] = mnesia:dirty_read(network, Net),
     [
         {uplink_datar, uplink_datar_choices0(Region)},
         {downlink_datar, downlink_datar_choices0(Region)},

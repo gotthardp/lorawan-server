@@ -17,9 +17,9 @@ start_link() ->
 
 init([]) ->
     % track database updates to keep the processes in-sync
-    {ok, _} = mnesia:subscribe({table, nodes, detailed}),
-    {ok, _} = mnesia:subscribe({table, profiles, detailed}),
-    {ok, _} = mnesia:subscribe({table, connectors, detailed}),
+    {ok, _} = mnesia:subscribe({table, node, detailed}),
+    {ok, _} = mnesia:subscribe({table, profile, detailed}),
+    {ok, _} = mnesia:subscribe({table, connector, detailed}),
     % start connectors that need to subscribe
     self() ! start_all,
     {ok, undefined}.
@@ -33,10 +33,10 @@ handle_cast(_Msg, State) ->
 handle_info(start_all, State) ->
     lists:foreach(
         fun(ConnId) ->
-            [Connector] = mnesia:dirty_read(connectors, ConnId),
+            [Connector] = mnesia:dirty_read(connector, ConnId),
             start_connector(Connector)
         end,
-        mnesia:dirty_all_keys(connectors)),
+        mnesia:dirty_all_keys(connector)),
     {noreply, State};
 % ignore schema changes
 handle_info({mnesia_table_event, {write, schema, _NewRec, _OldRec, _Activity}}, State) ->
@@ -147,7 +147,7 @@ event(App, Node, Vars) ->
     send_to_connectors(App, {event, Node, Vars}).
 
 announce_profile_update(ProfId) ->
-    case mnesia:dirty_read(profiles, ProfId) of
+    case mnesia:dirty_read(profile, ProfId) of
         [#profile{app=App}] ->
             announce_backend_update(App);
         _Else ->
@@ -160,10 +160,10 @@ announce_backend_update(App) ->
 nodes_with_backend(App) ->
     lists:foldl(
         fun(#profile{name=ProfId}, Acc) ->
-            Nodes = mnesia:dirty_index_read(nodes, ProfId, #node.profile),
+            Nodes = mnesia:dirty_index_read(node, ProfId, #node.profile),
             Acc ++ Nodes
         end,
-        [], mnesia:dirty_index_read(profiles, App, #profile.app)).
+        [], mnesia:dirty_index_read(profile, App, #profile.app)).
 
 send_to_connectors(App, Message) ->
     case pg2:get_members({backend, App}) of

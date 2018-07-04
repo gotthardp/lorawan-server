@@ -81,7 +81,7 @@ handle_action(Req, State) ->
 resource_exists(Req, #state{app=undefined}=State) ->
     {true, Req, State};
 resource_exists(Req, #state{app=App}=State) ->
-    case mnesia:dirty_read(handlers, App) of
+    case mnesia:dirty_read(handler, App) of
         [#handler{}] ->
             {true, Req, State};
         [] ->

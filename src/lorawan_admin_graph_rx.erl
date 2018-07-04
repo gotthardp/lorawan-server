@@ -38,7 +38,7 @@ get_rxframe(Req, State) ->
     ActRec = lorawan_db:get_rxframes(lorawan_utils:hex_to_binary(DevAddr)),
     case ActRec of
         [#rxframe{network=Name} | _] ->
-            case mnesia:dirty_read(networks, Name) of
+            case mnesia:dirty_read(network, Name) of
                 [N] ->
                     send_array(Req, N, DevAddr, ActRec, State);
                 [] ->
@@ -110,7 +110,7 @@ send_array(Req, #network{}, DevAddr, ActRec, #state{format=qgraph}=State) ->
     {jsx:encode([{devaddr, DevAddr}, {array, Array}]), Req, State}.
 
 resource_exists(Req, State) ->
-    case mnesia:dirty_read(nodes,
+    case mnesia:dirty_read(node,
             lorawan_utils:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
         [] -> {false, Req, State};
         [_Node] -> {true, Req, State}

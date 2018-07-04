@@ -48,7 +48,7 @@ get_timeline(Req, State) ->
                     {start, StartTime},
                     {'end', EndTime}]
         end,
-        mnesia:dirty_select(events, [{#event{evid='$1', first_rx='$2', last_rx='$3', _='_'},
+        mnesia:dirty_select(event, [{#event{evid='$1', first_rx='$2', last_rx='$3', _='_'},
             select_datetime(Start, End, '$2', '$3'), ['$_']}])),
     RxFrames = lists:map(
         fun({Id, DevAddr, DateTime, Port, Data}) ->
@@ -61,7 +61,7 @@ get_timeline(Req, State) ->
                 {content, addr_port(DevAddr, Port)},
                 {start, DateTime}]
         end,
-        mnesia:dirty_select(rxframes, [{#rxframe{frid='$1', devaddr='$2', datetime='$3', port='$4', data='$5', _='_'},
+        mnesia:dirty_select(rxframe, [{#rxframe{frid='$1', devaddr='$2', datetime='$3', port='$4', data='$5', _='_'},
             select_datetime(Start, End, '$3', '$3'), [{{'$1', '$2', '$3', '$4', '$5'}}]}])),
     {jsx:encode([{items, Events++RxFrames}]), Req, State}.
 

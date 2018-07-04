@@ -6,6 +6,7 @@
 -module(loramote_tests).
 -include_lib("eunit/include/eunit.hrl").
 
+-define(AREA, <<"testarea">>).
 -define(NET, <<"testnet">>).
 -define(GWMAC, <<16#0000000000000000:64>>).
 -define(GROUP, <<"testgroup">>).
@@ -21,7 +22,8 @@ loramote_test_() ->
         fun() ->
             {ok, _} = application:ensure_all_started(lorawan_server),
             lager:set_loglevel(lager_console_backend, debug),
-            test_admin:add_gateway(?GWMAC),
+            test_admin:add_area(?AREA),
+            test_admin:add_gateway(?AREA, ?GWMAC),
             test_admin:add_network(?NET),
             {ok, Gateway} = test_forwarder:start_link(?GWMAC, {"localhost", 1680}),
             test_admin:add_group(?NET, ?GROUP),

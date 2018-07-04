@@ -31,7 +31,7 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    [Node] = mnesia:dirty_read(nodes, lorawan_utils:hex_to_binary(DevAddr)),
+    [Node] = mnesia:dirty_read(node, lorawan_utils:hex_to_binary(DevAddr)),
     Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
     {jsx:encode([{devaddr, DevAddr}, {array, get_array(Node)}]), Req2, State}.
 
@@ -72,7 +72,7 @@ get_array(_Else) ->
     [].
 
 resource_exists(Req, State) ->
-    case mnesia:dirty_read(nodes,
+    case mnesia:dirty_read(node,
             lorawan_utils:hex_to_binary(cowboy_req:binding(devaddr, Req))) of
         [] -> {false, Req, State};
         [_Node] -> {true, Req, State}
@@ -80,7 +80,7 @@ resource_exists(Req, State) ->
 
 generate_etag(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    case mnesia:dirty_read(nodes, lorawan_utils:hex_to_binary(DevAddr)) of
+    case mnesia:dirty_read(node, lorawan_utils:hex_to_binary(DevAddr)) of
         [] ->
             {undefined, Req, State};
         [#node{last_reset=Reset, devstat=DevStat}] ->

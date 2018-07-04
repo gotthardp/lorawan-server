@@ -9,6 +9,7 @@
 -export([start_link/0]).
 -export([alive/3, network_delay/2, report/2, uplinks/1, downlink/5, downlink_error/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([update_dwell/2]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -32,7 +33,7 @@ uplinks(PkList) ->
     gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
 
 downlink({MAC, GWState}, #network{gw_power=DefPower, max_eirp=MaxEIRP}, DevAddr, TxQ, PHYPayload) ->
-    [#gateway{tx_rfch=RFCh, ant_gain=Gain}] = mnesia:dirty_read(gateways, MAC),
+    [#gateway{tx_rfch=RFCh, ant_gain=Gain}] = mnesia:dirty_read(gateway, MAC),
     Power = erlang:min(
         value_or_default(TxQ#txq.powe, DefPower),
         MaxEIRP-value_or_default(Gain, 0)),
@@ -128,11 +129,11 @@ handle_info(submit_stats, #state{request_cnt=RequestCnt, error_cnt=ErrorCnt}=Sta
         fun() ->
             Perf = {calendar:universal_time(), {RequestCnt, ErrorCnt}},
             Server =
-                case mnesia:read(servers, node(), write) of
+                case mnesia:read(server, node(), write) of
                     [S] -> S#server{router_perf=append_perf(Perf, S#server.router_perf)};
                     [] -> #server{sname=node(), router_perf=[Perf]}
                 end,
-            mnesia:write(servers, Server, write)
+            mnesia:write(Server)
         end),
     {noreply, State#state{request_cnt=0, error_cnt=0}}.
 
@@ -152,14 +153,14 @@ append_perf(Perf, PerfList) ->
 handle_alive(MAC, #gwstats{target=Target, last_gps=LastGPS, tx_times=TxTimes, nwk_delays=NwkDelays}) ->
     {atomic, ok} = mnesia:transaction(
         fun() ->
-            case mnesia:read(gateways, MAC, write) of
+            case mnesia:read(gateway, MAC, write) of
                 [#gateway{dwell=Dwell, delays=Delay}=G] ->
-                    mnesia:write(gateways,
+                    lorawan_db_guard:write(
                         G#gateway{ip_address=Target,
                             last_alive=calendar:universal_time(),
                             last_gps=LastGPS,
                             dwell=update_dwell(TxTimes, Dwell),
-                            delays=append_delays(NwkDelays, Delay)}, write);
+                            delays=append_delays(NwkDelays, Delay)});
                 [] ->
                     lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated)
             end
@@ -230,10 +231,12 @@ handle_report(MAC, S) ->
     end,
     {atomic, ok} = mnesia:transaction(
         fun() ->
-            case mnesia:read(gateways, MAC, write) of
+            case mnesia:read(gateway, MAC, write) of
                 [G] ->
-                    mnesia:write(gateways,
-                        store_pos(store_desc(G#gateway{last_report=calendar:universal_time()}, S), S), write);
+                    lorawan_db_guard:write(
+                        store_pos(
+                            store_desc(
+                                G#gateway{last_report=calendar:universal_time()}, S), S));
                 [] ->
                     lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated)
             end
@@ -282,7 +285,7 @@ remove_duplicates([], Unique) ->
     Unique.
 
 handle_uplink({{MAC, RxQ, _GWState}=GWData, PHYPayload}, State) ->
-    case mnesia:dirty_read(gateways, MAC) of
+    case mnesia:dirty_read(gateway, MAC) of
         [] ->
             lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated),
             State;

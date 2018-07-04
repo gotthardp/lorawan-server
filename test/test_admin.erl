@@ -5,10 +5,13 @@
 %
 -module(test_admin).
 
--export([add_gateway/1, add_network/1, add_group/2, add_profile/2, add_node/2]).
+-export([add_area/1, add_gateway/2, add_network/1, add_group/2, add_profile/2, add_node/2]).
 
-add_gateway(MAC) ->
-    post_json("gateways", [{mac, lorawan_utils:binary_to_hex(MAC)},
+add_area(AreaName) ->
+    post_json("areas", [{name, AreaName}]).
+
+add_gateway(AreaName, MAC) ->
+    post_json("gateways", [{mac, lorawan_utils:binary_to_hex(MAC)}, {area, AreaName},
         {tx_rfch, 0}, {gpspos, [{lat, 0}, {lon, 0}]}, {gpsalt, 0}]).
 
 add_network(NetName) ->

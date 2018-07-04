@@ -16,7 +16,7 @@ init(_App) ->
     ok.
 
 handle_join({_Network, #profile{app=AppID}, Device}, {_MAC, _RxQ}, DevAddr) ->
-    case mnesia:dirty_read(handlers, AppID) of
+    case mnesia:dirty_read(handler, AppID) of
         [Handler] ->
             send_event(joined, #{}, Handler, {Device, DevAddr});
         [] ->
@@ -24,7 +24,7 @@ handle_join({_Network, #profile{app=AppID}, Device}, {_MAC, _RxQ}, DevAddr) ->
     end.
 
 handle_uplink({Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ, LastMissed, Frame) ->
-    case mnesia:dirty_read(handlers, AppID) of
+    case mnesia:dirty_read(handler, AppID) of
         [#handler{downlink_expires=Expires}=Handler] ->
             case LastMissed of
                 {missed, _Receipt} ->
@@ -121,7 +121,7 @@ vars_add(Field, Value, Fields, Vars) ->
     end.
 
 get_deveui(DevAddr) ->
-    case mnesia:dirty_index_read(devices, DevAddr, #device.node) of
+    case mnesia:dirty_index_read(device, DevAddr, #device.node) of
         [#device{deveui=DevEUI}|_] -> DevEUI;
         [] -> undefined
     end.
@@ -142,7 +142,7 @@ data_to_fields(_AppId, _Else, Vars, _) ->
     Vars.
 
 handle_delivery({_Network, #profile{app=AppID}, Node}, Result, Receipt) ->
-    case mnesia:dirty_read(handlers, AppID) of
+    case mnesia:dirty_read(handler, AppID) of
         [Handler] ->
             send_event(Result, #{receipt => Receipt}, Handler, Node);
         [] ->
@@ -170,7 +170,7 @@ send_event(Event, Vars0, #handler{app=AppID, event_fields=Fields, parse_event=Pa
         data_to_fields(AppID, Parse, Vars, Event)).
 
 handle_downlink(AppId, Vars) ->
-    [#handler{build=Build}=Handler] = mnesia:dirty_read(handlers, AppId),
+    [#handler{build=Build}=Handler] = mnesia:dirty_read(handler, AppId),
     send_downlink(Handler,
         Vars,
         maps:get(time, Vars, undefined),
@@ -193,27 +193,27 @@ fields_to_data(_AppId, _Else, Vars) ->
     maps:get(data, Vars, <<>>).
 
 send_downlink(Handler, #{deveui := DevEUI}, undefined, TxData) ->
-    case mnesia:dirty_read(devices, DevEUI) of
+    case mnesia:dirty_read(device, DevEUI) of
         [] ->
             {error, {{device, DevEUI}, unknown_deveui}};
         [Device] ->
-            [Node] = mnesia:dirty_read(nodes, Device#device.node),
+            [Node] = mnesia:dirty_read(node, Device#device.node),
             % standard downlink to an explicit node
             purge_frames(Handler, Node, TxData),
             lorawan_application:store_frame(Device#device.node, TxData)
     end;
 send_downlink(Handler, #{deveui := DevEUI}, Time, TxData) ->
-    case mnesia:dirty_read(devices, DevEUI) of
+    case mnesia:dirty_read(device, DevEUI) of
         [] ->
             {error, {{device, DevEUI}, unknown_deveui}};
         [Device] ->
-            [Node] = mnesia:dirty_read(nodes, Device#device.node),
+            [Node] = mnesia:dirty_read(node, Device#device.node),
             % class C downlink to an explicit node
             purge_frames(Handler, Node, TxData),
             lorawan_handler:downlink(Node, Time, TxData)
     end;
 send_downlink(Handler, #{devaddr := DevAddr}, undefined, TxData) ->
-    case mnesia:dirty_read(nodes, DevAddr) of
+    case mnesia:dirty_read(node, DevAddr) of
         [] ->
             {error, {{node, DevAddr}, unknown_devaddr}};
         [Node] ->
@@ -222,9 +222,9 @@ send_downlink(Handler, #{devaddr := DevAddr}, undefined, TxData) ->
             lorawan_application:store_frame(DevAddr, TxData)
     end;
 send_downlink(Handler, #{devaddr := DevAddr}, Time, TxData) ->
-    case mnesia:dirty_read(nodes, DevAddr) of
+    case mnesia:dirty_read(node, DevAddr) of
         [] ->
-            case mnesia:dirty_read(multicast_channels, DevAddr) of
+            case mnesia:dirty_read(multicast_channel, DevAddr) of
                 [] ->
                     {error, {{node, DevAddr}, unknown_devaddr}};
                 [Group] ->

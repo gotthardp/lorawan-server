@@ -23,78 +23,61 @@ ensure_tables() ->
             ok = mnesia:start()
     end,
     lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef) end, [
-        {users, [
-            {record_name, user},
+        {user, [
             {attributes, record_info(fields, user)},
             {disc_copies, [node()]}]},
-        {servers, [
-            {record_name, server},
+        {server, [
             {attributes, record_info(fields, server)},
             {disc_copies, [node()]}]},
-        {areas, [
-            {record_name, area},
+        {area, [
             {attributes, record_info(fields, area)},
             {disc_copies, [node()]}]},
-        {gateways, [
-            {record_name, gateway},
+        {gateway, [
             {attributes, record_info(fields, gateway)},
             {disc_copies, [node()]}]},
-        {multicast_channels, [
-            {record_name, multicast_channel},
+        {multicast_channel, [
             {attributes, record_info(fields, multicast_channel)},
             {disc_copies, [node()]}]},
-        {networks, [
-            {record_name, network},
+        {network, [
             {attributes, record_info(fields, network)},
             {disc_copies, [node()]}]},
-        {groups, [
-            {record_name, group},
+        {group, [
             {attributes, record_info(fields, group)},
             {disc_copies, [node()]}]},
-        {profiles, [
-            {record_name, profile},
+        {profile, [
             {attributes, record_info(fields, profile)},
             {index, [app]},
             {disc_copies, [node()]}]},
-        {devices, [
-            {record_name, device},
+        {device, [
             {attributes, record_info(fields, device)},
             {index, [node]},
             {disc_copies, [node()]}]},
-        {nodes, [
-            {record_name, node},
+        {node, [
             {attributes, record_info(fields, node)},
             {index, [profile]},
             {disc_copies, [node()]}]},
-        {ignored_nodes, [
-            {record_name, ignored_node},
+        {ignored_node, [
             {attributes, record_info(fields, ignored_node)},
             {disc_copies, [node()]}]},
         {pending, [
-            {record_name, pending},
             {attributes, record_info(fields, pending)},
             {disc_copies, [node()]}]},
-        {txframes, [
+        {txframe, [
             {type, ordered_set},
-            {record_name, txframe},
             {attributes, record_info(fields, txframe)},
             {index, [devaddr]},
             {disc_copies, [node()]}]},
-        {rxframes, [
-            {record_name, rxframe},
+        {rxframe, [
             {attributes, record_info(fields, rxframe)},
             {index, [devaddr]},
             {disc_copies, [node()]}]},
-        {connectors, [
-            {record_name, connector},
+        {connector, [
             {attributes, record_info(fields, connector)},
             {disc_copies, [node()]}]},
-        {handlers, [
-            {record_name, handler},
+        {handler, [
             {attributes, record_info(fields, handler)},
             {disc_copies, [node()]}]},
-        {events, [
-            {record_name, event},
+        {event, [
             {attributes, record_info(fields, event)},
             {disc_copies, [node()]}]}
     ]).
@@ -122,12 +105,34 @@ table_if_exists(Name) ->
         false -> undefined
     end.
 
-old_table_for(multicast_channels) ->
-    table_if_exists(multicast_groups);
-old_table_for(nodes) ->
-    table_if_exists(links);
-old_table_for(ignored_nodes) ->
-    table_if_exists(ignored_links);
+old_table_for(user) ->
+    table_if_exists(users);
+old_table_for(server) ->
+    table_if_exists(servers);
+old_table_for(gateway) ->
+    table_if_exists(gateways);
+old_table_for(multicast_channel) ->
+    table_if_exists(multicast_channels);
+old_table_for(network) ->
+    table_if_exists(networks);
+old_table_for(profile) ->
+    table_if_exists(profiles);
+old_table_for(device) ->
+    table_if_exists(devices);
+old_table_for(node) ->
+    table_if_exists(nodes);
+old_table_for(ignored_node) ->
+    table_if_exists(ignored_nodes);
+old_table_for(txframe) ->
+    table_if_exists(txframes);
+old_table_for(rxframe) ->
+    table_if_exists(rxframes);
+old_table_for(connector) ->
+    table_if_exists(connectors);
+old_table_for(handler) ->
+    table_if_exists(handlers);
+old_table_for(event) ->
+    table_if_exists(events);
 old_table_for(_Else) ->
     undefined.
 
@@ -142,7 +147,7 @@ rename_table(OldName, Name, TabDef) ->
     ok = mnesia:wait_for_tables([OldName, Name], 2000),
     % copy data
     OldAttrs = mnesia:table_info(OldName, attributes),
-    NewRec = proplists:get_value(record_name, TabDef),
+    NewRec = proplists:get_value(record_name, TabDef, Name),
     NewAttrs = proplists:get_value(attributes, TabDef),
     lager:info("Database copy ~w ~w to ~w ~w", [OldName, OldAttrs, Name, NewAttrs]),
     lists:foreach(
@@ -239,14 +244,14 @@ record_fields({rxq, Freq, DatR, CodR, Time, TmSt, Rssi, LSnr}) ->
 record_fields(Record) ->
     tl(tuple_to_list(Record)).
 
-set_defaults(users) ->
+set_defaults(user) ->
     lager:info("Database create default user:password"),
     {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),
-    mnesia:dirty_write(users, #user{
+    mnesia:dirty_write(#user{
         name=User,
         pass_ha1=lorawan_http_digest:ha1({User, ?REALM, Pass})});
-set_defaults(servers) ->
-    mnesia:dirty_write(servers, #server{sname=node(), router_perf=[]});
+set_defaults(server) ->
+    mnesia:dirty_write(#server{sname=node(), router_perf=[]});
 set_defaults(_Else) ->
     ok.
 
@@ -267,7 +272,7 @@ occured_rxframe_after(StartDate, #rxframe{datetime = FrameDate}) ->
     StartDate =< FrameDate.
 
 get_last_rxframes(DevAddr, Count) ->
-    Rec = mnesia:dirty_index_read(rxframes, DevAddr, #rxframe.devaddr),
+    Rec = mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr),
     SRec = lists:sort(fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A < B end, Rec),
     % split the list into expired and actual records
     if
