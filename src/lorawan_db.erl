@@ -24,60 +24,74 @@ ensure_tables() ->
     end,
     lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef) end, [
         {user, [
+            {old_table, users},
             {attributes, record_info(fields, user)},
             {disc_copies, [node()]}]},
         {server, [
+            {old_table, servers},
             {attributes, record_info(fields, server)},
             {disc_copies, [node()]}]},
         {area, [
             {attributes, record_info(fields, area)},
             {disc_copies, [node()]}]},
         {gateway, [
+            {old_table, gateways},
             {attributes, record_info(fields, gateway)},
             {disc_copies, [node()]}]},
         {multicast_channel, [
+            {old_table, multicast_channels},
             {attributes, record_info(fields, multicast_channel)},
             {disc_copies, [node()]}]},
         {network, [
+            {old_table, networks},
             {attributes, record_info(fields, network)},
             {disc_copies, [node()]}]},
         {group, [
             {attributes, record_info(fields, group)},
             {disc_copies, [node()]}]},
         {profile, [
+            {old_table, profiles},
             {attributes, record_info(fields, profile)},
             {index, [app]},
             {disc_copies, [node()]}]},
         {device, [
+            {old_table, devices},
             {attributes, record_info(fields, device)},
             {index, [node]},
             {disc_copies, [node()]}]},
         {node, [
+            {old_table, nodes},
             {attributes, record_info(fields, node)},
             {index, [profile]},
             {disc_copies, [node()]}]},
         {ignored_node, [
+            {old_table, ignored_nodes},
             {attributes, record_info(fields, ignored_node)},
             {disc_copies, [node()]}]},
         {pending, [
             {attributes, record_info(fields, pending)},
             {disc_copies, [node()]}]},
         {txframe, [
+            {old_table, txframes},
             {type, ordered_set},
             {attributes, record_info(fields, txframe)},
             {index, [devaddr]},
             {disc_copies, [node()]}]},
         {rxframe, [
+            {old_table, rxframes},
             {attributes, record_info(fields, rxframe)},
             {index, [devaddr]},
             {disc_copies, [node()]}]},
         {connector, [
+            {old_table, connectors},
             {attributes, record_info(fields, connector)},
             {disc_copies, [node()]}]},
         {handler, [
+            {old_table, handlers},
             {attributes, record_info(fields, handler)},
             {disc_copies, [node()]}]},
         {event, [
+            {old_table, events},
             {attributes, record_info(fields, event)},
             {disc_copies, [node()]}]}
     ]).
@@ -88,53 +102,17 @@ ensure_table(Name, TabDef) ->
             ok = mnesia:wait_for_tables([Name], 2000),
             ensure_indexes(Name, TabDef);
         false ->
-            case old_table_for(Name) of
-                undefined ->
-                    create_table(Name, TabDef);
-                OldName ->
-                    rename_table(OldName, Name, TabDef)
+            OldName = prolists:get_value(old_table, TabDef),
+            case table_exists(OldName) of
+                true ->
+                    rename_table(OldName, Name, TabDef);
+                false ->
+                    create_table(Name, TabDef)
             end
     end.
 
 table_exists(Name) ->
     lists:member(Name, mnesia:system_info(tables)).
-
-table_if_exists(Name) ->
-    case table_exists(Name) of
-        true -> Name;
-        false -> undefined
-    end.
-
-old_table_for(user) ->
-    table_if_exists(users);
-old_table_for(server) ->
-    table_if_exists(servers);
-old_table_for(gateway) ->
-    table_if_exists(gateways);
-old_table_for(multicast_channel) ->
-    table_if_exists(multicast_channels);
-old_table_for(network) ->
-    table_if_exists(networks);
-old_table_for(profile) ->
-    table_if_exists(profiles);
-old_table_for(device) ->
-    table_if_exists(devices);
-old_table_for(node) ->
-    table_if_exists(nodes);
-old_table_for(ignored_node) ->
-    table_if_exists(ignored_nodes);
-old_table_for(txframe) ->
-    table_if_exists(txframes);
-old_table_for(rxframe) ->
-    table_if_exists(rxframes);
-old_table_for(connector) ->
-    table_if_exists(connectors);
-old_table_for(handler) ->
-    table_if_exists(handlers);
-old_table_for(event) ->
-    table_if_exists(events);
-old_table_for(_Else) ->
-    undefined.
 
 create_table(Name, TabDef) ->
     lager:info("Database create ~w", [Name]),
