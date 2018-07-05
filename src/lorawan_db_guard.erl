@@ -6,7 +6,7 @@
 -module(lorawan_db_guard).
 -behaviour(gen_server).
 
--export([purge_txframes/1, update_health/1]).
+-export([purge_txframes/1, update_health/1, check_health/5, send_alert/7]).
 
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
