@@ -6,7 +6,7 @@
 -module(lorawan_db).
 
 -export([ensure_tables/0, ensure_table/2, ensure_table/3]).
--export([get_rxframes/1, get_last_rxframes/2]).
+-export([foreach_record/3, get_rxframes/1, get_last_rxframes/2]).
 -export([record_fields/1]).
 
 -include("lorawan.hrl").
@@ -260,6 +260,21 @@ set_defaults(server) ->
 set_defaults(_Else) ->
     ok.
 
+foreach_record(Database, Keys, Fun) ->
+    lists:foreach(
+        fun(Key) ->
+            {atomic, ok} = mnesia:transaction(
+                fun() ->
+                    [Rec] = mnesia:read(Database, Key, write),
+                    Rec2 = Fun(Rec),
+                    if
+                        Rec2 /= Rec ->
+                            mnesia:write(Rec2);
+                        true ->
+                            ok
+                    end
+                end)
+        end, Keys).
 
 get_rxframes(DevAddr) ->
     {_, Frames} = get_last_rxframes(DevAddr, 50),

@@ -155,7 +155,7 @@ handle_alive(MAC, #gwstats{target=Target, last_gps=LastGPS, tx_times=TxTimes, nw
         fun() ->
             case mnesia:read(gateway, MAC, write) of
                 [#gateway{dwell=Dwell, delays=Delay}=G] ->
-                    lorawan_db_guard:write(
+                    lorawan_admin:write(
                         G#gateway{ip_address=Target,
                             last_alive=calendar:universal_time(),
                             last_gps=LastGPS,
@@ -233,7 +233,7 @@ handle_report(MAC, S) ->
         fun() ->
             case mnesia:read(gateway, MAC, write) of
                 [G] ->
-                    lorawan_db_guard:write(
+                    lorawan_admin:write(
                         store_pos(
                             store_desc(
                                 G#gateway{last_report=calendar:universal_time()}, S), S));

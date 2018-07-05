@@ -157,7 +157,7 @@ accept_node_frame(DevAddr, FCnt) ->
                 {ok, {Network, Profile, Node}} ->
                     case check_fcnt({Network, Profile, Node}, FCnt) of
                         {ok, Fresh, Node2} ->
-                            ok = lorawan_db_guard:write(
+                            ok = lorawan_admin:write(
                                     ensure_used_fields(Network, Node2)),
                             {ok, Fresh, {Network, Profile, Node2}};
                         Error ->
@@ -384,7 +384,7 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
             [] ->
                 Node#node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
-    ok = lorawan_db_guard:write(Node2),
+    ok = lorawan_admin:write(Node2),
     Node2.
 
 initial_adr(#network{init_chans=Chans, max_power=MaxPower}) ->
@@ -440,7 +440,7 @@ encode_unicast({_Network, #profile{adr_mode=ADR},
         fun() ->
             [D] = mnesia:read(node, DevAddr, write),
             FCnt = (D#node.fcntdown + 1) band 16#FFFFFFFF,
-            ok = lorawan_db_guard:write(D#node{fcntdown=FCnt}),
+            ok = lorawan_admin:write(D#node{fcntdown=FCnt}),
             FCnt
         end),
     encode_frame(DevAddr, NwkSKey, AppSKey, FCntDown, get_adr_flag(ADR), ACK, FOpts, TxData).

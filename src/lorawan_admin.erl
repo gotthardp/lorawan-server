@@ -6,7 +6,7 @@
 -module(lorawan_admin).
 
 -export([handle_authorization/2]).
--export([parse/1, build/1]).
+-export([write/1, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
 -export([timestamp_to_json_date/1]).
 
@@ -57,6 +57,9 @@ get_password_hash(Role, UserName) ->
         _Else ->
             undefined
     end.
+
+write(Rec) ->
+    mnesia:write(lorawan_db_guard:update_health(Rec)).
 
 parse(Object) when is_map(Object) ->
     maps:map(

@@ -157,7 +157,7 @@ write_record(List, #state{table=Table, fields=Fields, module=Module}) ->
         _Else ->
             mnesia:transaction(
                 fun() ->
-                    write_record0(Rec)
+                    write_record0(Module, Rec)
                 end)
     end.
 
@@ -172,15 +172,15 @@ get_db_field(Field, List) ->
     maps:get(Field, List, undefined).
 
 % if password was not defined, use the previous value
-write_record0(#user{name=Name, pass_ha1=undefined}=Rec) ->
+write_record0(_Module, #user{name=Name, pass_ha1=undefined}=Rec) ->
     Hash =
         case mnesia:read(user, Name, write) of
             [#user{pass_ha1=H}] -> H;
             _Else -> undefined
         end,
     mnesia:write(Rec#user{pass_ha1=Hash});
-write_record0(Rec) ->
-    lorawan_db_guard:write(Rec).
+write_record0(Module, Rec) ->
+    apply(Module, write, [Rec]).
 
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};

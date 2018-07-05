@@ -23,7 +23,7 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
             {MC, N2} = handle_fopts0(
                 {Network, Profile, store_actual_adr(Gateways, ADR, Network, N0)},
                 Gateways, FOptsIn),
-            ok = lorawan_db_guard:write(N2),
+            ok = lorawan_admin:write(N2),
             {MC, N2}
         end),
     % process requests

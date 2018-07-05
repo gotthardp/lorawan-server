@@ -6,7 +6,7 @@
 -module(lorawan_db_guard).
 -behaviour(gen_server).
 
--export([purge_txframes/1, write/1]).
+-export([purge_txframes/1, update_health/1]).
 
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -36,10 +36,16 @@ handle_info({mnesia_table_event, {delete, {Tab, Key}, _Id}}, State) ->
     handle_delete(Tab, Key),
     {noreply, State};
 handle_info(monitor, State) ->
-    update(gateway,
+    lorawan_db:foreach_record(gateway,
         mnesia:dirty_select(gateway,
             [{#gateway{mac='$1', health_next='$2', _='_'},
-            [{'andalso', {'is_tuple', '$2'}, {'<', '$2', {const, calendar:universal_time()}}}], ['$1']}])),
+            [{'andalso', {'is_tuple', '$2'}, {'<', '$2', {const, calendar:universal_time()}}}], ['$1']}]),
+        fun update_health/1),
+    lorawan_db:foreach_record(node,
+        mnesia:dirty_select(node,
+            [{#node{devaddr='$1', health_next='$2', _='_'},
+            [{'andalso', {'is_tuple', '$2'}, {'<', '$2', {const, calendar:universal_time()}}}], ['$1']}]),
+        fun update_health/1),
     {noreply, State};
 handle_info(trim_tables, State) ->
     trim_rxframes(),
@@ -54,25 +60,6 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-
-write(Rec) ->
-    mnesia:write(update_health(Rec)).
-
-update(Database, Keys) ->
-    lists:foreach(
-        fun(Key) ->
-            {atomic, ok} = mnesia:transaction(
-                fun() ->
-                    [Rec] = mnesia:read(Database, Key, write),
-                    Rec2 = update_health(Rec),
-                    if
-                        Rec2 /= Rec ->
-                            mnesia:write(Rec2);
-                        true ->
-                            ok
-                    end
-                end)
-        end, Keys).
 
 update_health(#gateway{mac=MAC, area=Area, dwell=Dwell,
         health_alerts=Alerts0, health_reported=Reported0} = Gateway0) ->
