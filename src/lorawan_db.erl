@@ -5,7 +5,7 @@
 %
 -module(lorawan_db).
 
--export([ensure_tables/0, ensure_table/2]).
+-export([ensure_tables/0, ensure_table/2, ensure_table/3]).
 -export([get_rxframes/1, get_last_rxframes/2]).
 -export([record_fields/1]).
 
@@ -22,93 +22,115 @@ ensure_tables() ->
             ok = mnesia:create_schema([node()]),
             ok = mnesia:start()
     end,
-    lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef) end, [
+    Renamed = [
+        {user, [users]},
+        {server, [servers]},
+        {area, [areas]},
+        {gateway, [gateways]},
+        {multicast_channel, [multicast_channels, multicast_groups]},
+        {network, [networks]},
+        {group, [groups]},
+        {profile, [profiles]},
+        {device, [devices]},
+        {node, [nodes, links]},
+        {ignored_node, [ignored_nodes, ignored_links]},
+        {txframe, [txframes]},
+        {rxframe, [rxframes]},
+        {connector, [connectors]},
+        {handler, [handles]},
+        {event, [events]}
+    ],
+    lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef, Renamed) end, [
         {user, [
-            {old_table, users},
             {attributes, record_info(fields, user)},
             {disc_copies, [node()]}]},
         {server, [
-            {old_table, servers},
             {attributes, record_info(fields, server)},
             {disc_copies, [node()]}]},
         {area, [
             {attributes, record_info(fields, area)},
             {disc_copies, [node()]}]},
         {gateway, [
-            {old_table, gateways},
             {attributes, record_info(fields, gateway)},
             {disc_copies, [node()]}]},
         {multicast_channel, [
-            {old_table, multicast_channels},
             {attributes, record_info(fields, multicast_channel)},
             {disc_copies, [node()]}]},
         {network, [
-            {old_table, networks},
             {attributes, record_info(fields, network)},
             {disc_copies, [node()]}]},
         {group, [
             {attributes, record_info(fields, group)},
             {disc_copies, [node()]}]},
         {profile, [
-            {old_table, profiles},
             {attributes, record_info(fields, profile)},
             {index, [app]},
             {disc_copies, [node()]}]},
         {device, [
-            {old_table, devices},
             {attributes, record_info(fields, device)},
             {index, [node]},
             {disc_copies, [node()]}]},
         {node, [
-            {old_table, nodes},
             {attributes, record_info(fields, node)},
             {index, [profile]},
             {disc_copies, [node()]}]},
         {ignored_node, [
-            {old_table, ignored_nodes},
             {attributes, record_info(fields, ignored_node)},
             {disc_copies, [node()]}]},
         {pending, [
             {attributes, record_info(fields, pending)},
             {disc_copies, [node()]}]},
         {txframe, [
-            {old_table, txframes},
             {type, ordered_set},
             {attributes, record_info(fields, txframe)},
             {index, [devaddr]},
             {disc_copies, [node()]}]},
         {rxframe, [
-            {old_table, rxframes},
             {attributes, record_info(fields, rxframe)},
             {index, [devaddr]},
             {disc_copies, [node()]}]},
         {connector, [
-            {old_table, connectors},
             {attributes, record_info(fields, connector)},
             {disc_copies, [node()]}]},
         {handler, [
-            {old_table, handlers},
             {attributes, record_info(fields, handler)},
             {disc_copies, [node()]}]},
         {event, [
-            {old_table, events},
             {attributes, record_info(fields, event)},
             {disc_copies, [node()]}]}
     ]).
 
 ensure_table(Name, TabDef) ->
+    ensure_table(Name, TabDef, []).
+
+ensure_table(Name, TabDef, Renamed) ->
     case table_exists(Name) of
         true ->
             ok = mnesia:wait_for_tables([Name], 2000),
             ensure_indexes(Name, TabDef);
         false ->
-            OldName = proplists:get_value(old_table, TabDef),
-            case table_exists(OldName) of
+            case lists:foldl(
+                fun
+                    (OldName, false) ->
+                        case table_exists(OldName) of
+                            true ->
+                                rename_table(OldName, Name, TabDef),
+                                true;
+                            false ->
+                                false
+                        end;
+                    (_, true) ->
+                        true
+                end,
+                false,
+                proplists:get_value(Name, Renamed, []))
+            of
                 true ->
-                    rename_table(OldName, Name, TabDef);
+                    ok;
                 false ->
                     create_table(Name, TabDef)
             end
+
     end.
 
 table_exists(Name) ->
