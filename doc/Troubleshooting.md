@@ -164,8 +164,8 @@ setting `network.http.spdy.enforce-tls-profile` to `false`.
 
 If you forgot your admin password
  * connect to the cluster via remote shell by `erl -sname test -remsh lorawan@<hostname>`
- * delete the `users` database by `mnesia:delete_table(users).`
- * restart the server to recreate the `users` database with the default admin password
+ * delete the `user` database by `mnesia:delete_table(user).`
+ * restart the server to recreate the `user` database with the default admin password
 
 
 ## Alarms

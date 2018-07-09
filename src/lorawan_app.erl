@@ -15,8 +15,7 @@ start() ->
 start(_Type, _Args) ->
     ok = ensure_erlang_version(19),
     lorawan_db:ensure_tables(),
-    case {application:get_env(lorawan_server, http_admin_listen, []),
-            application:get_env(lorawan_server, http_admin_listen_ssl, [])} of
+    case {application:get_env(lorawan_server, http_admin_listen, []), retrieve_valid_ssl()} of
         {[], []} ->
             lager:warning("Web-admin does not listen on any port"),
             ok;
@@ -35,6 +34,33 @@ start(_Type, _Args) ->
                 end)
     end,
     lorawan_sup:start_link().
+
+retrieve_valid_ssl() ->
+    case application:get_env(lorawan_server, http_admin_listen_ssl, []) of
+        [] ->
+            [];
+        Config ->
+            case file_configured(certfile, Config) and file_configured(keyfile, Config) of
+                false ->
+                    lager:warning("http_admin_listen_ssl not configured"),
+                    [];
+                true ->
+                    Config
+            end
+    end.
+
+file_configured(Name, Config) ->
+    case proplists:get_value(Name, Config) of
+        undefined ->
+            false;
+        File ->
+            case file:read_file_info(File) of
+                {ok, _} ->
+                    true;
+                {error, _} ->
+                    false
+            end
+    end.
 
 stop(_State) ->
     cowboy:stop_listener(http),

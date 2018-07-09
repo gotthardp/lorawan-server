@@ -53,15 +53,15 @@ code_change(_OldVsn, State, _Extra) ->
 
 update_routes(State) ->
     Dispatch = compile_routes(State),
-    case {application:get_env(lorawan_server, http_admin_listen, []),
-            application:get_env(lorawan_server, http_admin_listen_ssl, [])} of
-        {[], []} ->
+    Listen = ranch:info(),
+    case {proplists:is_defined(http, Listen), proplists:is_defined(https, Listen)} of
+        {false, false} ->
             ok;
-        {_HttpOpts, []} ->
+        {true, false} ->
             cowboy:set_env(http, dispatch, Dispatch);
-        {[], _SslOpts} ->
+        {false, true} ->
             cowboy:set_env(https, dispatch, Dispatch);
-        {_HttpOpts, _SslOpts} ->
+        {true, true} ->
             cowboy:set_env(https, dispatch, Dispatch),
             case application:get_env(lorawan_server, http_admin_redirect_ssl, true) of
                 false ->
