@@ -1,7 +1,7 @@
 FROM erlang:20-alpine
 MAINTAINER Petr Gotthard <petr.gotthard@centrum.cz>
 
-RUN apk add --no-cache wget
+RUN apk add --no-cache git wget
 RUN git clone https://github.com/gotthardp/lorawan-server.git && cd lorawan-server && make release && make clean
 
 # volume for the mnesia database and logs
