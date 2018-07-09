@@ -87,8 +87,9 @@ get_routes(Dict) ->
         [], Dict).
 
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
-static_routes() -> [
-    {"/api/servers/[:name]", lorawan_admin_servers, []},
+static_routes() ->
+    AdminPath = application:get_env(lorawan_server, http_admin_path, <<"admin">>),
+    [{"/api/servers/[:name]", lorawan_admin_servers, []},
     {"/api/applications/[:name]", lorawan_admin_applications, []},
     {"/api/users/[:name]", lorawan_admin_db_record,
         [user, record_info(fields, user)]},
@@ -135,7 +136,7 @@ static_routes() -> [
     {"/admin/qgraph/:devaddr", lorawan_admin_graph_rx, [qgraph]},
     {"/admin/ngraph/:devaddr", lorawan_admin_graph_node, []},
     {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}},
-    {"/", cowboy_static, {priv_file, lorawan_server, "root.html"}},
+    {"/", lorawan_admin_redirect, #{path => AdminPath}},
     {"/favicon.ico", cowboy_static, {priv_file, lorawan_server, "favicon.ico"}}].
 
 % end of file

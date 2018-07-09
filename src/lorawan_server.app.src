@@ -21,6 +21,7 @@
             {lorawan_connector_ws, [<<"ws">>]}
         ]},
         {packet_forwarder_listen, [{port, 1680}]},
+        {http_admin_path, <<"admin">>},
         {http_admin_listen, [{port, 8080}]},
         {http_admin_redirect_ssl, true},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},
