@@ -113,8 +113,8 @@ check_health(Rec, Alerts0, Reported0, Module, Funs) ->
                     OtherAlerts = lists:subtract(Alerts, NewAlerts),
                     {{sublist(List, NewAlerts), sublist(List, OtherAlerts)},
                         Alerts, Decay, Decay, MinNext};
-                Decay < Reported0 ->
-                    % decay decreased
+                Reported0 - Decay > 15 ->
+                    % decay decreased a lot
                     {undefined, Alerts, Decay, Decay, MinNext};
                 Reported0 < 70, Decay > 85 ->
                     % no new alerts, but decay increased a lot since last report

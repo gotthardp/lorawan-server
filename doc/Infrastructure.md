@@ -1,28 +1,15 @@
 # Infrastructure Administration
 
-## Servers
+## Areas
+Area represents a set of Gateways that belong to a single administrative group,
+e.g. belong to a single customer.
 
-The list shows a single line describing the current server instance:
- - **Node** name, which is useful for [debugging](Development.md#debugging)
- - **Version** of the server
- - **Free Memory** and **Free Disk**
- - **Alerts** that may need your attention:
-   * `system_memory_high_watermark` when more than 80% of available system memory
-     is allocated
-   * `process_memory_high_watermark` when any Erlang process has allocated more
-     than 5% of total system memory
-   * `disk_almost_full` if any disk partition uses more than 80% of the available
-     space
-
-In the detailed view you can set server-wide configuration parameters and view
-more details on the server status and performance:
- - **Version**
+For each Area you can set:
+ - **Name** of the area.
+ - **Administrators** responsible for this area.
+ - **Slack Channel** where status alerts shall be published.
  - **Log Ignored?** indicates whether uplink frames from unknown and ignored nodes
    shall be logged as *Received Frames*
- - **Alerts**
- - **Performance** of the server in the number of requests and errors per minute
- - **Free Memory**
- - **Disks** of the server and their utilization
 
 
 ## Gateways
@@ -37,7 +24,7 @@ as one distributed antenna, common to all Networks:
 
 For each LoRaWAN gateway you can set and view its physical parameters:
  - **MAC** address of the gateway
- - **Group**, which is an opaque string with application-specific settings.
+ - **Area**, where this gateway belongs to.
  - **TX Chain** identifies the gateway "radio chain" used for downlinks (usually 0).
    It shall correspond to a `radio_x` (e.g. `radio_0`) with `tx_enable: true`
    in gateway's `global_conf.json`.
@@ -56,6 +43,8 @@ For the status:
  - **IP Address** shows the gateway endpoint as viewed by the the server
  - **Last Alive** contains a timestamp of the last received pull request. A gateway is
    considered dead if it didn't sent anything for more than 60 seconds.
+ - **Last GPS** contains a timestamp when the gateway last had a precise timing
+   information from its GPS receiver.
  - **Last Report** shows a timestamp of the last status report
  - **Network Delay** graph shows network (LAN) delay between the gateway and the server
    measured during the [`PULL_RESP`](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT#L274)
@@ -79,19 +68,11 @@ To correctly define the Regional Parameters you should review the specification
 On the General tab you can set:
  - **Name** of the network.
  - **NetID** of the network. Private networks should use 000000 or 000001.
- - **SubID** in the format *HexValue*:*Length* specifies the (optional) fixed
-   bits in the DevAddr (see below).
-   The *HexValue* must have an even number of hex-digits.
  - **Region** that determines the LoRaWAN regional characteristics that cannot be modified.
  - **Coding Rate** is always "4/5".
  - **RX1/RX2 Join Delay** defines the JOIN_ACCEPT_DELAY1 and JOIN_ACCEPT_DELAY2.
  - **RX1/RX2 Delay** defines the RECEIVE_DELAY1 and RECEIVE_DELAY2.
  - **Gateway Power (dBm)** defines a default transmission power for downlinks.
-
-The *NetID* and *SubID* are used to create DevAddr of OTAA devices. Each DevAddr
-is composed of 7 LSB of NetID, followed by *X* *SubID* bits, followed by 25-*X*
-random bits. This allows operator to define separate private sub-networks using
-the same *NetID*.
 
 The *US 902-928MHz* region allows a *Private Hybrid* mode introduced by
 [Multitech](www.multitech.net/developer/software/lora/introduction-to-lora).
@@ -143,22 +124,3 @@ To define a multicast channel you need to set:
  - **Profiles** that have this multicast configured.
  - **NwkSKey** and **AppSKey**
  - **FCnt Down** is the broadcast frame counter.
-
-
-## Events
-
-This list includes an overview of errors and warnings that have occurred during
-the last 24 hours. Each specific error or warning is listed only once. Complete
-listing of errors and warnings is in the server logs.
-
-Each record contains
- - **Severity** of the issue: error, warning or info.
- - **First Occurred** timestamp
- - **Last Occurred** timestamp, which gets updated everytime this event occurs.
- - **Count** of occurrences, which gets increased by 1.
- - **Entity** concerned by the event: server, gateway, device, node, connector.
- - **EId**, which is an identifier of the concerned entity.
- - **Text** and **Args** of the event.
-
-Description of the various errors and warnings is provided in the
-[Troubleshooting Guide](Troubleshooting.md).

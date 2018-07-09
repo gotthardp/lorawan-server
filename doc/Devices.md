@@ -1,5 +1,25 @@
 # Device Administration
 
+## Groups
+(Device) Group represents a set of Profiles that belong to a single sub-network,
+e.g. belong to a single customer.
+
+For each Group you can set:
+ - **Name** of the group.
+ - **Network** for which are the devices in this profile configured.
+ - **SubID** in the format *HexValue*:*Length* specifies the (optional) fixed
+   bits in the DevAddr (see below).
+   The *HexValue* must have an even number of hex-digits.
+ - **Administrators** responsible for this group.
+ - **Slack Channel** where status alerts shall be published.
+ - **Can Join?** flag that allows you to prevent devices from joining the network.
+
+The Network *NetID* and Group *SubID* are used to create DevAddr of OTAA devices.
+Each DevAddr is composed of 7 LSB of NetID, followed by *X* *SubID* bits, followed
+by 25-*X* random bits. This allows operator to define separate private
+sub-networks using the same *NetID*.
+
+
 ## Profiles
 
 (Device) Profile represents one particular hardware and all static settings in the
@@ -10,10 +30,9 @@ firmware, common for a group of devices. The configuration includes:
 
 For each Profile you can set:
  - **Name** of the profile.
- - **Network** for which are the devices in this profile configured.
+ - **Group** to which the devices with this profile belong.
  - **Application** the devices are using.
  - **App Identifier**, which is a custom application id.
- - **Can Join?** flag that allows you to prevent the device from joining.
  - **FCnt Check** to be used for this device
    - **Strict 16-bit** (default) or *Strict 32-bit* indicate a standard compliant counter.
    - **Reset on zero** behaves like a "less strict 16-bit", which allows personalised (ABP)

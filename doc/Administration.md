@@ -30,10 +30,9 @@ The server Dashboard shows:
    frames received.
 
 The following configuration pages are available:
- - **Users** contain a list of user identities that can manage the server. For now
-   only the `admin` *Role* is defined.
+ - [**Server**](Server.md) configuration and monitoring.
  - [**Infrastructure**](Infrastructure.md) covers configuration of LoRa Gateways,
-   Multicast Channels and the list of Ignored Nodes.
+   Networks and Multicast Channels.
  - [**Devices**](Devices.md) cover the entire device configuration:
    - **Commissioned** contain a list of devices that are allowed to join using
      the over-the-air-activation (OTAA).
