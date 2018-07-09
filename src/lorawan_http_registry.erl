@@ -88,7 +88,7 @@ get_routes(Dict) ->
 
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
 static_routes() ->
-    AdminPath = application:get_env(lorawan_server, http_admin_path, <<"admin">>),
+    AdminPath = application:get_env(lorawan_server, http_admin_path, <<"/admin">>),
     [{"/api/servers/[:name]", lorawan_admin_servers, []},
     {"/api/applications/[:name]", lorawan_admin_applications, []},
     {"/api/users/[:name]", lorawan_admin_db_record,
