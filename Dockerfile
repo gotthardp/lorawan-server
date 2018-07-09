@@ -1,8 +1,11 @@
 FROM erlang:20-alpine
 MAINTAINER Petr Gotthard <petr.gotthard@centrum.cz>
 
-RUN apk add --no-cache git make wget nodejs-npm
-RUN git clone https://github.com/gotthardp/lorawan-server.git && cd lorawan-server && make release && make clean
+RUN apk add --no-cache git make wget nodejs-npm && \
+    git clone https://github.com/gotthardp/lorawan-server.git && \
+    cd lorawan-server && \
+    make release && \
+    make clean
 
 # volume for the mnesia database and logs
 RUN mkdir /storage
