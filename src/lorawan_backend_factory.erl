@@ -13,7 +13,7 @@
 -include("lorawan_db.hrl").
 
 start_link() ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) ->
     % track database updates to keep the processes in-sync

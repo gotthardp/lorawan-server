@@ -18,30 +18,30 @@
 -record(gwstats, {process, target, last_gps, tx_times=[], nwk_delays=[]}).
 
 start_link() ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 alive(MAC, Process, Target) ->
-    gen_server:cast({global, ?MODULE}, {alive, MAC, Process, Target}).
+    gen_server:cast(?MODULE, {alive, MAC, Process, Target}).
 
 network_delay(MAC, Delay) ->
-    gen_server:cast({global, ?MODULE}, {network_delay, MAC, Delay}).
+    gen_server:cast(?MODULE, {network_delay, MAC, Delay}).
 
 report(MAC, S) ->
-    gen_server:cast({global, ?MODULE}, {report, MAC, S}).
+    gen_server:cast(?MODULE, {report, MAC, S}).
 
 uplinks(PkList) ->
-    gen_server:cast({global, ?MODULE}, {uplinks, PkList}).
+    gen_server:cast(?MODULE, {uplinks, PkList}).
 
 downlink({MAC, GWState}, #network{gw_power=DefPower, max_eirp=MaxEIRP}, DevAddr, TxQ, PHYPayload) ->
     [#gateway{tx_rfch=RFCh, ant_gain=Gain}] = mnesia:dirty_read(gateway, MAC),
     Power = erlang:min(
         value_or_default(TxQ#txq.powe, DefPower),
         MaxEIRP-value_or_default(Gain, 0)),
-    gen_server:cast({global, ?MODULE}, {downlink, {MAC, GWState}, DevAddr,
+    gen_server:cast(?MODULE, {downlink, {MAC, GWState}, DevAddr,
         TxQ#txq{powe=Power}, RFCh, PHYPayload}).
 
 downlink_error(MAC, Opaque, Error) ->
-    gen_server:cast({global, ?MODULE}, {downlink_error, MAC, Opaque, Error}).
+    gen_server:cast(?MODULE, {downlink_error, MAC, Opaque, Error}).
 
 value_or_default(Num, _Def) when is_number(Num) -> Num;
 value_or_default(_Num, Def) -> Def.

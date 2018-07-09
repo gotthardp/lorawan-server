@@ -19,7 +19,7 @@
 -record(state, {sock, tokens}).
 
 start_link(PktFwdOpts) ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [PktFwdOpts], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [PktFwdOpts], []).
 
 init([PktFwdOpts]) ->
     % We set the port to 0 because it is given in the Opts directly.
@@ -73,7 +73,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
 handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #state{sock=Socket}=State) ->
     % PULL ACK
     ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 4>>),
-    lorawan_gw_router:alive(MAC, {global, ?MODULE}, {Host, Port, Version}),
+    lorawan_gw_router:alive(MAC, ?MODULE, {Host, Port, Version}),
     {noreply, State};
 
 % TX ACK
