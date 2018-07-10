@@ -31,7 +31,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('devaddr'));
     var ignored_nodes = nga.entity('ignored_nodes')
         .identifier(nga.field('devaddr'));
-    var txframes = nga.entity('txframes')
+    var queued = nga.entity('queued')
         .identifier(nga.field('frid'));
     var rxframes = nga.entity('rxframes')
         .identifier(nga.field('frid'))
@@ -648,7 +648,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             ])
             .editable(false),
         nga.field('downlinks', 'referenced_list')
-            .targetEntity(txframes)
+            .targetEntity(queued)
             .targetReferenceField('devaddr')
             .targetFields([
                 nga.field('datetime', 'datetime').label('Creation Time'),
@@ -731,7 +731,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]));
     // add to the admin application
     admin.addEntity(nodes);
-    admin.addEntity(txframes);
+    admin.addEntity(queued);
 
     // ---- ignored nodes
     ignored_nodes.listView().fields([

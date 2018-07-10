@@ -146,8 +146,8 @@ rand_bitstring(Num) when Num rem 8 == 0 ->
 
 reset_node(DevAddr) ->
     ok = mnesia:dirty_delete(pending, DevAddr),
-    % delete previously stored TX frames
-    lorawan_db_guard:purge_txframes(DevAddr).
+    % delete previously queued TX frames
+    lorawan_db_guard:purge_queued(DevAddr).
 
 
 accept_node_frame(DevAddr, FCnt) ->

@@ -6,7 +6,7 @@
 -module(lorawan_db_guard).
 -behaviour(gen_server).
 
--export([purge_txframes/1, update_health/1, check_health/5, send_alert/7]).
+-export([purge_queued/1, update_health/1, check_health/5, send_alert/7]).
 
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -377,8 +377,8 @@ handle_delete(node, DevAddr) ->
     lager:debug("Node ~p deleted", [lorawan_utils:binary_to_hex(DevAddr)]),
     % delete linked records
     ok = mnesia:dirty_delete(pending, DevAddr),
-    delete_matched(rxframe, #rxframe{frid='$1', devaddr=DevAddr, _='_'}),
-    delete_matched(txframe, #txframe{frid='$1', devaddr=DevAddr, _='_'});
+    delete_matched(queued, #queued{frid='$1', devaddr=DevAddr, _='_'}),
+    delete_matched(rxframe, #rxframe{frid='$1', devaddr=DevAddr, _='_'});
 handle_delete(_Other, _Any) ->
     ok.
 
@@ -416,12 +416,12 @@ trim_rxframes(DevAddr, Count) ->
             true
     end.
 
-purge_txframes(DevAddr) ->
+purge_queued(DevAddr) ->
     lists:foreach(
         fun(Obj) ->
-            ok = mnesia:dirty_delete_object(txframe, Obj)
+            ok = mnesia:dirty_delete_object(queued, Obj)
         end,
-        mnesia:dirty_match_object(txframe, #txframe{devaddr=DevAddr, _='_'})).
+        mnesia:dirty_match_object(queued, #queued{devaddr=DevAddr, _='_'})).
 
 expired_events() ->
     {ok, AgeSeconds} = application:get_env(lorawan_server, event_lifetime),

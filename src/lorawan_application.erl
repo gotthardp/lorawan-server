@@ -51,18 +51,18 @@ invoke_init({App, Module}) when is_atom(Module) ->
     apply(Module, init, [App]).
 
 store_frame(DevAddr, TxData) ->
-    mnesia:dirty_write(#txframe{frid= <<(erlang:system_time()):64>>,
+    mnesia:dirty_write(#queued{frid= <<(erlang:system_time()):64>>,
         datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}).
 
 get_stored_frames(DevAddr) ->
-    mnesia:dirty_select(txframe, [{#txframe{devaddr=DevAddr, _='_'}, [], ['$_']}]).
+    mnesia:dirty_select(queued, [{#queued{devaddr=DevAddr, _='_'}, [], ['$_']}]).
 
 take_previous_frames(DevAddr, Port) ->
     lists:foldl(
-        fun(#txframe{frid=Id, txdata=TxData}, Acc) ->
+        fun(#queued{frid=Id, txdata=TxData}, Acc) ->
             if
                 TxData#txdata.port == Port ->
-                    ok = mnesia:dirty_delete(txframe, Id),
+                    ok = mnesia:dirty_delete(queued, Id),
                     [TxData | Acc];
                 true ->
                     Acc
@@ -73,9 +73,9 @@ take_previous_frames(DevAddr, Port) ->
 send_stored_frames(DevAddr, DefPort) ->
     case get_stored_frames(DevAddr) of
         [] ->
-            mnesia:subscribe({table, txframe, simple}),
+            mnesia:subscribe({table, queued, simple}),
             receive
-                {mnesia_table_event, {write, #txframe{devaddr=DevAddr}=TxFrame, _ActivityId}} ->
+                {mnesia_table_event, {write, #queued{devaddr=DevAddr}=TxFrame, _ActivityId}} ->
                     transmit_and_delete(DefPort, TxFrame, false)
                 after ?MAX_DELAY ->
                     ok
@@ -87,8 +87,8 @@ send_stored_frames(DevAddr, DefPort) ->
     end.
 
 transmit_and_delete(DefPort, TxFrame, Pending) ->
-    ok = mnesia:dirty_delete(txframe, TxFrame#txframe.frid),
-    TxData = TxFrame#txframe.txdata,
+    ok = mnesia:dirty_delete(queued, TxFrame#queued.frid),
+    TxData = TxFrame#queued.txdata,
     % raw websocket does not define port
     OutPort = if
         TxData#txdata.port == undefined -> DefPort;

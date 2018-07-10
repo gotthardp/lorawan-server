@@ -34,7 +34,6 @@ ensure_tables() ->
         {device, [devices]},
         {node, [nodes, links]},
         {ignored_node, [ignored_nodes, ignored_links]},
-        {txframe, [txframes]},
         {rxframe, [rxframes]},
         {connector, [connectors]},
         {handler, [handles]},
@@ -77,13 +76,12 @@ ensure_tables() ->
         {ignored_node, [
             {attributes, record_info(fields, ignored_node)},
             {disc_copies, [node()]}]},
+        {queued, [
+            {attributes, record_info(fields, queued)},
+            {index, [devaddr]},
+            {disc_copies, [node()]}]},
         {pending, [
             {attributes, record_info(fields, pending)},
-            {disc_copies, [node()]}]},
-        {txframe, [
-            {type, ordered_set},
-            {attributes, record_info(fields, txframe)},
-            {index, [devaddr]},
             {disc_copies, [node()]}]},
         {rxframe, [
             {attributes, record_info(fields, rxframe)},
@@ -279,7 +277,7 @@ foreach_record(Database, Keys, Fun) ->
 get_rxframes(DevAddr) ->
     {_, Frames} = get_last_rxframes(DevAddr, 50),
     % return frames received since the last device restart
-    case mnesia:dirty_read(nodes, DevAddr) of
+    case mnesia:dirty_read(node, DevAddr) of
         [#node{last_reset=Reset}] when is_tuple(Reset) ->
             lists:filter(
                 fun(Frame) -> occured_rxframe_after(Reset, Frame) end,

@@ -187,17 +187,17 @@
     pending :: 'undefined' | boolean(),
     receipt :: any()}).
 
+-record(queued, {
+    frid :: frid(), % unique identifier
+    datetime :: calendar:datetime(),
+    devaddr :: devaddr(),
+    txdata :: #txdata{}}).
+
 -record(pending, {
     devaddr :: devaddr(),
     confirmed :: boolean(),
     phypayload :: binary(),
     receipt :: any()}).
-
--record(txframe, {
-    frid :: frid(), % unique identifier
-    datetime :: calendar:datetime(),
-    devaddr :: devaddr(),
-    txdata :: #txdata{}}).
 
 -record(rxframe, {
     frid :: frid(), % unique identifier
