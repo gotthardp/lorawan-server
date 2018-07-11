@@ -754,10 +754,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     admin.addEntity(ignored_nodes);
 
     // ---- rxframes
-    rxframes.listView().title('Received Frames')
+    rxframes.listView().title('Frames')
         .batchActions([]);
     rxframes.listView().fields([
-        nga.field('datetime', 'datetime').label('Received'),
+        nga.field('dir')
+            .template(function(entry){ return dirIndicator(entry.values) }),
+        nga.field('datetime', 'datetime').label('Time'),
         nga.field('app').label('Application'),
         nga.field('devaddr').label('DevAddr')
             .template(function(entry) {
@@ -795,6 +797,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ])
     .sortField('datetime');
     rxframes.listView().filters([
+        nga.field('dir', 'choice')
+            .choices([
+                { value: 'up', label: 'up' },
+                { value: 're-up', label: 're-up' },
+                { value: 'down', label: 'down' }
+            ]),
         nga.field('app').label('Application'),
         nga.field('devaddr').label('DevAddr')
             .validation({ pattern: '[A-Fa-f0-9]{8}' })
@@ -1042,9 +1050,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .sortField('last_rx')
             .perPage(7)
         )
-        .addCollection(nga.collection(rxframes).title('Received Frames')
+        .addCollection(nga.collection(rxframes).title('Frames')
             .fields([
-                nga.field('datetime', 'datetime').label('Received'),
+                nga.field('dir')
+                    .template(function(entry){ return dirIndicator(entry.values) }),
+                nga.field('datetime', 'datetime').label('Time'),
                 nga.field('app').label('Application'),
                 nga.field('devaddr').label('DevAddr')
                     .template(function(entry) {
@@ -1101,7 +1111,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .addChild(nga.menu(handlers).icon('<span class="fa fa-cogs fa-fw"></span>'))
             .addChild(nga.menu(connectors).icon('<span class="fa fa-bolt fa-fw"></span>'))
         )
-        .addChild(nga.menu(rxframes).title('Received Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
+        .addChild(nga.menu(rxframes).title('Frames').icon('<span class="fa fa-comments fa-fw"></span>'))
         .autoClose(false);
 
     admin.dashboard()
@@ -1154,7 +1164,7 @@ function array_slice_mac(array) {
 }
 function array_slice_rxq(array, slice) {
     if(Array.isArray(array))
-        return array.map( x => x['rxq'][slice].toString() );
+        return array.map( x => ('rxq' in x) && (slice in x['rxq']) ? x['rxq'][slice].toString() : ' ');
     else
         return [];
 }
@@ -1344,6 +1354,17 @@ function healthIndicator(values) {
     }
     else
         return '';
+}
+
+function dirIndicator(values) {
+    switch (values.dir) {
+        case "up":
+            return '<span class="fa fa-arrow-up fa-fw" title="up"></span>';
+        case "down":
+            return '<span class="fa fa-arrow-down fa-fw" title="down"></span>';
+        default:
+            return '';
+    }
 }
 
 myApp.decorator('HttpErrorService', ['$delegate', '$translate', 'notification',

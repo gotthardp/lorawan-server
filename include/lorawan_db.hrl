@@ -201,6 +201,7 @@
 
 -record(rxframe, {
     frid :: frid(), % unique identifier
+    dir :: binary(),
     network :: nonempty_string(),
     app :: binary(),
     devaddr :: devaddr(),

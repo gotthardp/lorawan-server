@@ -35,7 +35,7 @@ content_types_provided(Req, State) ->
 
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
-    ActRec = lorawan_db:get_rxframes(lorawan_utils:hex_to_binary(DevAddr)),
+    ActRec = get_last_rxframes(lorawan_utils:hex_to_binary(DevAddr)),
     case ActRec of
         [#rxframe{network=Name} | _] ->
             case mnesia:dirty_read(network, Name) of
@@ -46,6 +46,25 @@ get_rxframe(Req, State) ->
             end;
         [] ->
             send_empty(Req, DevAddr, State)
+    end.
+
+get_last_rxframes(DevAddr) ->
+    {Uplinks0, _} = lorawan_db:get_rxframes(DevAddr),
+    Uplinks =
+        if
+            length(Uplinks0) =< 50 ->
+                Uplinks0;
+            true ->
+                lists:sublist(Uplinks0, length(Uplinks0)-50+1, 50)
+        end,
+    % return frames received since the last device restart
+    case mnesia:dirty_read(node, DevAddr) of
+        [#node{last_reset=Reset}] when is_tuple(Reset) ->
+            lists:filter(
+                fun(#rxframe{datetime=FrameDate}) -> FrameDate >= Reset end,
+                Uplinks);
+        _Else ->
+            Uplinks
     end.
 
 send_empty(Req, DevAddr, State) ->

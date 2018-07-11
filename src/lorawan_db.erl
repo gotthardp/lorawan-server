@@ -6,7 +6,7 @@
 -module(lorawan_db).
 
 -export([ensure_tables/0, ensure_table/2, ensure_table/3]).
--export([foreach_record/3, get_rxframes/1, get_last_rxframes/2]).
+-export([foreach_record/3, get_rxframes/1]).
 -export([record_fields/1]).
 
 -include("lorawan.hrl").
@@ -274,28 +274,17 @@ foreach_record(Database, Keys, Fun) ->
                 end)
         end, Keys).
 
+% returns two sorted lists {uplink frames, downlink frames}
 get_rxframes(DevAddr) ->
-    {_, Frames} = get_last_rxframes(DevAddr, 50),
-    % return frames received since the last device restart
-    case mnesia:dirty_read(node, DevAddr) of
-        [#node{last_reset=Reset}] when is_tuple(Reset) ->
-            lists:filter(
-                fun(Frame) -> occured_rxframe_after(Reset, Frame) end,
-                Frames);
-        _Else ->
-            Frames
-    end.
-
-occured_rxframe_after(StartDate, #rxframe{datetime = FrameDate}) ->
-    StartDate =< FrameDate.
-
-get_last_rxframes(DevAddr, Count) ->
-    Rec = mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr),
-    SRec = lists:sort(fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A < B end, Rec),
-    % split the list into expired and actual records
-    if
-        length(SRec) > Count -> lists:split(length(SRec)-Count, SRec);
-        true -> {[], SRec}
-    end.
+    lists:partition(
+        fun(#rxframe{dir=Dir}) ->
+            if
+                Dir == undefined; Dir == <<"up">>; Dir == <<"re-up">> -> true;
+                Dir == <<"down">> -> false
+            end
+        end,
+        lists:sort(
+            fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A =< B end,
+            mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
 
 % end of file

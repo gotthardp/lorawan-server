@@ -8,3 +8,6 @@ p.channel_check label { font-weight:normal; display: block; }
 .vis-item.error { background-color: orangered; border-color: darkred; }
 .vis-item.warning { background-color: gold; border-color: orange; }
 .vis-item.info { background-color: lightgray; border-color: darkgray; }
+.vis-item.up { }
+.vis-item.re-up { background-color: gold; border-color: orange; }
+.vis-item.down { background-color: paleturquoise; border-color: darkturquoise; }

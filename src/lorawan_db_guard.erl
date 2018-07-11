@@ -355,7 +355,7 @@ check_battery(#node{}) ->
 check_margin(#node{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
     if
         Margin =< MaxSNR+10 ->
-            {<<"downlink_noise">>, 5*abs(Margin-MaxSNR)};
+            {<<"downlink_noise">>, trunc(5*abs(Margin-MaxSNR))};
         true ->
             ok
     end;
@@ -393,7 +393,9 @@ trim_rxframes() ->
     {ok, Count} = application:get_env(lorawan_server, retained_rxframes),
     Trimmed = lists:filter(
         fun(D) ->
-            trim_rxframes(D, Count)
+            {Uplinks, Downlinks} = lorawan_db:get_rxframes(D),
+            % trim uplinks and downlinks separately
+            trim_rxframes(Uplinks, Count) or trim_rxframes(Downlinks, Count)
         end,
         lists:usort(
             mnesia:dirty_select(rxframe, [{#rxframe{devaddr='$1', _='_'}, [], ['$1']}]))),
@@ -406,15 +408,14 @@ trim_rxframes() ->
             ok
     end.
 
-trim_rxframes(DevAddr, Count) ->
-    case lorawan_db:get_last_rxframes(DevAddr, Count) of
-        {[], _} ->
-            false;
-        {ExpRec, _} ->
-            lists:foreach(fun(R) -> mnesia:dirty_delete_object(rxframe, R) end,
-                ExpRec),
-            true
-    end.
+trim_rxframes(Frames, Count) when length(Frames) > Count ->
+    lists:foreach(
+        fun(R) -> mnesia:dirty_delete_object(rxframe, R) end,
+        lists:sublist(Frames, length(Frames)-Count)),
+    true;
+trim_rxframes(_Frames, _Count) ->
+    % nothing to trim
+    false.
 
 purge_queued(DevAddr) ->
     lists:foreach(

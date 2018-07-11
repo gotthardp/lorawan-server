@@ -436,26 +436,27 @@ encode_cf(Freq, Acc) ->
 
 encode_unicast({_Network, #profile{adr_mode=ADR},
         #node{devaddr=DevAddr, nwkskey=NwkSKey, appskey=AppSKey}}, ACK, FOpts, TxData) ->
-    {atomic, FCntDown} = mnesia:transaction(
+    {atomic, #node{fcntdown=FCntDown}=D} = mnesia:transaction(
         fun() ->
             [D] = mnesia:read(node, DevAddr, write),
             FCnt = (D#node.fcntdown + 1) band 16#FFFFFFFF,
-            ok = lorawan_admin:write(D#node{fcntdown=FCnt}),
-            FCnt
-        end),
-    encode_frame(DevAddr, NwkSKey, AppSKey, FCntDown, get_adr_flag(ADR), ACK, FOpts, TxData).
-
-encode_multicast(DevAddr, TxData) ->
-    {atomic, G} = mnesia:transaction(
-        fun() ->
-            [D] = mnesia:read(multicast_channel, DevAddr, write),
-            FCnt = (D#multicast_channel.fcntdown + 1) band 16#FFFFFFFF,
-            NewD = D#multicast_channel{fcntdown=FCnt},
-            ok = mnesia:write(NewD),
+            NewD = D#node{fcntdown=FCnt},
+            ok = lorawan_admin:write(NewD),
             NewD
         end),
-    encode_frame(DevAddr, G#multicast_channel.nwkskey, G#multicast_channel.appskey,
-        G#multicast_channel.fcntdown, 0, 0, <<>>, TxData).
+    {ok, D, encode_frame(DevAddr, NwkSKey, AppSKey, FCntDown, get_adr_flag(ADR), ACK, FOpts, TxData)}.
+
+encode_multicast(DevAddr, TxData) ->
+    {atomic, #multicast_channel{fcntdown=FCntDown, nwkskey=NwkSKey, appskey=AppSKey}=G} =
+        mnesia:transaction(
+            fun() ->
+                [D] = mnesia:read(multicast_channel, DevAddr, write),
+                FCnt = (D#multicast_channel.fcntdown + 1) band 16#FFFFFFFF,
+                NewD = D#multicast_channel{fcntdown=FCnt},
+                ok = mnesia:write(NewD),
+                NewD
+            end),
+    {ok, G, encode_frame(DevAddr, NwkSKey, AppSKey, FCntDown, 0, 0, <<>>, TxData)}.
 
 get_adr_flag(ADR) when ADR == undefined; ADR == 0 -> 0;
 get_adr_flag(ADR) when ADR > 0 -> 1.
@@ -496,7 +497,7 @@ sign_frame(Confirmed, DevAddr, NwkSKey, FCnt, MACPayload) ->
         end,
     Msg = <<MType:3, 0:3, 0:2, MACPayload/binary>>,
     MIC = aes_cmac:aes_cmac(NwkSKey, <<(b0(1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4),
-    {ok, <<Msg/binary, MIC/binary>>}.
+    <<Msg/binary, MIC/binary>>.
 
 bool_to_pending(true) -> 1;
 bool_to_pending(false) -> 0;
