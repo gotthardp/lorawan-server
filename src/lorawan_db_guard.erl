@@ -211,7 +211,7 @@ send_emails0([], _Type, _ID, _Message, _Warning) ->
 send_emails0(ToAddrs, Type, ID, Message, Warning) ->
     [#server{admin_url=Prefix, email_from=From, email_server=Server,
         email_user=User, email_password=Pass}] = mnesia:dirty_read(server, node()),
-    TypeTitle = string:titlecase(Type),
+    TypeTitle = titlecase(Type),
     Body =
         {<<"multipart">>, <<"alternative">>, [
             {<<"From">>, From},
@@ -266,7 +266,7 @@ send_slack(Channel, Type, ID, Message, Warning) ->
     [#server{admin_url=Prefix, slack_token=Token}] = mnesia:dirty_read(server, node()),
     case catch send_slack_message(
         Token, Channel,
-        list_to_binary([string:titlecase(Type), " <", stringify_url(Prefix, Type, ID), "|", ID, ">", Message,
+        list_to_binary([titlecase(Type), " <", stringify_url(Prefix, Type, ID), "|", ID, ">", Message,
             if
                 Warning ->
                     " :warning:";
@@ -430,5 +430,9 @@ expired_events() ->
         calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - AgeSeconds),
     mnesia:dirty_select(event,
         [{#event{evid='$1', last_rx='$2', _='_'}, [{'=<', '$2', {const, ETime}}], ['$1']}]).
+
+% string:titlecase is not available in Erlang 19
+titlecase([F|Rest]) ->
+    [string:to_upper(F) | Rest].
 
 % end of file
