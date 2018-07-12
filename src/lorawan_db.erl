@@ -274,10 +274,10 @@ foreach_record(Database, Keys, Fun) ->
                 end)
         end, Keys).
 
-get_group(#node{profile=Profile}) ->
-    case mnesia:dirty_read(profile, Profile) of
-        [#profile{group=Group}] ->
-            case mnesia:dirty_read(group, Group) of
+get_group(#node{profile=ProfName}) ->
+    case mnesia:dirty_read(profile, ProfName) of
+        [#profile{group=GrName}] ->
+            case mnesia:dirty_read(group, GrName) of
                 [Group] ->
                     Group;
                 [] ->
