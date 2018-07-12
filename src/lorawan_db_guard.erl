@@ -89,7 +89,7 @@ update_health(#node{devaddr=DevAddr,
     case Reports of
         {NewAlerts, OtherAlerts} ->
             case lorawan_db:get_group(Node) of
-                [#group{admins=Admins, slack_channel=Channel}] ->
+                #group{admins=Admins, slack_channel=Channel} ->
                     send_alert(Admins, Channel, "node", lorawan_utils:binary_to_hex(DevAddr), NewAlerts, OtherAlerts, Decay);
                 _Else ->
                     ok
@@ -166,7 +166,7 @@ sublist(Proplist, Keys) ->
         [], Keys).
 
 send_alert(Admins, Channel, Type, ID, NewAlerts, OtherAlerts, Decay) ->
-    lager:debug("~s ~s ~p ~p", [Type, ID, NewAlerts, OtherAlerts]),
+    lager:warning("~s ~s ~p ~p", [Type, ID, NewAlerts, OtherAlerts]),
     Message = [
         if
             length(NewAlerts) > 0 ->
