@@ -6,7 +6,7 @@
 -module(lorawan_db).
 
 -export([ensure_tables/0, ensure_table/2, ensure_table/3]).
--export([foreach_record/3, get_rxframes/1]).
+-export([foreach_record/3, get_group/1, get_rxframes/1]).
 -export([record_fields/1]).
 
 -include("lorawan.hrl").
@@ -273,6 +273,19 @@ foreach_record(Database, Keys, Fun) ->
                     end
                 end)
         end, Keys).
+
+get_group(#node{profile=Profile}) ->
+    case mnesia:dirty_read(profile, Profile) of
+        [#profile{group=Group}] ->
+            case mnesia:dirty_read(group, Group) of
+                [Group] ->
+                    Group;
+                [] ->
+                    undefined
+            end;
+        [] ->
+            undefined
+    end.
 
 % returns two sorted lists {uplink frames, downlink frames}
 get_rxframes(DevAddr) ->

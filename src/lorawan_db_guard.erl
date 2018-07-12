@@ -71,22 +71,29 @@ update_health(#gateway{mac=MAC, area=Area, dwell=Dwell,
             ?MODULE, [check_alive, check_dwell]),
     case Reports of
         {NewAlerts, OtherAlerts} ->
-            [#area{admins=Admins, slack_channel=Channel}] = mnesia:dirty_read(area, Area),
-            send_alert(Admins, Channel, "gateway", lorawan_utils:binary_to_hex(MAC), NewAlerts, OtherAlerts, Decay);
+            case mnesia:dirty_read(area, Area) of
+                [#area{admins=Admins, slack_channel=Channel}] ->
+                    send_alert(Admins, Channel, "gateway", lorawan_utils:binary_to_hex(MAC), NewAlerts, OtherAlerts, Decay);
+                _Else ->
+                    ok
+            end;
         undefined ->
             ok
     end,
     Gateway#gateway{health_alerts=Alerts, health_decay=Decay, health_reported=Reported, health_next=MinNext};
-update_health(#node{devaddr=DevAddr, profile=Profile,
+update_health(#node{devaddr=DevAddr,
         health_alerts=Alerts0, health_reported=Reported0} = Node) ->
     {Reports, Alerts, Decay, Reported, MinNext} =
         check_health(Node, Alerts0, Reported0,
             ?MODULE, [check_reset, check_battery, check_margin, check_adr, check_rxwin]),
     case Reports of
         {NewAlerts, OtherAlerts} ->
-            [#profile{group=Group}] = mnesia:dirty_read(profile, Profile),
-            [#group{admins=Admins, slack_channel=Channel}] = mnesia:dirty_read(group, Group),
-            send_alert(Admins, Channel, "node", lorawan_utils:binary_to_hex(DevAddr), NewAlerts, OtherAlerts, Decay);
+            case lorawan_db:get_group(Node) of
+                [#group{admins=Admins, slack_channel=Channel}] ->
+                    send_alert(Admins, Channel, "node", lorawan_utils:binary_to_hex(DevAddr), NewAlerts, OtherAlerts, Decay);
+                _Else ->
+                    ok
+            end;
         undefined ->
             ok
     end,
