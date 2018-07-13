@@ -176,7 +176,7 @@ send_alert(Admins, Channel, Type, ID, NewAlerts, OtherAlerts, Decay) ->
         end,
         if
             length(OtherAlerts) > 0 ->
-                [" still is", stringify_alerts(OtherAlerts)];
+                [" has still", stringify_alerts(OtherAlerts)];
             true ->
                 []
         end],
@@ -359,15 +359,23 @@ check_battery(#node{devstat=[{_Time, Battery, _Margin, _MaxSNR}|_]}) ->
 check_battery(#node{}) ->
     undefined.
 
-check_margin(#node{devstat=[{_Time, _Battery, Margin, MaxSNR}|_]}) ->
-    if
-        Margin =< MaxSNR+10 ->
-            {<<"downlink_noise">>, trunc(5*abs(Margin-MaxSNR))};
+check_margin(#node{devstat=DevStat}) when is_list(DevStat), length(DevStat) > 1 ->
+    % last (two or) three values
+    Deltas =
+        lists:map(
+            fun({_Time, _Battery, Margin, MaxSNR}) -> Margin - MaxSNR end,
+            lists:sublist(DevStat, 3)),
+    % if all three are bad, rank the minimum
+    Threshold = 10,
+    case lists:all(
+            fun(Delta) -> Delta < Threshold end, Deltas) of
         true ->
+            {<<"downlink_noise">>, max(100, trunc(5*(Threshold-lists:min(Deltas))))};
+        false ->
             ok
     end;
 check_margin(#node{}) ->
-    undefined.
+    ok.
 
 check_adr(#node{adr_failed=Failed}) when Failed == undefined; Failed == [] ->
     ok;
