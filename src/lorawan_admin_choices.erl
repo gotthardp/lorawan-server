@@ -55,8 +55,12 @@ handle_get(Req, profiles=Opts) ->
         lists:map(
             fun(Prof) ->
                 [#profile{group=Group}] = mnesia:dirty_read(profile, Prof),
-                [#group{network=Net}] = mnesia:dirty_read(group, Group),
-                {Prof, network_choices(Net)}
+                case mnesia:dirty_read(group, Group) of
+                    [#group{network=Net}] when is_binary(Net), byte_size(Net) > 0 ->
+                        {Prof, network_choices(Net)};
+                    _Else ->
+                        {Prof, []}
+                end
             end,
             mnesia:dirty_all_keys(profile)),
     {jsx:encode(Profs), Req, Opts}.
