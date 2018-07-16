@@ -5,6 +5,6 @@ AUTH="--user=admin --password=admin"
 DIR=backup-$(date +"%Y%m%d-%H%M%S")
 mkdir -p $DIR
 
-for db in users gateways networks multicast_channels profiles devices nodes ignored_nodes handlers connectors; do
+for db in user area gateway multicast_channel network group profile device node ignored_node handler connector; do
     wget -nv $AUTH --output-document=$DIR/$db.json http://$SERVER/api/$db
 done
