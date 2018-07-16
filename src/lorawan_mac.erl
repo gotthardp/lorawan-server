@@ -271,6 +271,9 @@ check_fcnt({Network, Profile, Node}, FCnt) ->
                 adr_use=initial_adr(Network), adr_failed=[],
                 rxwin_use=Network#network.rxwin_init, rxwin_failed=[],
                 last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
+        Profile#profile.fcnt_check == 3, FCnt == 0 ->
+            % somebody might be constantly reseting the device
+            {ok, uplink, Node#node{fcntup = 0, fcntdown = 0}};
         Profile#profile.fcnt_check == 3 ->
             % checks disabled
             {ok, uplink, Node#node{fcntup = FCnt}};
