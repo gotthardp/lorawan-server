@@ -79,7 +79,7 @@ get_array(_, _Else) ->
 
 resource_exists(Req, State) ->
     case mnesia:dirty_read(gateway,
-            lorawan_utils:hex_to_binary(cowboy_req:binding(mac, Req))) of
+            lorawan_admin:parse_field(mac, cowboy_req:binding(mac, Req))) of
         [] -> {false, Req, State};
         [_Stats] -> {true, Req, State}
     end.
