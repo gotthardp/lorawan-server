@@ -31,7 +31,7 @@ init0(Req, Table, Fields, Module) ->
         field=Field, fidx=lorawan_utils:index_of(Field, Fields), module=Module}}.
 
 is_authorized(Req, State) ->
-    lorawan_admin:handle_authorization(Req, State).
+    {lorawan_admin:handle_authorization(Req), Req, State}.
 
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"DELETE">>], Req, State}.

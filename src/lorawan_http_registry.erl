@@ -127,7 +127,7 @@ static_routes() ->
     {"/api/events/[:evid]", lorawan_admin_db_record,
         [event, record_info(fields, event)]},
     {"/api/upload", lorawan_admin_upload, []},
-    {"/admin", cowboy_static, {priv_file, lorawan_server, "admin/index.html"}},
+    {"/admin", lorawan_admin_static, {priv_file, lorawan_server, <<"admin/index.html">>}},
     {"/admin/timeline", lorawan_admin_timeline, []},
     {"/admin/sgraph/:name", lorawan_admin_graph_server, []},
     {"/admin/pgraph/:mac", lorawan_admin_graph_gw, [pgraph]},
@@ -135,8 +135,8 @@ static_routes() ->
     {"/admin/rgraph/:devaddr", lorawan_admin_graph_rx, [rgraph]},
     {"/admin/qgraph/:devaddr", lorawan_admin_graph_rx, [qgraph]},
     {"/admin/ngraph/:devaddr", lorawan_admin_graph_node, []},
-    {"/admin/[...]", cowboy_static, {priv_dir, lorawan_server, "admin"}},
+    {"/admin/[...]", lorawan_admin_static, {priv_dir, lorawan_server, <<"admin">>}},
     {"/", lorawan_admin_redirect, #{path => AdminPath}},
-    {"/favicon.ico", cowboy_static, {priv_file, lorawan_server, "favicon.ico"}}].
+    {"/favicon.ico", lorawan_admin_static, {priv_file, lorawan_server, <<"favicon.ico">>}}].
 
 % end of file

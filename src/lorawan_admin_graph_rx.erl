@@ -23,7 +23,7 @@ init(Req, [Format]) ->
     {cowboy_rest, Req, #state{format=Format}}.
 
 is_authorized(Req, State) ->
-    lorawan_admin:handle_authorization(Req, State).
+    {lorawan_admin:handle_authorization(Req), Req, State}.
 
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>], Req, State}.

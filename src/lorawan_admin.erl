@@ -5,7 +5,7 @@
 %
 -module(lorawan_admin).
 
--export([handle_authorization/2]).
+-export([handle_authorization/1]).
 -export([write/1, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
 -export([timestamp_to_json_date/1]).
@@ -13,7 +13,7 @@
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
 
-handle_authorization(Req, State) ->
+handle_authorization(Req) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {digest, Params} ->
             Method = cowboy_req:method(Req),
@@ -24,17 +24,17 @@ handle_authorization(Req, State) ->
             % retrieve and check password
             case get_password_hash(<<"admin">>, UserName) of
                 undefined ->
-                    {{false, digest_header()}, Req, State};
+                    {false, digest_header()};
                 HA1 ->
                     case lorawan_http_digest:response(Method, URI, <<>>, HA1, Nonce) of
                         Response ->
-                            {true, Req, State};
+                            true;
                         _Else ->
-                            {{false, digest_header()}, Req, State}
+                            {false, digest_header()}
                     end
             end;
         _Else ->
-            {{false, digest_header()}, Req, State}
+            {false, digest_header()}
     end.
 
 digest_header() ->

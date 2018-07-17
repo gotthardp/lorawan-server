@@ -29,7 +29,7 @@ init0(Req, Table, Fields, Module) ->
     {cowboy_rest, Req, #state{table=Table, fields=Fields, key=Key, module=Module}}.
 
 is_authorized(Req, State) ->
-    lorawan_admin:handle_authorization(Req, State).
+    {lorawan_admin:handle_authorization(Req), Req, State}.
 
 allowed_methods(Req, #state{key=undefined}=State) ->
     {[<<"OPTIONS">>, <<"GET">>, <<"POST">>], Req, State};

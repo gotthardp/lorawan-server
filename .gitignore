@@ -22,5 +22,6 @@ priv/admin/img/
 priv/admin/angular-vis.js
 priv/admin/bootstrap-colorpicker-module.min.js
 priv/admin/colorpicker.min.css
+priv/admin/*.gz
 backup-*/*.json
 log/
