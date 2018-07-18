@@ -205,6 +205,7 @@
     network :: nonempty_string(),
     app :: binary(),
     devaddr :: devaddr(),
+    appargs :: any(),
     gateways :: [{binary(), #rxq{}}], % singnal quality at each gateway
     average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     powe:: integer(),

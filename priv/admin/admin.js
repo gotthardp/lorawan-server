@@ -765,6 +765,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template(function(entry) {
                 return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
             }),
+        nga.field('appargs').label('Args'),
         nga.field('mac').label('MAC')
             .map(function(value, entry) {
                 return array_slice_mac(entry.gateways);
@@ -805,7 +806,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             ]),
         nga.field('app').label('Application'),
         nga.field('devaddr').label('DevAddr')
-            .validation({ pattern: '[A-Fa-f0-9]{8}' })
+            .validation({ pattern: '[A-Fa-f0-9]{8}' }),
+        nga.field('appargs').label('App Arguments'),
+        nga.field('port', 'number')
     ]);
     // add to the admin application
     admin.addEntity(rxframes);

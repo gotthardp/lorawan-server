@@ -307,19 +307,19 @@ multicast(DevAddr, #profile{name=Prof}=Profile, Network, Time, PHYPayload) ->
     ))).
 
 build_rxframe(Dir, Gateways, {#network{name=NetName}, #profile{app=App},
-        #node{fcntup=FCnt, average_qs=AverageQs, adr_use={TXPower, _, _}}},
+        #node{appargs=AppArgs, fcntup=FCnt, average_qs=AverageQs, adr_use={TXPower, _, _}}},
         #frame{conf=Confirm, devaddr=DevAddr, port=Port, data=Data}) ->
-    % #rxframe{frid, dir, gateways, average_qs, app, region, devaddr, powe, fcnt, confirm, port, data, datetime}
-    #rxframe{frid= <<(erlang:system_time()):64>>, dir=Dir, gateways=Gateways,
-        average_qs=AverageQs, network=NetName, app=App, devaddr=DevAddr, powe=TXPower,
+    % #rxframe{frid, dir, network, app, devaddr, appargs, gateways, average_qs, powe, fcnt, confirm, port, data, datetime}
+    #rxframe{frid= <<(erlang:system_time()):64>>, dir=Dir, network=NetName,
+        app=App, devaddr=DevAddr, appargs=AppArgs, gateways=Gateways,
+        average_qs=AverageQs, powe=TXPower,
         fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port, data=Data,
         datetime=calendar:universal_time()};
 build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
-        #node{devaddr=DevAddr, fcntdown=FCnt}},
+        #node{appargs=AppArgs, devaddr=DevAddr, fcntdown=FCnt}},
         #txdata{confirmed=Confirm, port=Port, data=Data}) ->
-    % #rxframe{frid, dir, gateways, average_qs, app, region, devaddr, powe, fcnt, confirm, port, data, datetime}
-    #rxframe{frid= <<(erlang:system_time()):64>>, dir=Dir, gateways=[{MAC, #rxq{}}],
-        network=NetName, app=App, devaddr=DevAddr,
+    #rxframe{frid= <<(erlang:system_time()):64>>, dir=Dir, network=NetName,
+        app=App, devaddr=DevAddr, appargs=AppArgs, gateways=[{MAC, #rxq{}}],
         fcnt=FCnt, confirm=Confirm, port=Port, data=Data,
         datetime=calendar:universal_time()}.
 
