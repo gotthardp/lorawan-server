@@ -159,7 +159,7 @@ us_down_datars() -> [
     {13, {7, 500}}].
 
 dr_to_tuple(Region, DR) ->
-    {_, DataRate} = lists:keyfind(DR, 1, datars(Region)).
+    {_, DataRate} = lists:keyfind(DR, 1, datars(Region)),
     DataRate.
 
 dr_to_datar(Region, DR) ->
