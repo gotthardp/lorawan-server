@@ -159,19 +159,15 @@ us_down_datars() -> [
     {13, {7, 500}}].
 
 dr_to_tuple(Region, DR) ->
-    case lists:keyfind(DR, 1, datars(Region)) of
-        {_, DataRate} -> DataRate;
-        false -> undefined
-    end.
+    {_, DataRate} = lists:keyfind(DR, 1, datars(Region)).
+    DataRate.
 
 dr_to_datar(Region, DR) ->
     tuple_to_datar(dr_to_tuple(Region, DR)).
 
 datar_to_dr(Region, DataRate) ->
-    case lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)) of
-        {DR, _} -> DR;
-        false -> undefined
-    end.
+    {DR, _} = lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)),
+    DR.
 
 tuple_to_datar({SF, BW}) ->
     <<"SF", (integer_to_binary(SF))/binary, "BW", (integer_to_binary(BW))/binary>>;

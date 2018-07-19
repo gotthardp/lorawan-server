@@ -802,7 +802,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices([
                 { value: 'up', label: 'up' },
                 { value: 're-up', label: 're-up' },
-                { value: 'down', label: 'down' }
+                { value: 'down', label: 'down' },
+                { value: 'bcast', label: 'bcast' }
             ]),
         nga.field('app').label('Application'),
         nga.field('devaddr').label('DevAddr')
@@ -1365,6 +1366,8 @@ function dirIndicator(values) {
             return '<span class="fa fa-arrow-up fa-fw" title="up"></span>';
         case "down":
             return '<span class="fa fa-arrow-down fa-fw" title="down"></span>';
+        case "bcast":
+            return '<span class="fa fa-arrows fa-fw" title="bcast"></span>';
         default:
             return '';
     }

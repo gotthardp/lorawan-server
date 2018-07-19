@@ -78,7 +78,12 @@ validate0(devaddr, DevAddr) ->
         [#node{}] ->
             ok;
         _Else ->
-            {error, {unknown_devaddr, lorawan_utils:binary_to_hex(DevAddr)}}
+            case mnesia:dirty_read(multicast_channel, DevAddr) of
+                [#multicast_channel{}] ->
+                    ok;
+                _Else ->
+                    {error, {unknown_devaddr, lorawan_utils:binary_to_hex(DevAddr)}}
+            end
     end;
 validate0(_Else, _) ->
     ok.
