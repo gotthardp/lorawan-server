@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_commands).
 
--export([handle_fopts/4, build_fopts/2]).
+-export([handle_fopts/4, build_fopts/2, merge_rxwin/2]).
 
 -include("lorawan_db.hrl").
 
