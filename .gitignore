@@ -8,6 +8,8 @@ rebar3
 _build
 rebar.lock
 
+package-lock.json
+
 scripts/dpkg-deb/control
 node_modules/
 priv/admin/jquery.min.js
