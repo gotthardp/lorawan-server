@@ -306,16 +306,13 @@ get_rxframes(DevAddr) ->
             mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
 
 join_cluster(NodeName) when is_atom(NodeName) ->
-    % Static configuration tables + server info we are sharing across the cluster
     % WARNING: Side effects are possible when node statistics/ADR are updated
-    StaticTables = [user,area,gateway,multicast_channel,network,group,profile,
-        device,node,ignored_node,handler,connector,server],
     % Connect to node NodeName and get schema and tables from it
     {ok, _} = mnesia:change_config(extra_db_nodes, [NodeName]),
     % Create disc copy of the schema, required before add_table_copy/3
     {atomic, ok} = mnesia:change_table_copy_type(schema, node(), disc_copies),
     % Add disc copies of the static configuration tables.
-    [{atomic, ok} = mnesia:add_table_copy(T, node(), disc_copies) || T <- StaticTables],
+    [{atomic, ok} = mnesia:add_table_copy(T, node(), disc_copies) || T <- mnesia:system_info(tables), T /= schema],
     ok;
 join_cluster(NodeName) ->
     join_cluster(list_to_atom(NodeName)).
