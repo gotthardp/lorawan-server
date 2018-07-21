@@ -176,7 +176,7 @@ send_alert(Admins, Channel, Type, ID, NewAlerts, OtherAlerts, Decay) ->
         end,
         if
             length(OtherAlerts) > 0 ->
-                [" has still", stringify_alerts(OtherAlerts)];
+                [" and still", stringify_alerts(OtherAlerts)];
             true ->
                 []
         end],
