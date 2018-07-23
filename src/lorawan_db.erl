@@ -306,7 +306,7 @@ get_rxframes(DevAddr) ->
         fun(#rxframe{dir=Dir}) ->
             if
                 Dir == undefined; Dir == <<"up">>; Dir == <<"re-up">> -> true;
-                Dir == <<"down">> -> false
+                Dir == <<"down">>; Dir == <<"bcast">> -> false
             end
         end,
         lists:sort(
