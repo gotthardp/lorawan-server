@@ -1168,16 +1168,12 @@ function bytesToSize(bytes) {
 }
 
 function array_slice_mac(array) {
-    if(Array.isArray(array))
-        return array.map( x => x['mac'].toString() );
-    else
-        return [];
+    if(Array.isArray(array) && array.length > 0)
+        return array.map( x => ('mac' in x) ? x['mac'].toString() : ' ');
 }
 function array_slice_rxq(array, slice) {
-    if(Array.isArray(array))
+    if(Array.isArray(array) && array.length > 0)
         return array.map( x => ('rxq' in x) && (slice in x['rxq']) ? x['rxq'][slice].toString() : ' ');
-    else
-        return [];
 }
 function format_mac_array(array) {
     return array.map(mac => '<a href="#/gateways/edit/' + mac + '">' + mac + '</a>' ).join('<br>');
