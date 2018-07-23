@@ -21,6 +21,7 @@ start_link() ->
     gen_server:start_link(?MODULE, [], []).
 
 init([]) ->
+    ok = mnesia:wait_for_tables([node], 2000),
     {ok, _} = mnesia:subscribe({table, node, simple}),
     {ok, _} = timer:send_interval(1000, monitor),
     {ok, _} = timer:send_interval(3600*1000, trim_tables),

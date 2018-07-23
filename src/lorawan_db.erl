@@ -18,13 +18,15 @@ ensure_tables() ->
             ok;
         false ->
             case application:get_env(lorawan_server, db_master) of
-                {ok, NodeName} ->
-                    ok = join_cluster(NodeName);
-                _ ->
+                undefined ->
+                    % this is the very first node starting
                     stopped = mnesia:stop(),
                     lager:info("Database create schema"),
                     ok = mnesia:create_schema([node()]),
-                    ok = mnesia:start()
+                    ok = mnesia:start();
+                {ok, NodeName} ->
+                    pong = net_adm:ping(NodeName),
+                    ok = join_cluster(NodeName)
             end
     end,
     Renamed = [
@@ -109,8 +111,14 @@ ensure_table(Name, TabDef) ->
 ensure_table(Name, TabDef, Renamed) ->
     case table_exists(Name) of
         true ->
-            ok = mnesia:wait_for_tables([Name], 2000),
-            ensure_indexes(Name, TabDef);
+            case have_disc_copy(Name) of
+                true ->
+                    ok = mnesia:wait_for_tables([Name], 2000),
+                    ensure_indexes(Name, TabDef);
+                false ->
+                    % joining cluster
+                    {atomic, ok} = mnesia:add_table_copy(Name, node(), disc_copies)
+            end;
         false ->
             case lists:foldl(
                 fun
@@ -305,16 +313,21 @@ get_rxframes(DevAddr) ->
             fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A =< B end,
             mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
 
-join_cluster(NodeName) when is_atom(NodeName) ->
+join_cluster(NodeName) ->
+    lager:info("Joining mnesia cluster ~s", [NodeName]),
     % WARNING: Side effects are possible when node statistics/ADR are updated
     % Connect to node NodeName and get schema and tables from it
-    {ok, _} = mnesia:change_config(extra_db_nodes, [NodeName]),
-    % Create disc copy of the schema, required before add_table_copy/3
-    {atomic, ok} = mnesia:change_table_copy_type(schema, node(), disc_copies),
-    % Add disc copies of the static configuration tables.
-    [{atomic, ok} = mnesia:add_table_copy(T, node(), disc_copies) || T <- mnesia:system_info(tables), T /= schema],
-    ok;
-join_cluster(NodeName) ->
-    join_cluster(list_to_atom(NodeName)).
+    {ok, [NodeName]} = mnesia:change_config(extra_db_nodes, [NodeName]),
+    case lists:member(node(), mnesia:table_info(schema, disc_copies)) of
+        false ->
+            % Create disc copy of the schema, required before add_table_copy/3
+            {atomic, ok} = mnesia:change_table_copy_type(schema, node(), disc_copies),
+            ok;
+        true ->
+            ok
+    end.
+
+have_disc_copy(Table) ->
+    lists:member(node(), mnesia:table_info(Table, disc_copies)).
 
 % end of file
