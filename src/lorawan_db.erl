@@ -17,10 +17,15 @@ ensure_tables() ->
         true ->
             ok;
         false ->
-            stopped = mnesia:stop(),
-            lager:info("Database create schema"),
-            ok = mnesia:create_schema([node()]),
-            ok = mnesia:start()
+            case application:get_env(lorawan_server, db_master) of
+                {ok, NodeName} ->
+                    ok = join_cluster(NodeName);
+                _ ->
+                    stopped = mnesia:stop(),
+                    lager:info("Database create schema"),
+                    ok = mnesia:create_schema([node()]),
+                    ok = mnesia:start()
+            end
     end,
     Renamed = [
         {user, [users]},
@@ -299,5 +304,17 @@ get_rxframes(DevAddr) ->
         lists:sort(
             fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A =< B end,
             mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
+
+join_cluster(NodeName) when is_atom(NodeName) ->
+    % WARNING: Side effects are possible when node statistics/ADR are updated
+    % Connect to node NodeName and get schema and tables from it
+    {ok, _} = mnesia:change_config(extra_db_nodes, [NodeName]),
+    % Create disc copy of the schema, required before add_table_copy/3
+    {atomic, ok} = mnesia:change_table_copy_type(schema, node(), disc_copies),
+    % Add disc copies of the static configuration tables.
+    [{atomic, ok} = mnesia:add_table_copy(T, node(), disc_copies) || T <- mnesia:system_info(tables), T /= schema],
+    ok;
+join_cluster(NodeName) ->
+    join_cluster(list_to_atom(NodeName)).
 
 % end of file
