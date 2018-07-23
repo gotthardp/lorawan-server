@@ -17,7 +17,7 @@
 -record(state, {key}).
 
 init(Req, _Opts) ->
-    Key = cowboy_req:binding(name, Req),
+    Key = lorawan_admin:parse_field(sname, cowboy_req:binding(sname, Req)),
     {cowboy_rest, Req, #state{key=Key}}.
 
 is_authorized(Req, State) ->
@@ -32,7 +32,7 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 get_server(Req, #state{key=Key}=State) ->
-    Server = mnesia:dirty_read(server, node()),
+    Server = mnesia:dirty_read(server, Key),
     {jsx:encode([{name, Key}, {array, get_array(Server)}]), Req, State}.
 
 get_array([#server{router_perf=Perf}]) when is_list(Perf) ->
@@ -54,11 +54,6 @@ get_array(_Else) ->
     [].
 
 resource_exists(Req, #state{key=Key}=State) ->
-    case atom_to_binary(node(), latin1) of
-        Key ->
-            {true, Req, State};
-        _Else ->
-            {false, Req, State}
-    end.
+    {lists:member(Key, [node() | nodes()]), Req, State}.
 
 % end of file

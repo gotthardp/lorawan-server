@@ -12,13 +12,13 @@
 -export([content_types_accepted/2]).
 -export([resource_exists/2]).
 
--export([handle_get/2, handle_write/2]).
+-export([handle_get/2, handle_write/2, get_server/0]).
 
 -include("lorawan.hrl").
 -record(state, {key}).
 
 init(Req, _Opts) ->
-    Key = cowboy_req:binding(name, Req),
+    Key = lorawan_admin:parse_field(sname, cowboy_req:binding(sname, Req)),
     {cowboy_rest, Req, #state{key=Key}}.
 
 is_authorized(Req, State) ->
@@ -35,9 +35,12 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 handle_get(Req, #state{key=undefined}=State) ->
-    {jsx:encode([get_server()]), Req, State};
-handle_get(Req, State) ->
-    {jsx:encode(get_server()), Req, State}.
+    {jsx:encode([get_server(N) || N <- [node() | nodes()]]), Req, State};
+handle_get(Req, #state{key=Key}=State) ->
+    {jsx:encode(get_server(Key)), Req, State}.
+
+get_server(Node) ->
+    rpc:call(Node, ?MODULE, get_server, []).
 
 get_server() ->
     Server =
@@ -95,11 +98,6 @@ handle_write(Req, State) ->
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};
 resource_exists(Req, #state{key=Key}=State) ->
-    case atom_to_binary(node(), latin1) of
-        Key ->
-            {true, Req, State};
-        _Else ->
-            {false, Req, State}
-    end.
+    {lists:member(Key, [node() | nodes()]), Req, State}.
 
 % end of file
