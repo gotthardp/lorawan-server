@@ -1126,30 +1126,37 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 }]);
 
 function map_memstats(value, entry) {
-    return bytesToSize(entry['memory.free_memory']);
+    if ('memory.free_memory' in entry)
+        return bytesToSize(entry['memory.free_memory']);
 }
 
 function map_memstats_p(value, entry) {
-    var free = 100 * entry['memory.free_memory'] / entry['memory.total_memory'];
-    return bytesToSize(entry['memory.free_memory']) + " (" + free.toFixed(0) + "%)";
+    if ('memory.free_memory' in entry) {
+        var free = 100 * entry['memory.free_memory'] / entry['memory.total_memory'];
+        return bytesToSize(entry['memory.free_memory']) + " (" + free.toFixed(0) + "%)";
+    }
 }
 
 function map_diskstats(value, entry) {
-    var root = entry['disk'].filter(function(obj) {
-        return (obj.id === "/");
-    });
-    if(root.length > 0)
-        return bytesToSize(1024*root[0].size_kb * (100-root[0].percent_used)/100);
+    if ('disk' in entry) {
+        var root = entry['disk'].filter(function(obj) {
+            return (obj.id === "/");
+        });
+        if(root.length > 0)
+            return bytesToSize(1024*root[0].size_kb * (100-root[0].percent_used)/100);
+    }
 }
 
 function map_diskstats_p(value, entry) {
-    var root = entry['disk'].filter(function(obj) {
-        return (obj.id === "/");
-    });
-    if(root.length > 0)
-    {
-        var free = 100-root[0].percent_used;
-        return bytesToSize(1024*root[0].size_kb * free/100) + " (" + free.toFixed(0) + "%)";
+    if ('disk' in entry) {
+        var root = entry['disk'].filter(function(obj) {
+            return (obj.id === "/");
+        });
+        if(root.length > 0)
+        {
+            var free = 100-root[0].percent_used;
+            return bytesToSize(1024*root[0].size_kb * free/100) + " (" + free.toFixed(0) + "%)";
+        }
     }
 }
 

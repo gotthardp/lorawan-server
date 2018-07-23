@@ -76,9 +76,9 @@ is_authorized(Req, State) ->
 malformed_request(Req, State) ->
     {State =:= error, Req, State}.
 
-forbidden(Req, State={_, #file_info{type=directory}, _}) ->
+forbidden(Req, State={error, _}) ->
     {true, Req, State};
-forbidden(Req, State={_, {error, eacces}}) ->
+forbidden(Req, State={_, #file_info{type=directory}, _}) ->
     {true, Req, State};
 forbidden(Req, State={_, #file_info{access=Access}, _})
         when Access =:= write; Access =:= none ->

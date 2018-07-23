@@ -54,6 +54,9 @@ get_array(_Else) ->
     [].
 
 resource_exists(Req, #state{key=Key}=State) ->
-    {lists:member(Key, [node() | nodes()]), Req, State}.
+    case mnesia:dirty_read(server, Key) of
+        [] -> {false, Req, State};
+        [_] -> {true, Req, State}
+    end.
 
 % end of file

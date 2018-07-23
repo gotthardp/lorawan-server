@@ -35,20 +35,23 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 handle_get(Req, #state{key=undefined}=State) ->
-    {jsx:encode([get_server(N) || N <- [node() | nodes()]]), Req, State};
+    {jsx:encode([get_server(N) || N <- mnesia:table_info(schema, disc_copies)]), Req, State};
 handle_get(Req, #state{key=Key}=State) ->
     {jsx:encode(get_server(Key)), Req, State}.
 
 get_server(Node) ->
-    rpc:call(Node, ?MODULE, get_server, []).
+    case lists:member(Node, nodes([this, connected])) of
+        true ->
+            rpc:call(Node, ?MODULE, get_server, []);
+        false ->
+            Config = lorawan_admin:build(?to_map(server, load_server(Node))),
+            Config#{
+                health_alerts => [<<"disconnected">>],
+                health_decay => 100}
+    end.
 
 get_server() ->
-    Server =
-        case mnesia:dirty_read(server, node()) of
-            [S] -> S;
-            [] -> #server{sname=node(), router_perf=[]}
-        end,
-    Config = lorawan_admin:build(?to_map(server, Server)),
+    Config = lorawan_admin:build(?to_map(server, load_server(node()))),
     Alarms = get_alarms(),
     Config#{
         modules => get_modules(),
@@ -56,6 +59,12 @@ get_server() ->
         disk => get_disk_data(),
         health_alerts => Alarms,
         health_decay => length(Alarms)}.
+
+load_server(Node) ->
+    case mnesia:dirty_read(server, Node) of
+        [S] -> S;
+        [] -> #server{sname=Node, router_perf=[]}
+    end.
 
 get_modules() ->
     lists:map(
@@ -98,6 +107,6 @@ handle_write(Req, State) ->
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};
 resource_exists(Req, #state{key=Key}=State) ->
-    {lists:member(Key, [node() | nodes()]), Req, State}.
+    {lists:member(Key, mnesia:table_info(schema, disc_copies)), Req, State}.
 
 % end of file
