@@ -47,6 +47,9 @@ ensure_tables() ->
         {event, [events]}
     ],
     lists:foreach(fun({Name, TabDef}) -> ensure_table(Name, TabDef, Renamed) end, [
+        {config, [
+            {attributes, record_info(fields, config)},
+            {disc_copies, [node()]}]},
         {user, [
             {attributes, record_info(fields, user)},
             {disc_copies, [node()]}]},
@@ -113,8 +116,12 @@ ensure_table(Name, TabDef, Renamed) ->
         true ->
             case have_disc_copy(Name) of
                 true ->
-                    ok = mnesia:wait_for_tables([Name], 2000),
-                    ensure_indexes(Name, TabDef);
+                    case mnesia:wait_for_tables([Name], 2000) of
+                        ok ->
+                            ensure_indexes(Name, TabDef);
+                        _ ->
+                            ok
+                    end;
                 false ->
                     % joining cluster
                     {atomic, ok} = mnesia:add_table_copy(Name, node(), disc_copies)
@@ -260,6 +267,8 @@ record_fields({rxq, Freq, DatR, CodR, Time, TmSt, Rssi, LSnr}) ->
 record_fields(Record) ->
     tl(tuple_to_list(Record)).
 
+set_defaults(config) ->
+    mnesia:dirty_write(#config{name= <<"main">>, items_per_page=30});
 set_defaults(user) ->
     lager:info("Database create default user:password"),
     {ok, {User, Pass}} = application:get_env(lorawan_server, http_admin_credentials),

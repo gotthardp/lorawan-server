@@ -27,6 +27,17 @@
 
 -define(REALM, <<"lorawan-server">>).
 
+-record(config, {
+    name :: nonempty_string(),
+    admin_url :: string(),
+    items_per_page :: integer(),
+    google_api_key :: 'undefined' | string(),
+    slack_token :: 'undefined' | string(),
+    email_from :: 'undefined' | string(),
+    email_server :: 'undefined' | string(),
+    email_user :: 'undefined' | string(),
+    email_password :: 'undefined' | string()}).
+
 -record(user, {
     name :: nonempty_string(),
     pass_ha1 :: string(),
@@ -36,12 +47,6 @@
 
 -record(server, {
     sname :: atom(),
-    admin_url :: string(),
-    slack_token :: 'undefined' | string(),
-    email_from :: 'undefined' | string(),
-    email_server :: 'undefined' | string(),
-    email_user :: 'undefined' | string(),
-    email_password :: 'undefined' | string(),
     router_perf :: [{calendar:datetime(), {integer(), integer()}}]}).
 
 -record(event, {

@@ -26,22 +26,27 @@ The list shows a single line describing the current server instance:
    * `disk_almost_full` if any disk partition uses more than 80% of the available
      space
 
-In the detailed view you can set server-wide configuration parameters and view
-more details on the server status and performance:
- - **Version**
+The Status tab displays:
+ - **Alerts**
+ - **Performance** of the server in the number of requests and errors per minute
+ - **Free Memory**
+ - **Disks** of the server and their utilization
+
+
+## Configuration
+
+This is a server-server configuration. You can set the following parameters:
  - **Admin URL** included in E-Mail messages
+ - **Items Per Page** defines maximal length of each web-admin list. Clear this
+   value to enable infinite paging.
+ - **Google API Key**, which has Google Maps enabled. You can
+   [get your API Key](https://developers.google.com/maps/documentation/javascript/get-api-key) from Google.
  - **Slack Token** that identifies the Slack group
 
 In the E-Mail you can set:
  - **From** address, like `noreply@example.com`.
  - **SMTP Server** address
  - **User** and **Password** for authentication towards the SMTP Server
-
-The Status tab displays:
- - **Alerts**
- - **Performance** of the server in the number of requests and errors per minute
- - **Free Memory**
- - **Disks** of the server and their utilization
 
 
 ## Events

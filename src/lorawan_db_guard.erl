@@ -22,6 +22,7 @@ start_link() ->
 
 init([]) ->
     ok = mnesia:wait_for_tables([node], 2000),
+    {ok, _} = mnesia:subscribe({table, server, simple}),
     {ok, _} = mnesia:subscribe({table, node, simple}),
     {ok, _} = timer:send_interval(1000, monitor),
     {ok, _} = timer:send_interval(3600*1000, trim_tables),
@@ -217,8 +218,8 @@ send_emails(Admins, Type, ID, Message, Warning) ->
 send_emails0([], _Type, _ID, _Message, _Warning) ->
     ok;
 send_emails0(ToAddrs, Type, ID, Message, Warning) ->
-    [#server{admin_url=Prefix, email_from=From, email_server=Server,
-        email_user=User, email_password=Pass}] = mnesia:dirty_read(server, node()),
+    [#config{admin_url=Prefix, email_from=From, email_server=Server,
+        email_user=User, email_password=Pass}] = mnesia:dirty_read(config, <<"main">>),
     TypeTitle = titlecase(Type),
     Body =
         {<<"multipart">>, <<"alternative">>, [
@@ -271,7 +272,7 @@ send_emails0(ToAddrs, Type, ID, Message, Warning) ->
         end).
 
 send_slack(Channel, Type, ID, Message, Warning) ->
-    [#server{admin_url=Prefix, slack_token=Token}] = mnesia:dirty_read(server, node()),
+    [#config{admin_url=Prefix, slack_token=Token}] = mnesia:dirty_read(config, <<"main">>),
     case catch send_slack_message(
         Token, Channel,
         list_to_binary([titlecase(Type), " <", stringify_url(Prefix, Type, ID), "|", ID, ">", Message,
@@ -395,6 +396,8 @@ handle_delete(node, DevAddr) ->
     ok = mnesia:dirty_delete(pending, DevAddr),
     delete_matched(queued, #queued{frid='$1', devaddr=DevAddr, _='_'}),
     delete_matched(rxframe, #rxframe{frid='$1', devaddr=DevAddr, _='_'});
+handle_delete(server, Node) ->
+    {atomic, ok} = mnesia:del_table_copy(schema, Node);
 handle_delete(_Other, _Any) ->
     ok.
 

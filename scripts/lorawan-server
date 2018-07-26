@@ -22,8 +22,5 @@ if [ ! -z $LORAWAN_LOG_ROOT ]; then
 else
     ERL_ARGS="-lager log_root \"log\""
 fi
-if [ ! -z $GOOGLE_MAPS_KEY ]; then
-    sed -i "s/GoogleMapsKey = \"[-a-zA-Z0-9]*\"/GoogleMapsKey = \"$GOOGLE_MAPS_KEY\"/g" $ROOT_DIR/lib/lorawan_server-*/priv/admin/admin-config.js
-fi
 
 cd $LORAWAN_HOME && erl -noinput +Bd -sname lorawan -pa $ROOT_DIR/lib/*/ebin -s lorawan_app $ERL_ARGS -config $SYS_CONFIG $@

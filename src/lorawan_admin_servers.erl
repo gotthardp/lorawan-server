@@ -11,6 +11,7 @@
 -export([content_types_provided/2]).
 -export([content_types_accepted/2]).
 -export([resource_exists/2]).
+-export([delete_resource/2]).
 
 -export([handle_get/2, handle_write/2, get_server/0]).
 
@@ -27,7 +28,7 @@ is_authorized(Req, State) ->
 allowed_methods(Req, #state{key=undefined}=State) ->
     {[<<"OPTIONS">>, <<"GET">>], Req, State};
 allowed_methods(Req, State) ->
-    {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>], Req, State}.
+    {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"DELETE">>], Req, State}.
 
 content_types_provided(Req, State) ->
     {[
@@ -108,5 +109,9 @@ resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};
 resource_exists(Req, #state{key=Key}=State) ->
     {lists:member(Key, mnesia:table_info(schema, disc_copies)), Req, State}.
+
+delete_resource(Req, #state{key=Key}=State) ->
+    ok = mnesia:dirty_delete(server, Key),
+    {true, Req, State}.
 
 % end of file

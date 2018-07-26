@@ -16,15 +16,11 @@ docker run --detach \
   --volume /path/to/local:/storage \
   --publish 8080:8080/tcp \
   --publish 1680:1680/udp \
-  --env GOOGLE_MAPS_KEY=xxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxx \
   gotthardp/lorawan-server:latest
 ```
 
 The `/path/to/local` shall point to a local directory, where the Mnesia database
 and server logs will be stored.
-
-The `GOOGLE_MAPS_KEY` is the API Key you can
-[get from Google](https://developers.google.com/maps/documentation/javascript/get-api-key).
 
 To export different port numbers change the *first* number of the `publish`
 parameter to the desired port number. The syntax is `--publish hostPort:containerPort`
