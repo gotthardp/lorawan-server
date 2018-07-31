@@ -166,6 +166,7 @@ For each active network Node you can set:
  - **DevAddr** of the node
  - **Profile** that this Node uses
  - **App Arguments**, which is an opaque string with application-specific settings.
+ - **Location** of this node (opaque, user-defined string for now).
  - **NwkSKey** and **AppSKey**
  - **Description** for your convenience
  - **FCnt Up** and **FCnt Down** frame counters

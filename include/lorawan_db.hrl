@@ -123,6 +123,7 @@
     nwkskey :: seckey(),
     appskey :: seckey(),
     desc :: 'undefined' | string(),
+    location :: 'undefined' | string(),
     fcntup :: 'undefined' | integer(), % last uplink fcnt
     fcntdown :: integer(), % last downlink fcnt
     first_reset :: calendar:datetime(),
@@ -205,7 +206,7 @@
     network :: nonempty_string(),
     app :: binary(),
     devaddr :: devaddr(),
-    appargs :: any(),
+    location :: any(),
     gateways :: [{binary(), #rxq{}}], % singnal quality at each gateway
     average_qs :: 'undefined' | {number(), number()}, % average RSSI and SNR
     powe:: integer(),

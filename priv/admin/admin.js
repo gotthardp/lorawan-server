@@ -595,8 +595,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('profile', 'reference')
             .targetEntity(profiles)
             .targetField(nga.field('name')),
-        nga.field('appargs').label('App Arguments'),
+        nga.field('appargs').label('Args'),
         nga.field('desc').label('Description'),
+        nga.field('location'),
         nga.field('fcntup', 'number').label('FCnt Up'),
         nga.field('fcntdown', 'number').label('FCnt Down'),
         nga.field('battery', 'number')
@@ -627,6 +628,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('appargs').label('App Arguments'),
+        nga.field('location'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
@@ -640,7 +642,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true })
     ]);
     nodes.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:8}
+        {name:"General", min:0, max:9}
     ]));
 
     nodes.editionView().fields([
@@ -653,6 +655,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('appargs').label('App Arguments'),
+        nga.field('location'),
         nga.field('nwkskey').label('NwkSKey')
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
@@ -758,9 +761,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_profiles = response.data });
     }]);
     nodes.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:13},
-        {name:"ADR", min:13, max:25},
-        {name:"Status", min:25, max:29}
+        {name:"General", min:0, max:14},
+        {name:"ADR", min:14, max:26},
+        {name:"Status", min:26, max:30}
     ]));
     // add to the admin application
     admin.addEntity(nodes);
@@ -796,11 +799,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template(function(entry){ return dirIndicator(entry.values) }),
         nga.field('datetime', 'datetime').label('Time'),
         nga.field('app').label('Application'),
+        nga.field('location'),
         nga.field('devaddr').label('DevAddr')
             .template(function(entry) {
                 return "<a href='#/nodes/edit/" + entry.values.devaddr + "'>" + entry.values.devaddr + "</a>";
             }),
-        nga.field('appargs').label('Args'),
         nga.field('mac').label('MAC')
             .map(function(value, entry) {
                 return array_slice_mac(entry.gateways);
@@ -843,9 +846,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'bcast', label: 'bcast' }
             ]),
         nga.field('app').label('Application'),
+        nga.field('location'),
         nga.field('devaddr').label('DevAddr')
             .validation({ pattern: '[A-Fa-f0-9]{8}' }),
-        nga.field('appargs').label('App Arguments'),
         nga.field('port', 'number')
     ]);
     // add to the admin application

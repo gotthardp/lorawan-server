@@ -378,12 +378,12 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
         devstat_fcnt=undefined, last_qs=[]},
     Node2 =
         case mnesia:read(node, DevAddr, write) of
-            [#node{first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
+            [#node{location=Location, first_reset=First, reset_count=Cnt, last_rx=undefined, devstat=Stats}]
                     when is_integer(Cnt) ->
                 lorawan_utils:throw_warning({node, DevAddr}, {repeated_reset, Cnt+1}, First),
-                Node#node{reset_count=Cnt+1, devstat=Stats};
-            [#node{devstat=Stats}] ->
-                Node#node{first_reset=calendar:universal_time(), reset_count=0, devstat=Stats};
+                Node#node{location=Location, reset_count=Cnt+1, devstat=Stats};
+            [#node{location=Location, devstat=Stats}] ->
+                Node#node{location=Location, first_reset=calendar:universal_time(), reset_count=0, devstat=Stats};
             [] ->
                 Node#node{first_reset=calendar:universal_time(), reset_count=0, devstat=[]}
         end,
