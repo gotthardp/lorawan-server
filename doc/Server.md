@@ -6,10 +6,20 @@ Define a list of user identities that can manage the server.
 
 For each User you can set:
  - **Name** and **Password** used to log-in.
- - **Roles**. For now only the `admin` *Role* is defined.
+ - **Scopes** the user is authorized for. When empty, the *unlimited* scope is assumed.
  - **E-Mail** where the status alerts can be sent.
  - **Send Alerts** flag indicating whether this user actually wants to receive
    status alerts via e-mail.
+
+The following scopes are defined:
+ - *unlimited* enables both read and write access to everything
+ - *web-admin* covers the administration web-pages (html, css and javascript)
+ - *server:read* and *server:write* covers the entire user and server configuration
+ - *network:read* and *network:write* covers the entire area, gateway and network configuration
+ - *device:read* and *device:write* covers the entire group, profile, device and node configuration
+ - *backend:read* and *backend:write* covers the entire handler and connector configuration
+
+Internal applications may add their specific scopes.
 
 
 ## Servers

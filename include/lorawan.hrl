@@ -41,7 +41,7 @@
 -record(user, {
     name :: nonempty_string(),
     pass_ha1 :: string(),
-    roles :: [string()],
+    scopes :: [string()],
     email :: string(),
     send_alerts :: boolean()}).
 

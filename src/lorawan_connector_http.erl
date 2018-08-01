@@ -21,13 +21,13 @@ start_connector(#connector{connid=Id, received=Received}=Connector) ->
         error ->
             lorawan_connector:raise_failed(Id, {badarg, Received});
         Pattern ->
-            lorawan_http_registry:update_routes({http, Id},
-                [{Pattern, lorawan_connector_http_in, [Connector]}])
+            lorawan_http_registry:update({http, Id},
+                #{routes => [{Pattern, lorawan_connector_http_in, [Connector]}]})
     end,
     lorawan_connector_sup:start_child(Id, ?MODULE, [Connector]).
 
 stop_connector(Id) ->
-    lorawan_http_registry:delete_routes({http, Id}),
+    lorawan_http_registry:delete({http, Id}),
     lorawan_connector_sup:stop_child(Id).
 
 start_link(Connector) ->

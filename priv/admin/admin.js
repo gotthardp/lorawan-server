@@ -7,6 +7,8 @@ var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlecha
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application('Server Admin').baseApiUrl('/api/');
 
+    var scopes = nga.entity('scopes')
+        .identifier(nga.field('name'));
     var config = nga.entity('config')
         .identifier(nga.field('name'));
     var servers = nga.entity('servers')
@@ -46,10 +48,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         .identifier(nga.field('app'));
     var events = nga.entity('events')
         .identifier(nga.field('evid'));
-
-    role_choices = [
-        { value: 'admin', label: 'admin' }
-    ];
 
     adr_choices = [
         { value: 0, label: 'Disabled' },
@@ -154,8 +152,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- users
     users.listView().fields([
         nga.field('name').isDetailLink(true),
-        nga.field('roles', 'choices').label('Roles')
-            .choices(role_choices),
+        nga.field('scopes', 'choices'),
         nga.field('email').label('E-Mail'),
         nga.field('send_alerts', 'boolean')
     ]);
@@ -163,8 +160,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('name')
             .validation({ required: true }),
         nga.field('pass', 'password').label('Password'),
-        nga.field('roles', 'choices').label('Roles')
-            .choices(role_choices)
+        nga.field('scopes', 'reference_many')
+            .targetEntity(scopes)
+            .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('email').label('E-Mail')
             .validation({ pattern: '[^@\s]+@[^@\s]+\.[^@\s]+' }),

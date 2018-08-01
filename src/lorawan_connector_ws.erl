@@ -14,7 +14,7 @@
 -record(state, {connector, type, bindings}).
 
 start_connector(#connector{connid=Id, publish_uplinks=PubUp, publish_events=PubEv}=Connector) ->
-    lorawan_http_registry:update_routes({ws, Id},
+    Routes =
         case lorawan_connector:pattern_for_cowboy(PubUp) of
             undefined ->
                 [];
@@ -32,10 +32,11 @@ start_connector(#connector{connid=Id, publish_uplinks=PubUp, publish_events=PubE
                 [];
             Pattern2 ->
                 [{Pattern2, ?MODULE, [Connector, event]}]
-        end).
+        end,
+    lorawan_http_registry:update({ws, Id}, #{routes => Routes}).
 
 stop_connector(Id) ->
-    lorawan_http_registry:delete_routes({ws, Id}).
+    lorawan_http_registry:delete({ws, Id}).
 
 init(Req, [#connector{connid=Id}=Connector, Type]) ->
     Bindings = lorawan_admin:parse(cowboy_req:bindings(Req)),

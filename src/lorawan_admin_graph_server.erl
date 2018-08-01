@@ -6,25 +6,36 @@
 -module(lorawan_admin_graph_server).
 
 -export([init/2]).
--export([is_authorized/2]).
 -export([allowed_methods/2]).
+-export([is_authorized/2]).
+-export([forbidden/2]).
 -export([content_types_provided/2]).
 -export([resource_exists/2]).
 
 -export([get_server/2]).
 
 -include("lorawan.hrl").
--record(state, {key}).
+-record(state, {key, scopes, auth_fields}).
 
-init(Req, _Opts) ->
+init(Req, Scopes) ->
     Key = lorawan_admin:parse_field(sname, cowboy_req:binding(sname, Req)),
-    {cowboy_rest, Req, #state{key=Key}}.
-
-is_authorized(Req, State) ->
-    {lorawan_admin:handle_authorization(Req), Req, State}.
+    {cowboy_rest, Req, #state{key=Key, scopes=Scopes}}.
 
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>], Req, State}.
+
+is_authorized(Req, #state{scopes=Scopes}=State) ->
+    case lorawan_admin:handle_authorization(Req, Scopes) of
+        {true, AuthFields} ->
+            {true, Req, State#state{auth_fields=AuthFields}};
+        Else ->
+            {Else, Req, State}
+    end.
+
+forbidden(Req, #state{auth_fields=[]}=State) ->
+    {true, Req, State};
+forbidden(Req, State) ->
+    {false, Req, State}.
 
 content_types_provided(Req, State) ->
     {[

@@ -6,8 +6,9 @@
 -module(lorawan_admin_db_field).
 
 -export([init/2]).
--export([is_authorized/2]).
 -export([allowed_methods/2]).
+-export([is_authorized/2]).
+-export([forbidden/2]).
 -export([content_types_provided/2]).
 -export([content_types_accepted/2]).
 -export([resource_exists/2]).
@@ -17,24 +18,34 @@
 
 -include("lorawan_db.hrl").
 
--record(state, {table, key, field, fidx, module}).
+-record(state, {table, key, field, fidx, module, scopes, auth_fields}).
 
-init(Req, [Table, Fields]) ->
-    init0(Req, Table, Fields, lorawan_admin);
-init(Req, [Table, Fields, Module]) ->
-    init0(Req, Table, Fields, Module).
+init(Req, [Table, Fields, Scopes]) ->
+    init0(Req, Table, Fields, lorawan_admin, Scopes);
+init(Req, [Table, Fields, Module, Scopes]) ->
+    init0(Req, Table, Fields, Module, Scopes).
 
-init0(Req, Table, Fields, Module) ->
+init0(Req, Table, Fields, Module, Scopes) ->
     Key = lorawan_admin:parse_field(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
     Field = binary_to_existing_atom(cowboy_req:binding(field, Req), latin1),
     {cowboy_rest, Req, #state{table=Table, key=Key,
-        field=Field, fidx=lorawan_utils:index_of(Field, Fields), module=Module}}.
-
-is_authorized(Req, State) ->
-    {lorawan_admin:handle_authorization(Req), Req, State}.
+        field=Field, fidx=lorawan_utils:index_of(Field, Fields), module=Module, scopes=Scopes}}.
 
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"DELETE">>], Req, State}.
+
+is_authorized(Req, #state{scopes=Scopes}=State) ->
+    case lorawan_admin:handle_authorization(Req, Scopes) of
+        {true, AuthFields} ->
+            {true, Req, State#state{auth_fields=AuthFields}};
+        Else ->
+            {Else, Req, State}
+    end.
+
+forbidden(Req, #state{auth_fields='*'}=State) ->
+    {false, Req, State};
+forbidden(Req, #state{field=Field, auth_fields=AuthFields}=State) ->
+    {not lists:member(Field, AuthFields), Req, State}.
 
 content_types_provided(Req, State) ->
     {[

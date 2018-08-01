@@ -8,21 +8,33 @@
 -export([init/2]).
 -export([is_authorized/2]).
 -export([allowed_methods/2]).
+-export([forbidden/2]).
 -export([content_types_provided/2]).
 -export([resource_exists/2, generate_etag/2]).
 
 -export([get_rxframe/2]).
 
 -include("lorawan_db.hrl").
+-record(state, {scopes, auth_fields}).
 
-init(Req, Opts) ->
-    {cowboy_rest, Req, Opts}.
-
-is_authorized(Req, State) ->
-    {lorawan_admin:handle_authorization(Req), Req, State}.
+init(Req, Scopes) ->
+    {cowboy_rest, Req, #state{scopes=Scopes}}.
 
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>], Req, State}.
+
+is_authorized(Req, #state{scopes=Scopes}=State) ->
+    case lorawan_admin:handle_authorization(Req, Scopes) of
+        {true, AuthFields} ->
+            {true, Req, State#state{auth_fields=AuthFields}};
+        Else ->
+            {Else, Req, State}
+    end.
+
+forbidden(Req, #state{auth_fields=[]}=State) ->
+    {true, Req, State};
+forbidden(Req, State) ->
+    {false, Req, State}.
 
 content_types_provided(Req, State) ->
     {[

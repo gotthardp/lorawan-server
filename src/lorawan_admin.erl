@@ -5,7 +5,7 @@
 %
 -module(lorawan_admin).
 
--export([handle_authorization/1]).
+-export([handle_authorization/2]).
 -export([write/1, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
 -export([timestamp_to_json_date/1]).
@@ -13,7 +13,7 @@
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
 
-handle_authorization(Req) ->
+handle_authorization(Req, {ReadScopes, WriteScopes}) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {digest, Params} ->
             Method = cowboy_req:method(Req),
@@ -22,41 +22,58 @@ handle_authorization(Req) ->
             URI = proplists:get_value(<<"uri">>, Params, <<>>),
             Response = proplists:get_value(<<"response">>, Params, <<>>),
             % retrieve and check password
-            case get_password_hash(<<"admin">>, UserName) of
-                undefined ->
-                    {false, digest_header()};
-                HA1 ->
+            case mnesia:dirty_read(user, UserName) of
+                [#user{pass_ha1=HA1, scopes=AuthScopes}] ->
                     case lorawan_http_digest:response(Method, URI, <<>>, HA1, Nonce) of
                         Response ->
-                            true;
+                            case lists:member(cowboy_req:method(Req), [<<"OPTIONS">>, <<"GET">>]) of
+                                true ->
+                                    {true, authorized_fields(AuthScopes, ReadScopes)};
+                                false ->
+                                    {true, authorized_fields(AuthScopes, WriteScopes)}
+                            end;
                         _Else ->
                             {false, digest_header()}
-                    end
+                    end;
+                [] ->
+                    {false, digest_header()}
             end;
         _Else ->
             {false, digest_header()}
-    end.
+    end;
+handle_authorization(Req, ReadScopes) ->
+    handle_authorization(Req, {ReadScopes, []}).
 
 digest_header() ->
     Nonce = lorawan_http_digest:nonce(16),
     lorawan_http_digest:header(digest, [
         {<<"realm">>, ?REALM}, {<<"nonce">>, Nonce}, {<<"domain">>, <<"/">>}]).
 
-get_password_hash(Role, UserName) ->
-    case mnesia:dirty_read(user, UserName) of
-        [#user{pass_ha1=Hash, roles=undefined}] ->
-            % temporary provisions for backward compatibility
-            Hash;
-        [#user{pass_ha1=Hash, roles=Roles}] ->
-            case lists:member(Role, Roles) of
-                true ->
-                    Hash;
-                false ->
-                    undefined
-            end;
-        _Else ->
-            undefined
+authorized_fields(AuthScopes, ReqScopes) ->
+    merge_scopes(
+        authorized_scopes(AuthScopes, ReqScopes)).
+
+authorized_scopes(undefined, ReqScopes) ->
+    % temporary provisions for backward compatibility
+    ReqScopes;
+authorized_scopes(AuthScopes, ReqScopes) ->
+    case lists:member(<<"unlimited">>, AuthScopes) of
+        true ->
+            ReqScopes;
+        false ->
+            lists:filter(
+                fun({Name, _}) -> lists:member(Name, AuthScopes) end,
+                ReqScopes)
     end.
+
+merge_scopes(Scopes) ->
+    lists:foldl(
+        fun
+            (_, '*') -> '*';
+            ({_, '*'}, _) -> '*';
+            ({_, Fields}, Acc) -> Fields ++ Acc
+        end,
+        [], Scopes).
 
 write(Rec) ->
     mnesia:write(lorawan_db_guard:update_health(Rec)).
