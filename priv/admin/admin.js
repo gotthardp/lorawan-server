@@ -337,6 +337,11 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                     return [];
             })
             .validation({ required: true }),
+        nga.field('dcycle_init', 'number').label('Initial Duty Cycle')
+            .validation({ required: true, validator: function(value) {
+                if(value < 0 || value > 15) throw new Error ('Invalid duty cycle');
+            }})
+            .defaultValue(0),
         nga.field('rxwin_init.rx1_dr_offset', 'number').label('Initial RX1 DR Offset')
             .validation({ required: true })
             .defaultValue(0),
@@ -367,8 +372,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_regions = response.data });
     }]);
     networks.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"ADR", min:10, max:17},
+        {name:"General", min:0, max:9},
+        {name:"ADR", min:9, max:17},
         {name:"Channels", min:17, max:19}
     ]));
     networks.editionView().fields(networks.creationView().fields())
@@ -377,8 +382,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_regions = response.data });
     }]);
     networks.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"ADR", min:10, max:17},
+        {name:"General", min:0, max:9},
+        {name:"ADR", min:9, max:17},
         {name:"Channels", min:17, max:19}
     ]));
     // add to the admin application
@@ -506,6 +511,10 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
 
+        nga.field('dcycle_set', 'number').label('Set Duty Cycle')
+            .validation({ validator: function(value) {
+                if(value < 0 || value > 15) throw new Error ('Invalid duty cycle');
+            }}),
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR Offset'),
         nga.field('rxwin_set.rx2_dr', 'choice').label('Set RX2 DR')
             .choices(function(entry) {
@@ -526,7 +535,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     profiles.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:6},
-        {name:"ADR", min:6, max:15}
+        {name:"ADR", min:6, max:16}
     ]));
     profiles.editionView().fields(profiles.creationView().fields())
     .prepare(['$http', function($http) {
@@ -535,7 +544,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     profiles.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:6},
-        {name:"ADR", min:6, max:15}
+        {name:"ADR", min:6, max:16}
     ]));
     // add to the admin application
     admin.addEntity(profiles);
@@ -723,6 +732,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'channel_mask', label: 'channel_mask' }
             ]),
 
+        nga.field('dcycle_use', 'number').label('Used Duty Cycle')
+            .editable(false),
         nga.field('rxwin_use.rx1_dr_offset', 'number').label('Used RX1 DR Offset')
             .editable(false),
         nga.field('rxwin_use.rx2_dr', 'choice').label('Used RX2 DR')
@@ -760,8 +771,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     }]);
     nodes.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:14},
-        {name:"ADR", min:14, max:26},
-        {name:"Status", min:26, max:30}
+        {name:"ADR", min:14, max:27},
+        {name:"Status", min:27, max:31}
     ]));
     // add to the admin application
     admin.addEntity(nodes);

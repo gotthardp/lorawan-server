@@ -40,7 +40,8 @@ handle_fopts({Network, Profile, Node}, Gateways, ADR, FOpts) ->
 handle_fopts0({Network, Profile, Node0}, Gateways, FOptsIn) ->
     {MacConfirm, Node1} = handle_rxwin(FOptsIn, Network, Profile,
         handle_adr(FOptsIn,
-        handle_status(FOptsIn, Network, Node0))),
+        handle_dcycle(FOptsIn, Profile,
+        handle_status(FOptsIn, Network, Node0)))),
     {ok, FramesRequired} = application:get_env(lorawan_server, frames_before_adr),
     % maintain quality statistics
     {_, RxQ} = hd(Gateways),
@@ -68,8 +69,9 @@ average_qs0(List) ->
 
 build_fopts({Network, Profile, Node}, FOptsOut0) ->
     FOptsOut = send_adr(Network, Node,
+        set_dcycle(Profile, Node,
         set_rxwin(Profile, Node,
-        request_status(Profile, Node, FOptsOut0))),
+        request_status(Profile, Node, FOptsOut0)))),
     case FOptsOut of
         [] -> ok;
         List2 -> lager:debug("~s <- ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), List2])
@@ -187,6 +189,15 @@ find_adr(FOptsIn) ->
             (_Else, Last) -> Last
         end,
         undefined, FOptsIn).
+
+handle_dcycle(FOptsIn, Profile, Node) ->
+    case lists:member(duty_cycle_ans, FOptsIn) of
+        true ->
+            lager:debug("DutyCycleAns ~s", [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
+            Node#node{dcycle_use=Profile#profile.dcycle_set};
+        false ->
+            Node
+    end.
 
 handle_rxwin(FOptsIn, _Network, Profile, Node) ->
     case find_rxwin(FOptsIn) of
@@ -377,6 +388,13 @@ merge_adr({A1,B1,C1},{A2,B2,C2}) ->
     end};
 merge_adr(_Else, ABC) ->
     ABC.
+
+set_dcycle(#profile{dcycle_set=Used}, #node{dcycle_use=Used}, FOptsOut) ->
+    % no change requested
+    FOptsOut;
+set_dcycle(#profile{dcycle_set=Set}, _Node, FOptsOut) ->
+    lager:debug("DutyCycleReq ~w", [Set]),
+    [{duty_cycle_req, Set} | FOptsOut].
 
 set_rxwin(Profile, #node{adr_flag=1, rxwin_failed=Failed}=Node, FOptsOut)
         when Failed == undefined; Failed == [] ->

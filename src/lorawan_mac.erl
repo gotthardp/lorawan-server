@@ -269,6 +269,7 @@ check_fcnt({Network, Profile, Node}, FCnt) ->
             % works for 16b only since we cannot distinguish between reset and 32b rollover
             {ok, uplink, Node#node{fcntup = FCnt, fcntdown=0,
                 adr_use=initial_adr(Network), adr_failed=[],
+                dcycle_use=Network#network.dcycle_init,
                 rxwin_use=Network#network.rxwin_init, rxwin_failed=[],
                 last_reset=calendar:universal_time(), devstat_fcnt=undefined, last_qs=[]}};
         Profile#profile.fcnt_check == 3, FCnt == 0 ->
@@ -374,6 +375,7 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
         fcntup=undefined, fcntdown=0, last_reset=calendar:universal_time(),
         gateways=Gateways, adr_flag=0, adr_set=undefined,
         adr_use=initial_adr(Network), adr_failed=[],
+        dcycle_use=Network#network.dcycle_init,
         rxwin_use=accept_rxwin(Profile, Network), rxwin_failed=[],
         devstat_fcnt=undefined, last_qs=[]},
     Node2 =

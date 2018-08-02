@@ -28,7 +28,7 @@ handle_authorization(Req, {ReadScopes, WriteScopes}) ->
                         Response ->
                             case lists:member(cowboy_req:method(Req), [<<"OPTIONS">>, <<"GET">>]) of
                                 true ->
-                                    {true, authorized_fields(AuthScopes, ReadScopes)};
+                                    {true, authorized_fields(AuthScopes, ReadScopes++WriteScopes)};
                                 false ->
                                     {true, authorized_fields(AuthScopes, WriteScopes)}
                             end;

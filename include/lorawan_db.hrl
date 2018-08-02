@@ -79,6 +79,7 @@
     max_power :: integer(),
     min_power :: integer(),
     max_datr :: number(),
+    dcycle_init :: integer(),
     rxwin_init :: rxwin_config(),
     init_chans :: intervals(),
     cflist :: 'undefined' | [{number(), integer(), integer()}]}).
@@ -101,6 +102,7 @@
     adr_mode :: 0..2, % server requests
     adr_set :: adr_config(), % requested after join
     max_datr :: 'undefined' | number(),
+    dcycle_set :: integer(),
     rxwin_set :: rxwin_config(), % requested
     request_devstat :: boolean()}).
 
@@ -135,6 +137,7 @@
     adr_set :: 'undefined' | adr_config(), % auto-calculated
     adr_use :: adr_config(), % used
     adr_failed=[] :: [binary()], % last request failed
+    dcycle_use :: integer(),
     rxwin_use :: rxwin_config(), % used
     rxwin_failed=[] :: [binary()], % last request failed
     last_qs :: [{integer(), integer()}], % list of {RSSI, SNR} tuples
