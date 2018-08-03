@@ -14,7 +14,7 @@ start_link() ->
     supervisor:start_link(?MODULE, []).
 
 init([]) ->
-    lorawan_utils:throw_info(server, started),
+    lorawan_utils:throw_info({server, node()}, started, unique),
     {ok, {{one_for_one, 2, 10}, [
         {db_guard,
             {lorawan_db_guard, start_link, []},
