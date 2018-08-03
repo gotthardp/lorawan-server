@@ -120,6 +120,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('health_alerts', 'choices').label('Alerts')
     ])
     .batchActions([]);
+    servers.creationView().fields([
+        nga.field('sname').label('Name')
+    ]);
     servers.editionView().fields([
         // General
         nga.field('sname').label('Name')

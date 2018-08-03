@@ -23,7 +23,7 @@ start_link() ->
 
 init([]) ->
     ok = mnesia:wait_for_tables([node], 2000),
-    {ok, _} = mnesia:subscribe({table, server, simple}),
+    {ok, _} = mnesia:subscribe({table, server, detailed}),
     {ok, _} = mnesia:subscribe({table, node, simple}),
     {ok, _} = timer:send_interval(1000, monitor),
     {ok, _} = timer:send_interval(3600*1000, trim_tables),
@@ -35,8 +35,14 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info({mnesia_table_event, {delete, {Tab, Key}, _Id}}, State) ->
-    handle_delete(Tab, Key),
+handle_info({mnesia_table_event, {write, server, #server{sname=Node}, [], _Id}}, State) ->
+    lorawan_db:join_cluster(Node),
+    {noreply, State};
+handle_info({mnesia_table_event, {delete, server, _What, [#server{sname=Node}], _Id}}, State) ->
+    lorawan_db:leave_cluster(Node),
+    {noreply, State};
+handle_info({mnesia_table_event, {delete, {node, DevAddr}, _Id}}, State) ->
+    node_deleted(DevAddr),
     {noreply, State};
 handle_info(monitor, State) ->
     lorawan_db:foreach_record(gateway,
@@ -420,16 +426,12 @@ check_failed(#connector{enabled=true, failed=[_|_]}) ->
 check_failed(#connector{enabled=false}) ->
     undefined.
 
-handle_delete(node, DevAddr) ->
+node_deleted(DevAddr) ->
     lager:debug("Node ~p deleted", [lorawan_utils:binary_to_hex(DevAddr)]),
     % delete linked records
     ok = mnesia:dirty_delete(pending, DevAddr),
     delete_matched(queued, #queued{frid='$1', devaddr=DevAddr, _='_'}),
-    delete_matched(rxframe, #rxframe{frid='$1', devaddr=DevAddr, _='_'});
-handle_delete(server, Node) ->
-    {atomic, ok} = mnesia:del_table_copy(schema, Node);
-handle_delete(_Other, _Any) ->
-    ok.
+    delete_matched(rxframe, #rxframe{frid='$1', devaddr=DevAddr, _='_'}).
 
 delete_matched(Table, Record) ->
     lists:foreach(

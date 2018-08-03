@@ -8,6 +8,7 @@
 -export([ensure_tables/0, ensure_table/2, ensure_table/3]).
 -export([foreach_record/3, get_group/1, get_rxframes/1]).
 -export([record_fields/1]).
+-export([join_cluster/1, leave_cluster/1]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -323,7 +324,7 @@ get_rxframes(DevAddr) ->
             mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
 
 join_cluster(NodeName) ->
-    lager:info("Joining mnesia cluster ~s", [NodeName]),
+    lager:info("Node ~s joined cluster", [NodeName]),
     % WARNING: Side effects are possible when node statistics/ADR are updated
     % Connect to node NodeName and get schema and tables from it
     {ok, [NodeName]} = mnesia:change_config(extra_db_nodes, [NodeName]),
@@ -335,6 +336,10 @@ join_cluster(NodeName) ->
         true ->
             ok
     end.
+
+leave_cluster(NodeName) ->
+    lager:info("Node ~s left cluster", [NodeName]),
+    {atomic, ok} = mnesia:del_table_copy(schema, NodeName).
 
 have_disc_copy(Table) ->
     lists:member(node(), mnesia:table_info(Table, disc_copies)).

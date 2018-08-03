@@ -24,7 +24,7 @@ init(Req, Scopes) ->
     {cowboy_rest, Req, #state{scopes=Scopes, key=Key}}.
 
 allowed_methods(Req, #state{key=undefined}=State) ->
-    {[<<"OPTIONS">>, <<"GET">>], Req, State};
+    {[<<"OPTIONS">>, <<"GET">>, <<"POST">>], Req, State};
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"DELETE">>], Req, State}.
 
@@ -47,7 +47,7 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 handle_get(Req, #state{key=undefined}=State) ->
-    {jsx:encode([get_server(N) || N <- mnesia:table_info(schema, disc_copies)]), Req, State};
+    {jsx:encode([get_server(N) || N <- known_servers()]), Req, State};
 handle_get(Req, #state{key=Key}=State) ->
     {jsx:encode(get_server(Key)), Req, State}.
 
@@ -119,10 +119,14 @@ handle_write(Req, State) ->
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};
 resource_exists(Req, #state{key=Key}=State) ->
-    {lists:member(Key, mnesia:table_info(schema, disc_copies)), Req, State}.
+    {lists:member(Key, known_servers()), Req, State}.
 
 delete_resource(Req, #state{key=Key}=State) ->
     ok = mnesia:dirty_delete(server, Key),
     {true, Req, State}.
+
+known_servers() ->
+    lists:usort(
+        mnesia:dirty_all_keys(server) ++ mnesia:table_info(schema, disc_copies)).
 
 % end of file
