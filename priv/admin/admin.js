@@ -5,7 +5,7 @@
  */
 var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart', 'ngVis', 'colorpicker.module']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
-    var admin = nga.application('Server Admin').baseApiUrl('/api/');
+    var admin = nga.application(NodeName+' Admin').baseApiUrl('/api/');
 
     var scopes = nga.entity('scopes')
         .identifier(nga.field('name'));

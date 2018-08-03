@@ -43,7 +43,8 @@ content_types_provided(Req, State) ->
 handle_get(Req, State) ->
     [#config{items_per_page=Items, google_api_key=GMaps}] =
         mnesia:dirty_read(config, <<"main">>),
-    {variable(<<"GoogleAPIKey">>, GMaps,
+    {variable(<<"NodeName">>, atom_to_binary(node(), latin1),
+     variable(<<"GoogleAPIKey">>, GMaps,
         if
             Items == undefined ->
                 variable(<<"ItemsPerPage">>, 30,
@@ -51,7 +52,7 @@ handle_get(Req, State) ->
             true ->
                 variable(<<"ItemsPerPage">>, Items,
                 variable(<<"InfinitePagination">>, false, <<>>))
-        end), Req, State}.
+        end)), Req, State}.
 
 variable(Name, undefined, Bin) ->
     <<"var ", Name/binary, "=null;\r", Bin/binary>>;
