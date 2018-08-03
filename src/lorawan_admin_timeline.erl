@@ -93,6 +93,8 @@ select_datetime(WStart, WEnd, EStart, EEnd) ->
 
 title(#event{entity=Entity, eid=undefined}=Event) ->
     [io_lib:print(Entity), "<br\>", title0(Event)];
+title(#event{entity=Entity, eid=EID}=Event) when is_atom(EID) ->
+    [io_lib:print(Entity), " ", atom_to_list(EID), "<br\>", title0(Event)];
 title(#event{entity=Entity, eid=EID}=Event) ->
     [io_lib:print(Entity), " ", lorawan_utils:binary_to_hex(EID), "<br\>", title0(Event)].
 
