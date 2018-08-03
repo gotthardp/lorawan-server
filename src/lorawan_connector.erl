@@ -195,7 +195,7 @@ append_failed(ConnId, Error) ->
     mnesia:transaction(
         fun() ->
             [Rec] = mnesia:read(connector, ConnId, write),
-            mnesia:write(append_failed0(Rec, atom_to_binary(Error, latin1)))
+            lorawan_admin:write(append_failed0(Rec, atom_to_binary(Error, latin1)))
         end).
 
 append_failed0(#connector{failed=Failed}=Conn, Error) when is_list(Failed) ->

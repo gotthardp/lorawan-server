@@ -13,6 +13,7 @@
 
 -export([check_alive/1, check_dwell/1]).
 -export([check_reset/1, check_battery/1, check_margin/1, check_adr/1, check_rxwin/1]).
+-export([check_failed/1]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -100,6 +101,29 @@ update_health(#node{devaddr=DevAddr,
             ok
     end,
     Node#node{health_alerts=Alerts, health_decay=Decay, health_reported=Reported, health_next=MinNext};
+update_health(#connector{connid=ConnId, app=AppId,
+        health_alerts=Alerts0, health_reported=Reported0} = Connector) ->
+    {Reports, Alerts, Decay, Reported, MinNext} =
+        check_health(Connector, Alerts0, Reported0,
+            ?MODULE, [check_failed]),
+    case Reports of
+        {NewAlerts, OtherAlerts} ->
+            AffectedGroups =
+                lists:usort(
+                    [Gr || #profile{group=Gr} <- mnesia:dirty_index_read(profile, AppId, #profile.app)]),
+            lists:foreach(
+                fun(Group) ->
+                    case mnesia:dirty_read(group, Group) of
+                        #group{admins=Admins, slack_channel=Channel} ->
+                            send_alert(Admins, Channel, "connector", ConnId, NewAlerts, OtherAlerts, Decay);
+                        _Else ->
+                            ok
+                    end
+                end, AffectedGroups);
+        undefined ->
+            ok
+    end,
+    Connector#connector{health_alerts=Alerts, health_decay=Decay, health_reported=Reported, health_next=MinNext};
 update_health(Else) ->
     Else.
 
@@ -389,6 +413,12 @@ check_rxwin(#node{rxwin_failed=Failed}) when Failed == undefined; Failed == [] -
 check_rxwin(#node{}) ->
     {<<"rxparamsetup_failed">>, 25}.
 
+check_failed(#connector{enabled=true, failed=Empty}) when Empty == undefined; Empty == [] ->
+    ok;
+check_failed(#connector{enabled=true, failed=[_|_]}) ->
+    {<<"failed">>, 100};
+check_failed(#connector{enabled=false}) ->
+    undefined.
 
 handle_delete(node, DevAddr) ->
     lager:debug("Node ~p deleted", [lorawan_utils:binary_to_hex(DevAddr)]),

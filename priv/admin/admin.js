@@ -114,9 +114,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('sname').label('Name').isDetailLink(true),
         nga.field('modules.lorawan_server').label('Version'),
         nga.field('memory').label('Free Memory')
-            .map(map_memstats_p),
+            .map(map_diskstats),
         nga.field('disk').label('Free Disk')
-            .map(map_diskstats_p),
+            .map(map_diskstats),
         nga.field('health_alerts', 'choices').label('Alerts')
     ])
     .batchActions([]);
@@ -132,7 +132,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('sname', 'template').label('Performance')
             .template('<sgraph value="value"></sgraph>'),
         nga.field('memory').label('Free Memory')
-            .map(map_memstats_p)
+            .map(map_diskstats)
             .editable(false),
         nga.field('disk', 'embedded_list').label('Disks')
             .targetFields([
@@ -873,10 +873,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('publish_uplinks'),
         nga.field('received').label('Received Topic'),
         nga.field('enabled', 'boolean'),
-        nga.field('failed', 'choices')
+        nga.field('health_decay', 'number').label('Status')
+            .template(function(entry){ return healthIndicator(entry.values) })
     ])
     .perPage(ItemsPerPage)
-    .infinitePagination(InfinitePagination);
+    .infinitePagination(InfinitePagination)
+    .sortField('health_decay')
+    .sortDir('DESC');
     connectors.creationView().fields([
         nga.field('connid').label('Connector Name')
             .validation({ required: true }),
@@ -1053,7 +1056,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('sname').label('Name').isDetailLink(true),
                 nga.field('modules.lorawan_server').label('Version'),
                 nga.field('memory').label('Memory')
-                    .map(map_memstats),
+                    .map(map_diskstats),
                 nga.field('disk').label('Disk')
                     .map(map_diskstats),
                 nga.field('health_decay', 'number').label('Status')
@@ -1085,6 +1088,20 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('margin', 'number').label('D/L SNR')
                     .map(function(value, entry) { return first(entry.devstat, 'margin') }),
                 nga.field('last_rx', 'datetime').label('Last RX'),
+                nga.field('health_decay', 'number').label('Status')
+                    .template(function(entry){ return healthIndicator(entry.values) })
+            ])
+            .sortField('health_decay')
+            .sortDir('DESC')
+            .perPage(7)
+        )
+        .addCollection(nga.collection(connectors)
+            .fields([
+                nga.field('connid').label('Name').isDetailLink(true),
+                nga.field('app', 'reference').label('Application')
+                    .targetEntity(handlers)
+                    .targetField(nga.field('app')),
+                nga.field('uri').label('URI'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
             ])
@@ -1138,8 +1155,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .perPage(7)
         )
     );
-    var dashLeft = ['servers', 'gateways', 'nodes'];
-    var dashRight = ['events', 'rxframes'];
+    var dashLeft = ['servers', 'events', 'rxframes'];
+    var dashRight = ['gateways', 'nodes', 'connectors'];
 
     // ---- menu
     admin.menu(nga.menu()
@@ -1184,12 +1201,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     nga.configure(admin);
 }]);
 
-function map_memstats(value, entry) {
-    if ('memory.free_memory' in entry)
-        return bytesToSize(entry['memory.free_memory']);
-}
-
-function map_memstats_p(value, entry) {
+function map_diskstats(value, entry) {
     if ('memory.free_memory' in entry) {
         var free = 100 * entry['memory.free_memory'] / entry['memory.total_memory'];
         return bytesToSize(entry['memory.free_memory']) + " (" + free.toFixed(0) + "%)";
@@ -1197,16 +1209,6 @@ function map_memstats_p(value, entry) {
 }
 
 function map_diskstats(value, entry) {
-    if ('disk' in entry) {
-        var root = entry['disk'].filter(function(obj) {
-            return (obj.id === "/");
-        });
-        if(root.length > 0)
-            return bytesToSize(1024*root[0].size_kb * (100-root[0].percent_used)/100);
-    }
-}
-
-function map_diskstats_p(value, entry) {
     if ('disk' in entry) {
         var root = entry['disk'].filter(function(obj) {
             return (obj.id === "/");

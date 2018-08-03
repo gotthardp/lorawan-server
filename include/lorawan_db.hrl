@@ -170,7 +170,11 @@
     name :: 'undefined' | binary(),
     pass :: 'undefined' | binary(),
     certfile :: 'undefined' | binary(),
-    keyfile :: 'undefined' | binary()}).
+    keyfile :: 'undefined' | binary(),
+    health_alerts :: [atom()],
+    health_decay :: integer(),
+    health_reported :: integer(),
+    health_next :: 'undefined' | calendar:datetime()}).
 
 -define(EMPTY_PATTERN, {<<>>,[]}).
 
