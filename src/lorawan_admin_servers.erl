@@ -108,12 +108,22 @@ content_types_accepted(Req, State) ->
 handle_write(Req, State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
-        Struct when is_map(Struct) ->
-            ok = mnesia:dirty_write(?to_record(server, lorawan_admin:parse(Struct), undefined)),
-            {true, Req2, State};
+        #{sname := SName} ->
+            Server = #server{sname=binary_to_atom(SName, latin1)},
+            write_server(Req2, Server, State);
         _Else ->
             lager:debug("Bad JSON in HTTP request"),
             {stop, cowboy_req:reply(400, Req2), State}
+    end.
+
+write_server(Req, #server{sname=NodeName}=Server, State) ->
+    case lorawan_db:join_cluster(NodeName) of
+        ok ->
+            ok = mnesia:dirty_write(Server),
+            {true, Req, State};
+        {error, Error} ->
+            lager:error("Cannot join cluster ~p: ~p", [NodeName, Error]),
+            {stop, cowboy_req:reply(400, Req), State}
     end.
 
 resource_exists(Req, #state{key=undefined}=State) ->
@@ -121,9 +131,15 @@ resource_exists(Req, #state{key=undefined}=State) ->
 resource_exists(Req, #state{key=Key}=State) ->
     {lists:member(Key, known_servers()), Req, State}.
 
-delete_resource(Req, #state{key=Key}=State) ->
-    ok = mnesia:dirty_delete(server, Key),
-    {true, Req, State}.
+delete_resource(Req, #state{key=NodeName}=State) ->
+    case lorawan_db:leave_cluster(NodeName) of
+        ok ->
+            ok = mnesia:dirty_delete(server, NodeName),
+            {true, Req, State};
+        {error, Error} ->
+            lager:error("Cannot leave cluster ~p: ~p", [NodeName, Error]),
+            {stop, cowboy_req:reply(400, Req), State}
+    end.
 
 known_servers() ->
     lists:usort(
