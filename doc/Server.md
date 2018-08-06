@@ -18,6 +18,7 @@ The following scopes are defined:
  - *network:read* and *network:write* covers the entire area, gateway and network configuration
  - *device:read* and *device:write* covers the entire group, profile, device and node configuration
  - *backend:read* and *backend:write* covers the entire handler and connector configuration
+ - *device:send* covers initiating downlinks to a device
 
 Internal applications may add their specific scopes.
 

@@ -17,7 +17,7 @@ To create a new connector you set:
    - **Web Form** to encode fields in a query strings like `NameOne=ValueOne&NameTwo=ValueTwo`.
  - **URI** defines the target host, which can be
    - `ws:` (with no host:port) for Web Sockets
-   - `http://` for HTTP POST or `https://` for HTTP/SSL
+   - `http://` for HTTP POST or `https://` for HTTP/SSL or simply `http:` for input only
    - `mqtt://` for MQTT or `mqtts://` for MQTT/SSL
    - `amqp://` for AMQP or `amqp://` for AMQP/SSL
  - **Publish Uplinks**, which is a server pattern for constructing the publication
@@ -162,6 +162,9 @@ To create a HTTP connector you set:
  - **Publish Events** to another URL pattern, e.g. '/events/{devaddr}'
  - **Received Topic** is a template for parsing the topic of received downlink
    messages, e.g. `/in/{devaddr}`.
+
+To define an input-only connector for downlinks, set **URI** to `http:` and leave
+the **Publish Uplinks** and **Publish Events** blank.
 
 Make sure that all URL paths start with a slash ('/'). The *Received Topic* must
 be different to all Web Socket *Publish* patterns.
