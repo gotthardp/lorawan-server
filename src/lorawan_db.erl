@@ -8,7 +8,7 @@
 -export([ensure_tables/0, ensure_table/2, ensure_table/3]).
 -export([foreach_record/3, get_group/1, get_rxframes/1]).
 -export([record_fields/1]).
--export([join_cluster/1, leave_cluster/1]).
+-export([join_cluster/1, leave_cluster/1, join/1, leave/2]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -26,7 +26,6 @@ ensure_tables() ->
                     ok = mnesia:create_schema([node()]),
                     ok = mnesia:start();
                 {ok, NodeName} ->
-                    pong = net_adm:ping(NodeName),
                     ok = join_cluster(NodeName)
             end
     end,
@@ -115,18 +114,8 @@ ensure_table(Name, TabDef) ->
 ensure_table(Name, TabDef, Renamed) ->
     case table_exists(Name) of
         true ->
-            case have_disc_copy(Name) of
-                true ->
-                    case mnesia:wait_for_tables([Name], 2000) of
-                        ok ->
-                            ensure_indexes(Name, TabDef);
-                        _ ->
-                            ok
-                    end;
-                false ->
-                    % joining cluster
-                    {atomic, ok} = mnesia:add_table_copy(Name, node(), disc_copies)
-            end;
+            ok = mnesia:wait_for_tables([Name], 2000),
+            ensure_indexes(Name, TabDef);
         false ->
             case lists:foldl(
                 fun
@@ -324,24 +313,60 @@ get_rxframes(DevAddr) ->
             mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
 
 join_cluster(NodeName) ->
-    lager:info("Node ~s joined cluster", [NodeName]),
-    % WARNING: Side effects are possible when node statistics/ADR are updated
-    % Connect to node NodeName and get schema and tables from it
-    {ok, [NodeName]} = mnesia:change_config(extra_db_nodes, [NodeName]),
-    case lists:member(node(), mnesia:table_info(schema, disc_copies)) of
-        false ->
-            % Create disc copy of the schema, required before add_table_copy/3
-            {atomic, ok} = mnesia:change_table_copy_type(schema, node(), disc_copies),
-            ok;
-        true ->
-            ok
+    lager:info("Joining cluster ~s", [NodeName]),
+
+    case {node(), net_adm:ping(NodeName)} of
+        {NodeName, _} ->
+            lager:error("Cluster: can't join myself: ~s", [NodeName]),
+            {error, {cant_join_self, NodeName}};
+        {_, pong} ->
+            rpc:call(node(), ?MODULE, join, [NodeName], 10000);
+        _ ->
+            lager:error("Cluster node is unreachable: ~s", [NodeName]),
+            {error, {node_unreachable, NodeName}}
     end.
 
 leave_cluster(NodeName) ->
-    lager:info("Node ~s left cluster", [NodeName]),
-    {atomic, ok} = mnesia:del_table_copy(schema, NodeName).
+    lager:info("Node ~s leaving the cluster", [NodeName]),
+    case {node(), net_adm:ping(NodeName)} of
+        {NodeName, _} ->
+            Cluster = mnesia:system_info(running_db_nodes)--[NodeName],
+            rpc:call(node(), ?MODULE, leave, [Cluster, NodeName], 10000);
+        {_, pong} ->
+            rpc:call(NodeName, ?MODULE, leave_cluster, [NodeName], 10000);
+        {_, pang} ->
+            case mnesia:del_table_copy(schema, NodeName) of
+                {atomic, ok} -> ok;
+                {aborted, Reason} -> {error, Reason}
+            end
+    end.
 
-have_disc_copy(Table) ->
-    lists:member(node(), mnesia:table_info(Table, disc_copies)).
+join(NodeName) ->
+    application:stop(lorawan_server),
+    application:stop(mnesia),
+    mnesia:delete_schema([node()]),
+    application:start(mnesia),
+    case mnesia:change_config(extra_db_nodes, [NodeName]) of
+        {ok, [NodeName]} ->
+            mnesia:change_table_copy_type(schema, node(), disc_copies),
+            [ {atomic, ok} = mnesia:add_table_copy(T, node(), disc_copies)
+                || T <- mnesia:system_info(tables)--[schema]],
+            ok = mnesia:wait_for_tables(mnesia:system_info(local_tables), 10000),
+            application:start(lorawan_server);
+        {error, Reason} ->
+            lager:error("Cluster copy schema: ~p", [Reason]),
+            {error, Reason}
+    end.
+
+leave([], NodeName) ->
+    lager:error("Node ~s is not in cluster", [NodeName]),
+    {error, {no_cluster, NodeName}};
+leave([Master|_], NodeName) ->
+    application:stop(lorawan_server),
+    application:stop(mnesia),
+    rpc:call(Master, mnesia, del_table_copy, [schema, NodeName]),
+    mnesia:delete_schema([node()]),
+    init:stop(),
+    ok.
 
 % end of file

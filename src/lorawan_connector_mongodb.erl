@@ -15,10 +15,20 @@
 
 -record(state, {conn, pool, publish_uplinks, publish_events}).
 
-start_connector(#connector{connid=Id}=Connector) ->
+start_connector(#connector{connid=Id, received=Received}=Connector) ->
+    case lorawan_connector:pattern_for_cowboy(Received) of
+        undefined ->
+            ok;
+        error ->
+            lorawan_connector:raise_failed(Id, {badarg, Received});
+        Pattern ->
+            lorawan_http_registry:update({http, Id},
+                #{routes => [{Pattern, lorawan_connector_http_in, [Connector]}]})
+    end,
     lorawan_connector_sup:start_child({mongodb, Id}, ?MODULE, [Connector]).
 
 stop_connector(Id) ->
+    lorawan_http_registry:delete({http, Id}),
     lorawan_connector_sup:stop_child({mongodb, Id}).
 
 start_link(Connector) ->
