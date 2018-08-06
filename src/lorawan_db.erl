@@ -26,7 +26,6 @@ ensure_tables() ->
                     ok = mnesia:create_schema([node()]),
                     ok = mnesia:start();
                 {ok, NodeName} ->
-                    pong = net_adm:ping(NodeName),
                     ok = join_cluster(NodeName)
             end
     end,
@@ -115,18 +114,8 @@ ensure_table(Name, TabDef) ->
 ensure_table(Name, TabDef, Renamed) ->
     case table_exists(Name) of
         true ->
-            case have_disc_copy(Name) of
-                true ->
-                    case mnesia:wait_for_tables([Name], 2000) of
-                        ok ->
-                            ensure_indexes(Name, TabDef);
-                        _ ->
-                            ok
-                    end;
-                false ->
-                    % joining cluster
-                    {atomic, ok} = mnesia:add_table_copy(Name, node(), disc_copies)
-            end;
+            ok = mnesia:wait_for_tables([Name], 2000),
+            ensure_indexes(Name, TabDef);
         false ->
             case lists:foldl(
                 fun
@@ -324,17 +313,31 @@ get_rxframes(DevAddr) ->
             mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
 
 join_cluster(NodeName) ->
-    lager:info("Node ~s joined cluster", [NodeName]),
-    % WARNING: Side effects are possible when node statistics/ADR are updated
-    % Connect to node NodeName and get schema and tables from it
-    {ok, [NodeName]} = mnesia:change_config(extra_db_nodes, [NodeName]),
-    case lists:member(node(), mnesia:table_info(schema, disc_copies)) of
-        false ->
-            % Create disc copy of the schema, required before add_table_copy/3
-            {atomic, ok} = mnesia:change_table_copy_type(schema, node(), disc_copies),
-            ok;
-        true ->
-            ok
+    lager:info("Joining cluster ~s", [NodeName]),
+
+    case {node(), net_adm:ping} of
+        {NodeName, _} ->
+            lager:error("Cluster: can't join myself: ~s", [NodeName]),
+            {error, {cant_join_self, NodeName}};
+        {_, pong} ->
+            application:stop(lorawan_server),
+            application:stop(mnesia),
+            mnesia:delete_schema([node()]),
+            application:start(mnesia),
+            case mnesia:change_config(extra_db_nodes, [NodeName]) of
+                {ok, [NodeName]} ->
+                    mnesia:change_table_copy_type(schema, node(), disc_copies),
+                    [ {atomic, ok} = mnesia:add_table_copy(T, node(), disc_copies)
+                        || T <- mnesia:system_info(tables)--[schema]],
+                    ok = mnesia:wait_for_tables(mnesia:system_info(local_tables), 10000),
+                    application:start(lorawan_server);
+                {error, Reason} ->
+                    lager:error("Cluster copy schema: ~p", [Reason]),
+                    {error, Reason}
+            end;
+        _ ->
+            lager:error("Cluster node is unreachable: ~s", [NodeName]),
+            {error, {node_unreachable, NodeName}}
     end.
 
 leave_cluster(NodeName) ->
