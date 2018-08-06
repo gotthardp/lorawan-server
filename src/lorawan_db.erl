@@ -315,7 +315,7 @@ get_rxframes(DevAddr) ->
 join_cluster(NodeName) ->
     lager:info("Joining cluster ~s", [NodeName]),
 
-    case {node(), net_adm:ping} of
+    case {node(), net_adm:ping(NodeName)} of
         {NodeName, _} ->
             lager:error("Cluster: can't join myself: ~s", [NodeName]),
             {error, {cant_join_self, NodeName}};
@@ -330,6 +330,7 @@ join_cluster(NodeName) ->
                     [ {atomic, ok} = mnesia:add_table_copy(T, node(), disc_copies)
                         || T <- mnesia:system_info(tables)--[schema]],
                     ok = mnesia:wait_for_tables(mnesia:system_info(local_tables), 10000),
+                    lager:info("Joining cluster success"),
                     application:start(lorawan_server);
                 {error, Reason} ->
                     lager:error("Cluster copy schema: ~p", [Reason]),
@@ -343,8 +344,5 @@ join_cluster(NodeName) ->
 leave_cluster(NodeName) ->
     lager:info("Node ~s left cluster", [NodeName]),
     {atomic, ok} = mnesia:del_table_copy(schema, NodeName).
-
-have_disc_copy(Table) ->
-    lists:member(node(), mnesia:table_info(Table, disc_copies)).
 
 % end of file
