@@ -894,7 +894,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ required: true }),
         nga.field('uri').label('URI')
             .attributes({ placeholder: 'e.g. mqtt://server:8883' })
-            .validation({ required: true, pattern: '^(((amqp|mqtt|http)s?:\/\/[^\/?#]+[^?#]*)|ws:|mongodb:\/\/[^\/?#]+)' }),
+            .validation({ required: true, pattern: '^(((amqp|mqtt|http)s?:\/\/[^\/?#]+[^?#]*)|http:|ws:|mongodb:\/\/[^\/?#]+)' }),
         nga.field('publish_uplinks'),
         nga.field('publish_events'),
         nga.field('subscribe').label('Subscribe'),

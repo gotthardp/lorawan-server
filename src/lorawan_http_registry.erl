@@ -94,7 +94,7 @@ get_static(scopes) ->
     [<<"unlimited">>, <<"web-admin">>,
     <<"server:read">>, <<"server:write">>,
     <<"network:read">>, <<"network:write">>,
-    <<"device:read">>, <<"device:write">>,
+    <<"device:read">>, <<"device:write">>, <<"device:send">>,
     <<"backend:read">>, <<"backend:write">>];
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
 get_static(routes) ->

@@ -153,6 +153,8 @@ terminate(Reason, #state{conn=#connector{connid=ConnId}, pid=C}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+connect(#connector{uri= <<"http:">>}) ->
+    {ok, undefined};
 connect(#connector{connid=ConnId, uri=Uri}) ->
     lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
     {ok, ConnPid} =
