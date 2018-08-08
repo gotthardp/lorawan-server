@@ -88,6 +88,25 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 10, label: 'Max - 20 dB' }
     ];
 
+    dcycle_choices = [
+        { value: 0, label: '1 (100%)' },
+        { value: 1, label: '1/2 (50%)' },
+        { value: 2, label: '1/4 (25%)' },
+        { value: 3, label: '1/8 (12.5%)' },
+        { value: 4, label: '1/16 (6.25%)' },
+        { value: 5, label: '1/32 (3.125%)' },
+        { value: 6, label: '1/64 (1.563%)' },
+        { value: 7, label: '1/128 (0.781%)' },
+        { value: 8, label: '1/256 (0.391%)' },
+        { value: 9, label: '1/512 (0.195%)' },
+        { value: 10, label: '1/1024 (0.098%)' },
+        { value: 11, label: '1/2048 (0.049%)' },
+        { value: 12, label: '1/4096 (0.024%)' },
+        { value: 13, label: '1/8192 (0.012%)' },
+        { value: 14, label: '1/16384 (0.006%)' },
+        { value: 15, label: '1/32768 (0.003%)' }
+    ];
+
     // ---- config
     config.editionView().fields([
         // General
@@ -342,11 +361,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                     return [];
             })
             .validation({ required: true }),
-        nga.field('dcycle_init', 'number').label('Initial Duty Cycle')
-            .attributes({ placeholder: 'e.g. 0' })
-            .validation({ required: true, validator: function(value) {
-                if(value < 0 || value > 15) throw new Error ('Invalid duty cycle');
-            }})
+        nga.field('dcycle_init', 'choice').label('Initial Duty Cycle')
+            .choices(dcycle_choices)
+            .attributes({ placeholder: 'e.g. 100%' })
             .defaultValue(0),
         nga.field('rxwin_init.rx1_dr_offset', 'number').label('Initial RX1 DR Offset')
             .attributes({ placeholder: 'e.g. 0' })
@@ -518,11 +535,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 0-2' })
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
 
-        nga.field('dcycle_set', 'number').label('Set Duty Cycle')
-            .attributes({ placeholder: 'e.g. 0' })
-            .validation({ validator: function(value) {
-                if(value < 0 || value > 15) throw new Error ('Invalid duty cycle');
-            }}),
+        nga.field('dcycle_set', 'choice').label('Set Duty Cycle')
+            .choices(dcycle_choices)
+            .attributes({ placeholder: 'e.g. 100%' }),
         nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR Offset')
             .attributes({ placeholder: 'e.g. 0' }),
         nga.field('rxwin_set.rx2_dr', 'choice').label('Set RX2 DR')
@@ -741,7 +756,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'channel_mask', label: 'channel_mask' }
             ]),
 
-        nga.field('dcycle_use', 'number').label('Used Duty Cycle')
+        nga.field('dcycle_use', 'choice').label('Used Duty Cycle')
+            .choices(dcycle_choices)
             .editable(false),
         nga.field('rxwin_use.rx1_dr_offset', 'number').label('Used RX1 DR Offset')
             .editable(false),
