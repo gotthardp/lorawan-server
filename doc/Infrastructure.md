@@ -88,7 +88,7 @@ On the ADR tab you can set the initial parameters of your devices:
  - **Min Power** defines the last item in the "TX Power Table"
  - **Max Data Rate** defines the highest DR (lowest SF) supported by channels in
    this network. Additional **Channels** may specify a different value.
- - **Initial Duty Cycle**
+ - **Initial Duty Cycle** is a number 0-15, where 0 means no restrictions;
  - **Initial RX1 DR Offset** defines the offset between the uplink data rate and
    the downlink data rate used to communicate with the end-device on the first
    reception slot (RX1).

@@ -65,7 +65,7 @@ For each device Profile you can define "desired" ADR parameters:
  - **Set Channels** defines the set of channels. The channels are given
    as a comma-separated list of interfaces, e.g. `0-2` for EU, `0-71` for the
    whole US band, or `0-7,64` for the first US sub-band (see table below).
- - **Set Duty Cycle**
+ - **Set Duty Cycle** is a number 0-15, where 0 means no restrictions;
  - **Set RX1 DR Offset** defines the offset between the uplink and the RX1 slot
    downlink data rates
  - **Set RX2 DR** defines the data rate for the second reception slot (RX2).
@@ -198,7 +198,7 @@ Node ADR parameters include:
  - **Used Channels** indicates the set of channels used;
  - **ADR Failed** flag will indicate the device refused the last ADR command.
    The user is expected to resolve and clear this field before ADR will continue.
- - **Used Duty Cycle**
+ - **Used Duty Cycle** is a number 0-15, where 0 means no restrictions;
  - **Used RX1 DR Offset** indicates the offset used;
  - **Used RX2 DR** indicates the RX2 data rate used;
  - **Used RX2 Freq** indicates the RX2 frequency used (in MHz);

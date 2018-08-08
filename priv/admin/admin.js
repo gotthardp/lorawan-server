@@ -343,11 +343,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             })
             .validation({ required: true }),
         nga.field('dcycle_init', 'number').label('Initial Duty Cycle')
+            .attributes({ placeholder: 'e.g. 0' })
             .validation({ required: true, validator: function(value) {
                 if(value < 0 || value > 15) throw new Error ('Invalid duty cycle');
             }})
             .defaultValue(0),
         nga.field('rxwin_init.rx1_dr_offset', 'number').label('Initial RX1 DR Offset')
+            .attributes({ placeholder: 'e.g. 0' })
             .validation({ required: true })
             .defaultValue(0),
         nga.field('rxwin_init.rx2_dr', 'choice').label('Initial RX2 DR')
@@ -517,10 +519,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .validation({ pattern: '[0-9]+(-[0-9]+)?(,[ ]*[0-9]+(-[0-9]+)?)*' }),
 
         nga.field('dcycle_set', 'number').label('Set Duty Cycle')
+            .attributes({ placeholder: 'e.g. 0' })
             .validation({ validator: function(value) {
                 if(value < 0 || value > 15) throw new Error ('Invalid duty cycle');
             }}),
-        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR Offset'),
+        nga.field('rxwin_set.rx1_dr_offset', 'number').label('Set RX1 DR Offset')
+            .attributes({ placeholder: 'e.g. 0' }),
         nga.field('rxwin_set.rx2_dr', 'choice').label('Set RX2 DR')
             .choices(function(entry) {
                 if(entry.values.network)
