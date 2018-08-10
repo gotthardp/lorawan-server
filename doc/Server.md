@@ -25,8 +25,9 @@ Internal applications may add their specific scopes.
 
 ## Servers
 
-The list shows a single line describing the current server instance:
- - **Name** of the cluster node, which is useful for [debugging](Development.md#debugging)
+The list shows a single line describing the current server instance, or multiple
+lines describing the [Cluster](Cluster.md) nodes. For each it shows:
+ - **Name** of the server node, which is useful for [debugging](Development.md#debugging)
  - **Version** of the server
  - **Free Memory** and **Free Disk**
  - **Alerts** that may need your attention:

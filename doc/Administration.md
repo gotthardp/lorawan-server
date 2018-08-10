@@ -30,7 +30,8 @@ The server Dashboard shows:
    frames received.
 
 The following configuration pages are available:
- - [**Server**](Server.md) configuration and monitoring.
+ - [**Server**](Server.md) enables configuration and monitoring and also
+   [Cluster](Cluster.md) management.
  - [**Infrastructure**](Infrastructure.md) covers configuration of LoRa Gateways,
    Networks and Multicast Channels.
  - [**Devices**](Devices.md) cover the entire device configuration:
@@ -54,22 +55,54 @@ You (at least) have to:
      The *Nodes* list will be updated automatically once the device joins the network.
 
 
+## Health Monitoring
+
+Health of servers, gateways, (activated) nodes and connectors is automatically
+monitored. For each item the server evaluates a set of static rules and
+calculates a *decay*. The decay Alerts are displayed on the respective web-admin
+pages and the server Dashboard displays the most decayed items that deserve
+operator attention.
+
+When an item decay gets worse the server can notify responsible operators via
+e-mail or Slack.
+
+To enable Slack notifications:
+ * Manage apps of your Slack account, go to Custom Integrations -- Bots, then
+   Add Configuration of a new Bot and remember its API Token.
+ * Invite your Bot to the desired Slack Channel(s).
+ * Set the Slack API Token of your Bot to the Server Configuration.
+ * Set the Slack Channel for the desired Areas and/or Groups; you can use a
+   dedicated channel for each, or a common channel for all.
+
+To enable E-Mail notifications:
+ * Set the E-mail server address and credentials in the Server Configuration.
+ * Review the desired Users, set their E-Mail addresses and enable the server
+   to **Send Alerts**.
+ * For the desired Areas and/or Groups set the **Admins** that shall receive
+   the notifications.
+
+
 ## REST API
 
 The following REST resources are made available:
 
   Resource                      | Methods          | Explanation
  -------------------------------|------------------| ------------------------------------------------
+  /api/config/main              | GET, PUT         | Central server configuration
   /api/servers                  | GET              | Server status information
   /api/applications             | GET              | Supported LoRaWAN applications
   /api/users                    | GET, POST        | Users of the admin interface
   /api/users/*ABC*              | GET, PUT, DELETE | User *ABC*
-  /api/networks                 | GET, POST        | Network and regional settings
-  /api/networks/*ABC*           | GET, PUT, DELETE | Network *ABC*
+  /api/areas                    | GET, POST        | Administrative groups of gateways
+  /api/areas/*ABC*              | GET, PUT, DELETE | Area *ABC*
   /api/gateways                 | GET, POST        | LoRaWAN gateways
   /api/gateways/*123*           | GET, PUT, DELETE | Gateway with MAC=*123*
   /api/multicast_channels       | GET, POST        | Class C multicast channels
   /api/multicast_channels/*123* | GET, PUT, DELETE | Multicast channel with DevAddr=*123*
+  /api/networks                 | GET, POST        | Network and regional settings
+  /api/networks/*ABC*           | GET, PUT, DELETE | Network *ABC*
+  /api/groups                   | GET, POST        | Administrative groups of profiles
+  /api/groups/*ABC*             | GET, PUT, DELETE | Group *ABC*
   /api/profiles                 | GET, POST        | Device profiles
   /api/profiles/*ABC*           | GET, PUT, DELETE | Device profile *ABC*
   /api/devices                  | GET, POST        | Devices commissioned for over-the-air activation (OTAA)
