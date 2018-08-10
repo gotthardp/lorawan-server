@@ -8,7 +8,7 @@
 -export([ensure_tables/0, ensure_table/2, ensure_table/3]).
 -export([foreach_record/3, get_group/1, get_rxframes/1]).
 -export([record_fields/1]).
--export([join_cluster/1, leave_cluster/1, join/1, leave/2]).
+-export([join_cluster/1, join_cluster/2, leave_cluster/1, join/1, leave/2]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -311,6 +311,16 @@ get_rxframes(DevAddr) ->
         lists:sort(
             fun(#rxframe{frid = A}, #rxframe{frid = B}) -> A =< B end,
             mnesia:dirty_index_read(rxframe, DevAddr, #rxframe.devaddr))).
+
+join_cluster(MasterNode, SlaveNode) ->
+    Self = node(),
+    case {MasterNode, SlaveNode} of
+        {MasterNode, Self} ->
+            join_cluster(MasterNode);
+        {Self, SlaveNode} ->
+            lager:info("Calling node ~s to join the cluster", [SlaveNode]),
+            rpc:call(SlaveNode, lorawan_db, join, [node()], 10000)
+    end.
 
 join_cluster(NodeName) ->
     lager:info("Joining cluster ~s", [NodeName]),
