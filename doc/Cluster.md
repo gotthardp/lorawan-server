@@ -34,9 +34,21 @@ Before you start:
 Create the first server of your cluster. You don't need to do any special
 configuration here, the server should be started as if it is a single standard server.
 
-To add new servers to the cluster, for every new server **before you start it up**
-uncomment in the servers `sys.config` file the option `db_master` and specify any
-already running server node as its value. For example:
+To add new servers to the cluster you can use either the web-admin or the
+db_master configuration option.
+
+### Add new nodes using the web-admin
+
+Start the new node(s), then log-in to the web-admin on the master node, navigate
+to the Servers List and click Create. Enter the name of the new node and click
+Submit. This will **delete the database on the new node** and add the node to
+the cluster.
+
+### Join using the db_master config option
+
+For every new server **before you start it up** uncomment in the servers
+`sys.config` file the option `db_master` and specify any already running server
+node as its value. For example:
 
 ```
 {db_master, lorawan@alreadyrunning},

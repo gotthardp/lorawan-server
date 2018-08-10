@@ -140,7 +140,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ])
     .batchActions([]);
     servers.creationView().title('Join Remote Node to Cluster')
-    .description('Local database on the node you enter will be DELETED, then it will be attached to this server!')
+    .description('Database on the node you enter will be DELETED, then it will be attached to this server!')
     .fields([
         nga.field('sname').label('Name')
     ]);
