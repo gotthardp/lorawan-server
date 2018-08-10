@@ -149,7 +149,7 @@ store_actual_adr([{_MAC, RxQ}|_], ADR, #network{region=Region, init_chans=InitCh
                 devstat_fcnt=undefined, last_qs=[]};
         _Else ->
             % this should not happen
-            lager:debug("DataRate ~s initialized to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
+            lager:warning("DataRate ~s initialized to dr ~w", [lorawan_utils:binary_to_hex(Node#node.devaddr), DataRate]),
             Node#node{adr_flag=ADR, adr_use={MaxPower, DataRate, InitChans},
                 devstat_fcnt=undefined, last_qs=[]}
     end.
@@ -202,13 +202,13 @@ handle_dcycle(FOptsIn, Profile, Node) ->
 handle_rxwin(FOptsIn, _Network, Profile, Node) ->
     case find_rxwin(FOptsIn) of
         {1, 1, 1} ->
-            if
-                Profile#profile.rxwin_set == Node#node.rxwin_use ->
+            case merge_rxwin(Profile#profile.rxwin_set, Node#node.rxwin_use) of
+                Unchanged when Unchanged == Node#node.rxwin_use ->
                     lager:debug("RXParamSetupAns ~s succeeded (enforcement only)", [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
                     {true, Node#node{rxwin_failed=[]}};
-                true ->
+                NodeSet ->
                     lager:debug("RXParamSetupAns ~s succeeded", [lorawan_utils:binary_to_hex(Node#node.devaddr)]),
-                    {true, Node#node{rxwin_use=Profile#profile.rxwin_set, rxwin_failed=[]}}
+                    {true, Node#node{rxwin_use=NodeSet, rxwin_failed=[]}}
             end;
         {RX1DROffsetACK, RX2DataRateACK, ChannelACK} ->
             lorawan_utils:throw_warning({node, Node#node.devaddr}, {rxwin_setup_failed, {RX1DROffsetACK, RX2DataRateACK, ChannelACK}}),

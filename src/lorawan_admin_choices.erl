@@ -54,36 +54,43 @@ handle_get(Req, #state{name=regions}=State) ->
             <<"KR920">>, <<"IN865">>, <<"RU868">>,
             <<"US902">>, <<"US902-PR">>, <<"AU915">>]),
     {jsx:encode(Regs), Req, State};
-handle_get(Req, #state{name=networks}=State) ->
+handle_get(Req, #state{name=groups}=State) ->
     Nets =
         lists:map(
-            fun(Net) ->
-                {Net, network_choices(Net)}
+            fun(Group) ->
+                {Group, group_choices(Group)}
             end,
-            mnesia:dirty_all_keys(network)),
+            mnesia:dirty_all_keys(group)),
     {jsx:encode(Nets), Req, State};
 handle_get(Req, #state{name=profiles}=State) ->
     Profs =
         lists:map(
             fun(Prof) ->
                 [#profile{group=Group}] = mnesia:dirty_read(profile, Prof),
-                case mnesia:dirty_read(group, Group) of
-                    [#group{network=Net}] when is_binary(Net), byte_size(Net) > 0 ->
-                        {Prof, network_choices(Net)};
-                    _Else ->
-                        {Prof, []}
-                end
+                {Prof, group_choices(Group)}
             end,
             mnesia:dirty_all_keys(profile)),
     {jsx:encode(Profs), Req, State}.
 
+group_choices(Group) ->
+    case mnesia:dirty_read(group, Group) of
+        [#group{network=Net}] when is_binary(Net), byte_size(Net) > 0 ->
+            network_choices(Net);
+        _Else ->
+            []
+    end.
+
 network_choices(Net) ->
-    [#network{region=Region, max_eirp=Max, min_power=Min}] = mnesia:dirty_read(network, Net),
-    [
-        {uplink_datar, uplink_datar_choices0(Region)},
-        {downlink_datar, downlink_datar_choices0(Region)},
-        {power, power_choices0(0, Max, Min)}
-    ].
+    case mnesia:dirty_read(network, Net) of
+        [#network{region=Region, max_eirp=Max, min_power=Min}] ->
+            [
+                {uplink_datar, uplink_datar_choices0(Region)},
+                {downlink_datar, downlink_datar_choices0(Region)},
+                {power, power_choices0(0, Max, Min)}
+            ];
+        _Else ->
+            []
+    end.
 
 uplink_datar_choices0(Region) ->
     if

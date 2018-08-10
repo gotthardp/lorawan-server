@@ -15,6 +15,7 @@ Max EIRP (dBm)         | 16    | 30    | 12.15 | 12.15 | 30    | 19.15 | 16    |
 Max Power              | Max   | Max   | Max   | Max   | Max   | Max   | Max   | Max   | Max   | Max
 Min Power              | Max - 14dB   | Max - 20dB   | Max - 10dB   | Max - 10dB   | Max - 20dB   | Max - 14dB   | Max - 14dB   | Max - 14dB   | Max - 20dB   | Max - 14dB
 Max Data Rate          | SF7 125 kHz  | SF8 500 kHz  | SF7 125 kHz  | SF7 125 kHz  | SF8 500 kHz  | SF7 125 kHz  | SF7 125 kHz  | SF7 125 kHz  | SF7 125 kHz  | SF7 125 kHz
+Initial Duty Cycle     | 100%  | 100%  | 100%  | 100%  | 100%  | 100%  | 100%  | 100%  | 100%  | 100%
 Initial RX1 DR Offset  | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0
 Initial RX2 DR         | SF12 125 kHz | SF12 500 kHz | SF12 125 kHz | SF12 125 kHz | SF12 500 kHz | SF12 125 kHz | SF10 125KHz  | SF12 125 kHz | SF10 125 kHz | SF12 125 kHz
 Initial RX2 Freq (MHz) | 869.525      | 923.3        | 786          | 434.665      | 923.3        | 505.3        | 923.2        | 921.90       | 866.550      | 869.1

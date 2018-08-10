@@ -34,9 +34,21 @@ Before you start:
 Create the first server of your cluster. You don't need to do any special
 configuration here, the server should be started as if it is a single standard server.
 
-To add new servers to the cluster, for every new server **before you start it up**
-uncomment in the servers `sys.config` file the option `db_master` and specify any
-already running server node as its value. For example:
+To add new servers to the cluster you can use either the web-admin or the
+db_master configuration option.
+
+### Add new nodes using the web-admin
+
+Start the new node(s), then log-in to the web-admin on the master node, navigate
+to the Servers List and click Create. Enter the name of the new node and click
+Submit. This will **delete the database on the new node** and add the node to
+the cluster.
+
+### Join using the db_master config option
+
+For every new server **before you start it up** uncomment in the servers
+`sys.config` file the option `db_master` and specify any already running server
+node as its value. For example:
 
 ```
 {db_master, lorawan@alreadyrunning},
@@ -49,6 +61,12 @@ it is only needed for the first start.
 
 Mnesia database automatically detects any new members of the cluster and
 propagates that information to every other server in it.
+
+### Remove node using the web-admin
+
+Log-in to the web-admin on the master node, navigate to the Server List and open
+the server node you want to remove. The click the Delete button and confirm the
+warning. This will terminate the removed node.
 
 If you have any problems, ideas or suggestions, be sure to contact
 [LoRaWAN Server Users](mailto:lorawan-server@googlegroups.com) mailing list.

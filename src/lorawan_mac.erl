@@ -332,7 +332,7 @@ ensure_adr(#network{init_chans=InitChans, max_power=MaxPower}, Node) ->
                 when is_integer(TXPower), is_integer(DataRate), is_list(Chans) ->
             Node;
         _Else ->
-            lager:debug("~p ADR initialized", [binary_to_hex(Node#node.devaddr)]),
+            lager:warning("~p ADR initialized", [binary_to_hex(Node#node.devaddr)]),
             Node#node{adr_use={MaxPower, 0, InitChans}}
     end.
 
@@ -342,7 +342,7 @@ ensure_rxwin(#network{rxwin_init=WinInit}, Node) ->
                 when is_integer(OffSet), is_integer(RX2DataRate), is_number(Frequency) ->
             Node;
         _Else ->
-            lager:debug("~p RXWindow initialized", [binary_to_hex(Node#node.devaddr)]),
+            lager:warning("~p RXWindow initialized", [binary_to_hex(Node#node.devaddr)]),
             Node#node{rxwin_use=WinInit}
     end.
 

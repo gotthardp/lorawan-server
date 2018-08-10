@@ -21,7 +21,12 @@ init(Req, [Connector]) ->
     {cowboy_rest, Req, #state{connector=Connector, bindings=Bindings}}.
 
 is_authorized(Req, State) ->
-    {lorawan_admin:handle_authorization(Req), Req, State}.
+    case lorawan_admin:handle_authorization(Req, {[], [{<<"device:send">>, '*'}]}) of
+        {true, _AuthFields} ->
+            {true, Req, State};
+        Else ->
+            {Else, Req, State}
+    end.
 
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"PUT">>, <<"POST">>], Req, State}.

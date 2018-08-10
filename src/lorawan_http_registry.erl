@@ -94,7 +94,7 @@ get_static(scopes) ->
     [<<"unlimited">>, <<"web-admin">>,
     <<"server:read">>, <<"server:write">>,
     <<"network:read">>, <<"network:write">>,
-    <<"device:read">>, <<"device:write">>,
+    <<"device:read">>, <<"device:write">>, <<"device:send">>,
     <<"backend:read">>, <<"backend:write">>];
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
 get_static(routes) ->
@@ -131,8 +131,8 @@ get_static(routes) ->
             {[{<<"device:read">>, '*'}], [{<<"device:write">>, '*'}]}}},
     {"/api/choices/regions", lorawan_admin_choices,
         {regions, [{<<"web-admin">>, '*'}]}},
-    {"/api/choices/networks", lorawan_admin_choices,
-        {networks, [{<<"web-admin">>, '*'}]}},
+    {"/api/choices/groups", lorawan_admin_choices,
+        {groups, [{<<"web-admin">>, '*'}]}},
     {"/api/choices/profiles", lorawan_admin_choices,
         {profiles, [{<<"web-admin">>, '*'}]}},
     {"/api/devices/[:deveui]", lorawan_admin_db_record,
