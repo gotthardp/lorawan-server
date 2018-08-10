@@ -315,8 +315,7 @@ send_slack_message(Channel, Type, ID, Message, Warning) ->
             end])).
 
 send_slack_raw(undefined, _Channel, _Message) ->
-    lager:error("Slack token not defined, no message sent"),
-    ok;
+    {error, token_undefined};
 send_slack_raw(Token, Channel, Message) ->
     {ok, {Host, Port}} = application:get_env(lorawan_server, slack_server),
     {ok, ConnPid} = gun:open(Host, Port, #{transport=>ssl}),
