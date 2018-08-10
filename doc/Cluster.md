@@ -62,5 +62,11 @@ it is only needed for the first start.
 Mnesia database automatically detects any new members of the cluster and
 propagates that information to every other server in it.
 
+### Remove node using the web-admin
+
+Log-in to the web-admin on the master node, navigate to the Server List and open
+the server node you want to remove. The click the Delete button and confirm the
+warning. This will terminate the removed node.
+
 If you have any problems, ideas or suggestions, be sure to contact
 [LoRaWAN Server Users](mailto:lorawan-server@googlegroups.com) mailing list.

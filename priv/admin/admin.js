@@ -512,22 +512,22 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(0),
         nga.field('adr_set.power', 'choice').label('Set Power')
             .choices(function(entry) {
-                if(entry.values.network)
-                    return choices_networks[entry.values.network].power;
+                if(entry.values.group)
+                    return choices_groups[entry.values.group].power;
                 else
                     return [];
             }),
         nga.field('adr_set.datr', 'choice').label('Set Data Rate')
             .choices(function(entry) {
-                if(entry.values.network)
-                    return choices_networks[entry.values.network].uplink_datar;
+                if(entry.values.group)
+                    return choices_groups[entry.values.group].uplink_datar;
                 else
                     return [];
             }),
         nga.field('max_datr', 'choice').label('Max Data Rate')
             .choices(function(entry) {
-                if(entry.values.network)
-                    return choices_networks[entry.values.network].uplink_datar;
+                if(entry.values.group)
+                    return choices_groups[entry.values.group].uplink_datar;
                 else
                     return [];
             }),
@@ -542,8 +542,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 0' }),
         nga.field('rxwin_set.rx2_dr', 'choice').label('Set RX2 DR')
             .choices(function(entry) {
-                if(entry.values.network)
-                    return choices_networks[entry.values.network].downlink_datar;
+                if(entry.values.group)
+                    return choices_groups[entry.values.group].downlink_datar;
                 else
                     return [];
             }),
@@ -554,8 +554,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .defaultValue(true)
     ])
     .prepare(['$http', function($http) {
-        return $http.get('/api/choices/networks')
-            .then(response => { choices_networks = response.data });
+        return $http.get('/api/choices/groups')
+            .then(response => { choices_groups = response.data });
     }]);
     profiles.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:6},
@@ -563,8 +563,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     ]));
     profiles.editionView().fields(profiles.creationView().fields())
     .prepare(['$http', function($http) {
-        return $http.get('/api/choices/networks')
-            .then(response => { choices_networks = response.data });
+        return $http.get('/api/choices/groups')
+            .then(response => { choices_groups = response.data });
     }]);
     profiles.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:6},
