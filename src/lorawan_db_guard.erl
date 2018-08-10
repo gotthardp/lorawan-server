@@ -295,8 +295,16 @@ send_emails0(ToAddrs, Type, ID, Message, Warning) ->
         end).
 
 send_slack(Channel, Type, ID, Message, Warning) ->
+    case catch send_slack_message(Channel, Type, ID, Message, Warning) of
+        true ->
+            ok;
+        Else ->
+            lager:error("Cannot send Slack message: ~p", [Else])
+    end.
+
+send_slack_message(Channel, Type, ID, Message, Warning) ->
     [#config{admin_url=Prefix, slack_token=Token}] = mnesia:dirty_read(config, <<"main">>),
-    case catch send_slack_message(
+    send_slack_raw(
         Token, Channel,
         list_to_binary([titlecase(Type), " <", stringify_url(Prefix, Type, ID), "|", ID, ">", Message,
             if
@@ -304,15 +312,12 @@ send_slack(Channel, Type, ID, Message, Warning) ->
                     " :warning:";
                 true ->
                     []
-            end]))
-    of
-        true ->
-            ok;
-        Else ->
-            lager:error("Cannot send Slack message: ~p", [Else])
-    end.
+            end])).
 
-send_slack_message(Token, Channel, Message) ->
+send_slack_raw(undefined, _Channel, _Message) ->
+    lager:error("Slack token not defined, no message sent"),
+    ok;
+send_slack_raw(Token, Channel, Message) ->
     {ok, {Host, Port}} = application:get_env(lorawan_server, slack_server),
     {ok, ConnPid} = gun:open(Host, Port, #{transport=>ssl}),
     {ok, _} = gun:await_up(ConnPid),
