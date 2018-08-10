@@ -117,12 +117,12 @@ handle_write(Req, State) ->
     end.
 
 write_server(Req, #server{sname=NodeName}=Server, State) ->
-    case lorawan_db:join_cluster(NodeName) of
+    case lorawan_db:join_cluster(node(), NodeName) of
         ok ->
             ok = mnesia:dirty_write(Server),
             {true, Req, State};
         {error, Error} ->
-            lager:error("Cannot join cluster ~p: ~p", [NodeName, Error]),
+            lager:error("Cannot join node ~p to cluster: ~p", [NodeName, Error]),
             {stop, cowboy_req:reply(400, Req), State}
     end.
 

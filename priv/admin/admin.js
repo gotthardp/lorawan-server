@@ -139,8 +139,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('health_alerts', 'choices').label('Alerts')
     ])
     .batchActions([]);
-    servers.creationView().title('Join Cluster Node')
-    .description('Local database in this node will be DELETED, then the remote cluster will be joined')
+    servers.creationView().title('Join Remote Node to Cluster')
+    .description('Local database on the node you enter will be DELETED, then it will be attached to this server!')
     .fields([
         nga.field('sname').label('Name')
     ]);
