@@ -57,7 +57,7 @@ The server:
  * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,
    even on [embedded systems](doc/Embedded.md) like Raspbian, mLinux and other
    Yocto/OpenEmbedded systems, OpenWrt or in a [Docker container](doc/Docker.md).
- * Can establish [Clusters](Cluster.md) for high availability.
+ * Can establish [Clusters](doc/Cluster.md) for high availability.
  * Does not crash as it's implemented in [Erlang](https://www.erlang.org/), which is
    designed for building fault-tolerant systems.
  * Is free, distributed under the MIT license.
