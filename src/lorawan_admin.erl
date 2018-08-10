@@ -62,7 +62,10 @@ authorized_scopes(AuthScopes, ReqScopes) ->
             ReqScopes;
         false ->
             lists:filter(
-                fun({Name, _}) -> lists:member(Name, AuthScopes) end,
+                fun
+                    ({'*', _}) -> true;
+                    ({Name, _}) -> lists:member(Name, AuthScopes)
+                end,
                 ReqScopes)
     end.
 

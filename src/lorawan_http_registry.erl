@@ -189,6 +189,7 @@ get_static(routes) ->
     {"/", lorawan_admin_redirect, #{path => AdminPath}},
     {"/favicon.ico", lorawan_admin_static,
         {priv_file, lorawan_server, <<"favicon.ico">>,
-            [{<<"web-admin">>, '*'}]}}].
+            % anyone, even a REST API may request favicon
+            [{'*', '*'}]}}].
 
 % end of file
