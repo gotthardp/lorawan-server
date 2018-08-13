@@ -163,7 +163,8 @@ get_static(routes) ->
     {"/api/events/[:evid]", lorawan_admin_db_record,
         {event, record_info(fields, event),
             {[{<<"device:read">>, '*'}], [{<<"device:write">>, '*'}]}}},
-    {"/api/upload", lorawan_admin_upload, []}, % FIXME: no authorization
+    {"/api/upload", lorawan_admin_upload,
+        {[], [{<<"backend:write">>, '*'}]}},
     {"/admin", lorawan_admin_static,
         {priv_file, lorawan_server, <<"admin/index.html">>,
             [{<<"web-admin">>, '*'}]}},
