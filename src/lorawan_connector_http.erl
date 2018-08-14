@@ -33,13 +33,16 @@ stop_connector(Id) ->
 start_link(Connector) ->
     gen_server:start_link(?MODULE, [Connector], []).
 
-init([#connector{connid=Id, app=App, publish_uplinks=PubUp, publish_events=PubEv}=Conn]) ->
+init([#connector{connid=Id, app=App,
+        publish_uplinks=PubUp, publish_events=PubEv, name=UserName, pass=Password}=Conn]) ->
     ok = pg2:join({backend, App}, self()),
     self() ! connect,
     try
         {ok, #state{conn=Conn, streams=#{},
             publish_uplinks=lorawan_connector:prepare_filling(PubUp),
-            publish_events=lorawan_connector:prepare_filling(PubEv)
+            publish_events=lorawan_connector:prepare_filling(PubEv),
+            auth=lorawan_connector:prepare_filling([UserName, Password]),
+            nc=1
         }}
     catch
         _:Error ->
@@ -105,19 +108,14 @@ handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
                 lager:warning("HTTP request failed: 401"),
                 State;
             WWWAuthenticate ->
-                case maps:get(StreamRef, Streams) of
-                    {initial, URI, ContentType, Body} ->
-                        case handle_authenticate([digest, basic], URI, Body,
-                                cow_http_hd:parse_www_authenticate(WWWAuthenticate), State) of
-                            {[], State2} ->
-                                lager:warning("Unsupported authentication mechanism: ~p", [WWWAuthenticate]),
-                                State2;
-                            {Auth, State2} ->
-                                do_publish({authorized, URI, ContentType, Body}, Auth, State2)
-                        end;
-                    {authorized, _URI, _ContentType, _Body} ->
-                        lager:warning("HTTP authentication failed"),
-                        State
+                {URI, Auth, ContentType, Body} = maps:get(StreamRef, Streams),
+                case handle_authenticate([digest, basic], URI, Auth, Body,
+                        cow_http_hd:parse_www_authenticate(WWWAuthenticate), State) of
+                    {[], State2} ->
+                        lager:warning("Authentication failed: ~p", [WWWAuthenticate]),
+                        State2;
+                    {Auth, State2} ->
+                        do_publish({URI, authenticated, ContentType, Body}, Auth, State2)
                 end
         end,
     {noreply, fin_stream(StreamRef, Fin, State3)};
@@ -184,23 +182,25 @@ handle_uplink(Vars0, State) when is_list(Vars0) ->
     lists:foldl(
         fun(V0, S) -> handle_uplink(V0, S) end,
         State, Vars0);
-handle_uplink(Vars0, #state{conn=#connector{format=Format}, publish_uplinks=Pattern}=State) ->
+handle_uplink(Vars0, #state{conn=#connector{format=Format}, publish_uplinks=Publish}=State) ->
     {ContentType, Body} = encode_uplink(Format, Vars0),
-    do_publish(
-        {initial,
-            lorawan_connector:fill_pattern(Pattern, lorawan_admin:build(Vars0)),
-            ContentType, Body},
-        [], State).
+    send_publish(lorawan_admin:build(Vars0), Publish, ContentType, Body, State).
 
-handle_event(Vars0, #state{publish_events=Pattern}=State) ->
+handle_event(Vars0, #state{publish_events=Publish}=State) ->
     Vars = lorawan_admin:build(Vars0),
-    do_publish(
-        {initial,
-            lorawan_connector:fill_pattern(Pattern, Vars),
-            <<"application/json">>, jsx:encode(Vars)},
-        [], State).
+    send_publish(Vars, Publish, <<"application/json">>, jsx:encode(Vars), State).
 
-do_publish({_Type, URI, ContentType, Body}=Msg, Headers, State=#state{pid=C, streams=Streams}) ->
+send_publish(Vars, Publish, ContentType, Body, #state{conn=Conn, auth=AuthP}=State) ->
+    URI = lorawan_connector:fill_pattern(Publish, Vars),
+    [User, Pass] = lorawan_connector:fill_pattern(AuthP, Vars),
+    case Conn of
+        #connector{auth = <<"token">>} ->
+            do_publish({URI, authenticated, ContentType, Body}, [{User, Pass}], State);
+        #connector{} ->
+            do_publish({URI, [User, Pass], ContentType, Body}, [], State)
+    end.
+
+do_publish({URI, _Auth, ContentType, Body}=Msg, Headers, State=#state{pid=C, streams=Streams}) ->
     StreamRef = gun:post(C, URI,
         [{<<"content-type">>, ContentType} | Headers], Body),
     State#state{streams=maps:put(StreamRef, Msg, Streams)}.
@@ -222,24 +222,26 @@ encode_uplink(<<"json">>, Vars) ->
 encode_uplink(<<"www-form">>, Vars) ->
     {<<"application/x-www-form-urlencoded">>, lorawan_connector:form_encode(Vars)}.
 
-handle_authenticate([Scheme | Rest], URI, Body, WWWAuthenticate, State) ->
+handle_authenticate(_, _, authenticated, _, _, State) ->
+    {[], State};
+handle_authenticate([Scheme | Rest], URI, Auth, Body, WWWAuthenticate, State) ->
     case proplists:get_value(Scheme, WWWAuthenticate) of
         undefined ->
-            handle_authenticate(Rest, URI, Body, WWWAuthenticate, State);
+            handle_authenticate(Rest, URI, Auth, Body, WWWAuthenticate, State);
         Value ->
-            handle_authenticate0(Scheme, Value, URI, Body, State)
+            handle_authenticate0(Scheme, Value, URI, Auth, Body, State)
     end;
-handle_authenticate([], _URI, _Body, _WWWAuthenticate, State) ->
+handle_authenticate([], _, _, _, _, State) ->
     {[], State}.
 
-handle_authenticate0(_Any, _Value, _URI, _Body, State=#state{auth={Name, Pass}})
+handle_authenticate0(_, _, _URI, [Name, Pass], _, State)
         when Name == undefined; Pass == undefined ->
     lager:error("No credentials for HTTP authentication"),
     {[], State};
-handle_authenticate0(basic, _Value, _URI, _Body, State=#state{auth={Name, Pass}}) ->
+handle_authenticate0(basic, _, _, [Name, Pass], _, State) ->
     Cred = base64:encode(<<Name/binary, $:, Pass/binary>>),
     {[lorawan_http_digest:authorization_header(basic, Cred)], State};
-handle_authenticate0(digest, Value, URI, Body, State=#state{auth={Name, Pass}, nc=Nc0}) ->
+handle_authenticate0(digest, Value, URI, [Name, Pass], Body, State=#state{nc=Nc0}) ->
     Realm = proplists:get_value(<<"realm">>, Value, <<>>),
     Nonce = proplists:get_value(<<"nonce">>, Value, <<>>),
     Opaque = proplists:get_value(<<"opaque">>, Value, <<>>),

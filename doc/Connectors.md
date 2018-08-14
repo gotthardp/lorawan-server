@@ -45,7 +45,11 @@ indicated root cause and then remove the flag to reactivate the connector.
 On the Authentication tab:
  - **Client ID** is the MQTT parameter
  - **Auth** identifies the type of authentication:
-   - **Username+Password** for common servers
+   - **Username+Password** for a common server authentication
+   - **Header+Token** for a token-based authentication. **Name** shall be set to
+     the header name and **Password/Key** to the token, for example:
+     - Name: `X-API-Key`, Password/Key: `abcdef12345`
+     - Name: `Authorization`, Password/Key: `Bearer abcdef12345`
    - **Shared Access Signature** for Microsoft servers
  - **Name** and **Password/Key** for plain authentication
  - **User Certificate** and **Private Key** if SSL authentication is needed

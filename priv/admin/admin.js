@@ -934,6 +934,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('auth', 'choice')
             .choices([
                 { value: 'normal', label: 'Username+Password' },
+                { value: 'token', label: 'Header+Token' },
                 { value: 'sas', label: 'Shared Access Signature' }
             ]),
         nga.field('name'),
