@@ -173,6 +173,8 @@ check_health0(Rec, Module, Funs) ->
                         {Alerts, MinNext};
                     {Alert, Decay} ->
                         {[{Alert, Decay} | Alerts], MinNext};
+                    MoreAlerts when is_list(MoreAlerts) ->
+                        {MoreAlerts++Alerts, MinNext};
                     {Alert, Decay, Next} when MinNext == undefined; Next < MinNext ->
                         {[{Alert, Decay} | Alerts], Next};
                     {Alert, Decay, _Next} ->
