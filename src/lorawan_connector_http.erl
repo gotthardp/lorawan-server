@@ -84,7 +84,7 @@ handle_info({event, _Node, Vars0}, #state{conn=Conn}=State) ->
     end;
 
 handle_info({gun_up, C, http}, State=#state{pid=C}) ->
-    {noreply, #state{ready=true}=State};
+    {noreply, State#state{ready=true}};
 handle_info({gun_down, C, _Proto, _Reason, Killed, Unprocessed},
         State=#state{pid=C, streams=Streams}) ->
     {noreply, State#state{ready=false, streams=remove_list(remove_list(Streams, Killed), Unprocessed)}};
