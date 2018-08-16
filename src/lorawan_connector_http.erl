@@ -12,7 +12,7 @@
 
 -include("lorawan_db.hrl").
 
--record(state, {conn, pid, streams, publish_uplinks, publish_events, auth, nc}).
+-record(state, {conn, pid, ready, streams, publish_uplinks, publish_events, auth, nc}).
 
 start_connector(#connector{connid=Id, received=Received}=Connector) ->
     case lorawan_connector:pattern_for_cowboy(Received) of
@@ -36,9 +36,8 @@ start_link(Connector) ->
 init([#connector{connid=Id, app=App,
         publish_uplinks=PubUp, publish_events=PubEv, name=UserName, pass=Password}=Conn]) ->
     ok = pg2:join({backend, App}, self()),
-    self() ! connect,
     try
-        {ok, #state{conn=Conn, streams=#{},
+        {ok, #state{conn=Conn, pid=create_gun(Conn), ready=false, streams=#{},
             publish_uplinks=lorawan_connector:prepare_filling(PubUp),
             publish_events=lorawan_connector:prepare_filling(PubEv),
             auth=lorawan_connector:prepare_filling([UserName, Password]),
@@ -50,20 +49,26 @@ init([#connector{connid=Id, app=App,
             {stop, shutdown}
     end.
 
+create_gun(#connector{uri= <<"http:">>}) ->
+    undefined;
+create_gun(#connector{connid=ConnId, uri=Uri}) ->
+    lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
+    {ok, ConnPid} =
+        case http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{http, 80}, {https, 443}]}]) of
+            {ok, {http, _UserInfo, HostName, Port, _Path, _Query}} ->
+                gun:open(HostName, Port);
+            {ok, {https, _UserInfo, HostName, Port, _Path, _Query}} ->
+                gun:open(HostName, Port, #{transport=>ssl})
+        end,
+    MRef = monitor(process, ConnPid),
+    {ConnPid, MRef}.
+
 handle_call(_Request, _From, State) ->
     {reply, {error, unknownmsg}, State}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(connect, #state{conn=Connector}=State) ->
-    case connect(Connector) of
-        {ok, ConnPid} ->
-            {noreply, State#state{pid=ConnPid}};
-        {error, _} ->
-            % will try to reconnect upon uplink
-            {noreply, State#state{pid=undefined}}
-    end;
 handle_info(nodes_changed, State) ->
     % nothing to do here
     {noreply, State};
@@ -71,37 +76,34 @@ handle_info(nodes_changed, State) ->
 handle_info({uplink, _Node, _Vars0}, #state{publish_uplinks=PatPub}=State)
         when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
-handle_info({uplink, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
-    case connect(Connector) of
-        {ok, ConnPid} ->
-            {noreply, handle_uplink(Vars0, State#state{pid=ConnPid})};
-        {error, _} ->
-            % will try to reconnect upon next uplink
-            {noreply, State#state{pid=undefined}}
+handle_info({uplink, _Node, Vars0}, #state{conn=Conn}=State) ->
+    case ensure_connected(State) of
+        {ok, State2} ->
+            {noreply, handle_uplink(Vars0, State2)};
+        {error, State2} ->
+            lager:warning("Connector ~p not connected, uplink lost", [Conn#connector.connid]),
+            {noreply, State2}
     end;
-handle_info({uplink, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
-    {noreply, handle_uplink(Vars0, State)};
 
 handle_info({event, _Node, _Vars0}, #state{publish_events=PatPub}=State)
         when PatPub == undefined; PatPub == ?EMPTY_PATTERN ->
     {noreply, State};
-handle_info({event, _Node, Vars0}, #state{conn=Connector, pid=undefined}=State) ->
-    case connect(Connector) of
-        {ok, ConnPid} ->
-            {noreply, handle_event(Vars0, State#state{pid=ConnPid})};
-        {error, _} ->
-            {noreply, State#state{pid=undefined}}
+handle_info({event, _Node, Vars0}, #state{conn=Conn}=State) ->
+    case ensure_connected(State) of
+        {ok, State2} ->
+            {noreply, handle_event(Vars0, State2)};
+        {error, State2} ->
+            lager:warning("Connector ~p not connected, event lost", [Conn#connector.connid]),
+            {noreply, State2}
     end;
-handle_info({event, _Node, Vars0}, #state{pid=ConnPid}=State) when is_pid(ConnPid) ->
-    {noreply, handle_event(Vars0, State)};
 
-handle_info({gun_up, C, http}, State=#state{pid=C}) ->
-    {noreply, State};
+handle_info({gun_up, C, http}, State=#state{pid={C,_}}) ->
+    {noreply, #state{ready=true}=State};
 handle_info({gun_down, C, _Proto, _Reason, Killed, Unprocessed},
-        State=#state{pid=C, streams=Streams}) ->
-    {noreply, State#state{streams=remove_list(remove_list(Streams, Killed), Unprocessed)}};
+        State=#state{pid={C,_}, streams=Streams}) ->
+    {noreply, State#state{ready=false, streams=remove_list(remove_list(Streams, Killed), Unprocessed)}};
 handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
-        State=#state{pid=C, streams=Streams}) ->
+        State=#state{pid={C,_}, streams=Streams}) ->
     State3 =
         case proplists:get_value(<<"www-authenticate">>, Headers) of
             undefined ->
@@ -120,7 +122,7 @@ handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
         end,
     {noreply, fin_stream(StreamRef, Fin, State3)};
 handle_info({gun_response, C, StreamRef, Fin, Status, _Headers},
-        State=#state{pid=C, streams=Streams}) ->
+        State=#state{pid={C,_}, streams=Streams}) ->
     if
         Status < 300 ->
             ok;
@@ -130,52 +132,43 @@ handle_info({gun_response, C, StreamRef, Fin, Status, _Headers},
             ok
     end,
     {noreply, fin_stream(StreamRef, Fin, State)};
-handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{pid=C}) ->
+handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{pid={C,_}}) ->
     {noreply, fin_stream(StreamRef, Fin, State)};
 
-handle_info({'DOWN', _MRef, process, C, Reason}, #state{conn=#connector{connid=ConnId}, pid=C}=State) ->
-    lager:warning("Connector ~s disconnected: ~p", [ConnId, Reason]),
-    % will try to reconnect when new uplink arrives
-    {noreply, State#state{pid=undefined}};
+handle_info({'DOWN', _MRef, process, C, Reason}, #state{conn=#connector{connid=ConnId}, pid={C,_}}=State) ->
+    lager:warning("Connector ~s failed: ~p", [ConnId, Reason]),
+    {stop, Reason, State#state{pid=undefined}};
 handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
 
-terminate(normal, #state{conn=#connector{connid=ConnId}, pid=C}) ->
+terminate(normal, #state{conn=#connector{connid=ConnId}, pid=Pid}) ->
     lager:debug("Connector ~s terminated: normal", [ConnId]),
-    disconnect(C);
-terminate(Reason, #state{conn=#connector{connid=ConnId}, pid=C}) ->
+    disconnect(Pid);
+terminate(Reason, #state{conn=#connector{connid=ConnId}, pid=Pid}) ->
     lager:warning("Connector ~s terminated: ~p", [ConnId, Reason]),
-    disconnect(C).
+    disconnect(Pid).
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-connect(#connector{uri= <<"http:">>}) ->
-    {ok, undefined};
-connect(#connector{connid=ConnId, uri=Uri}) ->
-    lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
-    {ok, ConnPid} =
-        case http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{http, 80}, {https, 443}]}]) of
-            {ok, {http, _UserInfo, HostName, Port, _Path, _Query}} ->
-                gun:open(HostName, Port);
-            {ok, {https, _UserInfo, HostName, Port, _Path, _Query}} ->
-                gun:open(HostName, Port, #{transport=>ssl})
-        end,
-    MRef = monitor(process, ConnPid),
-    case gun:await_up(ConnPid, 5000, MRef) of
-        {ok, Protocol} ->
-            lager:debug("~s connected to ~s (~p)", [ConnId, Uri, Protocol]),
-            {ok, ConnPid};
+ensure_connected(#state{ready=true}=State) ->
+    {ok, State};
+ensure_connected(#state{conn=Conn, pid={ConnPid, MRef}, ready=false}=State) ->
+    case gun:await_up(ConnPid, MRef) of
+        {ok, _Protocol} ->
+            {ok, State#state{ready=true}};
         {error, Reason} ->
-            demonitor(MRef),
-            lager:error("~s failed to connect to ~p ~p", [ConnId, Uri, Reason]),
-            {error, Reason}
-    end.
+            lager:debug("~s failed to connect: ~p", [Conn#connector.connid, Reason]),
+            {error, State}
+    end;
+ensure_connected(#state{pid=undefined}=State) ->
+    {error, State}.
 
 disconnect(undefined) ->
     ok;
-disconnect(ConnPid) ->
+disconnect({ConnPid, MRef}) ->
+    demonitor(MRef),
     gun:close(ConnPid).
 
 handle_uplink(Vars0, State) when is_list(Vars0) ->
@@ -200,7 +193,7 @@ send_publish(Vars, Publish, ContentType, Body, #state{conn=Conn, auth=AuthP}=Sta
             do_publish({URI, [User, Pass], ContentType, Body}, [], State)
     end.
 
-do_publish({URI, _Auth, ContentType, Body}=Msg, Headers, State=#state{pid=C, streams=Streams}) ->
+do_publish({URI, _Auth, ContentType, Body}=Msg, Headers, State=#state{pid={C,_}, streams=Streams}) ->
     StreamRef = gun:post(C, URI,
         [{<<"content-type">>, ContentType} | Headers], Body),
     State#state{streams=maps:put(StreamRef, Msg, Streams)}.
