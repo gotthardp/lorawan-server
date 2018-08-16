@@ -135,9 +135,10 @@ handle_info({gun_response, C, StreamRef, Fin, Status, _Headers},
 handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{pid={C,_}}) ->
     {noreply, fin_stream(StreamRef, Fin, State)};
 
-handle_info({'DOWN', _MRef, process, C, Reason}, #state{conn=#connector{connid=ConnId}, pid={C,_}}=State) ->
-    lager:warning("Connector ~s failed: ~p", [ConnId, Reason]),
-    {stop, Reason, State#state{pid=undefined}};
+handle_info({'DOWN', _MRef, process, C, Reason}, #state{conn=Conn, pid={C,_}}=State) ->
+    lager:warning("Connector ~s failed: ~p", [Conn#connector.connid, Reason]),
+    % restart the gun process
+    {noreply, State#state{pid=create_gun(Conn), ready=false, streams=#{}}};
 handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
