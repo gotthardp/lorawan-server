@@ -5,7 +5,7 @@
 %
 -module(lorawan_admin).
 
--export([handle_authorization/2]).
+-export([handle_authorization/2, handle_authorization_ex/2, fields_empty/1, auth_field/2]).
 -export([write/1, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
 -export([timestamp_to_json_date/1]).
@@ -13,7 +13,7 @@
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
 
-handle_authorization(Req, {ReadScopes, WriteScopes}) ->
+handle_authentication(Req) ->
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {digest, Params} ->
             Method = cowboy_req:method(Req),
@@ -26,12 +26,7 @@ handle_authorization(Req, {ReadScopes, WriteScopes}) ->
                 [#user{pass_ha1=HA1, scopes=AuthScopes}] ->
                     case lorawan_http_digest:response(Method, URI, <<>>, HA1, Nonce) of
                         Response ->
-                            case lists:member(cowboy_req:method(Req), [<<"OPTIONS">>, <<"GET">>]) of
-                                true ->
-                                    {true, authorized_fields(AuthScopes, ReadScopes++WriteScopes)};
-                                false ->
-                                    {true, authorized_fields(AuthScopes, WriteScopes)}
-                            end;
+                            {true, AuthScopes};
                         _Else ->
                             {false, digest_header()}
                     end;
@@ -40,9 +35,44 @@ handle_authorization(Req, {ReadScopes, WriteScopes}) ->
             end;
         _Else ->
             {false, digest_header()}
+    end.
+
+handle_authorization(Req, {Read, Write}) ->
+    case handle_authentication(Req) of
+        {true, AuthScopes} ->
+            case lists:member(cowboy_req:method(Req), [<<"OPTIONS">>, <<"GET">>]) of
+                true ->
+                    {true, authorized_fields(AuthScopes, Read++Write)};
+                false ->
+                    {true, authorized_fields(AuthScopes, Write)}
+            end;
+        {false, Header} ->
+            {false, Header}
     end;
-handle_authorization(Req, ReadScopes) ->
-    handle_authorization(Req, {ReadScopes, []}).
+handle_authorization(Req, Read) ->
+    handle_authorization(Req, {Read, []}).
+
+handle_authorization_ex(Req, {Read, Write}) ->
+    case handle_authentication(Req) of
+        {true, AuthScopes} ->
+            {true, authorized_fields(AuthScopes, Read++Write), authorized_fields(AuthScopes, Write)};
+        {false, Header} ->
+            {false, Header}
+    end;
+handle_authorization_ex(Req, Read) ->
+    handle_authorization_ex(Req, {Read, []}).
+
+fields_empty('*') ->
+    false;
+fields_empty(List) when length(List) > 0 ->
+    false;
+fields_empty([]) ->
+    true.
+
+auth_field(_, '*') ->
+    true;
+auth_field(Field, AuthFields) ->
+    lists:member(Field, AuthFields).
 
 digest_header() ->
     Nonce = lorawan_http_digest:nonce(16),

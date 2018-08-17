@@ -42,10 +42,8 @@ is_authorized(Req, #state{scopes=Scopes}=State) ->
             {Else, Req, State}
     end.
 
-forbidden(Req, #state{auth_fields='*'}=State) ->
-    {false, Req, State};
 forbidden(Req, #state{field=Field, auth_fields=AuthFields}=State) ->
-    {not lists:member(Field, AuthFields), Req, State}.
+    {not lorawan_admin:auth_field(Field, AuthFields), Req, State}.
 
 content_types_provided(Req, State) ->
     {[

@@ -264,9 +264,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .editable(false),
         nga.field('ip_address.ip').label('IP Address')
             .editable(false),
-        nga.field('last_alive', 'datetime'),
-        nga.field('last_gps', 'datetime').label('Last GPS'),
-        nga.field('last_report', 'datetime'),
+        nga.field('last_alive', 'datetime')
+            .editable(false),
+        nga.field('last_gps', 'datetime').label('Last GPS')
+            .editable(false),
+        nga.field('last_report', 'datetime')
+            .editable(false),
         nga.field('mac', 'template').label('Network Delay')
             .template('<pgraph value="value"></pgraph>'),
         nga.field('mac', 'template').label('Transmissions')

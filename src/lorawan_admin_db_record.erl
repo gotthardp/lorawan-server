@@ -36,23 +36,23 @@ allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"DELETE">>], Req, State}.
 
 is_authorized(Req, #state{scopes=Scopes}=State) ->
-    case lorawan_admin:handle_authorization(Req, Scopes) of
-        {true, AuthFields} ->
-            {true, Req, State#state{auth_fields=AuthFields}};
+    case lorawan_admin:handle_authorization_ex(Req, Scopes) of
+        {true, ReadFields, WriteFields} ->
+            {true, Req, State#state{auth_fields={ReadFields, WriteFields}}};
         Else ->
             {Else, Req, State}
     end.
 
-forbidden(Req, #state{auth_fields=[]}=State) ->
-    {true, Req, State};
-forbidden(Req, #state{fields=[Key | _], auth_fields=AuthFields}=State) ->
-    case cowboy_req:method(Req) of
-        <<"DELETE">> ->
+forbidden(Req, #state{fields=[Key | _], auth_fields={ReadFields, WriteFields}}=State) ->
+    Method = cowboy_req:method(Req),
+    if
+        Method == <<"OPTIONS">>; Method == <<"GET">> ->
+            {lorawan_admin:fields_empty(ReadFields), Req, State};
+        Method == <<"DELETE">> ->
             % key must be writable
-            {not auth_field(Key, AuthFields), Req, State};
-        _Else ->
-            % at least one field is allowed
-            {false, Req, State}
+            {not lorawan_admin:auth_field(Key, WriteFields), Req, State};
+        true ->
+            {lorawan_admin:fields_empty(WriteFields), Req, State}
     end.
 
 content_types_provided(Req, State) ->
@@ -61,11 +61,11 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 handle_get(Req, #state{key=undefined}=State) ->
-    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-store">>, Req),
     paginate(Req2, State,
         sort(Req2, read_records(Req2, State)));
 handle_get(Req, #state{table=Table, key=Key}=State) ->
-    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-store">>, Req),
     [Rec] = mnesia:dirty_read(Table, Key),
     {jsx:encode(build_record(Rec, State)), Req2, State}.
 
@@ -128,7 +128,7 @@ get_filters(Req) ->
             jsx:decode(Filter, [return_maps, {labels, atom}])
     end.
 
-build_record(Rec, #state{fields=Fields, module=Module, auth_fields=AuthFields}) ->
+build_record(Rec, #state{fields=Fields, module=Module, auth_fields={ReadFields, _}}) ->
     apply(Module, build, [
         maps:from_list(
             lists:filter(
@@ -137,7 +137,7 @@ build_record(Rec, #state{fields=Fields, module=Module, auth_fields=AuthFields}) 
                     ({_, undefined}) -> false;
                     % password hash is never sent out
                     ({pass_ha1, _}) -> false;
-                    ({Name, _}) -> auth_field(Name, AuthFields)
+                    ({Name, _}) -> lorawan_admin:auth_field(Name, ReadFields)
                 end,
                 lists:zip(Fields, tl(tuple_to_list(Rec)))))
         ]).
@@ -180,10 +180,10 @@ write_record(List, #state{table=Table, fields=Fields, module=Module}=State) ->
                 end)
     end.
 
-fields_to_write(List2, #state{table=Table, fields=Fields, auth_fields=AuthFields}) ->
+fields_to_write(List2, #state{table=Table, fields=Fields, auth_fields={_, WriteFields}}) ->
     Original =
         if
-            AuthFields == '*', Table /= user ->
+            WriteFields == '*', Table /= user ->
                 % no need to read the original record
                 undefined;
             true ->
@@ -194,7 +194,7 @@ fields_to_write(List2, #state{table=Table, fields=Fields, auth_fields=AuthFields
                         undefined
                 end
         end,
-    get_db_fields(Fields, AuthFields, List2, Original, []).
+    get_db_fields(Fields, WriteFields, List2, Original, []).
 
 get_db_fields([Field | Fields], AuthFields, List2, undefined, Acc) ->
     get_db_fields(Fields, AuthFields, List2, undefined,
@@ -206,7 +206,7 @@ get_db_fields([], _, _, _, Acc) ->
     lists:reverse(Acc).
 
 get_db_field(pass_ha1, AuthFields, List2, Orig) ->
-    case auth_field(pass_ha1, AuthFields) of
+    case lorawan_admin:auth_field(pass_ha1, AuthFields) of
         true ->
             % if password was not defined, use the previous value
             case maps:is_key(pass, List2) of
@@ -219,17 +219,12 @@ get_db_field(pass_ha1, AuthFields, List2, Orig) ->
             Orig
     end;
 get_db_field(Field, AuthFields, List2, Orig) ->
-    case auth_field(Field, AuthFields) of
+    case lorawan_admin:auth_field(Field, AuthFields) of
         true ->
             maps:get(Field, List2, undefined);
         false ->
             Orig
     end.
-
-auth_field(_, '*') ->
-    true;
-auth_field(Field, AuthFields) ->
-    lists:member(Field, AuthFields).
 
 resource_exists(Req, #state{key=undefined}=State) ->
     {true, Req, State};
@@ -241,12 +236,19 @@ resource_exists(Req, #state{table=Table, key=Key}=State) ->
 
 generate_etag(Req, #state{key=undefined}=State) ->
     {undefined, Req, State};
-generate_etag(Req, #state{table=Table, key=Key}=State) ->
+generate_etag(Req, #state{table=Table, fields=Fields, key=Key, auth_fields={_, WriteFields}}=State) ->
     case mnesia:dirty_read(Table, Key) of
         [] ->
             {undefined, Req, State};
         [Rec] ->
-            Hash = base64:encode(crypto:hash(sha256, term_to_binary(Rec))),
+            % don't consider fields we are not authorized to write
+            % this is to avoid conflict with server-written fields
+            FiltRec =
+                lists:filter(
+                    fun({Name, _}) -> lorawan_admin:auth_field(Name, WriteFields) end,
+                    lists:zip(Fields, tl(tuple_to_list(Rec)))),
+            % create the etag value
+            Hash = base64:encode(crypto:hash(sha256, term_to_binary(FiltRec))),
             {<<$", Hash/binary, $">>, Req, State}
     end.
 

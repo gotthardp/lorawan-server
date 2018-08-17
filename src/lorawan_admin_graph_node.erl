@@ -31,10 +31,8 @@ is_authorized(Req, #state{scopes=Scopes}=State) ->
             {Else, Req, State}
     end.
 
-forbidden(Req, #state{auth_fields=[]}=State) ->
-    {true, Req, State};
-forbidden(Req, State) ->
-    {false, Req, State}.
+forbidden(Req, #state{auth_fields=AuthFields}=State) ->
+    {lorawan_admin:fields_empty(AuthFields), Req, State}.
 
 content_types_provided(Req, State) ->
     {[
@@ -44,7 +42,7 @@ content_types_provided(Req, State) ->
 get_rxframe(Req, State) ->
     DevAddr = cowboy_req:binding(devaddr, Req),
     [Node] = mnesia:dirty_read(node, lorawan_utils:hex_to_binary(DevAddr)),
-    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-cache">>, Req),
+    Req2 = cowboy_req:set_resp_header(<<"cache-control">>, <<"no-store">>, Req),
     {jsx:encode([{devaddr, DevAddr}, {array, get_array(Node)}]), Req2, State}.
 
 get_array(#node{last_reset=Reset, devstat=DevStat}) when is_list(DevStat) ->

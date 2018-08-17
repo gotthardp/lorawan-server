@@ -30,10 +30,8 @@ is_authorized(Req, #state{scopes=Scopes}=State) ->
             {Else, Req, State}
     end.
 
-forbidden(Req, #state{auth_fields=[]}=State) ->
-    {true, Req, State};
-forbidden(Req, State) ->
-    {false, Req, State}.
+forbidden(Req, #state{auth_fields=AuthFields}=State) ->
+    {lorawan_admin:fields_empty(AuthFields), Req, State}.
 
 content_types_provided(Req, State) ->
     {[

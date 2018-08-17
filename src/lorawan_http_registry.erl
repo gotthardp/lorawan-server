@@ -122,7 +122,9 @@ get_static(routes) ->
             {[{<<"network:read">>, '*'}], [{<<"network:write">>, '*'}]}}},
     {"/api/networks/[:name]", lorawan_admin_db_record,
         {network, record_info(fields, network),
-            {[{<<"network:read">>, '*'}], [{<<"network:write">>, '*'}]}}},
+            {[{<<"network:read">>, '*'}],
+            % the server-written fields shall be read-only
+            [{<<"network:write">>, [mac, area, tx_rfch, ant_gain, desc, gpspos, gpsalt]}]}}},
     {"/api/groups/[:name]", lorawan_admin_db_record,
         {group, record_info(fields, group),
             {[{<<"device:read">>, '*'}], [{<<"device:write">>, '*'}]}}},
