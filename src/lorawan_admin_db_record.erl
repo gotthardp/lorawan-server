@@ -246,7 +246,7 @@ generate_etag(Req, #state{table=Table, fields=Fields, key=Key, auth_fields={_, W
             FiltRec =
                 lists:filter(
                     fun
-                        ({Private, _}) when Private == heath_alerts; Private == health_decay;
+                        ({Private, _}) when Private == health_alerts; Private == health_decay;
                             Private == health_reported; Private == health_next -> false;
                         ({Name, _}) -> lorawan_admin:auth_field(Name, WriteFields)
                     end,
