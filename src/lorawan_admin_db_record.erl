@@ -245,7 +245,11 @@ generate_etag(Req, #state{table=Table, fields=Fields, key=Key, auth_fields={_, W
             % this is to avoid conflict with server-written fields
             FiltRec =
                 lists:filter(
-                    fun({Name, _}) -> lorawan_admin:auth_field(Name, WriteFields) end,
+                    fun
+                        ({Private, _}) when Private == heath_alerts; Private == health_decay;
+                            Private == health_reported; Private == health_next -> false;
+                        ({Name, _}) -> lorawan_admin:auth_field(Name, WriteFields)
+                    end,
                     lists:zip(Fields, tl(tuple_to_list(Rec)))),
             % create the etag value
             Hash = base64:encode(crypto:hash(sha256, term_to_binary(FiltRec))),
