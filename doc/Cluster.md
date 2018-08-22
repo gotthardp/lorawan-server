@@ -19,7 +19,8 @@ Monitoring servers by the load balancer depends on its abilities and can be
 anything from simple ICMP ping test to the HTTP REST querying of the server state,
 see the [Administration Guide](Administration.md) for the details.
 
-[TBD: insert picture here].
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/cluster-setup.png)
+
 
 ## Configuration
 
