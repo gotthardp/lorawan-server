@@ -20,9 +20,9 @@
 
 -record(state, {table, key, field, fidx, module, scopes, auth_fields}).
 
-init(Req, [Table, Fields, Scopes]) ->
+init(Req, {Table, Fields, Scopes}) ->
     init0(Req, Table, Fields, lorawan_admin, Scopes);
-init(Req, [Table, Fields, Module, Scopes]) ->
+init(Req, {Table, Fields, Module, Scopes}) ->
     init0(Req, Table, Fields, Module, Scopes).
 
 init0(Req, Table, Fields, Module, Scopes) ->
