@@ -246,7 +246,7 @@ deb-src http://deb.nodesource.com/node_6.x stretch main
 
 Then, obtain the build prerequisites:
 ```bash
-sudo apt-get install git erlang-dev erlang-src erlang-eunit nodejs
+sudo apt-get install git erlang-dev erlang-parsetools erlang-src erlang-eunit nodejs
 ```
 
 Get the latest lorawan-server sources by:

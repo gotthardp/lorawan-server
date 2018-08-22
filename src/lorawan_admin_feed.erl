@@ -10,8 +10,6 @@
 -export([notify/1]).
 
 -include("lorawan.hrl").
--include_lib("lorawan_server/include/lorawan.hrl").
-
 -record(state, {table, fields, module, match, auth_fields}).
 
 init(Req, {Table, Fields, AuthFields}) ->
