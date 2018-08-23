@@ -35,7 +35,7 @@ get_filters(Req) ->
 websocket_init(#state{table=Table} = State) ->
     lager:debug("Feed ~p connected", [Table]),
     ok = pg2:join({feed, Table}, self()),
-    {ok, State}.
+    {reply, {text, encoded_records(State)}, State}.
 
 websocket_handle({ping, _}, State) ->
     % no action needed as server handles pings automatically
@@ -44,14 +44,10 @@ websocket_handle(Data, State) ->
     lager:warning("Unknown handle ~w", [Data]),
     {ok, State}.
 
-websocket_info({update, Scope}, #state{table=Table, match=Match}=State) ->
+websocket_info({update, Scope}, #state{match=Match}=State) ->
     case lists_match(tuple_to_list(Scope), tuple_to_list(Match)) of
         true ->
-            Records =
-                lists:map(
-                    fun(Rec)-> build_record(Rec, State) end,
-                    mnesia:dirty_select(Table, [{Match, [], ['$_']}])),
-            {reply, {text, jsx:encode(Records)}, State};
+            {reply, {text, encoded_records(State)}, State};
         false ->
             {ok, State}
     end;
@@ -81,6 +77,14 @@ notify(Scope) ->
                 fun(Pid) -> Pid ! {update, Scope} end,
                 List)
     end.
+
+encoded_records(State) ->
+    jsx:encode(matched_records(State)).
+
+matched_records(#state{table=Table, match=Match}=State) ->
+    lists:map(
+        fun(Rec)-> build_record(Rec, State) end,
+        mnesia:dirty_select(Table, [{Match, [], ['$_']}])).
 
 build_record(Rec, #state{fields=Fields, module=Module, auth_fields=AuthFields}) ->
     apply(Module, build, [
