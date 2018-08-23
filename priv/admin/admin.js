@@ -107,6 +107,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 15, label: '1/32768 (0.003%)' }
     ];
 
+    qos_choices = [
+        { value: 0, label: 'At most once' },
+        { value: 1, label: 'At least once' },
+        { value: 2, label: 'Exactly once' }
+    ];
+
     // ---- config
     config.editionView().fields([
         // General
@@ -920,8 +926,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('uri').label('URI')
             .attributes({ placeholder: 'e.g. mqtt://server:8883' })
             .validation({ required: true, pattern: '^(http:|((amqp|mqtt|http)s?:\/\/[^\/?#]+[^?#]*)|ws:|mongodb:\/\/[^\/?#]+)' }),
+        nga.field('publish_qos', 'choice').label('Publish QoS')
+            .choices(qos_choices),
         nga.field('publish_uplinks'),
         nga.field('publish_events'),
+        nga.field('subscribe_qos', 'choice').label('Subscribe QoS')
+            .choices(qos_choices),
         nga.field('subscribe').label('Subscribe'),
         nga.field('received').label('Received Topic'),
         nga.field('enabled', 'boolean')
@@ -948,13 +958,13 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .uploadInformation({'url': '/api/upload'})
     ]);
     connectors.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"Authentication", min:10, max:16}
+        {name:"General", min:0, max:12},
+        {name:"Authentication", min:12, max:18}
     ]));
     connectors.editionView().fields(connectors.creationView().fields());
     connectors.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:10},
-        {name:"Authentication", min:10, max:16}
+        {name:"General", min:0, max:12},
+        {name:"Authentication", min:12, max:18}
     ]));
     // add to the admin application
     admin.addEntity(connectors);

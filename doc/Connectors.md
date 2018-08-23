@@ -20,11 +20,13 @@ To create a new connector you set:
    - `http://` for HTTP POST or `https://` for HTTP/SSL or simply `http:` for input only
    - `mqtt://` for MQTT or `mqtts://` for MQTT/SSL
    - `amqp://` for AMQP or `amqp://` for AMQP/SSL
+ - **Publish QoS** determines reliability of the publications.
  - **Publish Uplinks**, which is a server pattern for constructing the publication
    topic for uplink messages, e.g. `out/{devaddr}`. This can be used to include
    the actual DevEUI, DevAddr or other data field in the message topic.
  - **Publish Events**, which is a server pattern for constructing the publication
    topic for event messages.
+ - **Subscribe QoS** determines reliability of the subscriptions.
  - **Subscribe**, which is a topic to be subscribed. It may include broker specific
    wilcards, e.g. `in/#`. The MQTT broker will then send messages with a matching
    topic to this connector.
@@ -198,6 +200,7 @@ in your broker.
 
 Open the lorawan-server web-administration and create a Backend Connector:
  - **URI** defines the target host either as `mqtt://host:port` or `mqtts://host:port`
+ - **Publish QoS** and **Subscribe QoS** directly determine the QoS level.
  - **Publish Uplinks** is a pattern for constructing the message topic
    of uplinks, e.g. `out/{devaddr}`.
  - **Subscribe** is a downlink topic to be subscribed by the lorawan-server,
