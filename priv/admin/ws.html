@@ -47,7 +47,12 @@
 
     function connect()
     {
-        wsHost = "ws://" + window.location.host + $("#uri").val();
+        if(window.location.protocol == "http:")
+            wsProto = "ws://";
+        else if(window.location.protocol == "https:")
+            wsProto = "wss://";
+
+        wsHost = wsProto + window.location.host + $("#uri").val();
         websocket = new WebSocket(wsHost);
         showScreen('Connecting to: ' +  wsHost);
         websocket.binaryType = 'arraybuffer';
