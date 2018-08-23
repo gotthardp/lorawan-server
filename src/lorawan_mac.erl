@@ -67,6 +67,8 @@ ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
             case aes_cmac:aes_cmac(Node#node.nwkskey,
                     <<(b0(MType band 1, DevAddr, Node#node.fcntup, byte_size(Msg)))/binary, Msg/binary>>, 4) of
                 MIC ->
+                    ok = lorawan_admin:write(
+                            ensure_used_fields(Network, Node)),
                     case Port of
                         0 when byte_size(FOpts) == 0 ->
                             Data = cipher(FRMPayload, Node#node.nwkskey, MType band 1, DevAddr, Node#node.fcntup),
@@ -157,8 +159,6 @@ accept_node_frame(DevAddr, FCnt) ->
                 {ok, {Network, Profile, Node}} ->
                     case check_fcnt({Network, Profile, Node}, FCnt) of
                         {ok, Fresh, Node2} ->
-                            ok = lorawan_admin:write(
-                                    ensure_used_fields(Network, Node2)),
                             {ok, Fresh, {Network, Profile, Node2}};
                         Error ->
                             Error
