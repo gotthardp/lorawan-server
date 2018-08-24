@@ -37,6 +37,12 @@ release: $(REBAR3)
 dist: $(REBAR3)
 	@$(REBAR3) tar
 
+BUILD_DIR = _build/default/rel/lorawan-server
+
+install:
+	install -d $(DESTDIR)/usr/lib/lorawan-server
+	cp -r $(BUILD_DIR)/bin $(BUILD_DIR)/lib $(BUILD_DIR)/releases $(DESTDIR)/usr/lib/lorawan-server
+
 dpkg:
 	./scripts/dpkg-deb/build-deb
 
