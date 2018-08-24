@@ -1471,6 +1471,8 @@ function dirIndicator(values) {
     switch (values.dir) {
         case "up":
             return '<span class="fa fa-arrow-up fa-fw" title="up"></span>';
+        case "re-up":
+            return '<span style="color:red" class="fa fa-arrow-up fa-fw" title="re-up"></span>';
         case "down":
             return '<span class="fa fa-arrow-down fa-fw" title="down"></span>';
         case "bcast":
