@@ -193,7 +193,7 @@ handle_info({uplink, Node, Vars0},
         #state{conn=#connector{format=Format, publish_qos=QoS}, publish_uplinks=PatPub}=State) ->
     case connection_for_node(Node, State) of
         {ok, C} ->
-            publish_uplink(C, PatPub, Format, QoS, Vars0);
+            publish_uplinks(C, PatPub, Format, QoS, Vars0);
         {error, Error} ->
             lager:debug("Connector not available: ~p", [Error])
     end,
@@ -292,11 +292,14 @@ connection_for_node(Node, #state{connect=PatConn, hier=Hier}) ->
             {error, disconnected}
     end.
 
-publish_uplink(C, PatPub, Format, QoS, Vars0) when is_list(Vars0) ->
+publish_uplinks(C, PatPub, Format, QoS, Vars0) when is_list(Vars0) ->
     lists:foreach(
         fun(V0) -> publish_uplink(C, PatPub, Format, QoS, V0) end,
         Vars0);
-publish_uplink(C, PatPub, Format, QoS, Vars0) when is_map(Vars0) ->
+publish_uplinks(C, PatPub, Format, QoS, Vars0) when is_map(Vars0) ->
+    publish_uplink(C, PatPub, Format, QoS, Vars0).
+
+publish_uplink(C, PatPub, Format, QoS, Vars0) ->
     emqttc:publish(C,
         lorawan_connector:fill_pattern(PatPub, lorawan_admin:build(Vars0)),
         encode_uplink(Format, Vars0),
