@@ -392,6 +392,10 @@ merge_adr(_Else, ABC) ->
 set_dcycle(#profile{dcycle_set=Used}, #node{dcycle_use=Used}, FOptsOut) ->
     % no change requested
     FOptsOut;
+set_dcycle(#profile{dcycle_set=0}, #node{dcycle_use=undefined}, FOptsOut) ->
+    FOptsOut;
+set_dcycle(#profile{dcycle_set=undefined}, _Node, FOptsOut) ->
+    FOptsOut;
 set_dcycle(#profile{dcycle_set=Set}, _Node, FOptsOut) ->
     lager:debug("DutyCycleReq ~w", [Set]),
     [{duty_cycle_req, Set} | FOptsOut].
