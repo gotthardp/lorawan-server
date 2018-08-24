@@ -270,15 +270,29 @@ fun(Fields, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16
   [
     Fields#{led => LED},
     Fields#{pressure => Press},
-    Fields#{temp => Temp/100},
-    Fields#{alt_bar => AltBar},
-    Fields#{batt => Batt}
+    Fields#{temp => Temp/100}
   ]
 end.
 ```
 
-This will generate 5 messages, each including the selected **Uplink Fields**
+This will generate 3 messages, each including the selected **Uplink Fields**
 plus one data field.
+
+To send one message with a list of expressions, send a list-in-list, for example:
+
+```erlang
+fun(Fields, <<LED, Press:16, Temp:16, AltBar:16, Batt, Lat:24, Lon:24, AltGps:16>>) ->
+  [
+    [
+      Fields#{led => LED},
+      Fields#{pressure => Press},
+      Fields#{temp => Temp/100}
+    ]
+  ]
+end.
+```
+
+This will generate one message containing a list of 3 items.
 
 The `<<A, B, C>>` used to match the frame payload is a binary pattern, where A,
 B, C are "variables" corresponding to the values encoded in the binary. Erlang

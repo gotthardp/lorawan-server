@@ -130,7 +130,11 @@ build(Object) when is_map(Object) ->
             fun
                 (_Key, undefined) -> false;
                 (_, _) -> true
-            end, Object)).
+            end, Object));
+build(Object) when is_list(Object) ->
+    lists:map(
+        fun (Value) -> build(Value) end,
+        Object).
 
 parse_eid(Value, _) when Value == null; Value == undefined ->
     undefined;
