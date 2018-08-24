@@ -207,6 +207,7 @@
     devaddr :: devaddr(),
     confirmed :: boolean(),
     phypayload :: binary(),
+    sent_count :: integer(),
     receipt :: any()}).
 
 -record(rxframe, {

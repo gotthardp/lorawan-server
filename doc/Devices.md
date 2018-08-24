@@ -54,9 +54,10 @@ rate and channels (frequencies). Depending on the *ADR Mode* this can either be
 manually defined by the administrator or automatically determined by the server.
 
 Note this functionality must be also enabled in the device, which is indicated
-by the *Use ADR* flag.
+by the *Use ADR* flag of Activated Nodes.
 
-For each device Profile you can define "desired" ADR parameters:
+For each device Profile you can define "desired" ADR parameters, i.e. how the
+devices shall behave:
  - **ADR Mode** determines the ADR mechanism for this device: Disabled, Auto-Adjust,
    or Maintain (see below);
  - **Set Power** defines the power (in dBm);
@@ -92,7 +93,7 @@ sub-bands. Don't forget that the list shall include also a downlink channel.
 In all ADR modes the server will:
 
  * Assume that after reset or join the device uses the ADR settings defined by
-   the initial Network ADR parameters.
+   the initial [Network](Infrastructure.md) ADR parameters.
  * Request the ADR change whenever the Node "Set" ADR parameters differ from
    the Node "Used" ADR parameters.
    * Upon success, the Node "Set" parameters will be cleared;

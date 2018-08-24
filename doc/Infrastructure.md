@@ -81,7 +81,8 @@ but it requires custom device firmware.
 
 ### ADR
 
-On the ADR tab you can set the initial parameters of your devices:
+On the ADR tab you can set the default parameters of your devices, i.e. how do
+the devices initially behave, without receiving any ADR command:
  - **Max EIRP** (dBm) used in your region. For each region it is defined in the
    "Data Rate and End-device Output Power encoding" section.
  - **Max Power** defines the first item in the "TX Power Table"
@@ -100,6 +101,9 @@ The **Max Data Rate** is not always he last item (lowest SF) in the
 "TX Data rate table". Not all channels (frequencies) are allowed to use all data
 rates, for example in EU868 the default channels use SF12/125 to SF7/125 only.
 The SF7/250 is allowed for the 867.3 MHz channel only and FSK for 867.7 MHz only.
+
+The device-specific ADR parameters can be set in the [Device Profile](Devices.md)
+ADR settings.
 
 ### Channels
 
