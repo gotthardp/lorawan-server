@@ -151,7 +151,8 @@ ensure_gun(#state{conn=#connector{connid=ConnId, uri=Uri}, pid=undefined}=State)
             {ok, {http, _UserInfo, HostName, Port, _Path, _Query}} ->
                 gun:open(HostName, Port);
             {ok, {https, _UserInfo, HostName, Port, _Path, _Query}} ->
-                gun:open(HostName, Port, #{transport=>ssl})
+                Opts = application:get_env(lorawan_server, ssl_options, []),
+                gun:open(HostName, Port, #{transport=>ssl, transport_opts=>Opts})
         end,
     MRef = monitor(process, ConnPid),
     State#state{pid=ConnPid, mref=MRef, ready=false, streams=#{}}.

@@ -26,6 +26,8 @@
         {http_admin_redirect_ssl, true},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},
         {http_content_security, <<"default-src * data: 'unsafe-inline' 'unsafe-eval';">>},
+        % use to limit SSL versions and ciphers, see http://erlang.org/doc/man/ssl.html
+        {ssl_options, []},
         {frames_before_adr, 50},
         {retained_rxframes, 50},
         {websocket_timeout, 3600000}, % ms

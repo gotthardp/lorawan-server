@@ -320,7 +320,8 @@ send_slack_raw(undefined, _Channel, _Message) ->
     {error, token_undefined};
 send_slack_raw(Token, Channel, Message) ->
     {ok, {Host, Port}} = application:get_env(lorawan_server, slack_server),
-    {ok, ConnPid} = gun:open(Host, Port, #{transport=>ssl}),
+    Opts = application:get_env(lorawan_server, ssl_options, []),
+    {ok, ConnPid} = gun:open(Host, Port, #{transport=>ssl, transport_opts=>Opts}),
     {ok, _} = gun:await_up(ConnPid),
     Payload = #{
         channel => Channel,
