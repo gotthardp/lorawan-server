@@ -187,6 +187,18 @@ firewall-cmd --permanent --add-service=lorawan-forwarder
 firewall-cmd --reload
 ```
 
+The [lager](https://github.com/erlang-lager/lager#internal-log-rotation) system
+is used to create and rotate logs. By default two logs will be created: debug and
+error. Lager will rotate each log file at midnight or when it reaches 10MB,
+whichever comes first, and keep 5 rotated logs in addition to the current one.
+
+To reduce the amount of storage utilized by the logs and have only 3 files <5MB
+modify the lager handlers configuration in your sys.config:
+```erlang
+{lager_file_backend, [{file, "debug.log"}, {level, debug}, {size, 5242880}, {count, 3}]}
+```
+
+
 ## Configuration of the packet_forwarder
 
 Edit the [`global_conf.json`](https://github.com/Lora-net/packet_forwarder/blob/master/lora_pkt_fwd/global_conf.json)
