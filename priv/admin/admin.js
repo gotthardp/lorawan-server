@@ -836,7 +836,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     // ---- rxframes
     rxframes.listView().title('Frames')
-        .batchActions([]);
+        .actions(['filter', 'export', '<purgebtn entity="entity"></purgebtn>']);
     rxframes.listView().fields([
         nga.field('dir')
             .template(function(entry){ return dirIndicator(entry.values) }),
@@ -1066,6 +1066,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     .perPage(ItemsPerPage)
     .infinitePagination(InfinitePagination)
     .sortField('last_rx')
+    .actions(['filter', 'batch', 'export', '<purgebtn entity="entity"></purgebtn>'])
     .listActions('<eventbtn entry="entry"></eventbtn>');
     events.listView().filters([
         nga.field('severity', 'choice')
@@ -1496,6 +1497,56 @@ function($delegate, $translate, notification) {
     }
     return $delegate;
 }]);
+
+myApp.config(function ($stateProvider) {
+    $stateProvider.state('purge', {
+        parent: 'ng-admin',
+        url: '/:entity/purge',
+        params: { entity: null },
+        controller: purgeController,
+        controllerAs: 'controller',
+        template: purgeControllerTemplate
+    });
+});
+
+function purgeController($scope, $http, $state, $stateParams) {
+    this.name = $stateParams.entity;
+
+    $scope.clearItems = function() {
+            $http({method: 'DELETE', url: '/api/' + $stateParams.entity});
+            $state.go('list', $stateParams);
+        }
+    $scope.goBack = function() {
+            $state.go('list', $stateParams);
+        }
+};
+purgeController.inject = ['$scope', '$http', '$state', '$stateParams'];
+
+var purgeControllerTemplate =
+    '<div class="row list-header">' +
+        '<div class="col-lg-12">' +
+            '<div class="page-header">' +
+                '<ma-view-actions><ma-back-button></ma-back-button></ma-view-actions>' +
+                '<h1>Purge all {{ controller.name }}</h1>' +
+            '</div>' +
+        '</div>' +
+    '</div>' +
+    '<div class="row">' +
+        '<div class="col-lg-12">' +
+            '<p translate="ARE_YOU_SURE"></p>' +
+            '<button class="btn btn-danger" ng-click="clearItems()" translate="YES"></button>&nbsp;' +
+            '<button class="btn btn-default" ng-click="goBack()" translate="NO"></button>' +
+        '</div>' +
+    '</div>';
+
+myApp.directive('purgebtn', ['$http', function($http) {
+return {
+    restrict: 'E',
+    scope: {
+        entity: '='
+    },
+    template: '<a class="btn btn-default" href="#/{{entity.name()}}/purge"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span>&nbsp;<span class="hidden-xs" translate="Purge"></span></a>'
+};}]);
 
 myApp.directive('eventbtn', ['$http', function($http) {
 return {

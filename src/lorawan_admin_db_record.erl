@@ -31,7 +31,7 @@ init0(Req, Table, Fields, Module, Scopes) ->
         #state{table=Table, fields=Fields, key=Key, module=Module, scopes=Scopes}}.
 
 allowed_methods(Req, #state{key=undefined}=State) ->
-    {[<<"OPTIONS">>, <<"GET">>, <<"POST">>], Req, State};
+    {[<<"OPTIONS">>, <<"GET">>, <<"POST">>, <<"DELETE">>], Req, State};
 allowed_methods(Req, State) ->
     {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"DELETE">>], Req, State}.
 
@@ -256,6 +256,9 @@ generate_etag(Req, #state{table=Table, fields=Fields, key=Key, auth_fields={_, W
             {<<$", Hash/binary, $">>, Req, State}
     end.
 
+delete_resource(Req, #state{table=Table, key=undefined}=State) ->
+    {atomic, ok} = mnesia:clear_table(Table),
+    {true, Req, State};
 delete_resource(Req, #state{table=Table, key=Key}=State) ->
     ok = mnesia:dirty_delete(Table, Key),
     {true, Req, State}.
