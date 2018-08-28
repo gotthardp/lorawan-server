@@ -58,16 +58,32 @@ fill_pattern(undefined, _) ->
 fill_pattern({Pattern, []}, _) ->
     Pattern;
 fill_pattern({Pattern, Vars}, Values) ->
-    maps:fold(
-        fun(Var, Val, Patt) ->
-            case proplists:get_value(Var, Vars, undefined) of
-                {Start, Len} ->
-                    <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
-                    <<Prefix/binary, Val/binary, Suffix/binary>>;
+    lists:foldl(
+        fun({Var, {Start, Len}}, Patt) ->
+            case get_value(Var, Values) of
                 undefined ->
-                    Patt
+                    Patt;
+                Val ->
+                    <<Prefix:Start/binary, _:Len/binary, Suffix/binary>> = Patt,
+                    <<Prefix/binary, Val/binary, Suffix/binary>>
             end
-        end, Pattern, Values).
+        end, Pattern, Vars).
+
+get_value(Var, Values) when is_map(Values) ->
+    case maps:is_key(Var, Values) of
+        true ->
+            maps:get(Var, Values);
+        false ->
+            % try searching recursively
+            get_value(Var, maps:values(Values))
+    end;
+get_value(Var, [First | Values]) ->
+    case get_value(Var, First) of
+        undefined -> get_value(Var, Values);
+        Val -> Val
+    end;
+get_value(_Var, _Else) ->
+    undefined.
 
 prepare_matching(undefined) ->
     undefined;

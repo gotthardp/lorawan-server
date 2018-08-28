@@ -43,7 +43,8 @@ handle_uplink({Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node}, _RxQ,
             {error, {unknown_application, AppID}}
     end.
 
-handle_uplink0(#handler{app=AppID, uplink_fields=Fields}=Handler, Network, Node, Frame) ->
+handle_uplink0(#handler{app=AppID, parse_uplink=Parse, uplink_fields=Fields}=Handler,
+        Network, Node, #frame{data=Data}=Frame) ->
     Vars = parse_uplink(Handler, Network, Node, Frame),
     case any_is_member([<<"freq">>, <<"datr">>, <<"codr">>, <<"best_gw">>,
             <<"mac">>, <<"lsnr">>, <<"rssi">>, <<"all_gw">>], Fields) of
@@ -51,7 +52,8 @@ handle_uplink0(#handler{app=AppID, uplink_fields=Fields}=Handler, Network, Node,
             % we have to wait for the rx quality indicators
             {ok, {Handler, Vars}};
         false ->
-            lorawan_backend_factory:uplink(AppID, Node, Vars),
+            lorawan_backend_factory:uplink(AppID, Node,
+                data_to_fields(AppID, Parse, Vars, Data)),
             {ok, undefined}
     end.
 
@@ -60,8 +62,11 @@ handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}},
     % we did already handle this uplink
     lorawan_application:send_stored_frames(DevAddr, Port);
 handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node},
-        Gateways, _WillReply, #frame{port=Port}, {#handler{uplink_fields=Fields}, Vars}) ->
-    lorawan_backend_factory:uplink(AppID, Node, parse_rxq(Gateways, Fields, Vars)),
+        Gateways, _WillReply, #frame{port=Port, data=Data},
+        {#handler{parse_uplink=Parse, uplink_fields=Fields}, Vars}) ->
+    Vars2 = parse_rxq(Gateways, Fields, Vars),
+    lorawan_backend_factory:uplink(AppID, Node,
+        data_to_fields(AppID, Parse, Vars2, Data)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 
 any_is_member(_List1, undefined) ->
@@ -73,12 +78,11 @@ any_is_member(List1, List2) ->
         end,
         List1).
 
-parse_uplink(#handler{app=AppID, payload=Payload, parse_uplink=Parse, uplink_fields=Fields},
+parse_uplink(#handler{app=AppID, payload=Payload, uplink_fields=Fields},
         #network{netid=NetID},
         #node{appargs=AppArgs, devstat=DevStat},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
-    Vars =
-        vars_add(netid, NetID, Fields,
+    vars_add(netid, NetID, Fields,
         vars_add(app, AppID, Fields,
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
@@ -88,8 +92,7 @@ parse_uplink(#handler{app=AppID, payload=Payload, parse_uplink=Parse, uplink_fie
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        parse_payload(Payload, Data))))))))))),
-    data_to_fields(AppID, Parse, Vars, Data).
+        parse_payload(Payload, Data))))))))))).
 
 parse_rxq(Gateways, Fields, Vars) ->
     {MAC1, #rxq{freq=Freq, datr=Datr, codr=Codr, rssi=RSSI1, lsnr=SNR1}} = hd(Gateways),
