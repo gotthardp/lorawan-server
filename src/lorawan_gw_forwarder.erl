@@ -64,7 +64,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
                         lager:warning("Unknown element in JSON: ~p", [Else])
                 end,
                 maps:to_list(Data2));
-        _Else ->
+        _ ->
             lager:error("Ignored PUSH_DATA: JSON syntax error: ~s", [Data])
     end,
     {noreply, State};
@@ -93,7 +93,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
         <<>> ->
             % no error occured
             ok;
-        _Else ->
+        _ ->
             case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
                 Data2 when is_map(Data2) ->
                     Ack = maps:get(txpk_ack, Data2),
@@ -104,8 +104,8 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                             lorawan_gw_router:downlink_error(MAC, AppState,
                                 list_to_binary(string:to_lower(binary_to_list(Error))))
                     end;
-                Else ->
-                    lager:error("Ignored TX_ACK: JSON syntax error: ~w", [Else])
+                _ ->
+                    lager:error("Ignored TX_ACK: JSON syntax error: ~s", [Data])
             end
     end,
     {noreply, State#state{tokens=Tokens2}};
