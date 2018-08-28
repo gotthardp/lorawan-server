@@ -58,7 +58,7 @@ fill_pattern(undefined, _) ->
 fill_pattern({Pattern, []}, _) ->
     Pattern;
 fill_pattern({Pattern, Vars}, Values) ->
-    lists:foldl(
+    lists:foldr(
         fun({Var, {Start, Len}}, Patt) ->
             case get_value(Var, Values) of
                 undefined ->
@@ -237,6 +237,7 @@ pattern_test_()-> [
     matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}/suffix">>, <<"00112233/suffix">>),
     matchtst(#{devaddr => <<"00112233">>}, <<"prefix:{devaddr}:suffix">>, <<"prefix:00112233:suffix">>),
     matchtst(#{group => <<"test">>, devaddr => <<"00112233">>}, <<"{group}-{devaddr}">>, <<"test-00112233">>),
+    matchtst(#{a => <<"aaa">>, b => <<"b">>, c => <<"ccc">>, d => <<"d">>}, <<"{a}-{b}.{c}/{d}">>, <<"aaa-b.ccc/d">>),
     ?_assertEqual(<<"{unknown}/00112233">>,
         fill_pattern(prepare_filling(<<"{unknown}/{devaddr}">>), #{devaddr => <<"00112233">>})),
     ?_assertEqual(#{devaddr => <<"00112233">>},
