@@ -1006,7 +1006,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('payload', 'choice')
             .choices([
                 { value: 'ascii', label: 'ASCII Text' },
-                { value: 'cayenne', label: 'Cayenne LPP' }
+                { value: 'cayenne', label: 'Cayenne LPP' },
+                { value: 'custom', label: 'Custom Binary' }
             ]),
         nga.field('parse_uplink', 'text'),
         nga.field('event_fields', 'choices')

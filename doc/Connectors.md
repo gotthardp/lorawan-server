@@ -162,10 +162,12 @@ request upon receiving an uplink frame. It can also listen for incoming
 HTTP PUT/POST requests and trigger downlink frames.
 
 To create a HTTP connector you set:
- - **URI** to the target host either as `http://host:port` or `http://host:port. Do
-   not append any path: use the *Publish Uplinks* or *Events* field instead.
- - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/uplink/{devaddr}'
- - **Publish Events** to another URL pattern, e.g. '/events/{devaddr}'
+ - **URI** to the target host either as `http://host:port` or `https://host:port.
+   You also may include a common URL prefix `http://host:port/prefix`
+ - **Publish Uplinks** to a URL pattern, e.g. '/uplink/{devaddr}'. If you leave
+   this field empty, no message will be sent upon uplink.
+ - **Publish Events** to another URL pattern, e.g. '/events/{devaddr}'. Leave it
+   empty if you don't want any uplink upon events.
  - **Received Topic** is a template for parsing the topic of received downlink
    messages, e.g. `/in/{devaddr}`.
 

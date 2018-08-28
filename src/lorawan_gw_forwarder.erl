@@ -105,7 +105,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                                 list_to_binary(string:to_lower(binary_to_list(Error))))
                     end;
                 Else ->
-                    lager:error("Ignored PUSH_DATA: JSON syntax error: ~w", [Else])
+                    lager:error("Ignored TX_ACK: JSON syntax error: ~w", [Else])
             end
     end,
     {noreply, State#state{tokens=Tokens2}};

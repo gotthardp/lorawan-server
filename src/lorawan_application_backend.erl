@@ -287,7 +287,7 @@ parse_payload(<<"cayenne">>, Data) ->
 % TODO: IEEE1888 decode parse
 % parse_payload(<<"ieee1888">>, Data) ->
 %    ieee1888_decode(Data);
-parse_payload(None, _Data) when None == <<>>; None == undefined ->
+parse_payload(Custom, _Data) when Custom == <<"custom">>; Custom == undefined ->
     #{};
 parse_payload(Else, _Data) ->
     lager:error("Unknown payload: ~p", [Else]),

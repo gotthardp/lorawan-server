@@ -12,7 +12,7 @@
 
 -include("lorawan_db.hrl").
 
--record(state, {conn, pid, mref, ready, streams, publish_uplinks, publish_events, auth, nc}).
+-record(state, {conn, pid, mref, ready, streams, prefix, publish_uplinks, publish_events, auth, nc}).
 
 start_connector(#connector{connid=Id, received=Received}=Connector) ->
     case lorawan_connector:pattern_for_cowboy(Received) of
@@ -39,8 +39,8 @@ init([#connector{connid=Id, app=App,
     try
         {ok, ensure_gun(
             #state{conn=Conn,
-                publish_uplinks=lorawan_connector:prepare_filling(PubUp),
-                publish_events=lorawan_connector:prepare_filling(PubEv),
+                publish_uplinks=prepare_filling_url(PubUp),
+                publish_events=prepare_filling_url(PubEv),
                 auth=lorawan_connector:prepare_filling([UserName, Password]),
                 nc=1})}
     catch
@@ -48,6 +48,9 @@ init([#connector{connid=Id, app=App,
             lorawan_connector:raise_failed(Id, Error),
             {stop, shutdown}
     end.
+
+prepare_filling_url(Pattern) ->
+    lorawan_connector:prepare_filling(ensure_slash(Pattern)).
 
 handle_call(_Request, _From, State) ->
     {reply, {error, unknownmsg}, State}.
@@ -146,16 +149,18 @@ ensure_gun(#state{conn=#connector{uri= <<"http:">>}, pid=undefined}=State) ->
     State;
 ensure_gun(#state{conn=#connector{connid=ConnId, uri=Uri}, pid=undefined}=State) ->
     lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
-    {ok, ConnPid} =
+    {ConnPid, Prefix} =
         case http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{http, 80}, {https, 443}]}]) of
-            {ok, {http, _UserInfo, HostName, Port, _Path, _Query}} ->
-                gun:open(HostName, Port);
-            {ok, {https, _UserInfo, HostName, Port, _Path, _Query}} ->
+            {ok, {http, _UserInfo, HostName, Port, Path, _Query}} ->
+                {ok, Pid} = gun:open(HostName, Port),
+                {Pid, Path};
+            {ok, {https, _UserInfo, HostName, Port, Path, _Query}} ->
                 Opts = application:get_env(lorawan_server, ssl_options, []),
-                gun:open(HostName, Port, #{transport=>ssl, transport_opts=>Opts})
+                {ok, Pid} = gun:open(HostName, Port, #{transport=>ssl, transport_opts=>Opts}),
+                {Pid, Path}
         end,
     MRef = monitor(process, ConnPid),
-    State#state{pid=ConnPid, mref=MRef, ready=false, streams=#{}}.
+    State#state{pid=ConnPid, mref=MRef, ready=false, streams=#{}, prefix=ensure_slash(Prefix)}.
 
 ensure_connected(#state{ready=true}=State) ->
     {ok, State};
@@ -190,8 +195,8 @@ handle_event(Vars0, #state{publish_events=Publish}=State) ->
     Vars = lorawan_admin:build(Vars0),
     send_publish(Vars, Publish, <<"application/json">>, jsx:encode(Vars), State).
 
-send_publish(Vars, Publish, ContentType, Body, #state{conn=Conn, auth=AuthP}=State) ->
-    URI = lorawan_connector:fill_pattern(Publish, Vars),
+send_publish(Vars, Publish, ContentType, Body, #state{conn=Conn, prefix=Prefix, auth=AuthP}=State) ->
+    URI = <<Prefix/binary, (lorawan_connector:fill_pattern(Publish, Vars))/binary>>,
     [User, Pass] = lorawan_connector:fill_pattern(AuthP, Vars),
     case Conn of
         #connector{auth = <<"token">>} ->
@@ -261,5 +266,8 @@ handle_authenticate0(digest, Value, URI, [Name, Pass], Body, State=#state{nc=Nc0
                 {<<"response">>, Response}, {<<"opaque">>, Opaque}, {<<"qop">>, Qop},
                 {<<"nc">>, Nc}, {<<"cnonce">>, CNonce}])], State#state{nc=Nc0+1}}
     end.
+
+ensure_slash(<<"/", _/binary>> = Binary) -> Binary;
+ensure_slash(Binary) -> <<"/", Binary/binary>>.
 
 % end of file
