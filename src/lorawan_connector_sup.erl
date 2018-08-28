@@ -21,8 +21,8 @@ start_child(Id, Module, Args) ->
 
 stop_child(Id) ->
     lager:debug("Stop ~p", [Id]),
-    ok = supervisor:terminate_child(?MODULE, Id),
-    ok = supervisor:delete_child(?MODULE, Id).
+    _ = supervisor:terminate_child(?MODULE, Id),
+    _ = supervisor:delete_child(?MODULE, Id).
 
 init([]) ->
     % dynamically managed children, one for each connector

@@ -39,8 +39,8 @@ init([#connector{connid=Id, app=App,
     try
         {ok, ensure_gun(
             #state{conn=Conn,
-                publish_uplinks=prepare_filling_url(PubUp),
-                publish_events=prepare_filling_url(PubEv),
+                publish_uplinks=lorawan_connector:prepare_filling(PubUp),
+                publish_events=lorawan_connector:prepare_filling(PubEv),
                 auth=lorawan_connector:prepare_filling([UserName, Password]),
                 nc=1})}
     catch
@@ -48,9 +48,6 @@ init([#connector{connid=Id, app=App,
             lorawan_connector:raise_failed(Id, Error),
             {stop, shutdown}
     end.
-
-prepare_filling_url(Pattern) ->
-    lorawan_connector:prepare_filling(ensure_slash(Pattern)).
 
 handle_call(_Request, _From, State) ->
     {reply, {error, unknownmsg}, State}.
@@ -160,7 +157,7 @@ ensure_gun(#state{conn=#connector{connid=ConnId, uri=Uri}, pid=undefined}=State)
                 {Pid, Path}
         end,
     MRef = monitor(process, ConnPid),
-    State#state{pid=ConnPid, mref=MRef, ready=false, streams=#{}, prefix=ensure_slash(Prefix)}.
+    State#state{pid=ConnPid, mref=MRef, ready=false, streams=#{}, prefix=Prefix}.
 
 ensure_connected(#state{ready=true}=State) ->
     {ok, State};
@@ -266,8 +263,5 @@ handle_authenticate0(digest, Value, URI, [Name, Pass], Body, State=#state{nc=Nc0
                 {<<"response">>, Response}, {<<"opaque">>, Opaque}, {<<"qop">>, Qop},
                 {<<"nc">>, Nc}, {<<"cnonce">>, CNonce}])], State#state{nc=Nc0+1}}
     end.
-
-ensure_slash(<<"/", _/binary>> = Binary) -> Binary;
-ensure_slash(Binary) -> <<"/", Binary/binary>>.
 
 % end of file
