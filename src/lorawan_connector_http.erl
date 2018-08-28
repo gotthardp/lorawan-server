@@ -193,7 +193,7 @@ handle_event(Vars0, #state{publish_events=Publish}=State) ->
     send_publish(Vars, Publish, <<"application/json">>, jsx:encode(Vars), State).
 
 send_publish(Vars, Publish, ContentType, Body, #state{conn=Conn, prefix=Prefix, auth=AuthP}=State) ->
-    URI = <<Prefix/binary, (lorawan_connector:fill_pattern(Publish, Vars))/binary>>,
+    URI = binary:list_to_bin([Prefix | lorawan_connector:fill_pattern(Publish, Vars)]),
     [User, Pass] = lorawan_connector:fill_pattern(AuthP, Vars),
     case Conn of
         #connector{auth = <<"token">>} ->
