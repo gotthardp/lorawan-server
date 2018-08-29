@@ -139,7 +139,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('sname').label('Name').isDetailLink(true),
         nga.field('modules.lorawan_server').label('Version'),
         nga.field('memory').label('Free Memory')
-            .map(map_diskstats),
+            .map(map_memstats),
         nga.field('disk').label('Free Disk')
             .map(map_diskstats),
         nga.field('health_alerts', 'choices').label('Alerts')
@@ -162,7 +162,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('sname', 'template').label('Performance')
             .template('<sgraph value="value"></sgraph>'),
         nga.field('memory').label('Free Memory')
-            .map(map_diskstats)
+            .map(map_memstats)
             .editable(false),
         nga.field('disk', 'embedded_list').label('Disks')
             .targetFields([
@@ -1097,7 +1097,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('sname').label('Name').isDetailLink(true),
                 nga.field('modules.lorawan_server').label('Version'),
                 nga.field('memory').label('Memory')
-                    .map(map_diskstats),
+                    .map(map_memstats),
                 nga.field('disk').label('Disk')
                     .map(map_diskstats),
                 nga.field('health_decay', 'number').label('Status')
@@ -1242,7 +1242,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     nga.configure(admin);
 }]);
 
-function map_diskstats(value, entry) {
+function map_memstats(value, entry) {
     if ('memory.free_memory' in entry) {
         var free = 100 * entry['memory.free_memory'] / entry['memory.total_memory'];
         return bytesToSize(entry['memory.free_memory']) + " (" + free.toFixed(0) + "%)";
