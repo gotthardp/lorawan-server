@@ -90,10 +90,8 @@ build_record(Rec, #state{fields=Fields, module=Module, auth_fields=AuthFields}) 
     apply(Module, build, [
         maps:from_list(
             lists:filter(
-                fun
-                    % the module may not removed the null entries
-                    ({_, undefined}) -> false;
-                    ({Name, _}) -> lorawan_admin:auth_field(Name, AuthFields)
+                fun({Name, _}) ->
+                    lorawan_admin:auth_field(Name, AuthFields)
                 end,
                 lists:zip(Fields, tl(tuple_to_list(Rec)))))
         ]).
