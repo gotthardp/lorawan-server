@@ -122,7 +122,7 @@ Upon receiving a downlink frame for a given Node:
    immediately to the closest Gateway, which forwards the frame to the device.
  * When the Node did not send anything the frame gets queued in the server
    and waits for the Node to send a next uplink. The queued *Downlinks* can
-   be viewed via the [Node Administration](Nodes.md).
+   be viewed via the [Node Administration](Devices.md#activated-nodes).
 
 The downlink frequencies and data rates are defined by the Network.
 
