@@ -307,6 +307,11 @@ parse_payload(<<"ascii">>, Data) ->
     #{text => Data};
 parse_payload(<<"cayenne">>, Data) ->
     cayenne_decode(Data);
+parse_payload(<<"cbor">>, Data) ->
+    case cbor:decode(Data) of
+        Map when is_map(Map) -> Map;
+        _ -> #{value => Data}
+    end;
 % TODO: IEEE1888 decode parse
 % parse_payload(<<"ieee1888">>, Data) ->
 %    ieee1888_decode(Data);

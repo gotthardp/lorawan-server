@@ -27,6 +27,7 @@ To create a new handler you need to set:
  - **Payload** format for automatic decoding
    - **ASCII Text**
    - [**Cayenne LPP**](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md)
+   - [**CBOR**](https://tools.ietf.org/html/rfc7049)
    - **Custom Binary** decoded by the **Parse Uplink** function
  - **Parse Uplink** function to extract additional data fields from the uplink frame
  - **Event Fields** that will be forwarded to the backend Connector

@@ -29,6 +29,7 @@ The server:
      (via an [external plug-in](https://github.com/gotthardp/lorawan-server-demoapp))
  * Automatically parses well-known payload formats. It currently supports:
    * [Cayenne Low Power Payload](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md#cayenne-low-power-payload)
+   * [Concise Binary Object Representation (CBOR)](https://tools.ietf.org/rfc/rfc7049.txt)
  * Stores uplink data directly to a MongoDB collection.
  * Invokes external applications. It currently supports connections via:
    * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)

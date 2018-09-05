@@ -1007,6 +1007,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices([
                 { value: 'ascii', label: 'ASCII Text' },
                 { value: 'cayenne', label: 'Cayenne LPP' },
+                { value: 'cbor', label: 'CBOR' },
                 { value: 'custom', label: 'Custom Binary' }
             ]),
         nga.field('parse_uplink', 'text'),
