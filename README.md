@@ -41,7 +41,8 @@ The server:
      [MathWorks ThingSpeak](https://thingspeak.com/),
      [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/),
      [ThingsBoard Open-source IoT Platform](https://thingsboard.io),
-     or [Adafruit IO](https://io.adafruit.com/)
+     [Adafruit IO](https://io.adafruit.com/),
+     or [Orange Live Objects](https://liveobjects.orange-business.com)
    * AMQP 0-9-1 to the [RabbitMQ](http://www.rabbitmq.com/)
  * Handles (any number of) Class A or Class C devices.
    * Supports both the node activation by personalization (ABP) and the

@@ -8,6 +8,7 @@ following IoT cloud platforms:
  * [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/)
  * [ThingsBoard Open-source IoT Platform](https://thingsboard.io)
  * [Adafruit IO](https://io.adafruit.com/)
+ * [Orange Live Objects](https://liveobjects.orange-business.com)
 
 Please refer to [Connectors](Connectors.md) guide for a generic description if you
 need to integrate with another platform.
@@ -175,6 +176,7 @@ On the Authentication tab:
 Make sure that your Handler *Parse Uplink* and *Parse Event* produce a flat
 list of string, boolean and numeric fields only.
 
+
 ## Adafruit IO
 
 [Adafruit IO](https://io.adafruit.com/) supports MQTT and MQTT/SSL. Before doing
@@ -235,3 +237,33 @@ take the first element of its result and drop everything else, resulting our val
 After all of this is ready, you need to select this Handler as a *Group* on your
 *Devices* or *Nodes* configuration page. And **don't forget** to set your *Application*
 field to **backend** there.
+
+
+## Orange Live Objects
+
+Define a new Handler:
+
+Set **Uplink Fields** to `deveui` and `datetime`.
+
+The **Parse Uplink** shall be as follows:
+```erlang
+fun(#{deveui := DevEui, datetime := DateTime}=Fields, Data) ->
+  [[
+    #{metadata => #source => {<<"urn:lora:", (lorawan_utils:binary_to_hex(DevEui))/binary>>},
+      model => <<"your_model">>,
+      streamId => <<"urn:lora:", (lorawan_utils:binary_to_hex(DevEui))/binary, "!uplink">>,
+      tags => [],
+      timestamp => DateTime,
+      value => Fields#{payload => lorawan_utils:binary_to_hex(Data)}
+    }
+  ]]
+end.
+```
+
+Then, define a new Connector:
+ - **URI** set to `https://liveobjects.orange-business.com`
+ - **Publish Uplinks** set to `/api/v0/data/bulk`
+ - **Authetification** tab shall define
+   - **Auth** Header+Token
+   - **Name** `X-API-Key`
+   - **Password/Key** shall be set to your key
