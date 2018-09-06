@@ -93,9 +93,9 @@ ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
             lorawan_utils:throw_error({node, DevAddr}, Error, Args),
             {ignore, Frame}
     end;
-ingest_data_frame(MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr}=Frame) ->
-    lager:error("~p downlink frame (mtype ~.2B)", [binary_to_hex(DevAddr), MType]),
-    {ignore, Frame}.
+ingest_data_frame(MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr}) ->
+    lager:debug("~p downlink frame (mtype ~.2B)", [binary_to_hex(DevAddr), MType]),
+    ignore.
 
 handle_join(#device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
     case mnesia:read(profile, ProfID, read) of
