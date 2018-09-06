@@ -79,6 +79,8 @@ idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, _Data) ->
         {retransmit, {Network, Profile, Node}, Frame} ->
             % the server already handled this request
             {next_state, retransmit, {{Network, Profile, Node}, Frame}};
+        ignore ->
+            {next_state, drop, []};
         {ignore, Frame} ->
             case mnesia:dirty_read(gateway, MAC) of
                 [#gateway{area=AreaName}] ->

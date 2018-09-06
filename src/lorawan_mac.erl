@@ -17,18 +17,21 @@
 
 % TODO complete type specification
 -spec ingest_frame(binary()) -> any().
-ingest_frame(PHYPayload) ->
+ingest_frame(<<MType:3, _:3, 0:2, _/binary>> = PHYPayload) when byte_size(PHYPayload) > 4 ->
     Size = byte_size(PHYPayload)-4,
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
     {atomic, Res} =
         mnesia:transaction(
             fun() ->
-                ingest_frame0(Msg, MIC)
+                ingest_frame0(MType, Msg, MIC)
             end),
-    Res.
+    Res;
+ingest_frame(PHYPayload) ->
+    lager:debug("Unknown frame protocol: ~p", [PHYPayload]),
+    ignore.
 
-ingest_frame0(<<2#000:3, _:5,
-        AppEUI0:8/binary, DevEUI0:8/binary, DevNonce:2/binary>> = Msg, MIC) ->
+ingest_frame0(2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
+        DevNonce:2/binary>> = Msg, MIC) ->
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
     case mnesia:read(device, DevEUI, read) of
         [] ->
@@ -43,9 +46,9 @@ ingest_frame0(<<2#000:3, _:5,
                     {error, {device, DevEUI}, bad_mic}
             end
     end;
-ingest_frame0(<<MType:3, _:5,
-        DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1, FOptsLen:4,
-        FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary, Body/binary>> = Msg, MIC)
+ingest_frame0(MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1,
+        FOptsLen:4, FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary,
+        Body/binary>> = Msg, MIC)
         when MType == 2#010; MType == 2#011; MType == 2#100; MType == 2#101 ->
     <<Confirm:1, _:2>> = <<MType:3>>,
     DevAddr = reverse(DevAddr0),
@@ -55,9 +58,9 @@ ingest_frame0(<<MType:3, _:5,
     end,
     ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
         #frame{conf=Confirm, devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, port=Port});
-ingest_frame0(Msg, _MIC) ->
-    lager:debug("Unknown frame: ~p", [Msg]),
-    {error, unknown_frame}.
+ingest_frame0(MType, Msg, _MIC) ->
+    lager:debug("Bad frame (mtype ~.2B): ~p", [MType, Msg]),
+    ignore.
 
 ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port}=Frame)
@@ -91,7 +94,7 @@ ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
             {ignore, Frame}
     end;
 ingest_data_frame(MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr}=Frame) ->
-    lager:error("~p Unexpected mtype ~p", [binary_to_hex(DevAddr), MType]),
+    lager:error("~p downlink frame (mtype ~.2B)", [binary_to_hex(DevAddr), MType]),
     {ignore, Frame}.
 
 handle_join(#device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
