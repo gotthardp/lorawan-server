@@ -9,5 +9,5 @@ else
 fi
 
 for f in $DIR/*.json; do
-    wget -nv $AUTH --header=Content-Type:application/json --post-file=$f http://$SERVER/api/$(basename $f .json)
+    wget -4nv $AUTH --header=Content-Type:application/json --post-file=$f http://$SERVER/api/$(basename $f .json)
 done
