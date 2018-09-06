@@ -236,7 +236,7 @@ handle_info(ping, #state{hier=Hier}=State) ->
 handle_info({'EXIT', C, Error}, #state{conn=#connector{connid=ConnId}, hier=Hier}=State) ->
     {Connect, C, NewSub, #costa{phase=OldPhase, connect_count=Count}=Costa} = lists:keyfind(C, 2, Hier),
     lager:debug("Connector ~p to ~p (~p) failed: ~p (count: ~p)", [ConnId, hd(Connect), OldPhase, Error, Count]),
-    case handle_reconnect(Connect, NewSub, Costa) of
+    case handle_reconnect(ConnId, Connect, NewSub, Costa) of
         {ok, C2, Costa2} ->
             {noreply, State#state{hier=lists:keystore(Connect, 1, Hier,
                 {Connect, C2, NewSub, Costa2})}};
@@ -258,12 +258,12 @@ terminate(Reason, #state{conn=#connector{connid=ConnId}}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-handle_reconnect(Connect, NewSub, #costa{last_connect=Last, connect_count=Count} = Costa) ->
+handle_reconnect(ConnId, Connect, NewSub, #costa{last_connect=Last, connect_count=Count} = Costa) ->
     case calendar:datetime_to_gregorian_seconds(calendar:universal_time())
             - calendar:datetime_to_gregorian_seconds(Last) of
         Diff when Diff < 30, Count > 120 ->
             % give up after 2 hours
-            lorawan_connector:raise_failed(Connect#connector.connid, <<"network">>),
+            lorawan_connector:raise_failed(ConnId, <<"network">>),
             remove;
         Diff when Diff < 30, Count > 0 ->
             % wait, then wait even longer, but no longer than 30 sec
