@@ -51,7 +51,8 @@ invoke_init({App, Module}) when is_atom(Module) ->
     apply(Module, init, [App]).
 
 store_frame(DevAddr, TxData) ->
-    mnesia:dirty_write(#queued{frid=eid:get_bin(),
+    {ok, FrId} = eid:get_bin(),
+    mnesia:dirty_write(#queued{frid=FrId,
         datetime=calendar:universal_time(), devaddr=DevAddr, txdata=TxData}).
 
 get_stored_frames(DevAddr) ->

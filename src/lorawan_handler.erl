@@ -243,9 +243,10 @@ retransmit(cast, {rxq, Gateways0}, {{Network, Profile, #node{devaddr=DevAddr}=No
 
 log_only(cast, {rxq, Gateways0}, #frame{conf=Confirm, devaddr=DevAddr, fcnt=FCnt, port=Port}) ->
     Gateways = extract_rxq(Gateways0),
+    {ok, FrId} = eid:get_bin(),
     % log ignored frames too
     ok = mnesia:dirty_write(
-        #rxframe{frid=eid:get_bin(), gateways=Gateways, devaddr=DevAddr,
+        #rxframe{frid=FrId, gateways=Gateways, devaddr=DevAddr,
             fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port,
             datetime=calendar:universal_time()}),
     {stop, normal, undefined}.
@@ -323,8 +324,9 @@ mac_for_profile(ProfName) ->
 build_rxframe(Dir, Gateways, {#network{name=NetName}, #profile{app=App},
         #node{location=Location, fcntup=FCnt, average_qs=AverageQs, adr_use={TXPower, _, _}}},
         #frame{conf=Confirm, devaddr=DevAddr, port=Port, data=Data}) ->
+    {ok, FrId} = eid:get_bin(),
     % #rxframe{frid, dir, network, app, devaddr, appargs, gateways, average_qs, powe, fcnt, confirm, port, data, datetime}
-    #rxframe{frid=eid:get_bin(), dir=Dir, network=NetName,
+    #rxframe{frid=FrId, dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, location=Location, gateways=Gateways,
         average_qs=AverageQs, powe=TXPower,
         fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port, data=Data,
@@ -332,14 +334,16 @@ build_rxframe(Dir, Gateways, {#network{name=NetName}, #profile{app=App},
 build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
         #node{location=Location, devaddr=DevAddr, fcntdown=FCnt}},
         #txdata{confirmed=Confirm, port=Port, data=Data}) ->
-    #rxframe{frid=eid:get_bin(), dir=Dir, network=NetName,
+    {ok, FrId} = eid:get_bin(),
+    #rxframe{frid=FrId, dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, location=Location, gateways=[{MAC, #rxq{}}],
         fcnt=FCnt, confirm=Confirm, port=Port, data=Data,
         datetime=calendar:universal_time()};
 build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
         #multicast_channel{devaddr=DevAddr, fcntdown=FCnt}},
         #txdata{confirmed=Confirm, port=Port, data=Data}) ->
-    #rxframe{frid=eid:get_bin(), dir=Dir, network=NetName,
+    {ok, FrId} = eid:get_bin(),
+    #rxframe{frid=FrId, dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, gateways=[{M, #rxq{}} || M <- MAC],
         fcnt=FCnt, confirm=Confirm, port=Port, data=Data,
         datetime=calendar:universal_time()}.
