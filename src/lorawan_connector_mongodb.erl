@@ -31,8 +31,9 @@ init([#connector{connid=Id, app=App, uri= <<"mongodb://", Servers0/binary>>,
     lager:debug("Connecting ~s to mongodb ~s", [Id, Servers0]),
     Pool = binary_to_atom(Id, latin1),
     % connect
+    {UserName, Password} = credentials(Connector),
     mongodb:replicaSets(Pool, 10,
-        string:tokens(binary_to_list(Servers0), ", ")),
+        string:tokens(binary_to_list(Servers0), ", "), UserName, Password),
     mongodb:connect(Pool),
     try
         {ok, #state{
@@ -46,6 +47,12 @@ init([#connector{connid=Id, app=App, uri= <<"mongodb://", Servers0/binary>>,
             lorawan_connector:raise_failed(Id, Error),
             {stop, shutdown}
     end.
+
+credentials(#connector{name=UserName})
+        when UserName == undefined; UserName == <<>> ->
+    {undefined, undefined};
+credentials(#connector{name=UserName, pass=Password}) ->
+    {UserName, Password}.
 
 handle_call(_Request, _From, State) ->
     {reply, {error, unknownmsg}, State}.

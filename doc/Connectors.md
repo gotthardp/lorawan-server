@@ -248,4 +248,4 @@ Open the lorawan-server web-administration and create a Backend Connector:
  - **Publish Uplinks** and **Publish Events** must be in the format *Database*/*Collection*.
    The *Database* is optional; if not provided, `local` is used by default.
 
-Authentication is not supported.
+On the Authentication tab you may set the *Name* and *Password/Key*.

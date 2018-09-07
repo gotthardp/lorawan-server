@@ -245,7 +245,7 @@ log_only(cast, {rxq, Gateways0}, #frame{conf=Confirm, devaddr=DevAddr, fcnt=FCnt
     Gateways = extract_rxq(Gateways0),
     % log ignored frames too
     ok = mnesia:dirty_write(
-        #rxframe{frid= <<(erlang:system_time()):64>>, gateways=Gateways, devaddr=DevAddr,
+        #rxframe{frid=eid:get_bin(), gateways=Gateways, devaddr=DevAddr,
             fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port,
             datetime=calendar:universal_time()}),
     {stop, normal, undefined}.
@@ -324,7 +324,7 @@ build_rxframe(Dir, Gateways, {#network{name=NetName}, #profile{app=App},
         #node{location=Location, fcntup=FCnt, average_qs=AverageQs, adr_use={TXPower, _, _}}},
         #frame{conf=Confirm, devaddr=DevAddr, port=Port, data=Data}) ->
     % #rxframe{frid, dir, network, app, devaddr, appargs, gateways, average_qs, powe, fcnt, confirm, port, data, datetime}
-    #rxframe{frid= <<(erlang:system_time()):64>>, dir=Dir, network=NetName,
+    #rxframe{frid=eid:get_bin(), dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, location=Location, gateways=Gateways,
         average_qs=AverageQs, powe=TXPower,
         fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port, data=Data,
@@ -332,14 +332,14 @@ build_rxframe(Dir, Gateways, {#network{name=NetName}, #profile{app=App},
 build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
         #node{location=Location, devaddr=DevAddr, fcntdown=FCnt}},
         #txdata{confirmed=Confirm, port=Port, data=Data}) ->
-    #rxframe{frid= <<(erlang:system_time()):64>>, dir=Dir, network=NetName,
+    #rxframe{frid=eid:get_bin(), dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, location=Location, gateways=[{MAC, #rxq{}}],
         fcnt=FCnt, confirm=Confirm, port=Port, data=Data,
         datetime=calendar:universal_time()};
 build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
         #multicast_channel{devaddr=DevAddr, fcntdown=FCnt}},
         #txdata{confirmed=Confirm, port=Port, data=Data}) ->
-    #rxframe{frid= <<(erlang:system_time()):64>>, dir=Dir, network=NetName,
+    #rxframe{frid=eid:get_bin(), dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, gateways=[{M, #rxq{}} || M <- MAC],
         fcnt=FCnt, confirm=Confirm, port=Port, data=Data,
         datetime=calendar:universal_time()}.
