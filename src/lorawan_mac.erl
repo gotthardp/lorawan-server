@@ -27,10 +27,10 @@ ingest_frame(MAC, <<MType:3, _:3, 0:2, _/binary>> = PHYPayload) when byte_size(P
             end),
     Res;
 ingest_frame(MAC, PHYPayload) ->
-    lager:debug("~s unknown frame protocol: ~p", [binary_to_hex(MAC), PHYPayload]),
+    lager:warning("~s unknown frame protocol: ~p", [binary_to_hex(MAC), PHYPayload]),
     ignore.
 
-ingest_frame0(_MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
+ingest_frame0(MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
         DevNonce:2/binary>> = Msg, MIC) ->
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
     case mnesia:read(device, DevEUI, read) of
@@ -41,7 +41,7 @@ ingest_frame0(_MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
-                    handle_join(D, DevNonce);
+                    handle_join(MAC, D, DevNonce);
                 _MIC2 ->
                     {error, {device, DevEUI}, bad_mic}
             end
@@ -59,7 +59,7 @@ ingest_frame0(MAC, MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RF
     ingest_data_frame(MAC, MType, Msg, FOpts, FRMPayload, MIC,
         #frame{conf=Confirm, devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, port=Port});
 ingest_frame0(MAC, MType, Msg, _MIC) ->
-    lager:debug("~s bad frame (mtype ~.2B): ~p", [binary_to_hex(MAC), MType, Msg]),
+    lager:warning("~s bad frame (mtype ~.2B): ~p", [binary_to_hex(MAC), MType, Msg]),
     ignore.
 
 ingest_data_frame(_MAC, MType, Msg, FOpts, FRMPayload, MIC,
@@ -94,10 +94,10 @@ ingest_data_frame(_MAC, MType, Msg, FOpts, FRMPayload, MIC,
             {ignore, Frame}
     end;
 ingest_data_frame(MAC, MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr}) ->
-    lager:debug("~s ~s downlink frame (mtype ~.2B)", [binary_to_hex(MAC), binary_to_hex(DevAddr), MType]),
+    lager:warning("~s ~s downlink frame (mtype ~.2B)", [binary_to_hex(MAC), binary_to_hex(DevAddr), MType]),
     ignore.
 
-handle_join(#device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
+handle_join(MAC, #device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
     case mnesia:read(profile, ProfID, read) of
         [] ->
             {error, {device, DevEUI}, {unknown_profile, ProfID}, aggregated};
@@ -106,7 +106,7 @@ handle_join(#device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
                 [] ->
                     {error, {device, DevEUI}, {unknown_group, GroupName}, aggregated};
                 [#group{can_join=false}] ->
-                    lager:debug("Join ignored from DevEUI ~s", [binary_to_hex(DevEUI)]),
+                    lager:warning("~s join ignored from DevEUI ~s", [binary_to_hex(MAC), binary_to_hex(DevEUI)]),
                     ignore;
                 [#group{network=NetName, subid=SubID}] ->
                     case mnesia:read(network, NetName, read) of
