@@ -298,7 +298,7 @@ send_emails0(ToAddrs, Type, ID, Message, Warning) ->
 
 send_slack(Channel, Type, ID, Message, Warning) ->
     case catch send_slack_message(Channel, Type, ID, Message, Warning) of
-        true ->
+        ok ->
             ok;
         Else ->
             lager:error("Cannot send Slack message: ~p", [Else])
@@ -319,23 +319,44 @@ send_slack_message(Channel, Type, ID, Message, Warning) ->
 send_slack_raw(undefined, _Channel, _Message) ->
     {error, token_undefined};
 send_slack_raw(Token, Channel, Message) ->
-    {ok, {Host, Port}} = application:get_env(lorawan_server, slack_server),
-    Opts = application:get_env(lorawan_server, ssl_options, []),
-    {ok, ConnPid} = gun:open(Host, Port, #{transport=>ssl, transport_opts=>Opts}),
-    {ok, _} = gun:await_up(ConnPid),
     Payload = #{
         channel => Channel,
         text => Message,
         as_user => true},
-    StreamRef = gun:post(ConnPid, <<"/api/chat.postMessage">>,
-        [{<<"content-type">>, <<"application/json">>},
-        {<<"authorization">>, <<"Bearer ", Token/binary>>}],
-        jsx:encode(Payload)),
-    {response, nofin, 200, _Headers} = gun:await(ConnPid, StreamRef),
-    {ok, Body} = gun:await_body(ConnPid, StreamRef),
+    % send HTTP POST
+    {ok, {Host, Port}} = application:get_env(lorawan_server, slack_server),
+    Opts = application:get_env(lorawan_server, ssl_options, []),
+    {ok, ConnPid} = gun:open(Host, Port, #{transport=>ssl, transport_opts=>Opts}),
+    Success =
+        case gun:await_up(ConnPid) of
+            {ok, _} ->
+                StreamRef = gun:post(ConnPid, <<"/api/chat.postMessage">>,
+                    [{<<"content-type">>, <<"application/json">>},
+                    {<<"authorization">>, <<"Bearer ", Token/binary>>}],
+                    jsx:encode(Payload)),
+                case gun:await(ConnPid, StreamRef) of
+                    {response, nofin, 200, _Headers} ->
+                        case gun:await_body(ConnPid, StreamRef) of
+                            {ok, Body} ->
+                                Result = jsx:decode(Body, [return_maps]),
+                                case maps:get(<<"ok">>, Result, false) of
+                                    true ->
+                                        ok;
+                                    false ->
+                                        lager:debug("Slack request failed: ~p", [Result]),
+                                        {error, api_failure}
+                                end;
+                            Error3 ->
+                                Error3
+                        end;
+                    Error2 ->
+                        Error2
+                end;
+            Error1 ->
+                Error1
+        end,
     ok = gun:close(ConnPid),
-    Result = jsx:decode(Body, [return_maps]),
-    maps:get(<<"ok">>, Result, false).
+    Success.
 
 check_alive(#gateway{last_alive=undefined}) ->
     {<<"disconnected">>, 100};
