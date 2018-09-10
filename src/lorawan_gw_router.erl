@@ -101,7 +101,7 @@ handle_cast({downlink, {MAC, GWState}, DevAddr, TxQ, RFCh, PHYPayload}, #state{g
             Dict2 = dict:store(MAC, Stats#gwstats{tx_times=[{TxQ#txq.freq, Time} | TxTimes]}, Dict),
             {noreply, State#state{gateways=Dict2}};
         error ->
-            lager:warning("Downlink request ignored. Gateway ~w not connected.", [MAC]),
+            lager:warning("Downlink request ignored. Gateway ~s not connected.", [lorawan_utils:binary_to_hex(MAC)]),
             {noreply, State}
     end;
 

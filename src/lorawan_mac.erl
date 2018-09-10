@@ -27,7 +27,7 @@ ingest_frame(MAC, <<MType:3, _:3, 0:2, _/binary>> = PHYPayload) when byte_size(P
             end),
     Res;
 ingest_frame(MAC, PHYPayload) ->
-    lager:warning("~s unknown frame protocol: ~p", [binary_to_hex(MAC), PHYPayload]),
+    lager:warning("gateway ~s received unknown frame protocol: ~p", [binary_to_hex(MAC), PHYPayload]),
     ignore.
 
 ingest_frame0(MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
@@ -59,7 +59,7 @@ ingest_frame0(MAC, MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RF
     ingest_data_frame(MAC, MType, Msg, FOpts, FRMPayload, MIC,
         #frame{conf=Confirm, devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, port=Port});
 ingest_frame0(MAC, MType, Msg, _MIC) ->
-    lager:warning("~s bad frame (mtype ~.2B): ~p", [binary_to_hex(MAC), MType, Msg]),
+    lager:warning("gateway ~s received bad frame (mtype ~.2B): ~p", [binary_to_hex(MAC), MType, Msg]),
     ignore.
 
 ingest_data_frame(_MAC, MType, Msg, FOpts, FRMPayload, MIC,
@@ -94,7 +94,7 @@ ingest_data_frame(_MAC, MType, Msg, FOpts, FRMPayload, MIC,
             {ignore, Frame}
     end;
 ingest_data_frame(MAC, MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr}) ->
-    lager:warning("~s ~s downlink frame (mtype ~.2B)", [binary_to_hex(MAC), binary_to_hex(DevAddr), MType]),
+    lager:warning("gateway ~s received ~s downlink frame (mtype ~.2B)", [binary_to_hex(MAC), binary_to_hex(DevAddr), MType]),
     ignore.
 
 handle_join(MAC, #device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
@@ -106,7 +106,7 @@ handle_join(MAC, #device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
                 [] ->
                     {error, {device, DevEUI}, {unknown_group, GroupName}, aggregated};
                 [#group{can_join=false}] ->
-                    lager:warning("~s join ignored from DevEUI ~s", [binary_to_hex(MAC), binary_to_hex(DevEUI)]),
+                    lager:warning("gateway ~s ignored join from DevEUI ~s", [binary_to_hex(MAC), binary_to_hex(DevEUI)]),
                     ignore;
                 [#group{network=NetName, subid=SubID}] ->
                     case mnesia:read(network, NetName, read) of
