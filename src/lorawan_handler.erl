@@ -23,7 +23,7 @@ callback_mode() ->
     state_functions.
 
 idle(cast, {frame, {MAC, RxQ, _}, <<2#000:3, _/bitstring>>=PHYPayload}, _Data) ->
-    case lorawan_mac:ingest_frame(PHYPayload) of
+    case lorawan_mac:ingest_frame(MAC, PHYPayload) of
         {join, {Network, Profile, Device}, DevAddr, DevNonce} ->
             case invoke_handler(handle_join, {Network, Profile, Device}, [{MAC, RxQ}, DevAddr]) of
                 ok ->
@@ -48,7 +48,7 @@ idle(cast, {frame, {MAC, RxQ, _}, <<2#000:3, _/bitstring>>=PHYPayload}, _Data) -
     end;
 idle(cast, {frame, {MAC, RxQ, _}, PHYPayload}, _Data) ->
     TimeStamp = erlang:monotonic_time(milli_seconds),
-    case lorawan_mac:ingest_frame(PHYPayload) of
+    case lorawan_mac:ingest_frame(MAC, PHYPayload) of
         {uplink, {Network, Profile, #node{devaddr=DevAddr}=Node}, #frame{ack=ACK}=Frame} ->
             % check whether last downlink transmission was lost
             LastMissed =

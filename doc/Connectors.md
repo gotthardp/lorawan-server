@@ -31,8 +31,8 @@ To create a new connector you set:
    wilcards, e.g. `in/#`. The MQTT broker will then send messages with a matching
    topic to this connector.
  - **Received Topic**, which is a template for parsing the topic of received
-   messages, e.g. `in/{devaddr}`. This can be used to obtain a DevEUI, DevAddr or
-   a device group that shall receive a given downlink.
+   (subscribed) messages, e.g. `in/{devaddr}`. This can be used to retrieve the
+   target DevEUI, DevAddr or App directly from the topic name.
  - **Enabled** flag that allows you to temporarily disable an existing connector.
  - **Failed** flag indicates what has failed. The Event list includes more
    details.

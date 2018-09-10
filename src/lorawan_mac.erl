@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac).
 
--export([ingest_frame/1, handle_accept/4, load_profile/1, encode_unicast/4, encode_multicast/2]).
+-export([ingest_frame/2, handle_accept/4, load_profile/1, encode_unicast/4, encode_multicast/2]).
 % for unit testing
 -export([cipher/5, b0/4]).
 -import(lorawan_utils, [binary_to_hex/1, hex_to_binary/1, reverse/1]).
@@ -16,21 +16,21 @@
 -include("lorawan_db.hrl").
 
 % TODO complete type specification
--spec ingest_frame(binary()) -> any().
-ingest_frame(<<MType:3, _:3, 0:2, _/binary>> = PHYPayload) when byte_size(PHYPayload) > 4 ->
+-spec ingest_frame(binary(), binary()) -> any().
+ingest_frame(MAC, <<MType:3, _:3, 0:2, _/binary>> = PHYPayload) when byte_size(PHYPayload) > 4 ->
     Size = byte_size(PHYPayload)-4,
     <<Msg:Size/binary, MIC:4/binary>> = PHYPayload,
     {atomic, Res} =
         mnesia:transaction(
             fun() ->
-                ingest_frame0(MType, Msg, MIC)
+                ingest_frame0(MAC, MType, Msg, MIC)
             end),
     Res;
-ingest_frame(PHYPayload) ->
-    lager:debug("Unknown frame protocol: ~p", [PHYPayload]),
+ingest_frame(MAC, PHYPayload) ->
+    lager:debug("~s unknown frame protocol: ~p", [binary_to_hex(MAC), PHYPayload]),
     ignore.
 
-ingest_frame0(2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
+ingest_frame0(_MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
         DevNonce:2/binary>> = Msg, MIC) ->
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
     case mnesia:read(device, DevEUI, read) of
@@ -46,7 +46,7 @@ ingest_frame0(2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
                     {error, {device, DevEUI}, bad_mic}
             end
     end;
-ingest_frame0(MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1,
+ingest_frame0(MAC, MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1,
         FOptsLen:4, FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary,
         Body/binary>> = Msg, MIC)
         when MType == 2#010; MType == 2#011; MType == 2#100; MType == 2#101 ->
@@ -56,13 +56,13 @@ ingest_frame0(MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1,
         <<>> -> {undefined, <<>>};
         <<FPort:8, FPayload/binary>> -> {FPort, FPayload}
     end,
-    ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
+    ingest_data_frame(MAC, MType, Msg, FOpts, FRMPayload, MIC,
         #frame{conf=Confirm, devaddr=DevAddr, adr=ADR, adr_ack_req=ADRACKReq, ack=ACK, fcnt=FCnt, port=Port});
-ingest_frame0(MType, Msg, _MIC) ->
-    lager:debug("Bad frame (mtype ~.2B): ~p", [MType, Msg]),
+ingest_frame0(MAC, MType, Msg, _MIC) ->
+    lager:debug("~s bad frame (mtype ~.2B): ~p", [binary_to_hex(MAC), MType, Msg]),
     ignore.
 
-ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
+ingest_data_frame(_MAC, MType, Msg, FOpts, FRMPayload, MIC,
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port}=Frame)
         when MType == 2#010; MType == 2#100 ->
     case accept_node_frame(DevAddr, FCnt) of
@@ -93,8 +93,8 @@ ingest_data_frame(MType, Msg, FOpts, FRMPayload, MIC,
             lorawan_utils:throw_error({node, DevAddr}, Error, Args),
             {ignore, Frame}
     end;
-ingest_data_frame(MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr}) ->
-    lager:debug("~p downlink frame (mtype ~.2B)", [binary_to_hex(DevAddr), MType]),
+ingest_data_frame(MAC, MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=DevAddr}) ->
+    lager:debug("~s ~s downlink frame (mtype ~.2B)", [binary_to_hex(MAC), binary_to_hex(DevAddr), MType]),
     ignore.
 
 handle_join(#device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
