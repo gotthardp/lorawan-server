@@ -114,9 +114,13 @@ warning. It may be because:
 
 ### not_semtech_mote
 
-The server is configured to use the *semtech-mote* application, but your device
-sent some other data. Make sure your firmware uses the
-[supported format](https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207).
+The Device *Profile* defines the *semtech-mote* application, but your device
+sent some other data. It may be because:
+ * The Device *Application* is misconfigured. If you want to send the uplink
+   frames to an external application, you need to define a Backend
+   [Handler](Handlers.md) and use its name in the Device *Profile*.
+ * You have some other Mote device. Make sure your firmware uses the
+   [supported format](https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207).
 
 ### downlink_missed
 
