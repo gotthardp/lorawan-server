@@ -98,8 +98,11 @@ The main components of the lorawan-server are shown in the following figure:
 The server behaviour is described in the [Introduction](doc/Introduction.md).
 
 The [Installation Instructions](doc/Installation.md) describe how to build,
-install and configure the server. You can use a Debian package, download the binary
+install and upgrade the server. You can use a Debian package, download the binary
 release and run it manually or build the server from source codes.
+
+Follow the [Configuration Instructions](doc/Configuration.md) to correctly
+setup your server.
 
 Run the lorawan-server release by:
 ```bash

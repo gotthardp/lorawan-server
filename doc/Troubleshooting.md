@@ -34,7 +34,7 @@ This may be due to:
  * Gateway misconfiguration. Check the gateway configuration includes a correct
    server IP and port (by default 1680).
  * Firewall misconfiguration. Check the server firewall does not block the port 1680.
-   See [Installation Instructions](Installation.md) for configuration guidelines.
+   See [Configuration Instructions](Configuration.md) for detailed guidelines.
 
 ### No downlink frames delivered
 
