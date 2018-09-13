@@ -65,7 +65,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 0, MAC:8/binary, Data
                 end,
                 maps:to_list(Data2));
         _ ->
-            lager:error("Ignored PUSH_DATA: JSON syntax error: ~s", [Data])
+            lager:error("Ignored PUSH_DATA from ~s: JSON syntax error: ~s", [lorawan_utils:binary_to_hex(MAC), Data])
     end,
     {noreply, State};
 
@@ -105,14 +105,14 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                                 list_to_binary(string:to_lower(binary_to_list(Error))))
                     end;
                 _ ->
-                    lager:error("Ignored TX_ACK: JSON syntax error: ~s", [Data])
+                    lager:error("Ignored TX_ACK from ~s: JSON syntax error: ~s", [lorawan_utils:binary_to_hex(MAC), Data])
             end
     end,
     {noreply, State#state{tokens=Tokens2}};
 
 % something strange
-handle_info({udp, _Socket, _Host, _Port, Msg}, State) ->
-    lager:warning("Weird data ~w", [Msg]),
+handle_info({udp, _Socket, Host, Port, Msg}, State) ->
+    lager:warning("Weird data from ~s:~p: ~w", [inet:ntoa(Host), Port, Msg]),
     {noreply, State};
 
 handle_info({no_ack, Token}, #state{tokens=Tokens}=State) ->
