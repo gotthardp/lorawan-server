@@ -33,6 +33,10 @@ For each Profile you can set:
  - **Group** to which the devices with this profile belong.
  - **Application** the devices are using.
  - **App Identifier**, which is a custom application id.
+ - **Join** behaviour
+   - **Denied** to prevent devices from joining
+   - **Allowed** (default)
+   - **Allowed with old Nonce** to allow join and disable checks for faulty devices.
  - **FCnt Check** to be used for this device
    - **Strict 16-bit** (default) or *Strict 32-bit* indicate a standard compliant counter.
    - **Reset on zero** behaves like a "less strict 16-bit", which allows personalised (ABP)
@@ -148,7 +152,7 @@ For each device, which may connect to your network, you can set:
  - **App Arguments**, which is an opaque string with application-specific settings.
  - **AppEUI** and **AppKey**
  - **Description** for your convenience
- - **Last Join** is a timestamp of the last successful Join request.
+ - **Last Joins** is a lost of timestamps of the previous successful Join requests.
 
 Once the device joins the network, the *Node* field will contain a reference to the *Nodes* list.
 

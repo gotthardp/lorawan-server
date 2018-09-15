@@ -55,6 +55,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         { value: 2, label: 'Maintain' }
     ];
 
+    join_choices = [
+        { value: 0, label: 'Denied' },
+        { value: 1, label: 'Allowed' },
+        { value: 2, label: 'Allowed with old Nonce' }
+    ];
+
     fcnt_choices = [
         { value: 0, label: 'Strict 16-bit' },
         { value: 1, label: 'Strict 32-bit' },
@@ -233,7 +239,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('desc').label('Description'),
         nga.field('ip_address.ip').label('IP Address'),
         nga.field('dwell', 'float').label('Dwell [%]')
-            .map(function(value, entry){ return first(value, 'hoursum', 36000); }),
+            .map(function(value, entry){ return first_div(value, 'hoursum', 36000); }),
         nga.field('last_alive', 'datetime').label('Last Alive'),
         nga.field('health_decay', 'number').label('Status')
             .template(function(entry){ return healthIndicator(entry.values) })
@@ -510,6 +516,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('appid').label('App Identifier'),
+        nga.field('join', 'choice')
+            .choices(join_choices)
+            .defaultValue(1), // Enabled
         nga.field('fcnt_check', 'choice').label('FCnt Check')
             .choices(fcnt_choices)
             .defaultValue(0), // Strict 16-bit
@@ -567,8 +576,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_groups = response.data });
     }]);
     profiles.creationView().template(createWithTabsTemplate([
-        {name:"General", min:0, max:6},
-        {name:"ADR", min:6, max:16}
+        {name:"General", min:0, max:7},
+        {name:"ADR", min:7, max:17}
     ]));
     profiles.editionView().fields(profiles.creationView().fields())
     .prepare(['$http', function($http) {
@@ -576,8 +585,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .then(response => { choices_groups = response.data });
     }]);
     profiles.editionView().template(editWithTabsTemplate([
-        {name:"General", min:0, max:6},
-        {name:"ADR", min:6, max:16}
+        {name:"General", min:0, max:7},
+        {name:"ADR", min:7, max:17}
     ]));
     // add to the admin application
     admin.addEntity(profiles);
@@ -588,7 +597,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('profile'),
         nga.field('appargs').label('App Arguments'),
         nga.field('desc').label('Description'),
-        nga.field('last_join', 'datetime').label('Last Join'),
+        nga.field('last_join', 'datetime')
+            .map(function(value, entry) { return first(entry.last_joins, 'time') }),
         nga.field('node', 'reference')
             .targetEntity(nodes)
             .targetField(nga.field('devaddr'))
@@ -620,7 +630,12 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. FEDCBA9876543210FEDCBA9876543210' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{32}' }),
         nga.field('desc').label('Description'),
-        nga.field('last_join', 'datetime').label('Last Join'),
+        nga.field('last_joins', 'embedded_list')
+            .targetFields([
+                nga.field('time', 'datetime'),
+                nga.field('dev_nonce')
+            ])
+            .editable(false),
         nga.field('node')
             .attributes({ placeholder: 'e.g. ABC12345' })
             .validation({ pattern: '[A-Fa-f0-9]{8}' })
@@ -715,6 +730,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetFields([
                 nga.field('deveui').label('DevEUI').isDetailLink(true),
                 nga.field('last_join', 'datetime')
+                    .map(function(value, entry) { return first(entry.last_joins, 'time') })
             ]),
         nga.field('gateways', 'embedded_list')
             .targetFields([
@@ -1110,7 +1126,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 nga.field('mac').label('MAC').isDetailLink(true),
                 nga.field('ip_address.ip').label('IP Address'),
                 nga.field('dwell', 'float').label('Dwell [%]')
-                    .map(function(value, entry){ return first(value, 'hoursum', 36000); }),
+                    .map(function(value, entry){ return first_div(value, 'hoursum', 36000); }),
                 nga.field('last_alive', 'datetime'),
                 nga.field('health_decay', 'number').label('Status')
                     .template(function(entry){ return healthIndicator(entry.values) })
@@ -1336,7 +1352,12 @@ function enquote(items) {
     return items.map(function(item) { return "'" + item + "'" }).join(',');
 }
 
-function first(array, element, divide = 1) {
+function first(array, element) {
+    if(Array.isArray(array) && array.length > 0)
+        return array[0][element];
+}
+
+function first_div(array, element, divide) {
     if(Array.isArray(array) && array.length > 0)
         return array[0][element] / divide;
 }

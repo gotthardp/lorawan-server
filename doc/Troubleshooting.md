@@ -80,6 +80,14 @@ If you see strange *DevAddr* numbers from devices that you don't know, there
 may be a second network near you. You can add devices from this network into
 the list of [Ignored Nodes](Infrastructure.md).
 
+### second_join
+
+The Join request did include the same DevNonce as some of the previous requests.
+This may be cause of a faulty device or a reply attack.
+
+To join with a faulty device you may set the *Join* parameter of the device *Profile*
+to *Allowed with old Nonce*.
+
 ### bad_mic
 
 The Message Integrity Check (MIC) of a received frame has failed.

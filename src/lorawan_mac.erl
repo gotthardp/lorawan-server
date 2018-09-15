@@ -41,7 +41,7 @@ ingest_frame0(MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
         [D] ->
             case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
                 MIC ->
-                    handle_join(MAC, D, DevNonce);
+                    verify_join(MAC, D, DevNonce);
                 _MIC2 ->
                     {error, {device, DevEUI}, bad_mic}
             end
@@ -97,25 +97,42 @@ ingest_data_frame(MAC, MType, _Msg, _FOpts, _FRMPayload, _MIC, #frame{devaddr=De
     lager:warning("gateway ~s received ~s downlink frame (mtype ~.2B)", [binary_to_hex(MAC), binary_to_hex(DevAddr), MType]),
     ignore.
 
-handle_join(MAC, #device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
+verify_join(MAC, #device{deveui=DevEUI, profile=ProfID}=Device, DevNonce) ->
     case mnesia:read(profile, ProfID, read) of
         [] ->
             {error, {device, DevEUI}, {unknown_profile, ProfID}, aggregated};
-        [#profile{group=GroupName}=Profile] ->
-            case mnesia:read(group, GroupName, read) of
+        [#profile{join=0}] ->
+            lager:warning("gateway ~s ignored join from DevEUI ~s", [binary_to_hex(MAC), binary_to_hex(DevEUI)]),
+            ignore;
+        [#profile{join=Join}=Profile] ->
+            case known_devnonce(DevNonce, Device) of
+                true when Join == 1 ->
+                    {error, {device, DevEUI}, second_join};
+                _ ->
+                    handle_join(MAC, Profile, Device, DevNonce)
+            end
+    end.
+
+known_devnonce(_DevNonce, #device{last_joins=undefined}) ->
+    false;
+known_devnonce(DevNonce, #device{last_joins=Past}) ->
+    {_, Nonces} = lists:unzip(Past),
+    lists:member(DevNonce, Nonces).
+
+handle_join(MAC, #profile{group=GroupName}=Profile, #device{deveui=DevEUI}=Device, DevNonce) ->
+    case mnesia:read(group, GroupName, read) of
+        [] ->
+            {error, {device, DevEUI}, {unknown_group, GroupName}, aggregated};
+        [#group{can_join=false}] ->
+            lager:warning("gateway ~s ignored join from DevEUI ~s", [binary_to_hex(MAC), binary_to_hex(DevEUI)]),
+            ignore;
+        [#group{network=NetName, subid=SubID}] ->
+            case mnesia:read(network, NetName, read) of
                 [] ->
-                    {error, {device, DevEUI}, {unknown_group, GroupName}, aggregated};
-                [#group{can_join=false}] ->
-                    lager:warning("gateway ~s ignored join from DevEUI ~s", [binary_to_hex(MAC), binary_to_hex(DevEUI)]),
-                    ignore;
-                [#group{network=NetName, subid=SubID}] ->
-                    case mnesia:read(network, NetName, read) of
-                        [] ->
-                            {error, {device, DevEUI}, {unknown_network, NetName}, aggregated};
-                        [#network{netid=NetID}=Network] ->
-                            DevAddr = get_devaddr(Device, NetID, SubID),
-                            {join, {Network, Profile, Device}, DevAddr, DevNonce}
-                    end
+                    {error, {device, DevEUI}, {unknown_network, NetName}, aggregated};
+                [#network{netid=NetID}=Network] ->
+                    DevAddr = get_devaddr(Device, NetID, SubID),
+                    {join, {Network, Profile, Device}, DevAddr, DevNonce}
             end
     end.
 
@@ -367,7 +384,7 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
         padded(16, <<16#02, AppNonce/binary, NetID/binary, DevNonce/binary>>)),
 
     [Device] = mnesia:read(device, DevEUI, write),
-    Device2 = Device#device{node=DevAddr, last_join=calendar:universal_time()},
+    Device2 = append_join({calendar:universal_time(), DevNonce}, Device#device{node=DevAddr}),
     ok = mnesia:write(Device2),
 
     lorawan_utils:throw_info({device, DevEUI}, {join, binary_to_hex(DevAddr)}),
@@ -394,6 +411,13 @@ create_node(Gateways, {#network{netid=NetID}=Network, Profile, #device{deveui=De
         end,
     ok = lorawan_admin:write(Node2),
     Node2.
+
+append_join(Item, #device{last_joins=undefined}=Device) ->
+    Device#device{
+        last_joins=[Item]};
+append_join(Item, #device{last_joins=List}=Device) ->
+    Device#device{
+        last_joins=lists:sublist([Item | List], 5)}.
 
 initial_adr(#network{init_chans=Chans, max_power=MaxPower}) ->
     {MaxPower, 0, Chans}.

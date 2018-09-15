@@ -176,7 +176,12 @@ parse_field(Key, Value) when Key == rxq ->
     ?to_record(rxq, parse(Value));
 parse_field(Key, Value) when Key == txdata ->
     ?to_record(txdata, parse(Value));
-parse_field(Key, Value) when Key == last_join; Key == first_reset; Key == last_reset;
+parse_field(Key, Value) when Key == last_joins ->
+    lists:map(
+        fun(#{time:=Time, dev_nonce:=DevNonce}) ->
+            {iso8601:parse(Time), lorawan_utils:hex_to_binary(DevNonce)}
+        end, Value);
+parse_field(Key, Value) when Key == first_reset; Key == last_reset;
                         Key == last_alive; Key == last_report;
                         Key == datetime; Key == devstat_time;
                         Key == first_rx; Key == last_rx ->
@@ -260,7 +265,11 @@ build_field(Key, Value) when Key == txdata ->
     build(?to_map(txdata, Value));
 build_field(Key, immediately) when Key == time ->
     <<"immediately">>;
-build_field(Key, Value) when Key == last_join; Key == first_reset; Key == last_reset;
+build_field(Key, Value) when Key == last_joins ->
+    lists:map(fun({Time, DevNonce}) ->
+                #{time=>iso8601:format(Time), dev_nonce=>lorawan_utils:binary_to_hex(DevNonce)}
+              end, Value);
+build_field(Key, Value) when Key == first_reset; Key == last_reset;
                         Key == datetime; Key == devstat_time; Key == time;
                         Key == last_alive; Key == last_report;
                         Key == first_rx; Key == last_rx ->

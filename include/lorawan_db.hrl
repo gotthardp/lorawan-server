@@ -97,6 +97,7 @@
     group :: nonempty_string(),
     app :: binary(),
     appid :: any(),
+    join :: 0..2,
     fcnt_check :: integer(),
     txwin :: integer(),
     adr_mode :: 0..2, % server requests
@@ -113,7 +114,7 @@
     appeui :: eui(),
     appkey :: seckey(),
     desc :: 'undefined' | string(),
-    last_join :: calendar:datetime(),
+    last_joins :: [{calendar:datetime(), binary()}],
     node :: devaddr()}).
 
 -type devstat() :: {calendar:datetime(), integer(), integer(), integer()}.
