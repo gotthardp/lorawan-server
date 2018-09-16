@@ -21,6 +21,7 @@ init0(Req, Table, Fields, Module, AuthFields) ->
     Filter = apply(Module, parse, [get_filters(Req)]),
     Match = list_to_tuple([Table|[maps:get(X, Filter, '_') || X <- Fields]]),
     % convert to websocket
+    lager:debug("Feed ~p connected ~p", [Table, cowboy_req:peer(Req)]),
     {ok, Timeout} = application:get_env(lorawan_server, websocket_timeout),
     {cowboy_websocket, Req,
         #state{table=Table, fields=Fields, module=Module, match=Match, auth_fields=AuthFields},
@@ -33,7 +34,6 @@ get_filters(Req) ->
     end.
 
 websocket_init(#state{table=Table} = State) ->
-    lager:debug("Feed ~p connected", [Table]),
     ok = pg2:join({feed, Table}, self()),
     {reply, {text, encoded_records(State)}, State}.
 
