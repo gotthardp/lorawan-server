@@ -124,6 +124,17 @@ handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{pid=C}) ->
 handle_info({'DOWN', _MRef, process, C, Reason}, #state{conn=Conn, pid=C}=State) ->
     lager:warning("Connector ~s failed: ~p", [Conn#connector.connid, Reason]),
     {noreply, State#state{pid=undefined}};
+
+handle_info({status, From}, #state{conn=#connector{uri= <<"http:">>}, pid=undefined}=State) ->
+    From ! {status, []},
+    {noreply, State};
+handle_info({status, From}, #state{conn=#connector{connid=Id, app=App, uri=Uri}}=State) ->
+    From ! {status, [
+        set_status(State,
+            #{module => <<"http">>, pid => lorawan_connector:pid_to_binary(self()),
+                connid => Id, app => App, uri => Uri})]},
+    {noreply, State};
+
 handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
@@ -263,5 +274,12 @@ handle_authenticate0(digest, Value, URI, [Name, Pass], Body, State=#state{nc=Nc0
                 {<<"response">>, Response}, {<<"opaque">>, Opaque}, {<<"qop">>, Qop},
                 {<<"nc">>, Nc}, {<<"cnonce">>, CNonce}])], State#state{nc=Nc0+1}}
     end.
+
+set_status(#state{pid=Pid, ready=true}, Map) when is_pid(Pid) ->
+    Map#{status => <<"connected">>};
+set_status(#state{pid=Pid, ready=false}, Map) when is_pid(Pid) ->
+    Map#{status => <<"connecting">>};
+set_status(#state{pid=undefined}, Map) ->
+    Map#{status => <<"disconnected">>}.
 
 % end of file

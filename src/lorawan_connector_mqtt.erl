@@ -163,11 +163,11 @@ handle_info(nodes_changed,
         execute_hierarchy_updates(NewH, Hier, Connector),
     {noreply, State#state{hier=Hier2}};
 
-handle_info({reconnect, Connect, NewSub, Costa},
-        #state{hier=Hier}=State) ->
+handle_info({reconnect, Connect}, #state{hier=Hier}=State) ->
+    {Connect, _, Subs, Costa} = lists:keyfind(Connect, 1, Hier),
     {ok, C, Costa2} = reconnect(Costa),
     {noreply, State#state{hier=lists:keystore(Connect, 1, Hier,
-        {Connect, C, NewSub, Costa2})}};
+        {Connect, C, Subs, Costa2})}};
 
 handle_info({mqttc, C, connected},
         #state{conn=#connector{subscribe_qos=QoS}, hier=Hier}=State) ->
@@ -227,22 +227,29 @@ handle_info({publish, Topic, Payload}, State=#state{conn=Connector, received=Pat
 
 handle_info(ping, #state{hier=Hier}=State) ->
     lists:foreach(
-        fun({_Connect, C, _NewSub, _Costa}) ->
-            pong = emqttc:ping(C)
+        fun
+            ({_, undefined, _, _}) ->
+                ok;
+            ({_, C, _, _}) ->
+                pong = emqttc:ping(C)
         end,
         Hier),
     {noreply, State};
 
 handle_info({'EXIT', C, Error}, #state{conn=#connector{connid=ConnId}, hier=Hier}=State) ->
-    {Connect, C, NewSub, #costa{phase=OldPhase, connect_count=Count}=Costa} = lists:keyfind(C, 2, Hier),
+    {Connect, C, Subs, #costa{phase=OldPhase, connect_count=Count}=Costa} = lists:keyfind(C, 2, Hier),
     lager:debug("Connector ~p to ~p (~p) failed: ~p (count: ~p)", [ConnId, hd(Connect), OldPhase, Error, Count]),
-    case handle_reconnect(ConnId, Connect, NewSub, Costa) of
+    case handle_reconnect(ConnId, Connect, Costa) of
         {ok, C2, Costa2} ->
             {noreply, State#state{hier=lists:keystore(Connect, 1, Hier,
-                {Connect, C2, NewSub, Costa2})}};
+                {Connect, C2, Subs, Costa2})}};
         remove ->
             {noreply, State#state{hier=lists:keydelete(Connect, 1, Hier)}}
     end;
+
+handle_info({status, From}, #state{conn=#connector{connid=Id, app=App}, hier=Hier}=State) ->
+    From ! {status, obtain_status(0, #{module=><<"mqtt">>, connid=>Id, app=>App}, Hier, [])},
+    {noreply, State};
 
 handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
@@ -258,18 +265,17 @@ terminate(Reason, #state{conn=#connector{connid=ConnId}}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-handle_reconnect(ConnId, Connect, NewSub, #costa{last_connect=Last, connect_count=Count} = Costa) ->
+handle_reconnect(ConnId, Connect, #costa{last_connect=Last, connect_count=Count} = Costa) ->
     case calendar:datetime_to_gregorian_seconds(calendar:universal_time())
             - calendar:datetime_to_gregorian_seconds(Last) of
         Diff when Diff < 30, Count > 120 ->
             % give up after 2 hours
-            lorawan_connector:raise_failed(ConnId, <<"network">>),
+            lorawan_connector:raise_failed(ConnId, network),
             remove;
         Diff when Diff < 30, Count > 0 ->
             % wait, then wait even longer, but no longer than 30 sec
-            {ok, _} = timer:send_after(erlang:min(Count*5000, 30000),
-                {reconnect, Connect, NewSub, switch_ver(Costa#costa{connect_count=Count+1})}),
-            remove;
+            {ok, _} = timer:send_after(erlang:min(Count*5000, 30000), {reconnect, Connect}),
+            {ok, undefined, switch_ver(Costa#costa{connect_count=Count+1})};
         Diff when Diff < 30, Count == 0 ->
             % initially try to reconnect immediately
             reconnect(switch_ver(Costa#costa{connect_count=1}));
@@ -286,9 +292,9 @@ connection_for_node(Node, #state{connect=PatConn, hier=Hier}) ->
     Connect = lorawan_connector:fill_pattern(PatConn,
         lorawan_admin:build(lorawan_connector:node_to_vars(Node))),
     case lists:keyfind(Connect, 1, Hier) of
-        {Connect, C, _NewSub, _Costa} ->
+        {Connect, C, _NewSub, _Costa} when is_pid(C) ->
             {ok, C};
-        false ->
+        _Else ->
             {error, disconnected}
     end.
 
@@ -351,5 +357,30 @@ ssl_args(mqtts, #connector{}) ->
     [{ssl, [
         {versions, ['tlsv1.2']}
     ]}].
+
+obtain_status(Idx, Common, [Item | More], Acc) ->
+    obtain_status(Idx+1, Common, More,
+        [build_status(Idx, Common, Item) | Acc]);
+obtain_status(_Idx, _Common, [], Acc) ->
+    Acc.
+
+build_status(Idx, Common, {[Uri, ClientId, _, _], _, Subs, _}=Item) ->
+    Common2 =
+        if_defined(client_id, ClientId,
+            Common),
+    Common2#{pid => lorawan_connector:pid_to_binary(self(), Idx), uri => Uri,
+        subs => Subs, status => status_of(Item)}.
+
+if_defined(_Key, undefined, Map) ->
+    Map;
+if_defined(Key, Value, Map) ->
+    maps:put(Key, Value, Map).
+
+status_of({_, undefined, _, _}) ->
+    disconnected;
+status_of({_, _, _, #costa{phase=Phase}}) when Phase == attempt31; Phase == attempt311 ->
+    connecting;
+status_of({_, _, _, #costa{phase=Phase}}) when Phase == connected31; Phase == connected311 ->
+    connected.
 
 % end of file

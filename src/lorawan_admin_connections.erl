@@ -45,12 +45,37 @@ content_types_provided(Req, State) ->
     ], Req, State}.
 
 handle_get(Req, #state{app=undefined}=State) ->
-    {jsx:encode(get_connections(pg2:which_groups(), [])), Req, State};
+    Filter = lorawan_admin:parse(get_filters(Req)),
+    Items =
+        lists:filter(
+            fun(Conn) ->
+                filter_matches(Conn, Filter)
+            end,
+            get_connections(pg2:which_groups(), [])),
+    {jsx:encode(Items), Req, State};
 handle_get(Req, #state{app=App}=State) ->
     {jsx:encode(get_connection(App)), Req, State}.
 
+get_filters(Req) ->
+    case cowboy_req:match_qs([{'_filters', [], <<"{}">>}], Req) of
+        #{'_filters' := Filter} ->
+            jsx:decode(Filter, [return_maps, {labels, atom}])
+    end.
+
+filter_matches(_Conn, []) ->
+    true;
+filter_matches(Conn, Filter) ->
+    lists:all(
+        fun({Key, Value}) ->
+            case maps:get(Key, Conn, undefined) of
+                Value -> true;
+                _ -> false
+            end
+        end,
+        maps:to_list(Filter)).
+
 get_connections([{backend, App}|More], Acc) ->
-    get_connections(More, [get_connection(App)|Acc]);
+    get_connections(More, Acc++get_connection(App));
 get_connections([_Else|More], Acc) ->
     get_connections(More, Acc);
 get_connections([], Acc)->
@@ -59,10 +84,25 @@ get_connections([], Acc)->
 get_connection(App) ->
     case pg2:get_members({backend, App}) of
         List when is_list(List) ->
-            #{app => App, count => length(List)};
+            lists:foldl(
+                fun(Pid, Acc) ->
+                    Acc ++ get_connection0(Pid, App)
+                end,
+                [], List);
         {error, _} ->
-            #{app => App, count => 0}
+            []
     end.
+
+get_connection0(Pid, App) ->
+    Pid ! {status, self()},
+    receive
+        {status, Data} ->
+            Data
+    after
+        500 ->
+            [#{pid => lorawan_connector:pid_to_binary(self()), app => App, status => <<"disconnected">>}]
+    end.
+
 
 content_types_accepted(Req, State) ->
     {[

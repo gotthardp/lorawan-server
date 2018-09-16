@@ -45,7 +45,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var handlers = nga.entity('handlers')
         .identifier(nga.field('app'));
     var connections = nga.entity('connections')
-        .identifier(nga.field('app'));
+        .identifier(nga.field('pid'));
     var events = nga.entity('events')
         .identifier(nga.field('evid'));
 
@@ -971,7 +971,23 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('certfile', 'file').label('User Certificate')
             .uploadInformation({'url': '/api/upload'}),
         nga.field('keyfile', 'file').label('Private Key')
-            .uploadInformation({'url': '/api/upload'})
+            .uploadInformation({'url': '/api/upload'}),
+        // Status
+        nga.field('health_alerts', 'choices').label('Alerts')
+            .editable(false),
+        nga.field('connid', 'referenced_list').label('Connections')
+            .targetEntity(connections)
+            .targetReferenceField('connid')
+            .targetFields([
+                nga.field('uri').label('URI'),
+                nga.field('client_id').label('Client ID'),
+                nga.field('subs').label('Subscriptions')
+                    .template(function(entry) {
+                        return entry.values.subs.join('<br>');
+                    }),
+                nga.field('status')
+                    .template(function(entry){ return connectIndicator(entry.values) })
+            ])
     ]);
     connectors.creationView().template(createWithTabsTemplate([
         {name:"General", min:0, max:12},
@@ -980,7 +996,8 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     connectors.editionView().fields(connectors.creationView().fields());
     connectors.editionView().template(editWithTabsTemplate([
         {name:"General", min:0, max:12},
-        {name:"Authentication", min:12, max:18}
+        {name:"Authentication", min:12, max:18},
+        {name:"Status", min:18, max:20}
     ]));
     // add to the admin application
     admin.addEntity(connectors);
@@ -1506,6 +1523,17 @@ function dirIndicator(values) {
     }
 }
 
+function connectIndicator(values) {
+    switch (values.status) {
+        case "disconnected":
+            return '<span style="color:red" class="fa fa-exclamation-circle fa-fw" title="disconnected"></span>';
+        case "connecting":
+            return '<span style="color:orange" class="fa fa-exclamation-triangle fa-fw" title="connecting"></span>';
+        case "connected":
+            return '<span style="color:yellowgreen" class="fa fa-check fa-fw" title="connected"></span>';
+    }
+}
+
 myApp.decorator('HttpErrorService', ['$delegate', '$translate', 'notification',
 function($delegate, $translate, notification) {
     $delegate.handleDefaultError = function(error) {
@@ -2002,10 +2030,9 @@ return {
     },
     link: function($scope) {
         $scope.count = 0;
-        $http({method: 'GET', url: '/api/connections/'+$scope.value})
+        $http({method: 'GET', url: '/api/connections', params: {_filters: {app: $scope.value}}})
             .then(function(response) {
-                if(response.data.count > 0)
-                    $scope.count = response.data.count;
+                $scope.count = response.data.length;
             })
 
         $scope.sendTest = function() {

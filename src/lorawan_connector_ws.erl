@@ -11,7 +11,7 @@
 
 -include("lorawan_db.hrl").
 
--record(state, {connector, type, bindings}).
+-record(state, {conn, type, path, bindings}).
 
 start_connector(#connector{connid=Id, publish_uplinks=PubUp, publish_events=PubEv}=Connector) ->
     Routes =
@@ -43,7 +43,9 @@ init(Req, [#connector{connid=Id}=Connector, Type]) ->
     case validate(maps:to_list(Bindings)) of
         ok ->
             {ok, Timeout} = application:get_env(lorawan_server, websocket_timeout),
-            {cowboy_websocket, Req, #state{connector=Connector, type=Type, bindings=Bindings}, #{idle_timeout => Timeout}};
+            {cowboy_websocket, Req,
+                #state{conn=Connector, type=Type, path=cowboy_req:path(Req), bindings=Bindings},
+                #{idle_timeout => Timeout}};
         {error, Error} ->
             lorawan_utils:throw_error({connector, Id}, Error),
             Req2 = cowboy_req:reply(404, Req),
@@ -89,7 +91,7 @@ validate0(devaddr, DevAddr) ->
 validate0(_Else, _) ->
     ok.
 
-websocket_init(#state{connector=#connector{connid=Id, app=App}, bindings=Bindings} = State) ->
+websocket_init(#state{conn=#connector{connid=Id, app=App}, bindings=Bindings} = State) ->
     lager:debug("WebSocket connector ~p with ~p", [Id, Bindings]),
     ok = pg2:join({backend, App}, self()),
     {ok, State}.
@@ -105,7 +107,7 @@ websocket_handle(Data, State) ->
     lager:warning("Unknown handle ~w", [Data]),
     {ok, State}.
 
-handle_downlink(Msg, #state{connector=Connector, bindings=Bindings}=State) ->
+handle_downlink(Msg, #state{conn=Connector, bindings=Bindings}=State) ->
     case lorawan_connector:decode_and_downlink(Connector, Msg, Bindings) of
         ok ->
             ok;
@@ -120,7 +122,7 @@ websocket_info(nodes_changed, State) ->
     % nothing to do here
     {ok, State};
 websocket_info({uplink, _Node, Vars0},
-        #state{connector=#connector{format=Format}, type=uplink, bindings=Bindings} = State) ->
+        #state{conn=#connector{format=Format}, type=uplink, bindings=Bindings} = State) ->
     case lorawan_connector:same_common_vars(Vars0, Bindings) of
         true ->
             {reply, encode_uplink(Format, Vars0), State};
@@ -141,6 +143,11 @@ websocket_info({event, _Node, Vars0},
     end;
 websocket_info({event, _Node, _Vars0}, #state{type=uplink}=State) ->
     % this is not for me
+    {ok, State};
+websocket_info({status, From}, #state{conn=#connector{connid=Id, app=App}, path=Uri}=State) ->
+    From ! {status, [
+        #{module => <<"ws">>, pid => lorawan_connector:pid_to_binary(self()),
+            connid => Id, app => App, uri => Uri, status => <<"connected">>}]},
     {ok, State};
 websocket_info(Info, State) ->
     lager:warning("Unknown info ~p", [Info]),

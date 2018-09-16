@@ -40,6 +40,9 @@ To create a new connector you set:
    - **network** when the destination server cannot be reached
    - **topic** when the target broker configuration is wrong
 
+If the Connector is *Enabled* the server will automatically connect to the
+backend server and subscribe this topic.
+
 When a *Failed* flag is raised, the connector is inactive and no connection is
 established. To re-establish the connection after an error occures, fix the
 indicated root cause and then remove the flag to reactivate the connector.
@@ -56,8 +59,10 @@ On the Authentication tab:
  - **Name** and **Password/Key** for plain authentication
  - **User Certificate** and **Private Key** if SSL authentication is needed
 
-If the Connector is *Enabled* the server will automatically connect to the
-backend server and subscribe this topic.
+On the Status tab you can view the status of established connections:
+ - **URI** and **Cliend ID** used
+ - **Subscriptions** made
+ - **Status** of the connection: `disconnected`, `connecting` or `connected`
 
 Please read the [Integration Guide](Integration.md) for detailed information on
 how to connect to a specific IoT Platform like AWS IoT, IBM Watson IoT, MathWorks

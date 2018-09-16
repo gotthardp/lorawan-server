@@ -72,6 +72,12 @@ handle_info({event, _Node, Vars0}, #state{pool=Pool, publish_events=PatPub}=Stat
     store_fields(Pool, PatPub, Vars0),
     {noreply, State};
 
+handle_info({status, From}, #state{conn=#connector{connid=Id, app=App, uri=Uri}}=State) ->
+    From ! {status, [
+        #{module => <<"mongodb">>, pid => lorawan_connector:pid_to_binary(self()),
+            connid => Id, app => App, uri => Uri, status => get_status(State)}]},
+    {noreply, State};
+
 handle_info(Unknown, State) ->
     lager:debug("Unknown message: ~p", [Unknown]),
     {noreply, State}.
@@ -122,5 +128,11 @@ prepare_bson(Data) ->
                 (_Key, _Value) -> true
             end,
             Data)).
+
+get_status(#state{pool=Pool}) ->
+    case mongodb:is_connected(Pool) of
+        true -> <<"connected">>;
+        false -> <<"disconnected">>
+    end.
 
 % end of file
