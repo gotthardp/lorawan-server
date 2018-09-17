@@ -304,7 +304,7 @@ filter_group_responses(_AppID, List) ->
         ok, List).
 
 parse_payload(<<"ascii">>, Data) ->
-    case io_lib:printable_list(Data) of
+    case io_lib:printable_list(binary_to_list(Data)) of
         true ->
             #{text => Data};
         false ->
