@@ -304,7 +304,13 @@ filter_group_responses(_AppID, List) ->
         ok, List).
 
 parse_payload(<<"ascii">>, Data) ->
-    #{text => Data};
+    case io_lib:printable_list(Data) of
+        true ->
+            #{text => Data};
+        false ->
+            lager:error("Non ASCII string: ~p", [Data]),
+            #{}
+    end;
 parse_payload(<<"cayenne">>, Data) ->
     cayenne_decode(Data);
 parse_payload(<<"cbor">>, Data) ->
