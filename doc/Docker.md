@@ -12,7 +12,7 @@ docker pull gotthardp/lorawan-server:latest
 docker run --detach \
   --name lorawan \
   --hostname lorawan \
-  --rm \
+  --restart on-failure \
   --volume /path/to/local:/storage \
   --publish 8080:8080/tcp \
   --publish 1680:1680/udp \
@@ -40,3 +40,7 @@ docker run -d \
   --cleanup \
   lorawan
 ```
+
+In development environment you may want to start the lorawan connector with the
+`--rm` option instead of `--restart on-failure` to auto-delete old containers.
+(You cannot use both options at the same time.)
