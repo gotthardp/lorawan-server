@@ -73,6 +73,6 @@ enter the cookie explicitly by the `-setcookie MyCookie` parameter.
 To create a new tag do:
 
 ```bash
-git tag v0.5.0 master
-git push origin v0.5.0
+git tag v0.6.0 master
+git push origin v0.6.0
 ```
