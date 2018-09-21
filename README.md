@@ -6,11 +6,11 @@ or for device and application developers.
 
 **Warning** After a major version upgrade you are required to review and complete
 the configuration before connecting any gateway or device!
+ * After migrating from version 0.5.x to 0.6.x you need to assign Profiles to
+   Groups and Gateways to Areas.
  * Migrating from version 0.4.x to 0.5.x will preserve the Device/Node addresses
    and security keys, but will delete many ADR parameters, which got moved to the
    Profile settings.
- * After migrating from version 0.5.x to 0.6.x you need to assign Profiles to
-   Groups and Gateways to Areas.
 
 The server:
  * Implements the LoRaWAN Specification v1.0.3
@@ -183,6 +183,7 @@ and institutions. It was mentioned by the following blogs and articles:
  * [Espruino RN2483 LoRa Modules](http://www.espruino.com/RN2483)
  * [1-Gate LoRaWAN Gateway COMPACT](http://www.1-gate.com/english/lorawan-gateways)
  * [LoRaWAN evaluation by Witekio](https://witekio.com/blog/lorawan-dedicated-iot-network)
+ * [Сергей Гаевский: Построение корпоративной сети LoRaWAN](http://controlengrussia.com/besprovodny-e-tehnologii/korporativnoj-seti-lorawan), in Беспроводные технологии №3’17
 
 Please let me know if you use the lorawan-server and want to be listed here.
 
