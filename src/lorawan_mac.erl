@@ -27,7 +27,7 @@ ingest_frame(MAC, <<MType:3, _:3, 0:2, _/binary>> = PHYPayload) when byte_size(P
             end),
     Res;
 ingest_frame(MAC, PHYPayload) ->
-    lager:warning("gateway ~s received unknown frame protocol: ~p", [binary_to_hex(MAC), PHYPayload]),
+    lager:warning("gateway ~s received unknown frame protocol: ~w", [binary_to_hex(MAC), PHYPayload]),
     ignore.
 
 ingest_frame0(MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
