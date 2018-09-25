@@ -207,3 +207,8 @@ and their workflows.
 <a href="http://www.iotini.com"><img align="left" src="http://www.iotini.com/images/logo.png"></a>
 [I2OT](http://www.iotini.com/#product) is the first industrial wireless sensor
 system that provides a total solution for industrial sensing needs.
+
+<br/>
+
+<a href="https://softline.com/"><img align="left" src="https://portal.softline.com/softlinetrade/MarketingProjects/SharedDocLib/%D0%9E%D0%9C%D0%9F%D0%B8%D0%A0/%D0%9B%D0%BE%D0%B3%D0%BE%D1%82%D0%B8%D0%BF%D1%8B/25_years_in_IT/X1_Softline%2025%20Years%20in%20IT%20(web).png"></a>
+Softline is a leading global Information Technology solutions and services provider focused on emerging markets such as Eastern Europe, Central Asia, Americas, and Asia. We help our customer achieve digital transformation and protect their business with cybersecurity technologies. Our services include end-to-end technology solutions, public and private clouds, software and hardware provisioning and broad array of associated services.
