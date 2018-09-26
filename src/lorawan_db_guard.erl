@@ -228,6 +228,7 @@ send_emails(undefined, _Type, _ID, _Message, _Warning) ->
     ok;
 send_emails(Admins, Type, ID, Message, Warning) ->
     send_emails0(
+        mnesia:dirty_read(config, <<"main">>),
         lists:filtermap(
             fun(User) ->
                 case mnesia:dirty_read(user, User) of
@@ -240,11 +241,9 @@ send_emails(Admins, Type, ID, Message, Warning) ->
             end, Admins),
         Type, ID, Message, Warning).
 
-send_emails0([], _Type, _ID, _Message, _Warning) ->
-    ok;
-send_emails0(ToAddrs, Type, ID, Message, Warning) ->
-    [#config{admin_url=Prefix, email_from=From, email_server=Server,
-        email_user=User, email_password=Pass}] = mnesia:dirty_read(config, <<"main">>),
+send_emails0([#config{admin_url=Prefix, email_from=From, email_server=Server,
+        email_user=User, email_password=Pass}], ToAddrs, Type, ID, Message, Warning)
+        when byte_size(From) > 0, byte_size(Server) > 0, length(ToAddrs) > 0 ->
     TypeTitle = titlecase(Type),
     Body =
         {<<"multipart">>, <<"alternative">>, [
@@ -277,12 +276,7 @@ send_emails0(ToAddrs, Type, ID, Message, Warning) ->
             list_to_binary(["<html><body>", TypeTitle,
                 " <a href=\"", stringify_url(Prefix, Type, ID), "\">", ID, "</a>", Message, "</body></html>"])}]},
     gen_smtp_client:send({From, ToAddrs, mimemail:encode(Body)},
-        if
-            is_binary(Server), byte_size(Server) > 0 ->
-                [{relay, Server}];
-            true ->
-                []
-        end ++
+        [{relay, Server}] ++
         if
             is_binary(User), byte_size(User) > 0 ->
                 [{username, User}];
@@ -294,7 +288,9 @@ send_emails0(ToAddrs, Type, ID, Message, Warning) ->
                 [{password, Pass}];
             true ->
                 []
-        end).
+        end);
+send_emails0(_Config, _ToAddrs, _Type, _ID, _Message, _Warning) ->
+    ok.
 
 send_slack(Channel, Type, ID, Message, Warning) ->
     case catch send_slack_message(Channel, Type, ID, Message, Warning) of
