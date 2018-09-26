@@ -17,8 +17,9 @@ mkdir -p $ROOT/lib/systemd/system
 rsync -tp $REL/bin/lorawan-server.service $ROOT/lib/systemd/system
 
 sed "s/<VERSION>/${VERSION}/" < ${SCRIPT_DIR}/control.template > ${SCRIPT_DIR}/control
+sed "s/<VERSION>/${VERSION}/" < ${SCRIPT_DIR}/conffiles.template > ${SCRIPT_DIR}/conffiles
 mkdir -p $ROOT/DEBIAN
-rsync -tp ${SCRIPT_DIR}/control ${SCRIPT_DIR}/postinst ${SCRIPT_DIR}/postrm $ROOT/DEBIAN
+rsync -tp ${SCRIPT_DIR}/control ${SCRIPT_DIR}/conffiles ${SCRIPT_DIR}/postinst ${SCRIPT_DIR}/postrm $ROOT/DEBIAN
 
 mkdir -p $ROOT/usr/share/doc/lorawan-server
 rsync -tp ${SCRIPT_DIR}/../../LICENSE $ROOT/usr/share/doc/lorawan-server/copyright
