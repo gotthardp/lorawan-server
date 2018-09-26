@@ -259,7 +259,7 @@ send_downlink(Handler, #{app := AppID}, Time, TxData) ->
 send_downlink(_Handler, Else, _Time, _TxData) ->
     lager:error("Unknown downlink target: ~p", [Else]).
 
-try_class_c(Handler, #node{profile=ProfID, last_rx=LastRx}=Node, Time, TxData) ->
+try_class_c(Handler, #node{devaddr=DevAddr, profile=ProfID, last_rx=LastRx}=Node, Time, TxData) ->
     {atomic, {ok, #network{rx2_delay=Delay}=Network, Profile}} =
         mnesia:transaction(
             fun() ->
@@ -270,6 +270,7 @@ try_class_c(Handler, #node{profile=ProfID, last_rx=LastRx}=Node, Time, TxData) -
             - calendar:datetime_to_gregorian_seconds(LastRx),
     if
         SecSinceLast < Delay ->
+            lager:debug("~s delaying Class C downlink", [lorawan_utils:binary_to_hex(DevAddr)]),
             % the node recently sent a Class A uplink
             timer:apply_after(Delay*1000, ?MODULE, send_class_c, [{Network, Profile, Node}, Handler, Time, TxData]);
         true ->
