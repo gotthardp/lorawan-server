@@ -175,6 +175,7 @@ setting `network.http.spdy.enforce-tls-profile` to `false`.
 ### Lost admin password
 
 If you forgot your admin password
+ * make sure `/var/lib/lorawan-server/.erlang.cookie` and `$HOME/.erlang.cookie` are identical
  * connect to the cluster via remote shell by `erl -sname test -remsh lorawan@<hostname>`
  * delete the `user` database by `mnesia:delete_table(user).`
  * restart the server to recreate the `user` database with the default admin password
