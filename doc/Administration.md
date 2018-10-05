@@ -22,7 +22,12 @@ the REST API described below.
 ![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/admin-dashboard.png)
 
 The server Dashboard shows:
- * Rolling timeline displaying recent Frames and [Events](Events.md#events).
+ * Rolling timeline that displays:
+   - **red** error [events](Events.md#events);
+   - **yellow** warning [events](Events.md#events);
+   - **blue** handled uplinks frames;
+   - **cyan** sent downlinks frames;
+   - **gray** ignored uplinks frames.
  * Server information and a list of [Gateways](Infrastructure.md#gateways),
    and [Nodes](Devices.md#activated-nodes) that may need your attention.
    The lines are sorted by severity.
