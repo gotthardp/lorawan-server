@@ -282,12 +282,13 @@ invoke_handler2(Module, Fun, Params) ->
     end.
 
 % class C
-downlink({Network, Profile, Node}, Time, TxData) ->
-    {MAC, _RxQ} = hd(Node#node.gateways),
+downlink({Network, Profile, #node{gateways=[{MAC, _RxQ}|_]}=Node}, Time, TxData) ->
     TxQ = lorawan_mac_region:rx2_rf(Network, Node),
     % will ACK immediately, so server-initated Class C downlinks have ACK=0
     send_unicast({MAC, undefined}, {Network, Profile, Node}, TxQ#txq{time=Time}, 0,
-        lorawan_mac_commands:build_fopts({Network, Profile, Node}, []), TxData).
+        lorawan_mac_commands:build_fopts({Network, Profile, Node}, []), TxData);
+downlink({_, _, #node{devaddr=DevAddr}}, _, _) ->
+    lorawan_utils:throw_error({node, DevAddr}, no_uplink_yet).
 
 multicast(#multicast_channel{devaddr=DevAddr, profiles=Profiles}=Channel, Time, #txdata{confirmed=false} = TxData) ->
     % must be unconfirmed, ACK=0, no MAC commands allowed
@@ -313,10 +314,10 @@ multicast(#multicast_channel{devaddr=DevAddr}, _Time, #txdata{confirmed=true}) -
 
 mac_for_profile(ProfName) ->
     lists:usort(
-        lists:map(
-            fun(Gateway) ->
-                {MAC2, _RxQ} = hd(Gateway),
-                MAC2
+        lists:filtermap(
+            fun
+                ([{MAC, _RxQ} | _]) -> {true, MAC};
+                (_Else) -> false
             end,
             mnesia:dirty_select(node, [{#node{profile='$1', gateways='$2', _='_'},
                 [{'==', '$1', ProfName}], ['$2']}]))).
