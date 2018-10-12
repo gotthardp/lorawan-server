@@ -113,6 +113,9 @@ To create a web socket connector you set:
  - **Publish Uplinks** to a URL pattern starting with a slash, e.g. '/ws/uplink/{devaddr}'
  - **Publish Events** to another URL pattern, e.g. '/ws/events/{devaddr}'
 
+HTTP Basic authentication is supported. On the Authentication tab you may set the
+*Name* and *Password/Key* that shall be verified by the server.
+
 The patterns may have any structure (doesn't have to start with `/ws`), but must
 be unique across the entire server, including the web-admin itself.
 

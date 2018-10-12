@@ -39,44 +39,67 @@ stop_connector(Id) ->
     lorawan_http_registry:delete({ws, Id}).
 
 init(Req, [#connector{connid=Id}=Connector, Type]) ->
-    Bindings = lorawan_admin:parse(cowboy_req:bindings(Req)),
-    case validate(maps:to_list(Bindings)) of
-        ok ->
+    case authorize(Req, Connector) of
+        {ok, Bindings} ->
             {ok, Timeout} = application:get_env(lorawan_server, websocket_timeout),
             {cowboy_websocket, Req,
                 #state{conn=Connector, type=Type, path=cowboy_req:path(Req), bindings=Bindings},
                 #{idle_timeout => Timeout}};
+        unauthorized ->
+            lorawan_utils:throw_error({connector, Id}, unauthorized),
+            Req2 = cowboy_req:reply(403, Req),
+            {ok, Req2, undefined};
         {error, Error} ->
             lorawan_utils:throw_error({connector, Id}, Error),
             Req2 = cowboy_req:reply(404, Req),
             {ok, Req2, undefined}
     end.
 
-validate([{Key, Value} | Other]) ->
-    case validate0(Key, Value) of
+authorize(Req, #connector{name=User})
+        when User == undefined; User == <<>> ->
+    validate(Req);
+authorize(Req, #connector{name=User, pass=Pass}) ->
+    case cowboy_req:parse_header(<<"authorization">>, Req) of
+        {basic, User, Pass} ->
+            validate(Req);
+        _Else ->
+            unauthorized
+    end.
+
+validate(Req) ->
+    Bindings = lorawan_admin:parse(cowboy_req:bindings(Req)),
+    case validate0(maps:to_list(Bindings)) of
+        ok ->
+            {ok, Bindings};
+        Error ->
+            Error
+    end.
+
+validate0([{Key, Value} | Other]) ->
+    case validate_key(Key, Value) of
         ok ->
             validate(Other);
         Else ->
             Else
     end;
-validate([])->
+validate0([])->
     ok.
 
-validate0(app, App) ->
+validate_key(app, App) ->
     case mnesia:dirty_read(handler, App) of
         [#handler{}] ->
             ok;
         _Else ->
             {error, {unknown_application, App}}
     end;
-validate0(deveui, DevEUI) ->
+validate_key(deveui, DevEUI) ->
     case mnesia:dirty_read(device, DevEUI) of
         [#device{}] ->
             ok;
         _Else ->
             {error, {unknown_deveui, lorawan_utils:binary_to_hex(DevEUI)}}
     end;
-validate0(devaddr, DevAddr) ->
+validate_key(devaddr, DevAddr) ->
     case mnesia:dirty_read(node, DevAddr) of
         [#node{}] ->
             ok;
@@ -88,7 +111,7 @@ validate0(devaddr, DevAddr) ->
                     {error, {unknown_devaddr, lorawan_utils:binary_to_hex(DevAddr)}}
             end
     end;
-validate0(_Else, _) ->
+validate_key(_Else, _) ->
     ok.
 
 websocket_init(#state{conn=#connector{connid=Id, app=App}, bindings=Bindings} = State) ->
