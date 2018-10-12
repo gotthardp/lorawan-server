@@ -272,7 +272,8 @@ try_class_c(Handler, #node{devaddr=DevAddr, profile=ProfID, last_rx=LastRx}=Node
         SecSinceLast < Delay ->
             lager:debug("~s delaying Class C downlink", [lorawan_utils:binary_to_hex(DevAddr)]),
             % the node recently sent a Class A uplink
-            timer:apply_after(Delay*1000, ?MODULE, send_class_c, [{Network, Profile, Node}, Handler, Time, TxData]);
+            {ok, _} = timer:apply_after(Delay*1000, ?MODULE, send_class_c, [{Network, Profile, Node}, Handler, Time, TxData]),
+            ok;
         true ->
             send_class_c({Network, Profile, Node}, Handler, Time, TxData)
     end.
