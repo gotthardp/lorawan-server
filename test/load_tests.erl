@@ -81,7 +81,7 @@ send_receive(Node, N) ->
     {inorder,
         lists:map(
             fun(Seq) ->
-                ?_assertEqual({ok, 2, <<((Seq+1) rem 2)>>}, test_mote:push_and_pull(Node, Seq, 2, test_mote:semtech_payload(Seq)))
+                ?_assertEqual({ok, false, 2, <<((Seq+1) rem 2)>>}, test_mote:push_and_pull(Node, false, Seq, 2, test_mote:semtech_payload(Seq)))
             end,
             lists:seq(1, N))}.
 

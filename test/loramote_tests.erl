@@ -49,14 +49,18 @@ loramote_test(#state{gateway=Gateway, node1=Node1}) ->
     ?_assertEqual({ok, <<"YEQzIhEBAgAGAnyjfkSq">>}, test_forwarder:push_and_pull(Gateway, test_forwarder:rxpk("QEQzIhEA0AACHaxbOsSlM9izylIPYNdD3QuCrXI="))),
     % -- sequence tests
     {inorder, [
-        ?_assertEqual({ok, 2, <<1>>}, test_mote:push_and_pull(Node1, 1, 2, test_mote:semtech_payload(0))),
-        ?_assertEqual({ok, 2, <<0>>}, test_mote:push_and_pull(Node1, 2, 2, test_mote:semtech_payload(1))),
+        ?_assertEqual({ok, false, 2, <<1>>}, test_mote:push_and_pull(Node1, false, 1, 2, test_mote:semtech_payload(0))),
+        ?_assertEqual({ok, false, 2, <<0>>}, test_mote:push_and_pull(Node1, false, 2, 2, test_mote:semtech_payload(1))),
         % old frame
-        ?_assertEqual({error, timeout}, test_mote:push_and_pull(Node1, 1, 2, test_mote:semtech_payload(0))),
+        ?_assertEqual({error, timeout}, test_mote:push_and_pull(Node1, false, 1, 2, test_mote:semtech_payload(0))),
         % retransmission, the payload shall be ignored
-        ?_assertEqual({ok, 2, <<0>>}, test_mote:push_and_pull(Node1, 2, 2, test_mote:semtech_payload(0))),
-        % next normal frame
-        ?_assertEqual({ok, 2, <<1>>}, test_mote:push_and_pull(Node1, 3, 2, test_mote:semtech_payload(2)))
+        ?_assertEqual({ok, false, 2, <<0>>}, test_mote:push_and_pull(Node1, false, 2, 2, test_mote:semtech_payload(0))),
+        % next normal frame, confirmed
+        ?_assertEqual({ok, true, 2, <<1>>}, test_mote:push_and_pull(Node1, true, 3, 2, test_mote:semtech_payload(2))),
+        % ignored non-confirmed
+        ?_assertEqual({error, timeout}, test_mote:push_and_pull(Node1, false, 4, 2, <<>>)),
+        % ignored confirmed
+        ?_assertEqual({ok, true, undefined, <<>>}, test_mote:push_and_pull(Node1, true, 5, 2, <<>>))
         ]}
     ].
 
