@@ -1,0 +1,8 @@
+config BR2_PACKAGE_LORAWAN_SERVER
+	bool "lorawan-server"
+	select BR2_PACKAGE_ERLANG
+	help
+	  Open-source LoRaWAN Server that integrates both the
+	  network-server and the application-server. This is useful for
+	  application providers that operate their own LoRaWAN network,
+	  or for device and application developers.
