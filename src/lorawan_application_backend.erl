@@ -82,10 +82,11 @@ any_is_member(List1, List2) ->
 
 parse_uplink(#handler{app=AppID, payload=Payload, uplink_fields=Fields},
         #network{netid=NetID},
-        #node{appargs=AppArgs, devstat=DevStat},
+        #node{appargs=AppArgs, devstat=DevStat, profile=Profile},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     vars_add(netid, NetID, Fields,
         vars_add(app, AppID, Fields,
+        vars_add(appid, get_appid(Profile), Fields,
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
         vars_add(appargs, AppArgs, Fields,
@@ -94,7 +95,7 @@ parse_uplink(#handler{app=AppID, payload=Payload, uplink_fields=Fields},
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        parse_payload(Payload, Data))))))))))).
+        parse_payload(Payload, Data)))))))))))).
 
 parse_rxq(Gateways, Fields, Vars) ->
     {MAC1, #rxq{freq=Freq, datr=Datr, codr=Codr, rssi=RSSI1, lsnr=SNR1}} = hd(Gateways),
@@ -131,6 +132,12 @@ get_deveui(DevAddr) ->
         [] -> undefined
     end.
 
+get_appid(Profile) ->
+    case mnesia:dirty_read(profiles, Profile) of
+        [#profile{appid=AppId}|_] -> AppId;
+        [] -> undefined
+    end.
+
 get_battery([{_DateTime, Battery, _Margin, _MaxSNR}|_]) ->
     Battery;
 get_battery(_Else) ->
@@ -160,16 +167,18 @@ send_event(Event, Vars0, #handler{app=AppID, event_fields=Fields, parse_event=Pa
         vars_add(event, Event, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
         case DeviceOrNode of
-            {#device{deveui=DevEUI, appargs=AppArgs}, DevAddr} ->
+            {#device{deveui=DevEUI, appargs=AppArgs, profile=Profile}, DevAddr} ->
                 vars_add(devaddr, DevAddr, Fields,
+                vars_add(appid, get_appid(Profile), Fields,
                 vars_add(deveui, DevEUI, Fields,
                 vars_add(appargs, AppArgs, Fields,
-                Vars0)));
-            #node{devaddr=DevAddr, appargs=AppArgs} ->
+                Vars0))));
+            #node{devaddr=DevAddr, appargs=AppArgs, profile=Profile} ->
                 vars_add(devaddr, DevAddr, Fields,
+                vars_add(appid, get_appid(Profile), Fields,
                 vars_add(deveui, get_deveui(DevAddr), Fields,
                 vars_add(appargs, AppArgs, Fields,
-                Vars0)))
+                Vars0))))
         end))),
     lorawan_backend_factory:event(AppID, DeviceOrNode,
         data_to_fields(AppID, Parse, Vars, Event)).
