@@ -6,7 +6,7 @@
 -module(lorawan_db).
 
 -export([ensure_tables/0, ensure_table/2, ensure_table/3]).
--export([foreach_record/3, get_group/1, get_rxframes/1]).
+-export([foreach_record/3, get_profile/1, get_group/1, get_rxframes/1]).
 -export([record_fields/1]).
 -export([join_cluster/1, join_cluster/2, leave_cluster/1, join/1, leave/2]).
 
@@ -286,9 +286,17 @@ foreach_record(Database, Keys, Fun) ->
                 end)
         end, Keys).
 
-get_group(#node{profile=ProfName}) ->
+get_profile(#node{profile=ProfName}) ->
     case mnesia:dirty_read(profile, ProfName) of
-        [#profile{group=GrName}] ->
+        [Profile] ->
+            Profile;
+        [] ->
+            undefined
+    end.
+
+get_group(Node) ->
+    case get_profile(Node) of
+        #profile{group=GrName} ->
             case mnesia:dirty_read(group, GrName) of
                 [Group] ->
                     Group;
