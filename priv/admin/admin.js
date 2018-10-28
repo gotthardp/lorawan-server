@@ -1018,6 +1018,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .choices([
                 { value: 'netid', label: 'netid' },
                 { value: 'app', label: 'app' },
+                { value: 'appid', label: 'appid' },
                 { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
                 { value: 'appargs', label: 'appargs' },
@@ -1047,6 +1048,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('event_fields', 'choices')
             .choices([
                 { value: 'app', label: 'app' },
+                { value: 'appid', label: 'appid' },
                 { value: 'event', label: 'event' },
                 { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
