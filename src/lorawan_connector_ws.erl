@@ -78,7 +78,7 @@ validate(Req) ->
 validate0([{Key, Value} | Other]) ->
     case validate_key(Key, Value) of
         ok ->
-            validate(Other);
+            validate0(Other);
         Else ->
             Else
     end;
