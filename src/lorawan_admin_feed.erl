@@ -68,7 +68,6 @@ lists_match(_, _) ->
     false.
 
 notify(Scope) ->
-    lager:debug("Feeds notify: ~p", [Scope]),
     Table = element(1, Scope),
     case pg2:get_members({feed, Table}) of
         {error, _Error} ->
@@ -80,12 +79,17 @@ notify(Scope) ->
     end.
 
 encoded_records(State) ->
-    jsx:encode(matched_records(State)).
+    {atomic, Records} =
+        mnesia:transaction(
+            fun() ->
+                matched_records(State)
+            end),
+    jsx:encode(Records).
 
 matched_records(#state{table=Table, match=Match}=State) ->
     lists:map(
         fun(Rec)-> build_record(Rec, State) end,
-        mnesia:dirty_select(Table, [{Match, [], ['$_']}])).
+        mnesia:select(Table, [{Match, [], ['$_']}])).
 
 build_record(Rec, #state{fields=Fields, module=Module, auth_fields=AuthFields}) ->
     apply(Module, build, [
