@@ -68,6 +68,7 @@ lists_match(_, _) ->
     false.
 
 notify(Scope) ->
+    lager:debug("Feeds notify: ~p", [Scope]),
     Table = element(1, Scope),
     case pg2:get_members({feed, Table}) of
         {error, _Error} ->
