@@ -201,7 +201,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .targetField(nga.field('name'))
             .validation({ required: true }),
         nga.field('email').label('E-Mail')
-            .validation({ pattern: '[^@\s]+@[^@\s]+\.[^@\s]+' }),
+            .validation({ pattern: '[^@\\s]+@[^@\\s]+\\.[^@\\s]+' }),
         nga.field('send_alerts', 'boolean')
             .validation({ required: true })
             .defaultValue(true)
