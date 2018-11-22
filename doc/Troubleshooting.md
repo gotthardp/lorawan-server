@@ -109,8 +109,9 @@ The device sent an unexpected frame counter *FCnt*. This may be because:
 If this is an exceptional case, go to the *Nodes* list and manually update the
 *FCnt Up* to the *FCnt* number.
 
-To allow ABP devices to freely reset set the *FCnt Check* to *Reset on zero*,
-but please note this weakens LoRaWAN security a bit.
+To allow ABP devices to freely reset set the *FCnt Check* to *Reset on zero*
+in the device profile, but please note this weakens LoRaWAN security a bit.
+
 It is recommended to use over-the-air-activation (OTAA) instead.
 
 ### repeated_reset
