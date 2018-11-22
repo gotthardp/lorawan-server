@@ -1279,9 +1279,20 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 }]);
 
 function map_memstats(value, entry) {
+    var free = 0;
+
     if ('memory.free_memory' in entry) {
-        var free = 100 * entry['memory.free_memory'] / entry['memory.total_memory'];
-        return bytesToSize(entry['memory.free_memory']) + " (" + free.toFixed(0) + "%)";
+        free += entry['memory.free_memory'];
+    }
+    if ('memory.buffered_memory' in entry) {
+        free += entry['memory.buffered_memory'];
+    }
+    if ('memory.cached_memory' in entry) {
+        free += entry['memory.cached_memory'];
+    }
+    if ('memory.total_memory' in entry) {
+        var free_percentage = 100 * free / entry['memory.total_memory'];
+        return bytesToSize(free) + " (" + free_percentage.toFixed(0) + "%)";
     }
 }
 
