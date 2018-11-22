@@ -1630,7 +1630,7 @@ return {
             end: new Date(),
             rollingMode: {follow: true, offset: 0.95},
             selectable: false,
-            maxHeight: "300px",
+            height: "300px",
             zoomMax: 2592000000,
             zoomMin: 1000
         };
