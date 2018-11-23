@@ -187,8 +187,9 @@ be different to all Web Socket *Publish* patterns.
 
 Every uplink will trigger a HTTP POST to `http://host:port/uplink/{devaddr}`.
 
-To send a downlink request you should make a HTTP PUT or POST to
-`http://yourserver:8080/in/{devaddr}` and authenticate using the admin credentials.
+To send a downlink request you should have a user with the
+[*device:send* scope](Server.md#users) (or *unlimited*) and make a HTTP PUT or POST
+to `http://yourserver:8080/in/{devaddr}`.
 For example:
 
 ```bash
