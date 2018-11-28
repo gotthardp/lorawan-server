@@ -1,0 +1,11 @@
+USER=lorawan
+
+case "$1" in
+    configure)
+    id -u $USER >/dev/null 2>&1 || useradd --home-dir /var/lib/lorawan-server --create-home $USER
+    mkdir -p /var/log/lorawan-server && chown $USER:$USER /var/log/lorawan-server
+    ;;
+
+    *)
+    ;;
+esac

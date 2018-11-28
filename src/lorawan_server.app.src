@@ -1,22 +1,48 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2018 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 {application, lorawan_server,
     [{description, "LoRaWAN Application Server"},
-    {vsn, "0.1.0"},
+    {vsn, "0.6.3"},
     {modules, []},
     {registered, []},
     {mod, {lorawan_app, []}},
     {env, [
-        {plugins, [
-            {<<"semtech-mote">>, lorawan_application_semtech_mote},
-            {<<"microchip-mote">>, lorawan_application_microchip_mote}]},
-        {forwarder_port, 1680},
-        {http_admin_port, 8080},
-        {http_admin_credentials, {<<"admin">>, <<"admin">>}}
+        {applications, [
+            {<<"semtech-mote">>, lorawan_application_semtech_mote}
+        ]},
+        {connectors, [
+            {lorawan_connector_amqp, [<<"amqp">>, <<"amqps">>]},
+            {lorawan_connector_mqtt, [<<"mqtt">>, <<"mqtts">>]},
+            {lorawan_connector_http, [<<"http">>, <<"https">>]},
+            {lorawan_connector_mongodb, [<<"mongodb">>]},
+            {lorawan_connector_ws, [<<"ws">>]}
+        ]},
+        {packet_forwarder_listen, [{port, 1680}]},
+        {http_admin_path, <<"/admin">>},
+        {http_admin_listen, [{port, 8080}]},
+        {http_admin_redirect_ssl, true},
+        {http_admin_credentials, {<<"admin">>, <<"admin">>}},
+        {http_content_security, <<"default-src * data: 'unsafe-inline' 'unsafe-eval';">>},
+        % use to limit SSL versions and ciphers, see http://erlang.org/doc/man/ssl.html
+        {ssl_options, []},
+        {frames_before_adr, 50},
+        {retained_rxframes, 50},
+        {websocket_timeout, 3600000}, % ms
+        % {sec, fcnt} after which the device status should be request
+        % by default: 5 days or 4*24 frames
+        {devstat_gap, {432000, 96}},
+        {max_lost_after_reset, 10},
+        % packet_forwarder's push_timeout_ms + network delay
+        {gateway_delay, 200},
+        {deduplication_delay, 200},
+        {server_stats_interval, 60}, % [s]
+        {slack_server, {"slack.com", 443}},
+        {event_lifetime, 86400}
     ]},
-    {applications, [kernel, stdlib, lager, cowboy, mnesia, jsx]}]}.
+    {applications, [kernel, stdlib, sasl, os_mon, lager, mnesia, eid,
+        cowboy, gun, jsx, iso8601, gen_smtp, amqp_client, emqttc, erlmongo]}]}.
 
 % end of file

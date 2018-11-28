@@ -1,8 +1,13 @@
 {
   "private": true,
   "dependencies": {
-    "ng-admin": "1.0.0-beta2",
+    "jquery": ">=1.0",
+    "ng-admin": ">=1.0.7",
     "angular-simple-logger": ">=0.0.1",
-    "angular-google-maps": "2.3.4"
+    "angular-google-maps": "2.4.1",
+    "angular-google-chart": "1.0.0-beta.1",
+    "vis": "4.20.1",
+    "angular-visjs": "4.16.0",
+    "angular-bootstrap-colorpicker": "v3.0.32"
   }
 }

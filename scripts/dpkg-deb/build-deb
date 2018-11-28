@@ -1,0 +1,28 @@
+SCRIPT=$(readlink $0 || true)
+if [ -z $SCRIPT ]; then
+    SCRIPT=$0
+fi
+SCRIPT_DIR="$(cd `dirname "$SCRIPT"` && pwd -P)"
+
+REL=${SCRIPT_DIR}/../../_build/default/rel/lorawan-server
+VERSION=`find ${REL}/releases -type d -name "*.*.*" -printf "%f\n" | sort | tail -1`
+REVISION=1
+
+ROOT=/tmp/lorawan-server_${VERSION}-${REVISION}_all
+
+mkdir -p $ROOT/usr/lib/lorawan-server
+rsync -trLp $REL/bin $REL/lib $REL/releases $ROOT/usr/lib/lorawan-server
+
+mkdir -p $ROOT/lib/systemd/system
+rsync -tp $REL/bin/lorawan-server.service $ROOT/lib/systemd/system
+
+sed "s/<VERSION>/${VERSION}/" < ${SCRIPT_DIR}/control.template > ${SCRIPT_DIR}/control
+sed "s/<VERSION>/${VERSION}/" < ${SCRIPT_DIR}/conffiles.template > ${SCRIPT_DIR}/conffiles
+mkdir -p $ROOT/DEBIAN
+rsync -tp ${SCRIPT_DIR}/control ${SCRIPT_DIR}/conffiles ${SCRIPT_DIR}/postinst ${SCRIPT_DIR}/postrm $ROOT/DEBIAN
+
+mkdir -p $ROOT/usr/share/doc/lorawan-server
+rsync -tp ${SCRIPT_DIR}/../../LICENSE $ROOT/usr/share/doc/lorawan-server/copyright
+
+fakeroot dpkg-deb --build $ROOT $REL
+rm -rf $ROOT

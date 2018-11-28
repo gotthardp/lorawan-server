@@ -9,6 +9,7 @@
 -define(Rb, <<16#87:128>>).
 -define(BlockSize, 16).
 
+-spec aes_cmac(K :: <<_:128>>, M :: binary(), S :: integer()) -> binary().
 aes_cmac(K, M, S) ->
     erlang:binary_part(aes_cmac(K, M), 0, S).
 
@@ -36,6 +37,7 @@ aes_cmac(K, M, S) ->
 %%   +                                                                   +
 %%   +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+-spec generate_subkeys(K :: <<_:128>>) -> {<<_:128>>, <<_:128>>}.
 generate_subkeys(<<_:128>> = K) ->
     L = crypto:block_encrypt(aes_ecb, K, ?Zero),
     K1 = case L of
@@ -93,6 +95,7 @@ generate_subkeys(<<_:128>> = K) ->
 %%   +   Step 7.  return T;                                              +
 %%   +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+-spec aes_cmac(K :: <<_:128>>, M :: binary()) -> binary().
 aes_cmac(<<_:128>> = K, M) ->
     case erlang:function_exported(crypto, cmac, 3) of
         true ->

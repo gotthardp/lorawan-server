@@ -1,14 +1,23 @@
 @echo off
-
 setlocal EnableDelayedExpansion
 
-set SCRIPT_DIR=%~dp0
+for /D %%A in ("%PROGRAMFILES%\erl*" "%PROGRAMFILES(x86)%\erl*") do (
+    for /D %%B in ("%%A\erts*") do (
+        for /D %%C in ("%%B\bin\erl.exe") do (
+            set "ERL_DIR=%%C"
+        )
+    )
+)
+
+set "SCRIPT_DIR=%~dp0"
 for %%A in ("%SCRIPT_DIR%\..") do (
     set "ROOT_DIR=%%~fA"
 )
 
-for /D %%A in (%ROOT_DIR%\lib\*) do (
-    set FILES=!FILES! %%A\ebin
+for /D %%A in ("%ROOT_DIR%\lib\*") do (
+    set FILES=!FILES! "%%A\ebin"
 )
 
-cd %ROOT_DIR% && erl -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app -config releases/0.1.0/sys.config
+echo Server started at http://localhost:8080
+set ERL_ARGS="-lager log_root "log""
+cd %ROOT_DIR% && %ERL_DIR% -noinput +Bd -sname lorawan -pa !FILES! -s lorawan_app %ERL_ARGS% -config releases/{{release_version}}/sys.config

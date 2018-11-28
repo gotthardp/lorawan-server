@@ -1,0 +1,157 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>WebSocket client</title>
+    <script src="/admin/jquery.min.js"></script>
+    <script type="text/javascript">
+    var websocket;
+    $(document).ready(init);
+
+    function init() {
+        $('#server').val("3238353554348D05");
+        if(!("WebSocket" in window)){
+            $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
+            $("#navigation").hide();
+        } else {
+            $('#status').hide();
+            connect();
+        };
+
+        $("#connected").hide();
+        $("#content").hide();
+    };
+
+    function ascii_to_hexa(data)
+    {
+        var arr1 = [];
+        var buffer = new Uint8Array(data);
+        for (var n=0; n < buffer.length; n++)
+        {
+            var hex = buffer[n].toString(16);
+            if (hex.length < 2) hex = "0" + hex;
+            arr1.push(hex);
+        }
+        return arr1.join('');
+    }
+
+    function hexa_to_binary(hex)
+    {
+        var bytes = new Uint8Array(hex.length/2);
+        for (var n=0; n < hex.length/2; n++)
+        {
+            bytes[n] = parseInt(hex.substr(2*n, 2), 16);
+        }
+
+        return bytes;
+    }
+
+    function connect()
+    {
+        if(window.location.protocol == "http:")
+            wsProto = "ws://";
+        else if(window.location.protocol == "https:")
+            wsProto = "wss://";
+
+        wsHost = wsProto + window.location.host + $("#uri").val();
+        websocket = new WebSocket(wsHost);
+        showScreen('Connecting to: ' +  wsHost);
+        websocket.binaryType = 'arraybuffer';
+        websocket.onopen = function(evt) { onOpen(evt) };
+        websocket.onclose = function(evt) { onClose(evt) };
+        websocket.onmessage = function(evt) { onMessage(evt) };
+        websocket.onerror = function(evt) { onError(evt) };
+    };
+
+    function disconnect() {
+        websocket.close();
+    };
+
+    function toggle_connection(){
+        if(websocket.readyState == websocket.OPEN){
+            disconnect();
+        } else {
+            connect();
+        };
+    };
+
+    function sendTxt() {
+        if(websocket.readyState == websocket.OPEN) {
+            txt = $("#send_txt").val();
+            if($("#format").val() == "raw") {
+                websocket.send(hexa_to_binary(txt).buffer);
+            } else {
+                websocket.send(txt);
+            }
+            showScreen('<span style="color: green;">SEND: ' + txt + '</span>'); 
+        } else {
+            showScreen('websocket is not connected'); 
+        };
+    };
+
+    function onOpen(evt) {
+        showScreen('<span style="color: green;">CONNECTED</span>'); 
+        $("#connected").fadeIn('slow');
+        $("#content").fadeIn('slow');
+    };
+
+    function onClose(evt) {
+        showScreen('<span style="color: red;">DISCONNECTED</span>');
+    };
+
+    function onMessage(evt) {
+        if($("#format").val() == "raw") {
+            showScreen('<span style="color: blue;">RECEIVED: ' + ascii_to_hexa(evt.data) +'</span>');
+        } else if($("#format").val() == "json") {
+            var msg = JSON.parse(evt.data);
+            showScreen('<span style="color: blue;">RECEIVED: ' + JSON.stringify(msg) +'</span>');
+        } else {
+            showScreen('<span style="color: blue;">RECEIVED: ' + evt.data +'</span>');
+        }
+    };
+
+    function onError(evt) {
+        showScreen('<span style="color: red;">ERROR: ' + evt.data+ '</span>');
+    };
+
+    function showScreen(txt) {
+        var m = new Date();
+        var dateString = m.toLocaleDateString()+" "+m.toLocaleTimeString();
+
+        $('#output').prepend(dateString + ' ' + txt + '<br>');
+    };
+
+    function clearScreen()
+    {
+        $('#output').html("");
+    };
+    </script>
+  </head>
+
+  <body>
+    <div id="header">
+      <h1>Websocket client</h1>
+      <div id="status"></div>
+    </div>
+
+    <div id="navigation">
+      <p id="connecting">
+        <input type='text' id="uri" placeholder="/uri/path"></input>
+        <select id="format">
+          <option value="raw" selected="true">Raw</option>
+          <option value="json">JSON</option>
+          <option value="text">Text</option>
+        </select>
+        <button type="button" onclick="toggle_connection()">connection</button>
+      </p>
+      <p id="connected">
+        Hex String or JSON<br>
+        <input type='text' id="send_txt" size=50></input>
+        <button type="button" onclick="sendTxt();">send</button>
+      </p>
+      <div id="content">
+        <button id="clear" onclick="clearScreen()" >Clear text</button>
+        <p id="output"></p>
+      </div>
+    </div>
+  </body>
+</html>

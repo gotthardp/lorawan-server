@@ -1,99 +1,108 @@
-# Compact server for private LoRa networks
+# Compact server for private LoRaWAN networks
 
 Open-source LoRaWAN Server that integrates both the network-server and the application-server.
-This is useful for application providers that operate their own LoRa network,
+This is useful for application providers that operate their own LoRaWAN network,
 or for device and application developers.
 
+**Warning** After a major version upgrade you are required to review and complete
+the configuration before connecting any gateway or device!
+ * After migrating from version 0.5.x to 0.6.x you need to assign Profiles to
+   Groups and Gateways to Areas.
+ * Migrating from version 0.4.x to 0.5.x will preserve the Device/Node addresses
+   and security keys, but will delete many ADR parameters, which got moved to the
+   Profile settings.
+
 The server:
+ * Implements the LoRaWAN Specification v1.0.3
  * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
    * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
-     such as the Semtech LoRa demo kit and [LORANK-8](http://webshop.ideetron.nl/LORANK-8) gateways.
+     such as the Semtech LoRa demo kit,
+     [LoRa Lite Gateway](https://wireless-solutions.de/products/long-range-radio/lora_lite_gateway.html),
+     [LORANK-8](http://webshop.ideetron.nl/LORANK-8),
+     [MultiConnect Conduit](http://www.multitech.com/brands/multiconnect-conduit),
+     or [Kerlink Wirnet Stations](http://www.kerlink.fr/en/products/lora-iot-station-2/wirnet-station-868)
  * Performs all required encryption and integrity checks.
- * Invokes modules with the application logic. It provides examples for:
+   * Supports relaxed frame-counter check for simple ABP devices.
+ * Invokes internal modules with application logic. It provides examples for:
    * [Semtech/IMST LoRaMote](http://webshop.imst.de/loramote-lora-evaluation-tool.html)
    * [Microchip LoRa(TM) Technology Mote](http://www.microchip.com/Developmenttools/ProductDetails.aspx?PartNO=dm164138)
- * Supports (any number of) Class A devices.
- * Supports both the activation by personalization and the over-the-air activation.
- * Supports unconfirmed data uplink and downlink.
- * Supports the EU 868 band.
+     (via an [external plug-in](https://github.com/gotthardp/lorawan-server-demoapp))
+ * Automatically parses well-known payload formats. It currently supports:
+   * [Cayenne Low Power Payload](https://github.com/myDevicesIoT/cayenne-docs/blob/master/docs/LORA.md#cayenne-low-power-payload)
+   * [Concise Binary Object Representation (CBOR)](https://tools.ietf.org/rfc/rfc7049.txt)
+ * Stores uplink data directly to a MongoDB collection.
+ * Invokes external applications. It currently supports connections via:
+   * WebSocket protocol [RFC6455](https://tools.ietf.org/rfc/rfc6455.txt)
+   * HTTP/1.1 and HTTP/2 protocol (REST API)
+   * [MQTT v3.1/v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html),
+     including applications hosted in
+     [Amazon AWS IoT](https://aws.amazon.com/iot/),
+     [IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things),
+     [MathWorks ThingSpeak](https://thingspeak.com/),
+     [Microsoft Azure IoT Hub](https://azure.microsoft.com/en-us/services/iot-hub/),
+     [ThingsBoard Open-source IoT Platform](https://thingsboard.io),
+     [Adafruit IO](https://io.adafruit.com/),
+     or [Orange Live Objects](https://liveobjects.orange-business.com)
+   * AMQP 0-9-1 to the [RabbitMQ](http://www.rabbitmq.com/)
+ * Handles (any number of) Class A or Class C devices.
+   * Supports both the node activation by personalization (ABP) and the
+     over-the-air activation (OTAA).
+   * Supports both unconfirmed and confirmed data uplink and downlink.
+   * Supports multicast to user-defined groups.
+   * Supports all regions standartized in LoRaWAN 1.0.3 Regional Parameters for
+     Europe, US, China, Australia, Asia, South Korea, India and Russia.
+ * Provides a network management interface.
+   * Supports both manual and automatic configuration of data rate (ADR) and other parameters.
+   * Monitors the server, gateways and node health status and displays device
+     battery and connection quality indicators.
+   * Can send health alerts via e-mail or Slack.
  * Runs on all major operating systems, including Windows, Linux, OS X and Solaris,
-   even in a Docker container.
+   even on [embedded systems](doc/Embedded.md) like Raspbian, mLinux and other
+   Yocto/OpenEmbedded systems, OpenWrt or in a [Docker container](doc/Docker.md).
+ * Can establish [Clusters](doc/Cluster.md) for high availability.
+ * Does not crash as it's implemented in [Erlang](https://www.erlang.org/), which is
+   designed for building fault-tolerant systems.
  * Is free, distributed under the MIT license.
 
-The server aims to be an all-in-one software package for small private LoRa networks.
-However:
+The server aims to be an all-in-one software package for small private LoRaWAN
+networks. However:
  * You still need to buy your LoRaWAN Gateway.
  * You will need to deploy and maintain it yourself. (With my support.)
  * It will probably never support the sophisticated management features of the
    commercial-grade network-servers.
 
-Let me know if you (intend to) use the lorawan-server. The API may change and some
-functions may not be implemented. I will gladly assist you. Please
-[add an Issue](https://github.com/gotthardp/lorawan-server/issues/new)
-if you find a bug or miss a feature.
+The maximum amount of gateways, devices and nodes the server can support depends
+on the server load and hardware performance. There are no hard limits.
+
+The API may change and some functions may not be implemented.
+To ask questions or request features please join the
+[lorawan-server mailing list](https://groups.google.com/forum/#!forum/lorawan-server).
+We will gladly assist you. If you find a bug, you may also
+[add an Issue](https://github.com/gotthardp/lorawan-server/issues/new).
 
 
-## Installation
+## Documentation
 
-You will need the Erlang/OTP 18 or later.
- * On Linux, try typing `yum install erlang` or `apt-get install erlang`.
- * On Windows, install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads).
+The lorawan-server includes all functions required to run a private LoRaWAN network.
+It integrates your LoRaWAN network directly with your backend IT systems.
+The server is provided as a comprehensive package with a single configuration file
+and a single administration tool.
+You only need to install the [Erlang/OTP](http://www.erlang.org) 19 or higher.
 
-Then download the binary release
-[lorawan-server-0.1.0.tar.gz](https://github.com/gotthardp/lorawan-server/releases/download/v0.1.0/lorawan-server-0.1.0.tar.gz)
-and unpack it by:
-```bash
-mkdir lorawan-server
-mv lorawan-server-0.1.0.tar.gz lorawan-server/
-cd lorawan-server
-tar -zxvf lorawan-server-0.1.0.tar.gz
-```
+The main components of the lorawan-server are shown in the following figure:
 
-Review the `lorawan-server/releases/0.1.0/sys.config` with the server configuration.
-For example:
-```erlang
-[{lorawan_server, [
-    % UDP port listening for packets from the packet_forwarder Gateway
-    {forwarder_port, 1680},
-    % HTTP port for web-administration and REST API
-    {http_admin_port, 8080},
-    % default username and password for the admin interface
-    {http_admin_credentials, {<<"admin">>, <<"admin">>}}
-]}].
-```
+![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/system-architecture.png)
 
-You may need to enable communication channels from LoRaWAN gateways in your firewall.
-If you use the `firewalld` (Fedora, RHEL, CentOS) do:
-```bash
-cp lorawan-forwarder.xml /usr/lib/firewalld/services
-firewall-cmd --permanent --add-service=lorawan-forwarder
-firewall-cmd --reload
-```
+### Usage
 
-### Configuration of the packet_forwarder
+The server behaviour is described in the [Introduction](doc/Introduction.md).
 
-Edit the [`global_conf.json`](https://github.com/Lora-net/packet_forwarder/blob/master/lora_pkt_fwd/global_conf.json)
-in your Gateway and update the `server_address`, `serv_port_up` and `serv_port_down` as necessary.
+The [Installation Instructions](doc/Installation.md) describe how to build,
+install and upgrade the server. You can use a Debian package, download the binary
+release and run it manually or build the server from source codes.
 
-For example:
-```json
-{
-    "gateway_conf": {
-        "gateway_ID": "AA555A0000000000",
-        "server_address": "server.example.com",
-        "serv_port_up": 1680,
-        "serv_port_down": 1680,
-        "keepalive_interval": 10,
-        "stat_interval": 30,
-        "push_timeout_ms": 100,
-        "forward_crc_valid": true,
-        "forward_crc_error": false,
-        "forward_crc_disabled": false
-    }
-}
-```
-
-## Usage
+Follow the [Configuration Instructions](doc/Configuration.md) to correctly
+setup your server.
 
 Run the lorawan-server release by:
 ```bash
@@ -101,98 +110,105 @@ cd lorawan-server
 bin/lorawan-server
 ```
 
-You can administrate and manage the server via a set of web-pages or via a REST API.
-By default, the server listens on HTTP port 8080 and expects "admin" as both username and password.
+Don't forget to set the server address and port (by default 1680) in the LoRaWAN
+gateways you want to use with the server.
 
-### REST API
+You can terminate the lorawan-server by:
+```bash
+bin/lorawanctl stop
+```
 
-The following REST resources are made available:
+You can administrate and manage the server via a set of web-pages or via a REST API
+as described in the [Administration Guide](doc/Administration.md). By default you
+can access the administration at http://*server*:8080, using "admin" as both
+username and password. After the installation you have to:
+ * Change the default password to something more secure.
+ * Set parameters of your **Network** and add LoRaWAN **Gateways** you want to use.
+ * Define the device **Profiles**, one for each device type that you will have.
+ * Configure each device you want to use, either as a personalized **Node** (ABP)
+   or as an **Commissioned** and over-the-air activated (OTAA) device.
 
-  Resource        | Methods          | Explanation
- -----------------|------------------| ------------------------------------------------
-  /applications   | GET              | Supported LoRaWAN applications
-  /users          | GET, POST        | Users of the admin interface
-  /users/*ABC*    | GET, PUT, DELETE | User *ABC*
-  /gateways       | GET, POST        | LoRaWAN gateways
-  /gateways/*123* | GET, PUT, DELETE | Gateway with MAC=*123*
-  /devices        | GET, POST        | Devices registered for over-the-air activation
-  /devices/*123*  | GET, PUT, DELETE | Device with DevEUI=*123*
-  /links          | GET, POST        | Activated devices
-  /links/*123*    | GET, PUT, DELETE | Activated device with DevAddr=*123*
+### Integration
 
-### Web Admin
+You can integrate lorawan-server with external applications using Backend
+[Handlers](doc/Handlers.md) and [Connectors](doc/Connectors.md). Instructions on
+how to integrate with some major clouds such as AWS or Azure are provided in the
+[Integration Guide](doc/Integration.md).
 
-The management web-pages are available under `/admin`. It is just a wrapper around
-the REST API.
+You can also use the internal web server and develop internal applications, which
+may offer custom REST APIs. The lorawan-server is designed to be highly extensible.
+I encourage you to [Learn You Some Erlang](http://learnyousomeerlang.com/introduction)
+and develop your own modules.
 
-To register a new gateway, create a new *Gateways* list entry.
+To implement an internal application you need to create a new module implementing the
+`lorawan_application` behaviour as described in the
+[Custom Application Guide](doc/Applications.md) and [Development Guide](doc/Development.md).
 
-To add a personalized device, create a new *Links* list entry.
-To add an OTAA device, create a new *Devices* list entry and start the device. The *Links*
-list will be updated automatically once the device joins the network.
-
-![alt tag](https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/admin.png)
-
-
-## Development
+### Troubleshooting
 [![Build Status](https://travis-ci.org/gotthardp/lorawan-server.svg?branch=master)](https://travis-ci.org/gotthardp/lorawan-server)
 
-The lorawan-server is designed to be highly extensible. I encourage you to
-[Learn You Some Erlang](http://learnyousomeerlang.com/introduction) and develop
-your own applications.
+First of all, please read the documentation.
 
-### Custom application handlers
+If the server doesn't do what you expect, please review the server logs and consult the
+[Troubleshooting Instructions](doc/Troubleshooting.md) for the most common problems.
 
-To implement a new application you need to create a new `lorawan_application_xxx.erl` module
-and register it in the
-[`lorawan_application.erl`](https://github.com/gotthardp/lorawan-server/blob/master/src/lorawan_application.erl).
+If the problem persists, please verify you have the latest version. I recommend
+to always use the [latest release](https://github.com/gotthardp/lorawan-server/releases).
+If you use the [latest sources](https://github.com/gotthardp/lorawan-server/commits/master),
+please verify the "build" icon above is green and then try upgrading by running:
 
-Your module just needs to export a `handle/5` function for data processing.
-
-```erlang
-handle(DevAddr, my_app, AppID, PortIn, DataIn) ->
-    %% application logic
-    %% ...
-    {send, PortOut, DataOut}.
-```
-
-### Build Instructions
-
-You will need the following prerequisites:
- * Rebar3, the Erlang build tool. Please follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
- * npm, the JavaScript package manager.
-   * On Linux, try typing `yum install npm` or `apt-get install npm`.
-   * On Windows, install the [Node.js](https://nodejs.org/en/).
-
-Then build and release the lorawan-server by:
 ```bash
-git clone https://github.com/gotthardp/lorawan-server.git
 cd lorawan-server
-rebar3 release
+git pull
+make upgrade
+make release
 ```
 
-The release will be created in `lorawan-server/_build/default/rel/lorawan-server`.
+If the "build" icon above is red, please wait few minutes (or hours) until it
+gets green again.
+
+If nothing helps, please contact the
+[lorawan-server mailing list](https://groups.google.com/forum/#!forum/lorawan-server)
+or review the existing
+[issues](https://github.com/gotthardp/lorawan-server/issues) to verify the
+problem was not already reported and then
+[create new issue](https://github.com/gotthardp/lorawan-server/issues/new).
+
+### Public References
+
+The server is used (both commercially and non-commercially) by various companies
+and institutions. It was mentioned by the following blogs and articles:
+ * [Three reasons for creating an Open Source LoRaWan server](http://research.konicaminolta.eu/three-reasons-for-creating-an-open-source-lorawan-server)
+ * [LoraWAN server running on OpenWrt/LEDE](http://matchx.io/community/box/5-lorawan-server-running-on-the-box)
+ * [Espruino RN2483 LoRa Modules](http://www.espruino.com/RN2483)
+ * [1-Gate LoRaWAN Gateway COMPACT](http://www.1-gate.com/english/lorawan-gateways)
+ * [LoRaWAN evaluation by Witekio](https://witekio.com/blog/lorawan-dedicated-iot-network)
+ * [Сергей Гаевский: Построение корпоративной сети LoRaWAN](http://controlengrussia.com/besprovodny-e-tehnologii/korporativnoj-seti-lorawan), in Беспроводные технологии №3’17
+
+Please let me know if you use the lorawan-server and want to be listed here.
+
 
 ## Copyright and Licensing
 
-The MIT License (MIT)
+The lorawan-server is distributed under the terms of the MIT License.
+See the [LICENSE](LICENSE).
 
-Copyright (c) 2016 Petr Gotthard
+Copyright (c) 2016-2018 Petr Gotthard
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+### Sponsors
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+<a href="https://www.konicaminolta.eu/en/business-solutions/home.html"><img align="left" src="https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/logo-konica-minolta.png"></a>
+[KMLE](http://research.konicaminolta.eu) is working on the challenge of
+helping customers optimize the way they work by digitizing the workplace
+and their workflows.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+<br/>
+
+<a href="http://www.iotini.com"><img align="left" src="http://www.iotini.com/images/logo.png"></a>
+[I2OT](http://www.iotini.com/#product) is the first industrial wireless sensor
+system that provides a total solution for industrial sensing needs.
+
+<br/>
+
+<a href="https://softline.com/"><img align="left" src="doc/images/X1_Softline.png"></a>
+Softline is a leading global Information Technology solutions and services provider focused on emerging markets such as Eastern Europe, Central Asia, Americas, and Asia. We help our customer achieve digital transformation and protect their business with cybersecurity technologies. Our services include end-to-end technology solutions, public and private clouds, software and hardware provisioning and broad array of associated services.

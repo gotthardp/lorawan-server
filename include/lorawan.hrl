@@ -1,28 +1,63 @@
 %
-% Copyright (c) 2016 Petr Gotthard <petr.gotthard@centrum.cz>
+% Copyright (c) 2016-2018 Petr Gotthard <petr.gotthard@centrum.cz>
 % All rights reserved.
 % Distributed under the terms of the MIT License. See the LICENSE file.
 %
 
--record(rxq, {time, tmst, chan, rfch, stat, rssi, lsnr}).
--record(txq, {tmst, rfch, powe}).
--record(rflora, {freq, datr, codr}).
--record(stat, {time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb}).
+-record(stat, {
+    time, lati, long, alti, rxnb, rxok, rxfw, ackr, dwnb, txnb,
+    mail, desc % TTN extensions
+}).
 
--record(user, {name, pass}).
--record(gateway, {mac, netid, gpspos, gpsalt}).
--record(device, {deveui, app, appid, appeui, appkey, link}).
--record(link, {devaddr, app, appid, nwkskey, appskey, fcntup, fcntdown}).
--record(rxframe, {devcnt, macrxq, rflora, data}).
+-record(frame, {conf, devaddr, adr, adr_ack_req, ack, fcnt, fopts, port, data}).
 
--define(to_record(Record, List),
-    list_to_tuple([Record|[proplists:get_value(X, List) || X <- record_info(fields, Record)]])).
+-define(to_record(Record, Object, Default),
+    list_to_tuple([Record|[maps:get(X, Object, Default) || X <- record_info(fields, Record)]])).
 
--define(to_proplist(Record, RecData),
-    lists:filter(fun({_, undefined}) -> false;
-                    (_) -> true
-                end,
-        lists:zip(record_info(fields, Record), tl(tuple_to_list(RecData)))
-    )).
+-define(to_record(Record, Object), ?to_record(Record, Object, undefined)).
+
+-define(to_map(Record, RecData),
+    maps:from_list(
+        lists:filtermap(
+            fun ({_K, D, D}) -> false;
+                ({K, V, _D}) -> {true, {K, V}}
+            end,
+            lists:zip3(record_info(fields, Record), lorawan_db:record_fields(RecData), tl(tuple_to_list(#Record{})))
+    ))).
+
+-define(REALM, <<"lorawan-server">>).
+
+-record(config, {
+    name :: nonempty_string(),
+    admin_url :: string(),
+    items_per_page :: integer(),
+    google_api_key :: 'undefined' | string(),
+    slack_token :: 'undefined' | string(),
+    email_from :: 'undefined' | string(),
+    email_server :: 'undefined' | string(),
+    email_user :: 'undefined' | string(),
+    email_password :: 'undefined' | string()}).
+
+-record(user, {
+    name :: nonempty_string(),
+    pass_ha1 :: string(),
+    scopes :: [string()],
+    email :: string(),
+    send_alerts :: boolean()}).
+
+-record(server, {
+    sname :: atom(),
+    router_perf :: [{calendar:datetime(), {integer(), integer()}}]}).
+
+-record(event, {
+    evid :: binary(),
+    severity :: atom(),
+    first_rx :: calendar:datetime(),
+    last_rx :: calendar:datetime(),
+    count :: integer(),
+    entity :: atom(),
+    eid :: binary(),
+    text :: binary(),
+    args :: 'undefined' | binary()}).
 
 % end of file
