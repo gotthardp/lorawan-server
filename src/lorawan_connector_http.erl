@@ -102,8 +102,8 @@ handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
                     {[], State2} ->
                         lager:warning("Authentication failed: ~p", [WWWAuthenticate]),
                         State2;
-                    {Auth, State2} ->
-                        do_publish({URI, authenticated, ContentType, Body}, Auth, State2)
+                    {Auth2, State2} ->
+                        do_publish({URI, authenticated, ContentType, Body}, Auth2, State2)
                 end
         end,
     {noreply, fin_stream(StreamRef, Fin, State3)};
