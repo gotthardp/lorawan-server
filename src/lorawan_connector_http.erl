@@ -108,13 +108,14 @@ handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
         end,
     {noreply, fin_stream(StreamRef, Fin, State3)};
 handle_info({gun_response, C, StreamRef, Fin, Status, _Headers},
-        State=#state{pid=C, streams=Streams}) ->
+        State=#state{pid = C, streams = Streams, conn = #connector{uri = Uri}}) ->
     if
         Status < 300 ->
             ok;
         Status >= 300 ->
-            {_, URI, _, _} = maps:get(StreamRef, Streams),
-            lager:debug("HTTP request to ~p failed: ~B", [URI, Status]),
+            {Path, _, _, _} = maps:get(StreamRef, Streams),
+            lager:debug("HTTP request failed: ~p, ~p", [Status, {Uri, Path}]),
+            lorawan_utils:throw_warning(connector_http, {http_error, {Status, Uri, Path}}),
             ok
     end,
     {noreply, fin_stream(StreamRef, Fin, State)};
