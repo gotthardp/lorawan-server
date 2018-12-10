@@ -375,7 +375,7 @@ cayenne_decode(<<Ch, 117, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
 % percentage
 cayenne_decode(<<Ch, 120, Val/signed-integer, Rest/binary>>, Acc) ->
     cayenne_decode(Rest, add_field(Ch, Val, Acc));
-% prssure
+% pressure
 cayenne_decode(<<Ch, 123, Val:16/unsigned-integer, Rest/binary>>, Acc) ->
     cayenne_decode(Rest, add_field(Ch, Val/10, Acc));
 % power
