@@ -358,6 +358,7 @@ constructs the binary payload.
 
 This function is optional. If not provided, the downlink data will be taken
 from the `data` field, e.g. when you send `{"devaddr":"11223344", "data":"01"}`.
+The `data` field must be in hexadecimal notation.
 
 If provided, *Build Downlink* shall be a
 [Fun Expression](http://erlang.org/doc/reference_manual/expressions.html#funs)
@@ -365,6 +366,15 @@ with a single parameter, which gets an
 [Erlang representation of JSON](https://github.com/talentdeficit/jsx#json---erlang-mapping)
 and returns
 [binary data](http://erlang.org/doc/programming_examples/bit_syntax.html).
+
+JSON data is converted to a map. Fields taken from the MQTT topic are added to
+the map. This map is passed as sole parameter to the downlink function. The
+download function may either return a binary or a map. If a binary is returned
+this binary is used to fill the `data` field which is sent to the device. If the
+downlink function returns a map this map replaces the original map. All relevant
+fields like `devaddr`, `deveui`, `port`, and `data` may be set in the downlink
+function.
+
 For example, if you send `{"devaddr":"11223344", "led":1}`, you can have a function
 like this to convert the custom field (`led`) to downlink data:
 
@@ -386,5 +396,17 @@ To build a variable sized array you can do:
 ```erlang
 fun(#{data := Data}) ->
   <<(length(Data)), (list_to_binary(Data))/binary>>
+end.
+```
+
+Here is a simple example just adding a `port` and a `data` field to the original
+map:
+
+```erlang
+fun(Fields) ->
+  Fields#{
+    port => 43,
+    data => << 16#88 >>
+  }
 end.
 ```

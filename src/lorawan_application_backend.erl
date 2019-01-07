@@ -178,15 +178,22 @@ send_event(Event, Vars0, #handler{app=AppName, event_fields=Fields, parse_event=
     lorawan_backend_factory:event(AppName, DeviceOrNode,
         data_to_fields(AppName, Parse, Vars, Event)).
 
-handle_downlink(AppName, Vars) ->
+handle_downlink(AppName, Vars_old) ->
     [#handler{build=Build}=Handler] = mnesia:dirty_read(handler, AppName),
+    Data = fields_to_data(AppName, Build, Vars_old),
+    if
+        is_map(Data) ->
+            Vars = Data;
+        true ->
+            Vars = Vars_old#{data => Data}
+    end,
     send_downlink(Handler,
         Vars,
         maps:get(time, Vars, undefined),
         #txdata{
             confirmed = maps:get(confirmed, Vars, false),
             port = maps:get(port, Vars, undefined),
-            data = fields_to_data(AppName, Build, Vars),
+            data = maps:get(data, Vars, undefined),
             pending = maps:get(pending, Vars, undefined),
             receipt = maps:get(receipt, Vars, undefined)
         }).
