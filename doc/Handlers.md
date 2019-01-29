@@ -322,6 +322,18 @@ The expression `#{name1 => A, name2 => B, name3 => C}` then creates (depending o
 your [Connector](Connectors.md) settings) a JSON `{"name1":A, "name2":B, "name3":C}`,
 or a Web-Form `name1=A&name2=B&name3=C`.
 
+### Retained Messages
+
+The field retain has a special meaning for the MQTT handler:
+
+ * retain = false - create a non-retained message
+ * retain = true - create a retained message
+ * retain = delete - delete the retained message and create a non-retained
+   message
+
+The field retain is not sent in the message to the MQTT handler.
+
+If the field retain is not present, a non-retained message is created.
 
 ## Parse Event
 
