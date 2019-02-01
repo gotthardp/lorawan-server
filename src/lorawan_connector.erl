@@ -12,9 +12,9 @@
 
 -include("lorawan_db.hrl").
 
-node_to_vars(#node{devaddr=DevAddr, appargs=AppArgs}) ->
+node_to_vars({_Profile, #node{devaddr=DevAddr, appargs=AppArgs}}) ->
     #{devaddr=>DevAddr, appargs=>AppArgs};
-node_to_vars({#device{appargs=AppArgs}, DevAddr}) ->
+node_to_vars({_Profile, #device{appargs=AppArgs}, DevAddr}) ->
     #{devaddr=>DevAddr, appargs=>AppArgs}.
 
 pid_to_binary(Pid) ->
