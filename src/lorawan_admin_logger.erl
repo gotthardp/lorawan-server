@@ -37,10 +37,10 @@ info(StreamId, Response, #state{next=Next0, path=Path, user=User, peer=Peer}=Sta
 
 handle_response({response, Status, Headers, Body}, _Path, _User, _Peer)
         when Status div 100 == 2 ->
-    {response, Status, add_security_headers(Headers), Body};
+    {response, Status, add_extra_headers(Headers), Body};
 handle_response({headers, Status, Headers}, _Path, _User, _Peer)
         when Status div 100 == 2 ->
-    {headers, Status, add_security_headers(Headers)};
+    {headers, Status, add_extra_headers(Headers)};
 
 handle_response({response, Status, _Headers, _Body}=Response, Path, User, Peer) ->
     log_error(Status, Path, User, Peer),
@@ -52,11 +52,9 @@ handle_response({headers, Status, _Headers}=Response, Path, User, Peer) ->
 handle_response(Else, _Path, _User, _Peer) ->
     Else.
 
-add_security_headers(Headers) ->
-    {ok, ContentSecurity} = application:get_env(lorawan_server, http_content_security),
-    Headers#{
-        <<"content-security-policy">> => ContentSecurity
-    }.
+add_extra_headers(Headers) ->
+    {ok, Extra} = application:get_env(lorawan_server, http_extra_headers),
+    maps:merge(Extra, Headers).
 
 log_error(Status, _Path, _User, _Peer) when Status == 301; Status == 304; Status == 401 ->
     ok;

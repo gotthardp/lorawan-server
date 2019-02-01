@@ -25,7 +25,7 @@
         {http_admin_listen, [{port, 8080}]},
         {http_admin_redirect_ssl, true},
         {http_admin_credentials, {<<"admin">>, <<"admin">>}},
-        {http_content_security, <<"default-src * data: 'unsafe-inline' 'unsafe-eval';">>},
+        {http_extra_headers, #{}},
         % use to limit SSL versions and ciphers, see http://erlang.org/doc/man/ssl.html
         {ssl_options, []},
         {frames_before_adr, 50},
