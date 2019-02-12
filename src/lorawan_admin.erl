@@ -14,28 +14,44 @@
 -include("lorawan_db.hrl").
 
 handle_authentication(Req) ->
-    case cowboy_req:parse_header(<<"authorization">>, Req) of
-        {digest, Params} ->
-            Method = cowboy_req:method(Req),
-            UserName = proplists:get_value(<<"username">>, Params, <<>>),
-            Nonce = proplists:get_value(<<"nonce">>, Params, <<>>),
-            URI = proplists:get_value(<<"uri">>, Params, <<>>),
-            Response = proplists:get_value(<<"response">>, Params, <<>>),
-            % retrieve and check password
-            case mnesia:dirty_read(user, UserName) of
-                [#user{pass_ha1=HA1, scopes=AuthScopes}] ->
-                    case lorawan_http_digest:response(Method, URI, <<>>, HA1, Nonce) of
-                        Response ->
-                            {true, AuthScopes};
-                        _Else ->
-                            {false, digest_header()}
-                    end;
-                [] ->
+    handle_authentication_field(Req,
+        cowboy_req:parse_header(<<"authorization">>, Req)).
+
+% when the client provided HTTP Basic password
+handle_authentication_field(_Req, {basic, User, Pass}) ->
+    case mnesia:dirty_read(user, User) of
+        [#user{pass_ha1=HA1, scopes=AuthScopes}] ->
+            case lorawan_http_digest:ha1({User, ?REALM, Pass}) of
+                HA1 ->
+                    {true, AuthScopes};
+                _Else ->
+                    {false, erlang:iolist_to_binary([<<"Basic realm=\"">>, ?REALM, $"])}
+            end;
+        [] ->
+            {false, erlang:iolist_to_binary([<<"Basic realm=\"">>, ?REALM, $"])}
+    end;
+% when the client did respond to the HTTP Digest challenge
+handle_authentication_field(Req, {digest, Params}) ->
+    Method = cowboy_req:method(Req),
+    UserName = proplists:get_value(<<"username">>, Params, <<>>),
+    Nonce = proplists:get_value(<<"nonce">>, Params, <<>>),
+    URI = proplists:get_value(<<"uri">>, Params, <<>>),
+    Response = proplists:get_value(<<"response">>, Params, <<>>),
+    % retrieve and check password
+    case mnesia:dirty_read(user, UserName) of
+        [#user{pass_ha1=HA1, scopes=AuthScopes}] ->
+            case lorawan_http_digest:response(Method, URI, <<>>, HA1, Nonce) of
+                Response ->
+                    {true, AuthScopes};
+                _Else ->
                     {false, digest_header()}
             end;
-        _Else ->
+        [] ->
             {false, digest_header()}
-    end.
+    end;
+% if nothing was provided
+handle_authentication_field(_Req, _Else) ->
+    {false, digest_header()}.
 
 handle_authorization(Req, {Read, Write}) ->
     case handle_authentication(Req) of
