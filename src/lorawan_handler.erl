@@ -162,7 +162,7 @@ uplink(cast, {rxq, Gateways0}, {TimeStamp, {Network, Profile, Node},
             send_unicast({MAC, GWState}, {Network, Profile, Node2}, TxQ, Confirm, FOptsOut, TxData);
         ok when ShallReply ->
             % application has nothing to send, but we still need to repond
-            send_unicast({MAC, GWState}, {Network, Profile, Node2}, TxQ, Confirm, FOptsOut, #txdata{});
+            send_unicast({MAC, GWState}, {Network, Profile, Node2}, TxQ, Confirm, FOptsOut, #txdata{data= <<>>});
         ok ->
             ok;
         {error, Error} ->
