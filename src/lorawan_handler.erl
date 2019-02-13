@@ -331,7 +331,7 @@ build_rxframe(Dir, Gateways, {#network{name=NetName}, #profile{app=App},
         app=App, devaddr=DevAddr, location=Location, gateways=Gateways,
         average_qs=AverageQs, powe=TXPower,
         fcnt=FCnt, confirm=bit_to_bool(Confirm), port=Port, data=Data,
-        datetime=calendar:universal_time()};
+        datetime=lorawan_utils:precise_universal_time()};
 build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
         #node{location=Location, devaddr=DevAddr, fcntdown=FCnt}},
         #txdata{confirmed=Confirm, port=Port, data=Data}) ->
@@ -339,7 +339,7 @@ build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
     #rxframe{frid=FrId, dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, location=Location, gateways=[{MAC, #rxq{}}],
         fcnt=FCnt, confirm=Confirm, port=Port, data=Data,
-        datetime=calendar:universal_time()};
+        datetime=lorawan_utils:precise_universal_time()};
 build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
         #multicast_channel{devaddr=DevAddr, fcntdown=FCnt}},
         #txdata{confirmed=Confirm, port=Port, data=Data}) ->
@@ -347,7 +347,7 @@ build_rxframe(Dir, MAC, {#network{name=NetName}, #profile{app=App},
     #rxframe{frid=FrId, dir=Dir, network=NetName,
         app=App, devaddr=DevAddr, gateways=[{M, #rxq{}} || M <- MAC],
         fcnt=FCnt, confirm=Confirm, port=Port, data=Data,
-        datetime=calendar:universal_time()}.
+        datetime=lorawan_utils:precise_universal_time()}.
 
 bit_to_bool(0) -> false;
 bit_to_bool(1) -> true.
