@@ -178,15 +178,15 @@ send_event(Event, Vars0, #handler{app=AppName, event_fields=Fields, parse_event=
     lorawan_backend_factory:event(AppName, DeviceOrNode,
         data_to_fields(AppName, Parse, Vars, Event)).
 
-handle_downlink(AppName, Vars_old) ->
+handle_downlink(AppName, VarsGiven) ->
     [#handler{build=Build}=Handler] = mnesia:dirty_read(handler, AppName),
-    Data = fields_to_data(AppName, Build, Vars_old),
-    if
-        is_map(Data) ->
-            Vars = Data;
-        true ->
-            Vars = Vars_old#{data => Data}
-    end,
+    Vars =
+        case fields_to_data(AppName, Build, VarsGiven) of
+            Map when is_map(Map) ->
+                maps:merge(VarsGiven, Map);
+            Data ->
+                VarsGiven#{data => Data}
+        end,
     send_downlink(Handler,
         Vars,
         maps:get(time, Vars, undefined),
