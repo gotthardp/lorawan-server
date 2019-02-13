@@ -70,9 +70,13 @@ enter the cookie explicitly by the `-setcookie MyCookie` parameter.
 
 ## Release Process
 
-To create a new tag do:
+To create a new release:
+
+* update the version number in file src/lorawan\_server.app.src
+* commit and push the change
+* create a new signed tag, e.g.
 
 ```bash
-git tag v0.6.0 master
-git push origin v0.6.0
+git tag -s v0.6.5
+git push origin v0.6.5
 ```
