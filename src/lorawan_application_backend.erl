@@ -254,7 +254,7 @@ send_downlink(Handler, #{app := AppID}, undefined, TxData) ->
     % downlink to a group
     filter_group_responses(AppID,
         lists:map(
-            fun(#node{devaddr=DevAddr}=Node) ->
+            fun({_Profile, #node{devaddr=DevAddr}=Node}) ->
                 purge_frames(Handler, Node, TxData),
                 lorawan_application:store_frame(DevAddr, TxData)
             end,
@@ -263,7 +263,7 @@ send_downlink(Handler, #{app := AppID}, Time, TxData) ->
     % class C downlink to a group of devices
     filter_group_responses(AppID,
         lists:map(
-            fun(Node) ->
+            fun({_Profile, Node}) ->
                 try_class_c(Handler, Node, Time, TxData)
             end,
             lorawan_backend_factory:nodes_with_backend(AppID)));

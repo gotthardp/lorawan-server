@@ -111,7 +111,7 @@ content_types_accepted(Req, State) ->
 
 handle_action(Req, #state{app=App, action = <<"send">>}=State) ->
     case lorawan_backend_factory:nodes_with_backend(App) of
-        [#node{devaddr=DevAddr, appargs=AppArgs}=Node|_] ->
+        [{Profile, #node{devaddr=DevAddr, appargs=AppArgs}=Node}|_] ->
             Vars = #{
                 event => <<"test">>,
                 app => App,
@@ -119,7 +119,7 @@ handle_action(Req, #state{app=App, action = <<"send">>}=State) ->
                 appargs => AppArgs,
                 datetime => calendar:universal_time()},
             lager:debug("Sending connector test ~p to ~p", [App, lorawan_utils:binary_to_hex(DevAddr)]),
-            lorawan_backend_factory:event(App, {lorawan_db:get_profile(Node), Node}, Vars);
+            lorawan_backend_factory:event(App, {Profile, Node}, Vars);
         [] ->
             lager:debug("Connector not linked with any node")
     end,
