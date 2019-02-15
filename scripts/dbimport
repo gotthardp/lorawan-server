@@ -1,6 +1,6 @@
 #!/bin/bash
 SERVER="localhost:8080"
-AUTH="--user=admin --password=admin"
+AUTH="admin:admin"
 
 if [ -z "$1" ]; then
     DIR="."
@@ -9,5 +9,5 @@ else
 fi
 
 for f in $DIR/*.json; do
-    wget -4nv $AUTH --header=Content-Type:application/json --post-file=$f http://$SERVER/api/$(basename $f .json)
+    curl --digest -u $AUTH --header Content-Type:application/json --data @$f http://$SERVER/api/$(basename $f .json)
 done
