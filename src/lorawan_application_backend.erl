@@ -54,7 +54,7 @@ handle_uplink0(#handler{app=AppID, parse_uplink=Parse, uplink_fields=Fields}=Han
             % we have to wait for the rx quality indicators
             {ok, {Handler, Vars}};
         false ->
-            lorawan_backend_factory:uplink(AppID, Node,
+            lorawan_backend_factory:uplink(AppID, {Profile, Node},
                 data_to_fields(AppID, Parse, Vars, Data)),
             {ok, undefined}
     end.
@@ -63,11 +63,11 @@ handle_rxq({_Network, _Profile, #node{devaddr=DevAddr}},
         _Gateways, _WillReply, #frame{port=Port}, undefined) ->
     % we did already handle this uplink
     lorawan_application:send_stored_frames(DevAddr, Port);
-handle_rxq({_Network, #profile{app=AppID}, #node{devaddr=DevAddr}=Node},
+handle_rxq({_Network, #profile{app=AppID}=Profile, #node{devaddr=DevAddr}=Node},
         Gateways, _WillReply, #frame{port=Port, data=Data},
         {#handler{parse_uplink=Parse, uplink_fields=Fields}, Vars}) ->
     Vars2 = parse_rxq(Gateways, Fields, Vars),
-    lorawan_backend_factory:uplink(AppID, Node,
+    lorawan_backend_factory:uplink(AppID, {Profile, Node},
         data_to_fields(AppID, Parse, Vars2, Data)),
     lorawan_application:send_stored_frames(DevAddr, Port).
 

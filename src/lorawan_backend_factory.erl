@@ -140,9 +140,11 @@ find_module0(Scheme, []) ->
     {error, {unknown_scheme, Scheme}}.
 
 
+-spec uplink(binary(), {#profile{}, #node{}} | {#profile{}, #device{}, binary()}, map()) -> ok.
 uplink(App, Node, Vars) ->
     send_to_connectors(App, {uplink, Node, Vars}).
 
+-spec event(binary(), {#profile{}, #node{}} | {#profile{}, #device{}, binary()}, map()) -> ok.
 event(App, Node, Vars) ->
     send_to_connectors(App, {event, Node, Vars}).
 
