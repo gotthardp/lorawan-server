@@ -20,12 +20,14 @@
 -include_lib("kernel/include/file.hrl").
 -record(state, {file, scopes, auth_fields}).
 
+init(Req, {file, Path, Scopes}) ->
+    init_rest(Req, [Path], Scopes);
+init(Req, {dir, Path, Scopes}) ->
+    init_rest(Req, [Path | cowboy_req:path_info(Req)], Scopes);
 init(Req, {priv_file, App, Path, Scopes}) ->
     init_rest(Req, [priv_dir(App), Path], Scopes);
 init(Req, {priv_dir, App, Path, Scopes}) ->
-    init_rest(Req, [priv_dir(App), Path | cowboy_req:path_info(Req)], Scopes);
-init(Req, {dir, Path, Scopes}) ->
-    init_rest(Req, [Path | cowboy_req:path_info(Req)], Scopes).
+    init_rest(Req, [priv_dir(App), Path | cowboy_req:path_info(Req)], Scopes).
 
 priv_dir(App) ->
     case code:priv_dir(App) of
@@ -74,11 +76,16 @@ file_info_plain(Path) ->
     end.
 
 is_authorized(Req, #state{scopes=Scopes}=State) ->
-    case lorawan_admin:handle_authorization(Req, Scopes) of
-        {true, AuthFields} ->
-            {true, Req, State#state{auth_fields=AuthFields}};
-        Else ->
-            {Else, Req, State}
+    case proplists:get_value(<<"anonymous">>, Scopes) of
+        undefined ->
+            case lorawan_admin:handle_authorization(Req, Scopes) of
+                {true, AuthFields} ->
+                    {true, Req, State#state{auth_fields=AuthFields}};
+                Else ->
+                    {Else, Req, State}
+            end;
+        AnonFields ->
+            {true, Req, State#state{auth_fields=AnonFields}}
     end.
 
 malformed_request(Req, #state{file=Info}=State) ->

@@ -197,9 +197,13 @@ get_static(routes) ->
     % serve custom web-pages
     | custom_web(application:get_env(lorawan_server, http_custom_web, []))].
 
-custom_web([{URL, Path, Scope} | Dirs]) ->
+custom_web([{URL, dir, Path, Scope} | Dirs]) ->
     [{URL, lorawan_admin_static,
         {dir, Path, Scope}}
+    | custom_web(Dirs)];
+custom_web([{URL, file, Path, Scope} | Dirs]) ->
+    [{URL, lorawan_admin_static,
+        {file, Path, Scope}}
     | custom_web(Dirs)];
 custom_web([]) ->
     [].
