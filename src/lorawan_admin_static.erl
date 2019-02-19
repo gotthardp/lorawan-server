@@ -23,7 +23,9 @@
 init(Req, {priv_file, App, Path, Scopes}) ->
     init_rest(Req, [priv_dir(App), Path], Scopes);
 init(Req, {priv_dir, App, Path, Scopes}) ->
-    init_rest(Req, [priv_dir(App), Path | cowboy_req:path_info(Req)], Scopes).
+    init_rest(Req, [priv_dir(App), Path | cowboy_req:path_info(Req)], Scopes);
+init(Req, {dir, Path, Scopes}) ->
+    init_rest(Req, [Path | cowboy_req:path_info(Req)], Scopes).
 
 priv_dir(App) ->
     case code:priv_dir(App) of

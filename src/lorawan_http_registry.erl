@@ -193,6 +193,15 @@ get_static(routes) ->
     {"/favicon.ico", lorawan_admin_static,
         {priv_file, lorawan_server, <<"favicon.ico">>,
             % anyone, even a REST API may request favicon
-            [{'*', '*'}]}}].
+            [{'*', '*'}]}}
+    % serve custom web-pages
+    | custom_web(application:get_env(lorawan_server, http_custom_web, []))].
+
+custom_web([{URL, Path, Scope} | Dirs]) ->
+    [{URL, lorawan_admin_static,
+        {dir, Path, Scope}}
+    | custom_web(Dirs)];
+custom_web([]) ->
+    [].
 
 % end of file
