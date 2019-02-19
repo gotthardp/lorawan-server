@@ -98,7 +98,6 @@ get_static(scopes) ->
     <<"backend:read">>, <<"backend:write">>];
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
 get_static(routes) ->
-    AdminPath = application:get_env(lorawan_server, http_admin_path, <<"/admin">>),
     [{"/api/scopes/[:name]", lorawan_admin_scopes,
         [{<<"server:read">>, '*'}]},
     {"/api/config/[:name]", lorawan_admin_db_record,
@@ -189,7 +188,6 @@ get_static(routes) ->
     {"/admin/[...]", lorawan_admin_static,
         {priv_dir, lorawan_server, <<"admin">>,
             [{<<"web-admin">>, '*'}]}},
-    {"/", lorawan_admin_redirect, #{path => AdminPath}},
     {"/favicon.ico", lorawan_admin_static,
         {priv_file, lorawan_server, <<"favicon.ico">>,
             % anyone, even a REST API may request favicon
@@ -206,6 +204,8 @@ custom_web([{URL, file, Path, Scope} | Dirs]) ->
         {file, Path, Scope}}
     | custom_web(Dirs)];
 custom_web([]) ->
-    [].
+    % last-chance redirection
+    AdminPath = application:get_env(lorawan_server, http_admin_path, <<"/admin">>),
+    [{"/", lorawan_admin_redirect, #{path => AdminPath}}].
 
 % end of file
