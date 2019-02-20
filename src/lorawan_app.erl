@@ -75,7 +75,7 @@ ensure_erlang_version(Min) ->
 
 normal_dispatch() ->
     cowboy_router:compile([
-        {'_', lorawan_http_registry:get_static(routes)}
+        {'_', lorawan_http_registry:get_static(routes)++lorawan_http_registry:get_custom(routes)}
     ]).
 
 redirect_dispatch() ->

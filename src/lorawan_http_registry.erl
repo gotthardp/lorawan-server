@@ -6,7 +6,7 @@
 -module(lorawan_http_registry).
 -behaviour(gen_server).
 
--export([start_link/0, update/2, delete/1, get/1, get_static/1]).
+-export([start_link/0, update/2, delete/1, get/1, get_static/1, get_custom/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -include("lorawan.hrl").
@@ -37,7 +37,7 @@ handle_call({delete, Id}, _From, State) ->
     update_routes(State2),
     {reply, ok, State2};
 handle_call({get, Type}, _From, State) ->
-    Res = get_static(Type)++join_entries(Type, State),
+    Res = get_static(Type)++join_entries(Type, State)++get_custom(Type),
     {reply, Res, State}.
 
 handle_cast(_Msg, State) ->
@@ -63,7 +63,7 @@ update_routes(State) ->
     Dispatch =
         cowboy_router:compile([
             % static routes take precedence
-            {'_', get_static(routes)++Routes}
+            {'_', get_static(routes)++Routes++get_custom(routes)}
         ]),
     Listen = ranch:info(),
     case {proplists:is_defined(http, Listen), proplists:is_defined(https, Listen)} of
@@ -191,9 +191,13 @@ get_static(routes) ->
     {"/favicon.ico", lorawan_admin_static,
         {priv_file, lorawan_server, <<"favicon.ico">>,
             % anyone, even a REST API may request favicon
-            [{'*', '*'}]}}
+            [{'*', '*'}]}}].
+
+get_custom(scopes) ->
+    [];
+get_custom(routes) ->
     % serve custom web-pages
-    | custom_web(application:get_env(lorawan_server, http_custom_web, []))].
+    custom_web(application:get_env(lorawan_server, http_custom_web, [])).
 
 custom_web([{URL, dir, Path, Scope} | Dirs]) ->
     [{URL, lorawan_admin_static,
