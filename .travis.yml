@@ -9,7 +9,7 @@ otp_release:
   # the most recent from R19 and R20
   - 19.3
   - 20.3
-  - 21.1
+  - 21.2
 install:
   - rebar3 get-deps
 script:

@@ -187,11 +187,7 @@ get_static(routes) ->
         [{<<"device:read">>, '*'}]},
     {"/admin/[...]", lorawan_admin_static,
         {priv_dir, lorawan_server, <<"admin">>,
-            [{<<"web-admin">>, '*'}]}},
-    {"/favicon.ico", lorawan_admin_static,
-        {priv_file, lorawan_server, <<"favicon.ico">>,
-            % anyone, even a REST API may request favicon
-            [{'*', '*'}]}}].
+            [{<<"web-admin">>, '*'}]}}].
 
 get_custom(scopes) ->
     [];
@@ -208,8 +204,13 @@ custom_web([{URL, file, Path, Scope} | Dirs]) ->
         {file, Path, Scope}}
     | custom_web(Dirs)];
 custom_web([]) ->
-    % last-chance redirection
     AdminPath = application:get_env(lorawan_server, http_admin_path, <<"/admin">>),
-    [{"/", lorawan_admin_redirect, #{path => AdminPath}}].
+    % default icon
+    [{"/favicon.ico", lorawan_admin_static,
+        {priv_file, lorawan_server, <<"favicon.ico">>,
+            % anyone, even a REST API may request favicon
+            [{'*', '*'}]}},
+    % last-chance redirection
+    {"/", lorawan_admin_redirect, #{path => AdminPath}}].
 
 % end of file
