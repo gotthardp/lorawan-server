@@ -45,7 +45,7 @@ you need to restart the server.
 To enable/disable applications, modify the `applications` section. For more
 details see the [Custom Application Guide](Applications.md).
 
-To disable the plain HTTP web-admin, set `{http_admin_listen, undefined}`.
+To disable the plain HTTP web-admin, set `{http_admin_listen, []}`.
 
 ### lager section
 
