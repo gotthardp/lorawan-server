@@ -193,7 +193,7 @@ Please let me know if you use the lorawan-server and want to be listed here.
 The lorawan-server is distributed under the terms of the MIT License.
 See the [LICENSE](LICENSE).
 
-Copyright (c) 2016-2018 Petr Gotthard
+Copyright (c) 2016-2019 Petr Gotthard
 
 ### Sponsors
 
