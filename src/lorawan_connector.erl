@@ -120,7 +120,7 @@ match_pattern(Topic, {Pattern, Vars}) ->
 match_vars(Topic, Pattern) ->
     case match_pattern(Topic, Pattern) of
         undefined ->
-            lager:error("Topic ~w does not match pattern ~w", [Topic, Pattern]),
+            lager:error("Topic ~p does not match pattern ~p", [Topic, Pattern]),
             #{};
         Vars ->
             lorawan_admin:parse(Vars)
@@ -187,6 +187,7 @@ value_to_binary(Term) when is_list(Term) -> list_to_binary(Term);
 value_to_binary(Term) when is_binary(Term) -> Term;
 value_to_binary(Term) -> list_to_binary(io_lib:print(Term)).
 
+-spec decode_and_downlink(#connector{}, binary(), map()) -> 'ok' | {'error', any()}.
 decode_and_downlink(#connector{app=App, format=Format}, Msg, Bindings) ->
     case decode(Format, Msg) of
         {ok, Vars} ->

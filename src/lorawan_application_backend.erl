@@ -208,6 +208,7 @@ fields_to_data(AppName, {_, Fun}, Vars) when is_function(Fun) ->
 fields_to_data(_AppName, _Else, Vars) ->
     maps:get(data, Vars, <<>>).
 
+-spec send_downlink(#handler{}, map(), any(), #txdata{}) -> 'ok' | {'error', any()}.
 send_downlink(Handler, #{deveui := DevEUI}, undefined, TxData) ->
     case mnesia:dirty_read(device, DevEUI) of
         [] ->
