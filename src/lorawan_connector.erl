@@ -109,6 +109,8 @@ prepare_matching(Pattern) ->
             {Pattern, []}
     end.
 
+match_pattern(_Topic, undefined) ->
+    undefined;
 match_pattern(Topic, {Pattern, Vars}) ->
     case re:run(Topic, Pattern, [global, {capture, all, binary}]) of
         {match, [[_Head | Matches]]} ->
