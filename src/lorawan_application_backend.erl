@@ -103,7 +103,9 @@ parse_rxq(Gateways, Fields, Vars) ->
     RxQ =
         lists:map(
             fun({MAC, #rxq{time=Time, tmms=TmMs, rssi=RSSI, lsnr=SNR}}) ->
-                #{mac=>MAC, rssi=>RSSI, lsnr=>SNR, time=>Time, tmms=>TmMs}
+                vars_add(gpsalt, get_dbfield(gateway, MAC, #gateway.gpsalt), Fields,
+                    vars_add(gpspos, get_dbfield(gateway, MAC, #gateway.gpspos), Fields,
+                    #{mac=>MAC, rssi=>RSSI, lsnr=>SNR, time=>Time, tmms=>TmMs}))
             end,
             Gateways),
     vars_add(freq, Freq, Fields,
@@ -137,6 +139,14 @@ get_battery([{_DateTime, Battery, _Margin, _MaxSNR}|_]) ->
     Battery;
 get_battery(_Else) ->
     undefined.
+
+get_dbfield(DBase, Key, Field) ->
+    case mnesia:dirty_read(DBase, Key) of
+        [Record] ->
+            element(Field, Record);
+        _Else ->
+            undefined
+    end.
 
 data_to_fields(AppId, {_, Fun}, Vars, Data) when is_function(Fun) ->
     try Fun(Vars, Data)

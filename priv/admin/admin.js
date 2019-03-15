@@ -1035,7 +1035,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'mac', label: 'mac' },
                 { value: 'lsnr', label: 'lsnr' },
                 { value: 'rssi', label: 'rssi' },
-                { value: 'all_gw', label: 'all_gw' }
+                { value: 'all_gw', label: 'all_gw' },
+                { value: 'gpsalt', label: 'gpsalt' },
+                { value: 'gpspos', label: 'gpspos' }
             ]),
         nga.field('payload', 'choice')
             .choices([
