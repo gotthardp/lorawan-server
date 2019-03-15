@@ -38,13 +38,13 @@ pattern_for_cowboy(<<"/", _/binary>>=URI) ->
 pattern_for_cowboy(_Error) ->
     error.
 
--type fill_pattern_t() :: 'undefined' | {binary(), [{integer(), integer()}]}.
+-type fill_pattern_t() :: {binary(), [{integer(), integer()}]}.
 -spec prepare_filling('undefined' | binary() | [binary()]) -> fill_pattern_t() | [fill_pattern_t()].
 prepare_filling(List) when is_list(List) ->
     lists:map(
         fun(Item) -> prepare_filling(Item) end, List);
 prepare_filling(undefined) ->
-    undefined;
+    ?EMPTY_PATTERN;
 prepare_filling(Pattern) ->
     case re:run(Pattern, "{[^}]+}", [global]) of
         {match, Match} ->
@@ -60,7 +60,7 @@ fill_pattern(List, Values) when is_list(List) ->
     lists:map(
         fun(Item) -> fill_pattern(Item, Values) end, List);
 fill_pattern(undefined, _) ->
-    undefined;
+    <<>>;
 fill_pattern({Pattern, []}, _) ->
     Pattern;
 fill_pattern({Pattern, Vars}, Values) ->
@@ -92,7 +92,7 @@ get_value(_Var, _Else) ->
     undefined.
 
 prepare_matching(undefined) ->
-    undefined;
+    ?EMPTY_PATTERN;
 prepare_matching(Pattern) ->
     EPattern0 = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
     EPattern = binary:replace(EPattern0, <<"#">>, <<".*">>, [global]),
@@ -109,7 +109,9 @@ prepare_matching(Pattern) ->
             {Pattern, []}
     end.
 
-match_pattern(_Topic, undefined) ->
+match_pattern(<<>>, {<<>>, _}) ->
+    #{};
+match_pattern(_NonEmpty, {<<>>, _}) ->
     undefined;
 match_pattern(Topic, {Pattern, Vars}) ->
     case re:run(Topic, Pattern, [global, {capture, all, binary}]) of
@@ -240,6 +242,8 @@ matchtst(Vars, Pattern, Topic) ->
 
 pattern_test_()-> [
     matchtst(#{}, <<"normal/uri">>, <<"normal/uri">>),
+    matchtst(#{}, <<>>, <<>>),
+    matchtst(undefined, <<>>, <<"any/uri">>),
     matchtst(undefined, <<"normal/uri">>, <<"another/uri">>),
     matchtst(#{devaddr => <<"00112233">>}, <<"{devaddr}">>, <<"00112233">>),
     matchtst(#{devaddr => <<"00112233">>}, <<"prefix.{devaddr}">>, <<"prefix.00112233">>),
