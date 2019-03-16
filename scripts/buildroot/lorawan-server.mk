@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LORAWAN_SERVER_VERSION = v0.6.2
+LORAWAN_SERVER_VERSION = v0.6.7
 LORAWAN_SERVER_SITE = $(call github,gotthardp,lorawan-server,$(LORAWAN_SERVER_VERSION))
 LORAWAN_SERVER_LICENSE = MIT
 LORAWAN_SERVER_LICENSE_FILES = LICENSE

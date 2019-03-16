@@ -72,7 +72,7 @@ enter the cookie explicitly by the `-setcookie MyCookie` parameter.
 
 To create a new release:
 
-* update the version number in `rebar.config` and `src/lorawan_server.app.src`
+* update the version number in `rebar.config`, `src/lorawan_server.app.src` and `scripts/buildroot/lorawan-server.mk`
 * commit and push the change
 * create a new signed tag, e.g.
 
