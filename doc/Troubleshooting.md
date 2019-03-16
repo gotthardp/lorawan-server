@@ -131,6 +131,15 @@ sent some other data. It may be because:
  * You have some other Mote device. Make sure your firmware uses the
    [supported format](https://github.com/Lora-net/LoRaMac-node/blob/master/src/apps/LoRaMac/classA/LoRaMote/main.c#L207).
 
+### ack_lost
+
+Warning reported by the gateway: it did not receive
+[PUSH_ACK](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT#L86)
+on time. In the
+[packet_forwarder config](https://github.com/Lora-net/packet_forwarder/blob/master/lora_pkt_fwd/global_conf.json#L221)
+there is a push_timeout_ms set by default to 100ms. Try increasing this value to
+e.g. 500ms.
+
 ### downlink_missed
 
 Confirmed downlink was sent, but the device indicated it did not received it.
