@@ -48,7 +48,8 @@ For the status:
  - **Last Report** shows a timestamp of the last status report
  - **Network Delay** graph shows network (LAN) delay between the gateway and the server
    measured during the [`PULL_RESP`](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT#L274)
-   sequence. Note this requires packet_forwarder v3.0 or higher.
+   sequence. Note this requires packet_forwarder v3.0 or higher. The graph may not
+   be updated when there is no LoRa traffic.
  - **Transmissions** graph shows how much did the gateway transmit in past hour.
    This is useful to monitor regulatory compliance.
 
