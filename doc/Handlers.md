@@ -116,6 +116,7 @@ In addition to that you may specify the following optional fields:
 
   Field       | Type        | Explanation
  -------------|-------------|-------------------------------------------------------------
+  desc        | String      | Custom description of the node.
   time        | ISO 8601    | Specifies requested downlink time or `immediately`. When specified, the downlink is considered as Class C.
   port        | Integer     | LoRaWAN port number in the range 1-223. Optional for Class A: if not specified, the uplink port number will be used. Mandatory for Class C.
   data        | Hex String  | Raw application payload, encoded as a hexadecimal string.

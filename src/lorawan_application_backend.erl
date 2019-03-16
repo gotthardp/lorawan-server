@@ -174,18 +174,20 @@ send_event(Event, Vars0, #handler{app=AppName, event_fields=Fields, parse_event=
         vars_add(event, Event, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
         case DeviceOrNode of
-            {#profile{appid=AppID}, #device{deveui=DevEUI, appargs=AppArgs}, DevAddr} ->
+            {#profile{appid=AppID}, #device{deveui=DevEUI, appargs=AppArgs, desc=Desc}, DevAddr} ->
                 vars_add(appid, AppID, Fields,
                 vars_add(devaddr, DevAddr, Fields,
                 vars_add(deveui, DevEUI, Fields,
                 vars_add(appargs, AppArgs, Fields,
-                Vars0))));
-            {#profile{appid=AppID}, #node{devaddr=DevAddr, appargs=AppArgs}} ->
+                vars_add(desc, Desc, Fields,
+                Vars0)))));
+            {#profile{appid=AppID}, #node{devaddr=DevAddr, appargs=AppArgs, desc=Desc}} ->
                 vars_add(appid, AppID, Fields,
                 vars_add(devaddr, DevAddr, Fields,
                 vars_add(deveui, get_deveui(DevAddr), Fields,
                 vars_add(appargs, AppArgs, Fields,
-                Vars0))))
+                vars_add(desc, Desc, Fields,
+                Vars0)))))
         end))),
     lorawan_backend_factory:event(AppName, DeviceOrNode,
         data_to_fields(AppName, Parse, Vars, Event)).
