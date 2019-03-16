@@ -1022,6 +1022,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'devaddr', label: 'devaddr' },
                 { value: 'deveui', label: 'deveui' },
                 { value: 'appargs', label: 'appargs' },
+                { value: 'desc', label: 'desc' },
                 { value: 'battery', label: 'battery' },
                 { value: 'fcnt', label: 'fcnt' },
                 { value: 'port', label: 'port' },

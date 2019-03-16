@@ -83,7 +83,7 @@ any_is_member(List1, List2) ->
 parse_uplink(#handler{app=AppName, payload=Payload, uplink_fields=Fields},
         {#network{netid=NetID},
         #profile{appid=AppID},
-        #node{appargs=AppArgs, devstat=DevStat}},
+        #node{appargs=AppArgs, desc=Desc, devstat=DevStat}},
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port, data=Data}) ->
     vars_add(netid, NetID, Fields,
         vars_add(app, AppName, Fields,
@@ -91,21 +91,23 @@ parse_uplink(#handler{app=AppName, payload=Payload, uplink_fields=Fields},
         vars_add(devaddr, DevAddr, Fields,
         vars_add(deveui, get_deveui(DevAddr), Fields,
         vars_add(appargs, AppArgs, Fields,
+        vars_add(desc, Desc, Fields,
         vars_add(battery, get_battery(DevStat), Fields,
         vars_add(fcnt, FCnt, Fields,
         vars_add(port, Port, Fields,
         vars_add(data, Data, Fields,
         vars_add(datetime, calendar:universal_time(), Fields,
-        parse_payload(Payload, Data)))))))))))).
+        parse_payload(Payload, Data))))))))))))).
 
 parse_rxq(Gateways, Fields, Vars) ->
     {MAC1, #rxq{freq=Freq, datr=Datr, codr=Codr, rssi=RSSI1, lsnr=SNR1}} = hd(Gateways),
     RxQ =
         lists:map(
             fun({MAC, #rxq{time=Time, tmms=TmMs, rssi=RSSI, lsnr=SNR}}) ->
-                vars_add(gpsalt, get_dbfield(gateway, MAC, #gateway.gpsalt), Fields,
+                vars_add(desc, get_dbfield(gateway, MAC, #gateway.desc), Fields,
+                    vars_add(gpsalt, get_dbfield(gateway, MAC, #gateway.gpsalt), Fields,
                     vars_add(gpspos, get_dbfield(gateway, MAC, #gateway.gpspos), Fields,
-                    #{mac=>MAC, rssi=>RSSI, lsnr=>SNR, time=>Time, tmms=>TmMs}))
+                    #{mac=>MAC, rssi=>RSSI, lsnr=>SNR, time=>Time, tmms=>TmMs})))
             end,
             Gateways),
     vars_add(freq, Freq, Fields,

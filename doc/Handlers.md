@@ -65,6 +65,7 @@ applications the following fields:
   devaddr    | Hex String  | DevAddr of the active node.
   deveui     | Hex String  | DevEUI of the device.
   appargs    | Any         | Application arguments for this node.
+  desc       | String      | Custom description of this node.
   battery    | Integer     | Most recent battery level reported by the device.
   fcnt       | Integer     | Received frame sequence number.
   port       | Integer     | LoRaWAN port number.
@@ -84,10 +85,13 @@ The Gateway object included in *best_gw* and *all_gw* has the following fields:
   Field      | Type        | Explanation
  ------------|-------------|-------------------------------------------------------------
   mac        | Hex String  | MAC address of the gateway that received the frame.
+  desc       | String      | Custom description of the gateway.
   rxq        | Object      | Indicators of the reception quality as indicated in the `rxpk` structure by the gateway (see Section 4 of the [packet_forwarder protocol](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT).
   rxq.lsnr   | Number      | LoRa uplink SNR ratio in dB (signed float, 0.1 dB precision)
   rxq.rssi   | Number      | RSSI in dBm (signed integer, 1 dB precision)
   rxq.tmst   | Number      | Internal timestamp of "RX finished" event (32b unsigned) used for response scheduling; it doesn't indicate any calendar date.
+  gpsalt     | Number      | GPS Altitude.
+  gpspos     | Object      | GPS Latitude and Longitude.
 
 For example:
 ```json
