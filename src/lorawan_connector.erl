@@ -106,7 +106,8 @@ prepare_matching(Pattern) ->
             {ok, MP} = re:compile(<<"^", Regex/binary, "$">>),
             {MP, [binary_to_existing_atom(binary:part(EPattern, Start+1, Len-2), latin1) || [{Start, Len}] <- Match]};
         nomatch ->
-            {Pattern, []}
+            {ok, MP} = re:compile(<<"^", EPattern/binary, "$">>),
+            {MP, []}
     end.
 
 match_pattern(<<>>, {<<>>, _}) ->
@@ -114,8 +115,8 @@ match_pattern(<<>>, {<<>>, _}) ->
 match_pattern(_NonEmpty, {<<>>, _}) ->
     undefined;
 match_pattern(Topic, {Pattern, Vars}) ->
-    case re:run(Topic, Pattern, [global, {capture, all, binary}]) of
-        {match, [[_Head | Matches]]} ->
+    case re:run(Topic, Pattern, [global, {capture, all_but_first, binary}]) of
+        {match, [Matches]} ->
             maps:from_list(lists:zip(Vars, Matches));
         nomatch ->
             undefined
@@ -257,6 +258,10 @@ pattern_test_()-> [
         match_pattern(<<"00112233/trailing/data">>, prepare_matching(<<"{devaddr}/#">>))),
     ?_assertEqual(#{devaddr => <<"00112233">>},
         match_pattern(<<"/leading/data/00112233">>, prepare_matching(<<"#/{devaddr}">>))),
+    ?_assertEqual(#{}, match_pattern(<<"">>, prepare_matching(<<"#">>))),
+    ?_assertEqual(#{}, match_pattern(<<"any">>, prepare_matching(<<"#">>))),
+    ?_assertEqual(#{}, match_pattern(<<"/any">>, prepare_matching(<<"/#">>))),
+    ?_assertEqual(#{}, match_pattern(<<"any/">>, prepare_matching(<<"#/">>))),
     ?_assertEqual(<<"/without/template">>, pattern_for_cowboy(<<"/without/template">>)),
     ?_assertEqual(<<"/some/:template">>, pattern_for_cowboy(<<"/some/{template}">>))].
 
