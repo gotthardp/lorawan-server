@@ -386,12 +386,16 @@ and returns
 
 JSON data is converted to a map. Fields taken from the MQTT topic are added to
 the map. This map is passed as sole parameter to the downlink function. The
-download function may either return a binary or a map.
- - If a binary is returned this binary is used to fill the `data` field which
+download function may either return a binary, a map, or a (possibly empty) list
+of maps.
+ - If a binary is returned, this binary is used to fill the `data` field which
    is sent to the device.
- - If the downlink function returns a map this map replaces the original map.
+ - If a map is returned, this map replaces the original map.
    All relevant fields like `devaddr`, `deveui`, `port`, and `data` may be set
    in the downlink function.
+ - If a list of maps is returned, the server triggers multiple downlink messages,
+   one for each list item.
+   Upon returning an empty list no downlink will be triggered.
 
 For example, if you send `{"devaddr":"11223344", "led":1}`, you can have a function
 like this to convert the custom field (`led`) to downlink data:

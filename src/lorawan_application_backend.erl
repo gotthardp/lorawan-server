@@ -194,23 +194,21 @@ send_event(Event, Vars0, #handler{app=AppName, event_fields=Fields, parse_event=
 
 handle_downlink(AppName, VarsGiven) ->
     [#handler{build=Build}=Handler] = mnesia:dirty_read(handler, AppName),
-    Vars =
-        case fields_to_data(AppName, Build, VarsGiven) of
-            Map when is_map(Map) ->
-                maps:merge(VarsGiven, Map);
-            Data ->
-                VarsGiven#{data => Data}
-        end,
-    send_downlink(Handler,
-        Vars,
-        maps:get(time, Vars, undefined),
-        #txdata{
-            confirmed = maps:get(confirmed, Vars, false),
-            port = maps:get(port, Vars, undefined),
-            data = maps:get(data, Vars, undefined),
-            pending = maps:get(pending, Vars, undefined),
-            receipt = maps:get(receipt, Vars, undefined)
-        }).
+    case fields_to_data(AppName, Build, VarsGiven) of
+        Map when is_map(Map) ->
+            invoke_downlink(Handler,
+                maps:merge(VarsGiven, Map));
+        List when is_map(List) ->
+            lists:foreach(
+                fun(Item) ->
+                    invoke_downlink(Handler,
+                        maps:merge(VarsGiven, Item))
+                end,
+                List);
+        Data ->
+            invoke_downlink(Handler,
+                VarsGiven#{data => Data})
+    end.
 
 fields_to_data(AppName, {_, Fun}, Vars) when is_function(Fun) ->
     try Fun(Vars)
@@ -221,6 +219,18 @@ fields_to_data(AppName, {_, Fun}, Vars) when is_function(Fun) ->
     end;
 fields_to_data(_AppName, _Else, Vars) ->
     maps:get(data, Vars, <<>>).
+
+invoke_downlink(Handler, Vars) ->
+    send_downlink(Handler,
+        Vars,
+        maps:get(time, Vars, undefined),
+        #txdata{
+            confirmed = maps:get(confirmed, Vars, false),
+            port = maps:get(port, Vars, undefined),
+            data = maps:get(data, Vars, undefined),
+            pending = maps:get(pending, Vars, undefined),
+            receipt = maps:get(receipt, Vars, undefined)
+        }).
 
 -spec send_downlink(#handler{}, map(), any(), #txdata{}) -> 'ok' | {'error', any()}.
 send_downlink(Handler, #{deveui := DevEUI}, undefined, TxData) ->

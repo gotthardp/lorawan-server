@@ -195,9 +195,21 @@ value_to_binary(Term) -> list_to_binary(io_lib:print(Term)).
 -spec decode_and_downlink(#connector{}, binary(), map()) -> 'ok' | {'error', any()}.
 decode_and_downlink(#connector{app=App, format=Format}, Msg, Bindings) ->
     case decode(Format, Msg) of
-        {ok, Vars} ->
+        {ok, Vars} when is_map(Vars) ->
             lorawan_application_backend:handle_downlink(App,
                 maps:merge(Bindings, Vars));
+        {ok, Vars} when is_list(Vars) ->
+            lorawan_application_backend:handle_downlink(App,
+                lists:map(
+                    fun (Var) when is_map(Var) ->
+                            maps:merge(Bindings, Var);
+                        (Var) ->
+                            Var
+                    end,
+                    Vars));
+        {ok, Vars} ->
+            lorawan_application_backend:handle_downlink(App,
+                Vars);
         Error ->
             Error
     end.
@@ -206,10 +218,11 @@ decode(<<"raw">>, Msg) ->
     {ok, #{data => Msg}};
 decode(<<"json">>, Msg) ->
     case catch lorawan_admin:parse(jsx:decode(Msg, [return_maps, {labels, atom}])) of
-        Struct when is_map(Struct) ->
-            {ok, Struct};
-        _Else ->
-            {error, json_syntax_error}
+        {'EXIT', Error} ->
+            lager:error("JSON error: ~p", [Error]),
+            {error, json_syntax_error};
+        Struct ->
+            {ok, Struct}
     end.
 
 raise_failed(ConnId, {Error, Args}) ->
