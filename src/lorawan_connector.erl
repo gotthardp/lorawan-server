@@ -94,7 +94,8 @@ get_value(_Var, _Else) ->
 prepare_matching(undefined) ->
     ?EMPTY_PATTERN;
 prepare_matching(Pattern) ->
-    EPattern0 = binary:replace(Pattern, <<".">>, <<"\\">>, [global, {insert_replaced, 1}]),
+    EPattern0 = binary:replace(Pattern, [<<".">>, <<"$">>, <<"+">>, <<"*">>],
+        <<"\\">>, [global, {insert_replaced, 1}]),
     EPattern = binary:replace(EPattern0, <<"#">>, <<".*">>, [global]),
     case re:run(EPattern, "{[^}]+}", [global]) of
         {match, Match} ->
@@ -125,7 +126,7 @@ match_pattern(Topic, {Pattern, Vars}) ->
 match_vars(Topic, Pattern) ->
     case match_pattern(Topic, Pattern) of
         undefined ->
-            lager:error("Topic ~p does not match pattern ~p", [Topic, Pattern]),
+            lager:error("Topic ~p does not match given pattern", [Topic]),
             #{};
         Vars ->
             lorawan_admin:parse(Vars)
@@ -275,6 +276,8 @@ pattern_test_()-> [
     ?_assertEqual(#{}, match_pattern(<<"any">>, prepare_matching(<<"#">>))),
     ?_assertEqual(#{}, match_pattern(<<"/any">>, prepare_matching(<<"/#">>))),
     ?_assertEqual(#{}, match_pattern(<<"any/">>, prepare_matching(<<"#/">>))),
+    ?_assertEqual(#{}, match_pattern(<<"$.+*">>, prepare_matching(<<"$.+*">>))),
+    ?_assertEqual(#{}, match_pattern(<<"$.+*">>, prepare_matching(<<"#">>))),
     ?_assertEqual(<<"/without/template">>, pattern_for_cowboy(<<"/without/template">>)),
     ?_assertEqual(<<"/some/:template">>, pattern_for_cowboy(<<"/some/{template}">>))].
 

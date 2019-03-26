@@ -215,7 +215,7 @@ fields_to_data(AppName, {_, Fun}, Vars) when is_function(Fun) ->
     catch
         Error:Term ->
             lorawan_utils:throw_error({handler, AppName}, {build_failed, {Error, Term}}),
-            <<>>
+            [] % no downlink
     end;
 fields_to_data(_AppName, _Else, Vars) ->
     maps:get(data, Vars, <<>>).
