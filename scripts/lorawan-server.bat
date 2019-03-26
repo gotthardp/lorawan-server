@@ -15,7 +15,7 @@ for %%A in ("%SCRIPT_DIR%\..") do (
 )
 
 for /D %%A in ("%ROOT_DIR%\lib\*") do (
-    set FILES=!FILES! \"%%A\ebin\"
+    set FILES=!FILES! "%%A\ebin"
 )
 
 echo Server started at http://localhost:8080
