@@ -198,7 +198,7 @@ handle_downlink(AppName, VarsGiven) ->
         Map when is_map(Map) ->
             invoke_downlink(Handler,
                 maps:merge(VarsGiven, Map));
-        List when is_map(List) ->
+        List when is_list(List) ->
             lists:foreach(
                 fun(Item) ->
                     invoke_downlink(Handler,
