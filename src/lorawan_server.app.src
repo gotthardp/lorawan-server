@@ -40,6 +40,7 @@
         {deduplication_delay, 200},
         {server_stats_interval, 60}, % [s]
         {slack_server, {"slack.com", 443}},
+        {trim_interval, 3600}, % [s]
         {event_lifetime, 86400}
     ]},
     {applications, [kernel, stdlib, sasl, os_mon, lager, mnesia, eid,

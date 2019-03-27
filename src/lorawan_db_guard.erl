@@ -25,7 +25,8 @@ init([]) ->
     ok = mnesia:wait_for_tables([node], 2000),
     {ok, _} = mnesia:subscribe({table, node, simple}),
     {ok, _} = timer:send_interval(1000, monitor),
-    {ok, _} = timer:send_interval(3600*1000, trim_tables),
+    {ok, TrimInterval} = application:get_env(lorawan_server, trim_interval),
+    {ok, _} = timer:send_interval(TrimInterval*1000, trim_tables),
     {ok, undefined}.
 
 handle_call(_Request, _From, State) ->
@@ -51,7 +52,11 @@ handle_info(monitor, State) ->
     {noreply, State};
 handle_info(trim_tables, State) ->
     trim_rxframes(),
-    [mnesia:dirty_delete(event, E) || E <- expired_events()],
+    lists:foreach(
+        fun(E) ->
+            ok = mnesia:dirty_delete(event, E)
+        end,
+        expired_events()),
     {noreply, State};
 handle_info(_Other, State) ->
     {noreply, State}.
@@ -478,7 +483,9 @@ trim_rxframes() ->
 
 trim_rxframes(Frames, Count) when length(Frames) > Count ->
     lists:foreach(
-        fun(R) -> mnesia:dirty_delete_object(rxframe, R) end,
+        fun(R) ->
+            ok = mnesia:dirty_delete_object(R)
+        end,
         lists:sublist(Frames, length(Frames)-Count)),
     true;
 trim_rxframes(_Frames, _Count) ->
@@ -488,9 +495,9 @@ trim_rxframes(_Frames, _Count) ->
 purge_queued(DevAddr) ->
     lists:foreach(
         fun(Obj) ->
-            ok = mnesia:dirty_delete_object(queued, Obj)
+            ok = mnesia:dirty_delete_object(Obj)
         end,
-        mnesia:dirty_match_object(queued, #queued{devaddr=DevAddr, _='_'})).
+        mnesia:dirty_match_object(#queued{devaddr=DevAddr, _='_'})).
 
 expired_events() ->
     {ok, AgeSeconds} = application:get_env(lorawan_server, event_lifetime),
