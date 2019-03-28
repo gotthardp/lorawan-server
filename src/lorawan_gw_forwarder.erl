@@ -89,8 +89,8 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
             error ->
                 {undefined, Tokens}
         end,
-    case string:trim(Data) of
-        <<>> ->
+    case string:strip(binary_to_list(Data)) of
+        [] ->
             % no error occured
             ok;
         _ ->
