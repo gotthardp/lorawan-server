@@ -870,14 +870,14 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .template(function(entry) {
                 return format_mac_array(entry.values.mac);
             }),
-        nga.field('rssi', 'number').label('U/L RSSI')
+        nga.field('rssi').label('U/L RSSI')
             .map(function(value, entry) {
                 return array_slice_rxq(entry.gateways, 'rssi');
             })
             .template(function(entry) {
                 return entry.values.rssi.join('<br>');
             }),
-        nga.field('lsnr', 'number').label('U/L SNR')
+        nga.field('lsnr').label('U/L SNR')
             .map(function(value, entry) {
                 return array_slice_rxq(entry.gateways, 'lsnr');
             })
@@ -1223,7 +1223,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                     .template(function(entry) {
                         return format_mac_array(entry.values.mac);
                     }),
-                nga.field('lsnr', 'number').label('U/L SNR')
+                nga.field('lsnr').label('U/L SNR')
                     .map(function(value, entry) {
                         return array_slice_rxq(entry.gateways, 'lsnr');
                     })
