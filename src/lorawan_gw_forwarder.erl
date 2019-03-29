@@ -89,8 +89,8 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
             error ->
                 {undefined, Tokens}
         end,
-    case string:strip(binary_to_list(Data)) of
-        [] ->
+    case trim_json(Data) of
+        <<>> ->
             % no error occured
             ok;
         _ ->
@@ -205,5 +205,23 @@ build_txpk(TxQ, RFch, Data) ->
         [{modu, Modu}, {rfch, RFch}, {ipol, true}, {size, byte_size(Data)}, {data, base64:encode(Data)}],
         lists:zip(record_info(fields, txq), tl(tuple_to_list(TxQ)))
     ).
+
+% some gateways send <<0>>
+trim_json(<<0, Rest/binary>>) ->
+    trim_json(Rest);
+trim_json(<<$\s, Rest/binary>>) ->
+    trim_json(Rest);
+trim_json(<<$\t, Rest/binary>>) ->
+    trim_json(Rest);
+trim_json(Rest) ->
+    Rest.
+
+-include_lib("eunit/include/eunit.hrl").
+
+trim_test_() ->
+    [?_assertEqual(<<>>, trim_json(<<>>)),
+    ?_assertEqual(<<>>, trim_json(<<0>>)),
+    ?_assertEqual(<<>>, trim_json(<<"  \t\t">>)),
+    ?_assertEqual(<<"{\"one\": 1}">>, trim_json(<<"  {\"one\": 1}">>))].
 
 % end of file
