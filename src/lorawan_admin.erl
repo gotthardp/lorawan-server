@@ -133,6 +133,10 @@ parse(Object) when is_map(Object) ->
             (eid, Value) -> parse_eid(Value, Object);
             (Key, Value) -> parse_field(Key, Value)
         end,
+        Object);
+parse(Object) when is_list(Object) ->
+    lists:map(
+        fun (Value) -> parse(Value) end,
         Object).
 
 build(Object) when is_map(Object) ->
