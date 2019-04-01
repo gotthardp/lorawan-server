@@ -196,13 +196,11 @@ handle_downlink(AppName, VarsGiven) ->
     [#handler{build=Build}=Handler] = mnesia:dirty_read(handler, AppName),
     case fields_to_data(AppName, Build, VarsGiven) of
         Map when is_map(Map) ->
-            invoke_downlink(Handler,
-                maps:merge(VarsGiven, Map));
+            invoke_downlink(Handler, Map);
         List when is_list(List) ->
             lists:foreach(
                 fun(Item) ->
-                    invoke_downlink(Handler,
-                        maps:merge(VarsGiven, Item))
+                    invoke_downlink(Handler, Item)
                 end,
                 List);
         Data ->
