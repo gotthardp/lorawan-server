@@ -5,7 +5,7 @@
 %
 {application, lorawan_server,
     [{description, "LoRaWAN Application Server"},
-    {vsn, "0.6.7"},
+    {vsn, "0.6.8"},
     {modules, []},
     {registered, []},
     {mod, {lorawan_app, []}},
