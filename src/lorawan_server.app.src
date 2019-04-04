@@ -44,7 +44,7 @@
         {trim_interval, 3600}, % [s]
         {event_lifetime, 86400}
     ]},
-    {applications, [kernel, stdlib, sasl, os_mon, lager, mnesia, eid,
+    {applications, [kernel, stdlib, sasl, os_mon, lager, mnesia, eid, cbor,
         cowboy, gun, jsx, iso8601, gen_smtp, amqp_client, emqttc, erlmongo]}]}.
 
 % end of file
