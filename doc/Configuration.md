@@ -73,14 +73,6 @@ Unix tools
 
 Run-time configurtaion can be modified via the web [Administration](Administration.md).
 
-### Server - Configuration
-
-You may need to obtain a [Google API](https://console.developers.google.com) key
-for the Google Maps and enter it in `Google API Key`. For deployments on a local
-network this is not needed.
-
-See (Server Administration)[Server.md] for more details.
-
 ### Infrastructure
 
 You need to:

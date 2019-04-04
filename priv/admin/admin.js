@@ -3,7 +3,7 @@
  * All rights reserved.
  * Distributed under the terms of the MIT License. See the LICENSE file.
  */
-var myApp = angular.module('myApp', ['ng-admin', 'uiGmapgoogle-maps', 'googlechart', 'ngVis', 'colorpicker.module']);
+var myApp = angular.module('myApp', ['ng-admin', 'googlechart', 'ui-leaflet', 'ngVis', 'colorpicker.module']);
 myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var admin = nga.application(NodeName+' Admin').baseApiUrl('/api/');
 
@@ -124,7 +124,6 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         // General
         nga.field('admin_url').label('Admin URL'),
         nga.field('items_per_page', 'number'),
-        nga.field('google_api_key').label('Google API Key'),
         nga.field('slack_token'),
         // E-Mail
         nga.field('email_from').label('From'),
@@ -1682,51 +1681,55 @@ return {
     template: '<vis-timeline data="data" options="options" events="events"></vis-timeline>'
 };}]);
 
-// http://stackoverflow.com/questions/35895411/ng-admin-and-google-maps
-myApp.directive('map', [function () {
+myApp.directive('map', ['leafletData', '$timeout', function (leafletData, $timeout) {
 return {
     restrict: 'E',
     scope: {
         value: '=location',
     },
-    link: function($scope, uiGmapIsReady) {
+    controller: function($scope) {
         if ($scope.value == undefined) {
             $scope.value = { lat: 48.88, lon: 14.12};
         }
-        $scope.map = { center: { latitude: $scope.value.lat, longitude: $scope.value.lon }, zoom: 4 };
-        $scope.marker = {
-            id: 0,
-            coords: {
-                latitude: $scope.value.lat,
-                longitude: $scope.value.lon
-            },
-            options: { draggable: true },
-            events: {
-                dragend: function (marker, eventName, args) {
-                    $scope.value = { lat: marker.getPosition().lat(), lon: marker.getPosition().lng() };
-                }
+        $scope.defaults = {
+            tileLayer: MapTileServer
+        };
+        $scope.center = {
+            lat: $scope.value.lat,
+            lng: $scope.value.lon,
+            zoom: 10
+        };
+        $scope.markers = {
+            main: {
+                lat: $scope.value.lat,
+                lng: $scope.value.lon,
+                focus: true,
+                draggable: true
             }
         };
+        $scope.events = {
+            markers: { enable: [ 'dragend' ]}
+        };
+        $scope.$on("leafletDirectiveMarker.dragend", function(event, args){
+            $scope.value.lat = args.model.lat;
+            $scope.value.lon = args.model.lng;
+        });
+        // correctly resize the map after being displayed
+        leafletData.getMap().then(function(map) {
+            $timeout(function() {
+                map.invalidateSize();
+            }, 300);
+        });
     },
     template:
     `
     <div class="row list-view">
         <div class="col-lg-12">
-            <ui-gmap-google-map center="map.center" zoom="map.zoom" draggable="true" options="options" pan=true refresh="true">
-                <ui-gmap-marker coords="marker.coords" options="marker.options" events="marker.events" idkey="marker.id"/>
-            </ui-gmap-google-map>
+            <leaflet defaults="defaults" lf-center="center" event-broadcast="events" markers="markers" width="100%" height="400px"></leaflet>
         </div>
     </div>
     `
 };}]);
-
-myApp.config(function (uiGmapGoogleMapApiProvider) {
-    uiGmapGoogleMapApiProvider.configure({
-        key: GoogleAPIKey,
-        v: '3',
-        libraries: 'visualization'
-    });
-});
 
 myApp.directive('sgraph', ['$http', '$interval', function($http, $interval) {
 return {

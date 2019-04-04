@@ -31,7 +31,6 @@
     name :: nonempty_string(),
     admin_url :: string(),
     items_per_page :: integer(),
-    google_api_key :: 'undefined' | string(),
     slack_token :: 'undefined' | string(),
     email_from :: 'undefined' | string(),
     email_server :: 'undefined' | string(),

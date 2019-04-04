@@ -14,9 +14,11 @@ scripts/dpkg-deb/control
 scripts/dpkg-deb/conffiles
 node_modules/
 priv/admin/jquery.min.js
-priv/admin/angular-google-maps.min.js
 priv/admin/angular-simple-logger.min.js
 priv/admin/ng-google-chart.min.js
+priv/admin/leaflet.js
+priv/admin/leaflet.css
+priv/admin/ui-leaflet.min.js
 priv/admin/ng-admin.min.css
 priv/admin/ng-admin.min.js
 priv/admin/vis.min.css

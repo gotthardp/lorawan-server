@@ -28,6 +28,7 @@
         {http_extra_headers, #{}},
         % use to limit SSL versions and ciphers, see http://erlang.org/doc/man/ssl.html
         {ssl_options, []},
+        {map_tile_server, <<"http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png">>},
         {frames_before_adr, 50},
         {retained_rxframes, 50},
         {websocket_timeout, 3600000}, % ms
