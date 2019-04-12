@@ -5,6 +5,7 @@
     "ng-admin": ">=1.0.7",
     "angular-simple-logger": ">=0.0.1",
     "angular-google-chart": "1.0.0-beta.1",
+    "leaflet": "0.7.7",
     "ui-leaflet": "1.0.3",
     "vis": "4.20.1",
     "angular-visjs": "4.16.0",
