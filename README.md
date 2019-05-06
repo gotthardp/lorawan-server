@@ -4,8 +4,11 @@ Open-source LoRaWAN Server that integrates both the network-server and the appli
 This is useful for application providers that operate their own LoRaWAN network,
 or for device and application developers.
 
-**Warning** After a major version upgrade you are required to review and complete
+**Warning** This is a development version 0.7.0. Use the stable 0.6.x instead, please.
+After a major version upgrade you are required to review and complete
 the configuration before connecting any gateway or device!
+ * After migrating to 0.7.x you need to
+   - Remove the `/admin` suffix from *Server* -> *Admin URL*.
  * After migrating from version 0.5.x to 0.6.x you need to assign Profiles to
    Groups and Gateways to Areas.
  * Migrating from version 0.4.x to 0.5.x will preserve the Device/Node addresses

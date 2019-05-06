@@ -224,7 +224,8 @@ send_alert(Admins, Channel, Type, ID, NewAlerts, OtherAlerts, Decay) ->
     end.
 
 stringify_url(Prefix, Type, ID) ->
-    io_lib:format("~s#/~ss/edit/~s", [Prefix, Type, ID]).
+    AdminPath = application:get_env(lorawan_server, http_admin_path, <<"/admin">>),
+    io_lib:format("~s/~s#/~ss/edit/~s", [Prefix, AdminPath, Type, ID]).
 
 stringify_alerts(Alerts) ->
     [io_lib:format(" ~s (~B%)", [Alert, Decay]) || {Alert, Decay} <- Alerts].
