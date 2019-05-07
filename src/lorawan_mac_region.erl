@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_region).
 
--export([freq_range/1, datar_to_dr/2]).
+-export([freq/1, datar_to_dr/2]).
 -export([join1_window/2, join2_window/3, rx1_window/3, rx2_window/3, rx2_rf/2]).
 -export([max_uplink_snr/1, max_uplink_snr/2, max_downlink_snr/3]).
 -export([set_channels/3]).
@@ -185,18 +185,29 @@ codr_to_tuple(CodingRate) ->
     [A, B] = binary:split(CodingRate, [<<"/">>], [global, trim_all]),
     {binary_to_integer(A), binary_to_integer(B)}.
 
-% {Min, Max}
-freq_range(<<"EU868">>) -> {863, 870};
-freq_range(<<"US902">>) -> {902, 928};
-freq_range(<<"US902-PR">>) -> {902, 928};
-freq_range(<<"CN779">>) -> {779, 787};
-freq_range(<<"EU433">>) -> {433, 435};
-freq_range(<<"AU915">>) -> {915, 928};
-freq_range(<<"CN470">>) -> {470, 510};
-freq_range(<<"AS923">>) -> {915, 928};
-freq_range(<<"KR920">>) -> {920, 923};
-freq_range(<<"IN865">>) -> {865, 867};
-freq_range(<<"RU868">>) -> {864, 870}.
+% static channel plan parameters
+freq(<<"EU868">>) ->
+    #{min=>863, max=>870, default=>[868.10, 868.30, 868.50]};
+freq(<<"US902">>) ->
+    #{min=>902, max=>928};
+freq(<<"US902-PR">>) ->
+    #{min=>902, max=>928};
+freq(<<"CN779">>) ->
+    #{min=>779.5, max=>786.5, default=>[779.5, 779.7, 779.9]};
+freq(<<"EU433">>) ->
+    #{min=>433.175, max=>434.665, default=>[433.175, 433.375, 433.575]};
+freq(<<"AU915">>) ->
+    #{min=>915, max=>928};
+freq(<<"CN470">>) ->
+    #{min=>470, max=>510};
+freq(<<"AS923">>) ->
+    #{min=>915, max=>928, default=>[923.20, 923.40]};
+freq(<<"KR920">>) ->
+    #{min=>920.9, max=>923.3, default=>[922.1, 922.3, 922.5]};
+freq(<<"IN865">>) ->
+    #{min=>865, max=>867, default=>[865.0625, 865.4025, 865.985]};
+freq(<<"RU868">>) ->
+    #{min=>864, max=>870, default=>[868.9, 869.1]}.
 
 max_uplink_snr(DataRate) ->
     {SF, _} = datar_to_tuple(DataRate),

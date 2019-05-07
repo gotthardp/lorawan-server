@@ -80,7 +80,7 @@ send_empty(Req, DevAddr, State) ->
     {jsx:encode([{devaddr, DevAddr}, {array, []}]), Req, State}.
 
 send_array(Req, #network{region=Region, max_eirp=MaxEIRP}, DevAddr, ActRec, #state{format=rgraph}=State) ->
-    {Min, Max} = lorawan_mac_region:freq_range(Region),
+    #{min:=Min, max:=Max} = lorawan_mac_region:freq(Region),
     % construct Google Chart DataTable
     % see https://developers.google.com/chart/interactive/docs/reference#dataparam
     Array = [{cols, [
