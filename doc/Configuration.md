@@ -75,17 +75,17 @@ Run-time configurtaion can be modified via the web [Administration](Administrati
 
 ### Infrastructure
 
-You need to:
+You need to (in this order):
  - Define at least one administrative *Area*, which is covered by your server.
  - Define at least one LoRaWAN *Gateway* you want to use and assign it to an Area.
  - Define LoRaWAN *Network* parameters according to your geographical region.
    Recommended values are listed in the [List of Regions](Regions.md).
 
-See (Infrastructure Administration)[Infrastructure.md] for more details.
+See [Infrastructure Administration](Infrastructure.md) for more details.
 
 ### Devices
 
-You need to:
+You need to (in this order):
  - Define at least one administrative *Group*.
  - For each type of a device define a device *Profile* and assign it to a Group.
  - Configure each device you want to use and assign them to one of the *Profiles*:
@@ -93,7 +93,7 @@ You need to:
    - To add an OTAA device, create a new *Devices* list entry and start the device.
      The *Nodes* list will be updated automatically once the device joins the network.
 
-See (Devices Administration)[Devices.md] for more details.
+See [Devices Administration](Devices.md) for more details.
 
 ### Backends
 
