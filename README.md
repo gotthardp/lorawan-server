@@ -9,6 +9,7 @@ After a major version upgrade you are required to review and complete
 the configuration before connecting any gateway or device!
  * After migrating to 0.7.x you need to
    - Remove the `/admin` suffix from *Server* -> *Admin URL*.
+   - Make sure all Gateways are assigned to an Area with a specified Region.
  * After migrating from version 0.5.x to 0.6.x you need to assign Profiles to
    Groups and Gateways to Areas.
  * Migrating from version 0.4.x to 0.5.x will preserve the Device/Node addresses

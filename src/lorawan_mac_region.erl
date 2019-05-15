@@ -5,7 +5,7 @@
 %
 -module(lorawan_mac_region).
 
--export([freq/1, datar_to_dr/2]).
+-export([freq/1, net_freqs/1, datars/1, datar_to_dr/2]).
 -export([join1_window/2, join2_window/3, rx1_window/3, rx2_window/3, rx2_rf/2]).
 -export([max_uplink_snr/1, max_uplink_snr/2, max_downlink_snr/3]).
 -export([set_channels/3]).
@@ -30,17 +30,17 @@ rx2_window(#network{rx2_delay=Delay}=Network, Node, RxQ) ->
 
 % we calculate in fixed-point numbers
 rx1_rf(<<"US902">> = Region, RxQ, Offset) ->
-    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    tx_offset(Region, RxQ, ch2f(Region, RxCh rem 8), Offset);
+    RxCh = f2uch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    tx_offset(Region, RxQ, dch2f(Region, RxCh rem 8), Offset);
 rx1_rf(<<"US902-PR">> = Region, RxQ, Offset) ->
-    RxCh = f2ch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
-    tx_offset(Region, RxQ, ch2f(Region, RxCh div 8), Offset);
+    RxCh = f2uch(RxQ#rxq.freq, {9023, 2}, {9030, 16}),
+    tx_offset(Region, RxQ, dch2f(Region, RxCh div 8), Offset);
 rx1_rf(<<"AU915">> = Region, RxQ, Offset) ->
-    RxCh = f2ch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
-    tx_offset(Region, RxQ, ch2f(Region, RxCh rem 8), Offset);
+    RxCh = f2uch(RxQ#rxq.freq, {9152, 2}, {9159, 16}),
+    tx_offset(Region, RxQ, dch2f(Region, RxCh rem 8), Offset);
 rx1_rf(<<"CN470">> = Region, RxQ, Offset) ->
-    RxCh = f2ch(RxQ#rxq.freq, {4703, 2}),
-    tx_offset(Region, RxQ, ch2f(Region, RxCh rem 48), Offset);
+    RxCh = f2uch(RxQ#rxq.freq, {4703, 2}),
+    tx_offset(Region, RxQ, dch2f(Region, RxCh rem 48), Offset);
 rx1_rf(Region, RxQ, Offset) ->
     tx_offset(Region, RxQ, RxQ#rxq.freq, Offset).
 
@@ -50,18 +50,32 @@ rx2_rf(#network{region=Region, tx_codr=CodingRate, rxwin_init=WinInit}, #profile
     {_, DataRate, Freq} = lorawan_mac_commands:merge_rxwin(WinSet, WinInit),
     #txq{freq=Freq, datr=dr_to_datar(Region, DataRate), codr=CodingRate}.
 
-f2ch(Freq, {Start, Inc}) -> round(10*Freq-Start) div Inc.
+f2uch(Freq, {Start, Inc}) -> round(10*Freq-Start) div Inc.
 
 % the channels are overlapping, return the integer value
-f2ch(Freq, {Start1, Inc1}, _) when round(10*Freq-Start1) rem Inc1 == 0 ->
+f2uch(Freq, {Start1, Inc1}, _) when round(10*Freq-Start1) rem Inc1 == 0 ->
     round(10*Freq-Start1) div Inc1;
-f2ch(Freq, _, {Start2, Inc2}) when round(10*Freq-Start2) rem Inc2 == 0 ->
+f2uch(Freq, _, {Start2, Inc2}) when round(10*Freq-Start2) rem Inc2 == 0 ->
     64 + round(10*Freq-Start2) div Inc2.
 
-ch2f(Region, Ch)
+uch2f(Region, Ch)
+        when (Region == <<"US902">> orelse Region == <<"US902-PR">>) andalso Ch < 64 ->
+    ch2fi(Ch, {9023, 2});
+uch2f(Region, Ch)
+        when Region == <<"US902">> orelse Region == <<"US902-PR">> ->
+    ch2fi(Ch-64, {9030, 16});
+uch2f(<<"AU915">>, Ch)
+        when Ch < 64 ->
+    ch2fi(Ch, {9152, 2});
+uch2f(<<"AU915">>, Ch) ->
+    ch2fi(Ch-64, {9159, 16});
+uch2f(<<"CN470">>, Ch) ->
+    ch2fi(Ch, {4703, 2}).
+
+dch2f(Region, Ch)
         when Region == <<"US902">>; Region == <<"US902-PR">>; Region == <<"AU915">> ->
     ch2fi(Ch, {9233, 6});
-ch2f(<<"CN470">>, Ch) ->
+dch2f(<<"CN470">>, Ch) ->
     ch2fi(Ch, {5003, 2}).
 
 ch2fi(Ch, {Start, Inc}) -> (Ch*Inc + Start)/10.
@@ -125,49 +139,49 @@ drs_to_down(_Region, DR) ->
 
 datars(Region)
         when Region == <<"US902">>; Region == <<"US902-PR">> -> [
-    {0,  {10, 125}},
-    {1,  {9, 125}},
-    {2,  {8, 125}},
-    {3,  {7, 125}},
-    {4,  {8, 500}}
+    {0,  {10, 125}, up},
+    {1,  {9, 125}, up},
+    {2,  {8, 125}, up},
+    {3,  {7, 125}, up},
+    {4,  {8, 500}, up}
     | us_down_datars()];
 datars(Region)
         when Region == <<"AU915">> -> [
-    {0,  {12, 125}},
-    {1,  {11, 125}},
-    {2,  {10, 125}},
-    {3,  {9, 125}},
-    {4,  {8, 125}},
-    {5,  {7, 125}},
-    {6,  {8, 500}}
+    {0,  {12, 125}, up},
+    {1,  {11, 125}, up},
+    {2,  {10, 125}, up},
+    {3,  {9, 125}, up},
+    {4,  {8, 125}, up},
+    {5,  {7, 125}, up},
+    {6,  {8, 500}, up}
     | us_down_datars()];
 datars(_Region) -> [
-    {0, {12, 125}},
-    {1, {11, 125}},
-    {2, {10, 125}},
-    {3, {9, 125}},
-    {4, {8, 125}},
-    {5, {7, 125}},
-    {6, {7, 250}},
-    {7, 50000}]. % FSK
+    {0, {12, 125}, updown},
+    {1, {11, 125}, updown},
+    {2, {10, 125}, updown},
+    {3, {9, 125}, updown},
+    {4, {8, 125}, updown},
+    {5, {7, 125}, updown},
+    {6, {7, 250}, updown},
+    {7, 50000, updown}]. % FSK
 
 us_down_datars() -> [
-    {8,  {12, 500}},
-    {9,  {11, 500}},
-    {10, {10, 500}},
-    {11, {9, 500}},
-    {12, {8, 500}},
-    {13, {7, 500}}].
+    {8,  {12, 500}, down},
+    {9,  {11, 500}, down},
+    {10, {10, 500}, down},
+    {11, {9, 500}, down},
+    {12, {8, 500}, down},
+    {13, {7, 500}, down}].
 
 dr_to_tuple(Region, DR) ->
-    {_, DataRate} = lists:keyfind(DR, 1, datars(Region)),
+    {_, DataRate, _} = lists:keyfind(DR, 1, datars(Region)),
     DataRate.
 
 dr_to_datar(Region, DR) ->
     tuple_to_datar(dr_to_tuple(Region, DR)).
 
 datar_to_dr(Region, DataRate) ->
-    {DR, _} = lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)),
+    {DR, _, _} = lists:keyfind(datar_to_tuple(DataRate), 2, datars(Region)),
     DR.
 
 tuple_to_datar({SF, BW}) ->
@@ -208,6 +222,21 @@ freq(<<"IN865">>) ->
     #{min=>865, max=>867, default=>[865.0625, 865.4025, 865.985]};
 freq(<<"RU868">>) ->
     #{min=>864, max=>870, default=>[868.9, 869.1]}.
+
+net_freqs(#network{region=Region, init_chans=Chans})
+        when Region == <<"US902">>; Region == <<"US902-PR">>; Region == <<"AU915">>; Region == <<"CN470">> ->
+    % convert enabled channels to frequencies
+    lists:map(
+        fun(Ch) -> uch2f(Region, Ch) end,
+        expand_intervals(Chans));
+net_freqs(#network{region=Region, init_chans=Chans, cflist=CFList}) ->
+    #{default := Freqs0} = freq(Region),
+    {Freqs1, _, _} = lists:unzip3(CFList),
+    Freqs = Freqs0 ++ Freqs1,
+    % list the enabled frequencies
+    lists:map(
+        fun(Ch) -> lists:nth(Ch+1, Freqs) end,
+        expand_intervals(Chans)).
 
 max_uplink_snr(DataRate) ->
     {SF, _} = datar_to_tuple(DataRate),
@@ -268,6 +297,11 @@ match_whole(MinMax, {A,B}) when B < A ->
     match_whole(MinMax, {B,A});
 match_whole({Min, Max}, {A,B}) ->
     (A =< Min) and (B >= Max).
+
+expand_intervals([{A,B} | Rest]) ->
+    lists:seq(A,B) ++ expand_intervals(Rest);
+expand_intervals([]) ->
+    [].
 
 build_bin(Chans, {Min, Max}) ->
     Bits = Max-Min+1,
@@ -363,6 +397,7 @@ test_tx_time(Packet, DataRate, CodingRate) ->
         #txq{freq=869.525, datr=DataRate, codr=CodingRate})).
 
 bits_test_()-> [
+    ?_assertEqual([0,1,2,5,6,7,8,9], expand_intervals([{0,2}, {5,9}])),
     ?_assertEqual(7, build_bin([{0,2}], {0,15})),
     ?_assertEqual(0, build_bin([{0,2}], {16,31})),
     ?_assertEqual(65535, build_bin([{0,71}], {0,15})),

@@ -49,6 +49,22 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     var events = nga.entity('events')
         .identifier(nga.field('evid'));
 
+    region_choices = [
+        { value: 'EU868', label: 'EU 863-870MHz' },
+        { value: 'US902', label: 'US 902-928MHz' },
+        // Multitech Private Hybrid Mode
+        // http://www.multitech.net/developer/software/lora/introduction-to-lora
+        { value: 'US902-PR', label: 'US 902-928MHz (Private Hybrid)' },
+        { value: 'CN779', label: 'China 779-787MHz' },
+        { value: 'EU433', label: 'EU 433MHz' },
+        { value: 'AU915', label: 'Australia 915-928MHz' },
+        { value: 'CN470', label: 'China 470-510MHz' },
+        { value: 'AS923', label: 'Asia 923MHz' },
+        { value: 'KR920', label: 'South Korea 920-923MHz' },
+        { value: 'IN865', label: 'India 865-867MHz' },
+        { value: 'RU868', label: 'Russia 864-870MHz' }
+    ];
+
     adr_choices = [
         { value: 0, label: 'Disabled' },
         { value: 1, label: 'Auto-Adjust' },
@@ -212,6 +228,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
     // ---- areas
     areas.listView().fields([
         nga.field('name').isDetailLink(true),
+        nga.field('region'),
         nga.field('log_ignored', 'boolean').label('Log Ignored?')
     ])
     .perPage(ItemsPerPage)
@@ -219,6 +236,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
 
     areas.creationView().fields([
         nga.field('name')
+            .validation({ required: true }),
+        nga.field('region', 'choice')
+            .choices(region_choices)
             .validation({ required: true }),
         nga.field('admins', 'reference_many').label('Administrators')
             .targetEntity(users)
@@ -256,6 +276,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{2}([-:]?[A-Fa-f0-9]{2}){7}' }),
         nga.field('area', 'reference')
+            .validation({ required: true })
             .targetEntity(areas)
             .targetField(nga.field('name')),
         nga.field('tx_rfch', 'number').label('TX Chain')
@@ -313,21 +334,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
             .attributes({ placeholder: 'e.g. 0123AB' })
             .validation({ required: true, pattern: '[A-Fa-f0-9]{6}' }),
         nga.field('region', 'choice')
-            .choices([
-                { value: 'EU868', label: 'EU 863-870MHz' },
-                { value: 'US902', label: 'US 902-928MHz' },
-                // Multitech Private Hybrid Mode
-                // http://www.multitech.net/developer/software/lora/introduction-to-lora
-                { value: 'US902-PR', label: 'US 902-928MHz (Private Hybrid)' },
-                { value: 'CN779', label: 'China 779-787MHz' },
-                { value: 'EU433', label: 'EU 433MHz' },
-                { value: 'AU915', label: 'Australia 915-928MHz' },
-                { value: 'CN470', label: 'China 470-510MHz' },
-                { value: 'AS923', label: 'Asia 923MHz' },
-                { value: 'KR920', label: 'South Korea 920-923MHz' },
-                { value: 'IN865', label: 'India 865-867MHz' },
-                { value: 'RU868', label: 'Russia 864-870MHz' }
-            ])
+            .choices(region_choices)
             .validation({ required: true }),
         nga.field('tx_codr', 'choice').label('Coding Rate')
             .choices([

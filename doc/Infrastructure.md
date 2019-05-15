@@ -6,6 +6,7 @@ e.g. belong to a single customer.
 
 For each Area you can set:
  - **Name** of the area.
+ - **Region** that determines behaviour of LoRaWAN Gateways in this area.
  - **Administrators** responsible for this area.
  - **Slack Channel** where status alerts shall be published.
  - **Log Ignored?** indicates whether uplink frames from unknown and ignored nodes

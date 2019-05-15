@@ -35,6 +35,7 @@
 
 -record(area, {
     name :: nonempty_string(),
+    region :: binary(),
     admins :: [nonempty_string()],
     slack_channel :: 'undefined' | string(),
     log_ignored :: boolean()}).
