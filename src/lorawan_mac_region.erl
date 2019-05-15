@@ -229,13 +229,18 @@ net_freqs(#network{region=Region, init_chans=Chans})
     lists:map(
         fun(Ch) -> uch2f(Region, Ch) end,
         expand_intervals(Chans));
-net_freqs(#network{region=Region, init_chans=Chans, cflist=CFList}) ->
+net_freqs(#network{name=Name, region=Region, init_chans=Chans, cflist=CFList}) ->
     #{default := Freqs0} = freq(Region),
     {Freqs1, _, _} = lists:unzip3(CFList),
     Freqs = Freqs0 ++ Freqs1,
     % list the enabled frequencies
-    lists:map(
-        fun(Ch) -> lists:nth(Ch+1, Freqs) end,
+    lists:filtermap(
+        fun (Ch) when Ch < length(Freqs) ->
+                {true, lists:nth(Ch+1, Freqs)};
+            (TooLarge) ->
+                lager:error("network '~s' channel frequency ~B not defined", [Name, TooLarge]),
+                false
+        end,
         expand_intervals(Chans)).
 
 max_uplink_snr(DataRate) ->
