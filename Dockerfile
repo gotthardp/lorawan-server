@@ -1,4 +1,4 @@
-FROM erlang:20-alpine
+FROM erlang:21-alpine
 MAINTAINER Petr Gotthard <petr.gotthard@centrum.cz>
 
 RUN apk add --no-cache --virtual build-deps git make wget nodejs-npm && \
@@ -15,8 +15,10 @@ VOLUME /storage
 
 # data from port_forwarders
 EXPOSE 1680/udp
-# admin interface
+# http admin interface
 EXPOSE 8080/tcp
+# https admin interface
+EXPOSE 8443/tcp
 
 ENV LORAWAN_HOME=/storage
 WORKDIR /usr/lib/lorawan-server
