@@ -33,19 +33,7 @@ ingest_frame(MAC, PHYPayload) ->
 ingest_frame0(MAC, 2#000, <<_, AppEUI0:8/binary, DevEUI0:8/binary,
         DevNonce:2/binary>> = Msg, MIC) ->
     {AppEUI, DevEUI} = {reverse(AppEUI0), reverse(DevEUI0)},
-    case mnesia:read(device, DevEUI, read) of
-        [] ->
-            {error, {device, DevEUI}, unknown_deveui, aggregated};
-        [D] when D#device.appeui /= undefined, D#device.appeui /= AppEUI ->
-            {error, {device, DevEUI}, {bad_appeui, binary_to_hex(AppEUI)}, aggregated};
-        [D] ->
-            case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
-                MIC ->
-                    verify_join(MAC, D, DevNonce);
-                _MIC2 ->
-                    {error, {device, DevEUI}, bad_mic}
-            end
-    end;
+    ingest_join_frame(MAC, Msg, AppEUI, DevEUI, DevNonce, MIC);
 ingest_frame0(MAC, MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RFU:1,
         FOptsLen:4, FCnt:16/little-unsigned-integer, FOpts:FOptsLen/binary,
         Body/binary>> = Msg, MIC)
@@ -61,6 +49,21 @@ ingest_frame0(MAC, MType, <<_, DevAddr0:4/binary, ADR:1, ADRACKReq:1, ACK:1, _RF
 ingest_frame0(MAC, MType, Msg, _MIC) ->
     lager:warning("gateway ~s received bad frame (mtype ~.2B): ~p", [binary_to_hex(MAC), MType, Msg]),
     ignore.
+
+ingest_join_frame(MAC, Msg, AppEUI, DevEUI, DevNonce, MIC) ->
+    case mnesia:read(device, DevEUI, read) of
+        [] ->
+            {error, {device, DevEUI}, unknown_deveui, aggregated};
+        [D] when D#device.appeui /= undefined, D#device.appeui /= AppEUI ->
+            {error, {device, DevEUI}, {bad_appeui, binary_to_hex(AppEUI)}, aggregated};
+        [D] ->
+            case aes_cmac:aes_cmac(D#device.appkey, Msg, 4) of
+                MIC ->
+                    verify_join(MAC, D, DevNonce);
+                _MIC2 ->
+                    {error, {device, DevEUI}, bad_mic}
+            end
+    end.
 
 ingest_data_frame(_MAC, MType, Msg, FOpts, FRMPayload, MIC,
         #frame{devaddr=DevAddr, fcnt=FCnt, port=Port}=Frame)
