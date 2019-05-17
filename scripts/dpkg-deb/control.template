@@ -3,7 +3,7 @@ Version: <VERSION>
 Section: net
 Priority: optional
 Architecture: all
-Depends: erlang-base (>= 1:19.2), erlang-crypto, erlang-syntax-tools, erlang-inets, erlang-mnesia, erlang-runtime-tools, erlang-ssl, erlang-public-key, erlang-asn1, erlang-os-mon, erlang-xmerl
+Depends: erlang-base (>= 1:20.3), erlang-crypto, erlang-syntax-tools, erlang-inets, erlang-mnesia, erlang-runtime-tools, erlang-ssl, erlang-public-key, erlang-asn1, erlang-os-mon, erlang-xmerl
 Build-Depends: erlang-dev, erlang-src, erlang-eunit
 Maintainer: Petr Gotthard <petr.gotthard@centrum.cz>
 Description: Compact server for private LoRa networks
