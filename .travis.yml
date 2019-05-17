@@ -4,11 +4,9 @@ addons:
     packages:
       - fakeroot
 otp_release:
-  # debian stretch uses Erlang/OTP 19.2
-  - 19.2
-  # the most recent from R19 and R20
-  - 19.3
   - 20.3
+  # debian buster uses Erlang/OTP 21.2
+  - 21.2
   - 21.3
   - 22.0
 install:
@@ -25,6 +23,6 @@ deploy:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server_*_all.deb
   on:
-    condition: $TRAVIS_OTP_RELEASE = 19.2
+    condition: $TRAVIS_OTP_RELEASE = 20.3
     tags: true
     repo: gotthardp/lorawan-server

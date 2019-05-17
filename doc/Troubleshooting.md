@@ -153,7 +153,7 @@ See the **D/L Expires** setting of the corresponding [Handler](Handlers.md).
 ### prerequisite_failed
 
 This is reported when the lorawan-server is started with older Erlang/OTP. At
-least 19.0 (or later) is required.
+least 20.3 (or later) is required.
 
 ### connector_disabled
 
@@ -177,7 +177,7 @@ to change `stat_format` to `semtech` to get this working.
 ### Browser reports NS_ERROR_NET_INADEQUATE_SECURITY
 
 You are using old version of Erlang that does not support the newest ciphers
-required by HTTP/2. Erlang 20 is recommended for TLS/SSL.
+required by HTTP/2. The latest Erlang is recommended for TLS/SSL.
 
 As a quick fix, in Mozilla you can disable the checks in `about:config`, by
 setting `network.http.spdy.enforce-tls-profile` to `false`.

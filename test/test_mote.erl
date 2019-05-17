@@ -82,7 +82,7 @@ encode_frame(MType, FCnt, ADR, ADRACKReq, ACK, FOpts, FPort, FData,
             <<FHDR/binary, FPort:8, (reverse(FRMPayload))/binary>>
     end,
     Msg = <<MType:3, 0:3, 0:2, MACPayload/binary>>,
-    MIC = aes_cmac:aes_cmac(NwkSKey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4),
+    MIC = crypto:cmac(aes_cbc128, NwkSKey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4),
     <<Msg/binary, MIC/binary>>.
 
 process_frame(PHYPayload, State) ->
@@ -100,7 +100,7 @@ process_frame0(MType, Msg, MIC, #state{devaddr=DevAddr, nwkskey=NwkSKey, appskey
         <<Port:8, Payload/binary>> -> {Port, Payload}
     end,
     DevAddr = reverse(DevAddr0),
-    case aes_cmac:aes_cmac(NwkSKey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
+    case crypto:cmac(aes_cbc128, NwkSKey, <<(b0(MType band 1, DevAddr, FCnt, byte_size(Msg)))/binary, Msg/binary>>, 4) of
         MIC ->
             case FPort of
                 0 when FOptsLen == 0 ->

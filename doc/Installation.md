@@ -10,7 +10,7 @@ to correctly setup your server.
 
 On the Debian Linux and its clones like Raspbian you can use the .deb package.
 
-Unless you have Debian 9 (Stretch) you have to install the Erlang/OTP 19 or later from
+Unless you have Debian 10 (Buster) you have to install the Erlang/OTP 20.3 or later from
 [Erlang Solutions](https://www.erlang-solutions.com/resources/download.html) first:
 ```bash
 wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
@@ -38,7 +38,7 @@ Then start the server by `systemctl start lorawan-server`.
 
 ### Using the Binary Release on Linux
 
-You will need the Erlang/OTP 19 or higher. Try typing `yum install erlang` or
+You will need the Erlang/OTP 20.3 or higher. Try typing `yum install erlang` or
 `apt-get install erlang`.
 
 Check your Erlang/OTP version by typing `erl`. If your Linux distribution
@@ -81,7 +81,7 @@ This will put the database into `/var/lib/lorawan-server` and server logs into
 ### Using the Binary Release on Windows
 
 Install the [32-bit or 64-bit Binary File](http://www.erlang.org/downloads) of
-Erlang/OTP 19 or later.
+Erlang/OTP 20.3 or later.
 
 Unpack the binary release
 [lorawan-server-*.tar.gz](https://github.com/gotthardp/lorawan-server/releases)
