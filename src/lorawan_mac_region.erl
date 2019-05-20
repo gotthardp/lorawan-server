@@ -5,8 +5,8 @@
 %
 -module(lorawan_mac_region).
 
--export([freq/1, net_freqs/1, datars/1, datar_to_dr/2]).
--export([join1_window/2, join2_window/3, rx1_window/3, rx2_window/3, rx2_rf/2]).
+-export([freq/1, net_freqs/1, datars/1, datar_to_dr/2, dr_to_datar/2]).
+-export([join1_window/2, join2_window/2, rx1_window/3, rx2_window/2, rx2_rf/2]).
 -export([max_uplink_snr/1, max_uplink_snr/2, max_downlink_snr/3]).
 -export([set_channels/3]).
 -export([tx_time/2, tx_time/3]).
@@ -16,17 +16,17 @@
 % receive windows
 
 join1_window(#network{region=Region, join1_delay=Delay}, RxQ) ->
-    tx_window(RxQ#rxq.tmst, Delay, rx1_rf(Region, RxQ, 0)).
+    tx_window(1, Delay, rx1_rf(Region, RxQ, 0)).
 
-join2_window(#network{join2_delay=Delay}=Network, Node, RxQ) ->
-    tx_window(RxQ#rxq.tmst, Delay, rx2_rf(Network, Node)).
+join2_window(#network{join2_delay=Delay}=Network, Node) ->
+    tx_window(2, Delay, rx2_rf(Network, Node)).
 
 rx1_window(#network{region=Region, rx1_delay=Delay},
         #node{rxwin_use={Offset, _, _}}, RxQ) ->
-    tx_window(RxQ#rxq.tmst, Delay, rx1_rf(Region, RxQ, Offset)).
+    tx_window(1, Delay, rx1_rf(Region, RxQ, Offset)).
 
-rx2_window(#network{rx2_delay=Delay}=Network, Node, RxQ) ->
-    tx_window(RxQ#rxq.tmst, Delay, rx2_rf(Network, Node)).
+rx2_window(#network{rx2_delay=Delay}=Network, Node) ->
+    tx_window(2, Delay, rx2_rf(Network, Node)).
 
 % we calculate in fixed-point numbers
 rx1_rf(<<"US902">> = Region, RxQ, Offset) ->
@@ -84,8 +84,8 @@ tx_offset(Region, RxQ, Freq, Offset) ->
     DataRate = datar_to_down(Region, RxQ#rxq.datr, Offset),
     #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr}.
 
-tx_window(Recvd, Delay, TxQ) ->
-    TxQ#txq{tmst=Recvd+Delay*1000000}.
+tx_window(Win, Delay, TxQ) ->
+    TxQ#txq{win=Win, time=Delay}.
 
 datar_to_down(Region, DataRate, Offset) ->
     DR2 = dr_to_down(Region, datar_to_dr(Region, DataRate), Offset),

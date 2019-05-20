@@ -21,16 +21,15 @@
     codr :: binary(),
     time :: calendar:datetime(),
     tmms :: integer(),
-    tmst :: integer(),
     rssi :: number(),
     lsnr :: number()}).
 
 -record(txq, {
     freq :: number(),
+    win :: 1 | 2,
     datr :: binary() | integer(),
     codr :: binary(),
-    tmst :: 'undefined' | integer(),
-    time :: 'undefined' | 'immediately' | calendar:datetime(),
+    time :: integer() | 'immediately' | calendar:datetime(),
     powe :: 'undefined' | integer()}).
 
 -record(area, {

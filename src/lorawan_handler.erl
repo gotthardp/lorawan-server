@@ -115,7 +115,7 @@ join(cast, {rxq, Gateways0}, {{Network, Profile, Device}, DevAddr, DevNonce}) ->
             lorawan_mac_region:join1_window(Network, RxQ);
         1 ->
             lager:debug("Join-Accept in RX2: ~p ~p", [RxQ, Node#node.rxwin_use]),
-            lorawan_mac_region:join2_window(Network, Node, RxQ)
+            lorawan_mac_region:join2_window(Network, Node)
     end,
     lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload),
     % the task has been completed
@@ -177,8 +177,8 @@ extract_rxq(Gateways) ->
 
 choose_tx({Network, #profile{txwin=1}, Node}, RxQ, _Timestamp) ->
     lorawan_mac_region:rx1_window(Network, Node, RxQ);
-choose_tx({Network, #profile{txwin=2}, Node}, RxQ, _Timestamp) ->
-    lorawan_mac_region:rx2_window(Network, Node, RxQ);
+choose_tx({Network, #profile{txwin=2}, Node}, _RxQ, _Timestamp) ->
+    lorawan_mac_region:rx2_window(Network, Node);
 choose_tx({#network{rx1_delay=Rx1Delay}=Network, _Profile, Node}, RxQ, TimeStamp) ->
     {ok, GwDelay} = application:get_env(lorawan_server, gateway_delay),
     % transmit as soon as possible
@@ -186,7 +186,7 @@ choose_tx({#network{rx1_delay=Rx1Delay}=Network, _Profile, Node}, RxQ, TimeStamp
         Small when Small < Rx1Delay*1000 - GwDelay ->
             lorawan_mac_region:rx1_window(Network, Node, RxQ);
         _Big ->
-            lorawan_mac_region:rx2_window(Network, Node, RxQ)
+            lorawan_mac_region:rx2_window(Network, Node)
     end.
 
 send_unicast({MAC, GWState}, {Network, Profile, #node{devaddr=DevAddr}=Node}, TxQ, ACK, FOpts,
@@ -231,7 +231,7 @@ retransmit(cast, {rxq, Gateways0}, {{Network, Profile, #node{devaddr=DevAddr}=No
             TxQ =
                 case alternate_rxwin(Profile, Count) of
                     0 -> lorawan_mac_region:rx1_window(Network, Node, RxQ);
-                    1 -> lorawan_mac_region:rx2_window(Network, Node, RxQ)
+                    1 -> lorawan_mac_region:rx2_window(Network, Node)
                 end,
             lager:debug("~s retransmitting ~B", [lorawan_utils:binary_to_hex(DevAddr), Count]),
             lorawan_gw_router:downlink({MAC, GWState}, Network, DevAddr, TxQ, PHYPayload),
