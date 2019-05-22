@@ -21,12 +21,12 @@
     codr :: binary(),
     time :: calendar:datetime(),
     tmms :: integer(),
+    reserved :: any(), %% for future use
     rssi :: number(),
     lsnr :: number()}).
 
 -record(txq, {
     freq :: number(),
-    win :: 1 | 2,
     datr :: binary() | integer(),
     codr :: binary(),
     time :: integer() | 'immediately' | calendar:datetime(),

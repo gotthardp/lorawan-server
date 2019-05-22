@@ -16,17 +16,17 @@
 % receive windows
 
 join1_window(#network{region=Region, join1_delay=Delay}, RxQ) ->
-    tx_window(1, Delay, rx1_rf(Region, RxQ, 0)).
+    tx_window(Delay, rx1_rf(Region, RxQ, 0)).
 
 join2_window(#network{join2_delay=Delay}=Network, Node) ->
-    tx_window(2, Delay, rx2_rf(Network, Node)).
+    tx_window(Delay, rx2_rf(Network, Node)).
 
 rx1_window(#network{region=Region, rx1_delay=Delay},
         #node{rxwin_use={Offset, _, _}}, RxQ) ->
-    tx_window(1, Delay, rx1_rf(Region, RxQ, Offset)).
+    tx_window(Delay, rx1_rf(Region, RxQ, Offset)).
 
 rx2_window(#network{rx2_delay=Delay}=Network, Node) ->
-    tx_window(2, Delay, rx2_rf(Network, Node)).
+    tx_window(Delay, rx2_rf(Network, Node)).
 
 % we calculate in fixed-point numbers
 rx1_rf(<<"US902">> = Region, RxQ, Offset) ->
@@ -84,8 +84,8 @@ tx_offset(Region, RxQ, Freq, Offset) ->
     DataRate = datar_to_down(Region, RxQ#rxq.datr, Offset),
     #txq{freq=Freq, datr=DataRate, codr=RxQ#rxq.codr}.
 
-tx_window(Win, Delay, TxQ) ->
-    TxQ#txq{win=Win, time=Delay}.
+tx_window(Delay, TxQ) ->
+    TxQ#txq{time=Delay}.
 
 datar_to_down(Region, DataRate, Offset) ->
     DR2 = dr_to_down(Region, datar_to_dr(Region, DataRate), Offset),
