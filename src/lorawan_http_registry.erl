@@ -98,7 +98,8 @@ get_static(scopes) ->
     <<"backend:read">>, <<"backend:write">>];
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/
 get_static(routes) ->
-    [{"/api/scopes/[:name]", lorawan_admin_scopes,
+    [{"/router-info/[:mac]", lorawan_gw_lns, []},
+    {"/api/scopes/[:name]", lorawan_admin_scopes,
         [{<<"server:read">>, '*'}]},
     {"/api/config/[:name]", lorawan_admin_db_record,
         {config, record_info(fields, config),

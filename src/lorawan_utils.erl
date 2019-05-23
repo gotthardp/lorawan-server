@@ -7,7 +7,8 @@
 
 -export([binary_to_hex/1, hex_to_binary/1, reverse/1]).
 -export([index_of/2]).
--export([precise_universal_time/0, ms_diff/2, datetime_to_timestamp/1, apply_offset/2]).
+-export([precise_universal_time/0, time_to_gps/0, time_to_gps/1, time_to_unix/0, time_to_unix/1]).
+-export([ms_diff/2, datetime_to_timestamp/1, apply_offset/2]).
 -export([throw_info/2, throw_info/3, throw_warning/2, throw_warning/3, throw_error/2, throw_error/3]).
 
 -include("lorawan.hrl").
@@ -47,6 +48,23 @@ precise_universal_time() ->
     {Date, {Hours, Min, Secs}} = calendar:universal_time(),
     {_, _, USecs} = erlang:timestamp(),
     {Date, {Hours, Min, Secs + (USecs div 1000)/1000}}.
+
+time_to_gps() ->
+    time_to_gps(precise_universal_time()).
+
+time_to_gps({Date, {Hours, Min, Secs}}) ->
+    TotalSecs = calendar:datetime_to_gregorian_seconds({Date, {Hours, Min, trunc(Secs)}})
+            - calendar:datetime_to_gregorian_seconds({{1980, 1, 6}, {0, 0, 0}})
+            + 17, % leap seconds
+    trunc(1000*(TotalSecs + (Secs - trunc(Secs)))). % ms
+
+time_to_unix() ->
+    time_to_gps(precise_universal_time()).
+
+time_to_unix({Date, {Hours, Min, Secs}}) ->
+    TotalSecs = calendar:datetime_to_gregorian_seconds({Date, {Hours, Min, trunc(Secs)}})
+            - epoch_seconds(),
+    trunc(1000*(TotalSecs + (Secs - trunc(Secs)))). % ms
 
 datetime_to_timestamp({Date, {Hours, Min, Secs}}) ->
     TotalSecs =

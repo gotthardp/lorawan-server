@@ -71,7 +71,7 @@ handle_info({udp, Socket, Host, Port, <<Version, Token:16, 2, MAC:8/binary>>}, #
 % TX ACK
 handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, Data/binary>>},
         #state{sock=Socket, tokens=Tokens}=State) ->
-    {AppState, Tokens2} =
+    {DevAddr, Tokens2} =
         case maps:take(Token, Tokens) of
             {{Timer, AState, DStamp}, Tkns} ->
                 AStamp = erlang:monotonic_time(milli_seconds),
@@ -93,7 +93,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                         undefined -> ok;
                         <<"NONE">> -> ok;
                         Error ->
-                            lorawan_gw_router:downlink_error(MAC, AppState,
+                            lorawan_gw_router:downlink_error(MAC, DevAddr,
                                 list_to_binary(string:to_lower(binary_to_list(Error))))
                     end;
                 _ ->
@@ -107,7 +107,7 @@ handle_info({udp, _Socket, Host, Port, Msg}, State) ->
     lager:warning("Weird data from ~s:~p: ~w", [inet:ntoa(Host), Port, Msg]),
     {noreply, State};
 
-handle_info({send, {Host, Port, Version}, GWState, AppState, TxQ, RFCh, PHYPayload},
+handle_info({send, {Host, Port, Version}, GWState, DevAddr, TxQ, RFCh, PHYPayload},
         #state{sock=Socket, tokens=Tokens}=State) ->
     Pk = [{txpk, build_txpk(TxQ, GWState, RFCh, PHYPayload)}],
     % lager:debug("<--- ~p", [Pk]),
@@ -116,7 +116,7 @@ handle_info({send, {Host, Port, Version}, GWState, AppState, TxQ, RFCh, PHYPaylo
     DStamp = erlang:monotonic_time(milli_seconds),
     % PULL RESP
     ok = gen_udp:send(Socket, Host, Port, <<Version, Token:16, 3, (jsx:encode(Pk))/binary>>),
-    {noreply, State#state{tokens=maps:put(Token, {Timer, AppState, DStamp}, Tokens)}};
+    {noreply, State#state{tokens=maps:put(Token, {Timer, DevAddr, DStamp}, Tokens)}};
 
 handle_info({no_ack, Token}, #state{tokens=Tokens}=State) ->
     case maps:take(Token, Tokens) of

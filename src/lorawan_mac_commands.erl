@@ -262,12 +262,12 @@ send_link_check([{_MAC, RxQ}|_]=Gateways) ->
     {link_check_ans, Margin, length(Gateways)}.
 
 send_device_time([{_MAC, #rxq{time=undefined}}|_]) ->
-    MsSinceEpoch = time_to_gps(lorawan_utils:precise_universal_time()),
+    MsSinceEpoch = lorawan_utils:time_to_gps(),
     lager:debug("DeviceTimeAns: time: ~B (from local)", [MsSinceEpoch]),
     % no time provided by the gateway, we do our best
     {device_time_ans, MsSinceEpoch};
 send_device_time([{_MAC, #rxq{time=Time, tmms=undefined}}|_]) ->
-    MsSinceEpoch = time_to_gps(Time),
+    MsSinceEpoch = lorawan_utils:time_to_gps(Time),
     lager:debug("DeviceTimeAns: time: ~B (from gateway)", [MsSinceEpoch]),
     % we got GPS time, but not milliseconds
     {device_time_ans, MsSinceEpoch};
@@ -275,12 +275,6 @@ send_device_time([{_MAC, #rxq{tmms=MsSinceEpoch}}|_]) ->
     lager:debug("DeviceTimeAns: time: ~B", [MsSinceEpoch]),
     % this is the easiest
     {device_time_ans, MsSinceEpoch}.
-
-time_to_gps({Date, {Hours, Min, Secs}}) ->
-    TotalSecs = calendar:datetime_to_gregorian_seconds({Date, {Hours, Min, trunc(Secs)}})
-            - calendar:datetime_to_gregorian_seconds({{1980, 1, 6}, {0, 0, 0}})
-            + 17, % leap seconds
-    trunc(1000*(TotalSecs + (Secs - trunc(Secs)))). % ms
 
 
 auto_adr(Network, #profile{adr_mode=1}=Profile, #node{adr_flag=1, adr_failed=Failed}=Node)
