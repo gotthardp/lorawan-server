@@ -19,12 +19,13 @@ the configuration before connecting any gateway or device!
 The server:
  * Implements the LoRaWAN Specification v1.0.3
  * Communicates with (any number of) remote LoRaWAN gateways. It currently supports:
-   * All gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
+   * Gateways based on the [Packet Forwarder](https://github.com/Lora-net/packet_forwarder),
      such as the Semtech LoRa demo kit,
      [LoRa Lite Gateway](https://wireless-solutions.de/products/long-range-radio/lora_lite_gateway.html),
      [LORANK-8](http://webshop.ideetron.nl/LORANK-8),
      [MultiConnect Conduit](http://www.multitech.com/brands/multiconnect-conduit),
      or [Kerlink Wirnet Stations](http://www.kerlink.fr/en/products/lora-iot-station-2/wirnet-station-868)
+   * Gateways using the [Basic Station](https://doc.sm.tc/station/) [LNS Protocol](https://doc.sm.tc/station/tcproto.html)
  * Performs all required encryption and integrity checks.
    * Supports relaxed frame-counter check for simple ABP devices.
  * Invokes internal modules with application logic. It provides examples for:

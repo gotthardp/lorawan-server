@@ -19,10 +19,15 @@ init(Req, []) ->
     MAC = lorawan_admin:parse_field(mac, cowboy_req:binding(mac, Req)),
     case authorize(Req) of
         {ok, User, AuthScopes} ->
-            init_main(Req, MAC, #state{peer=cowboy_req:peer(Req), user=User});
+            case lists:member(<<"gateway:link">>, AuthScopes) orelse lists:member(<<"unlimited">>, AuthScopes) of
+                true ->
+                    init_main(Req, MAC, #state{peer=cowboy_req:peer(Req), user=User});
+                false ->
+                    lager:error("User ~p does not have 'gateway:link' rights", [User]),
+                    error_response(403, Req)
+            end;
         unauthorized ->
-            Req2 = cowboy_req:reply(403, Req),
-            {ok, Req2, undefined}
+            error_response(403, Req)
     end.
 
 init_main(Req, undefined, State) ->
@@ -35,13 +40,11 @@ init_main(Req, MAC, State) ->
                     {cowboy_websocket, Req, State#state{mac=MAC, area=Area, pending=maps:new()}};
                 _ ->
                     lorawan_utils:throw_error({gateway, MAC}, unknown_area, aggregated),
-                    Req2 = cowboy_req:reply(500, Req),
-                    {ok, Req2, undefined}
+                    error_response(500, Req)
             end;
         _Else ->
             lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated),
-            Req2 = cowboy_req:reply(404, Req),
-            {ok, Req2, undefined}
+            error_response(404, Req)
     end.
 
 authorize(Req) ->
@@ -59,9 +62,18 @@ authorize(Req) ->
                     unauthorized
             end;
         _Else ->
-            lager:error("Authorization header missing", []),
-            unauthorized
+            case mnesia:dirty_read(user, <<"anonymous">>) of
+                [#user{scopes=AuthScopes}] ->
+                    {ok, undefined, AuthScopes};
+                [] ->
+                    lager:error("Authorization header missing", []),
+                    unauthorized
+            end
     end.
+
+error_response(Code, Req) ->
+    Req2 = cowboy_req:reply(Code, Req),
+    {ok, Req2, undefined}.
 
 websocket_init(State) ->
     lager:debug("WebSocket connector", []),

@@ -93,7 +93,7 @@ join_entries(Key, Dict) ->
 get_static(scopes) ->
     [<<"unlimited">>, <<"web-admin">>,
     <<"server:read">>, <<"server:write">>,
-    <<"network:read">>, <<"network:write">>,
+    <<"network:read">>, <<"network:write">>, <<"gateway:link">>,
     <<"device:read">>, <<"device:write">>, <<"device:send">>,
     <<"backend:read">>, <<"backend:write">>];
 %% https://ninenines.eu/docs/en/cowboy/2.2/guide/routing/

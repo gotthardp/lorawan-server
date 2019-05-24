@@ -104,13 +104,17 @@ To use an external [application](Applications.md) you need to:
 See [Handlers](Handlers.md) and [Connectors Administration](Connectors.md) for more details.
 
 
-## packet_forwarder Setup
+## Gateway Setup
 
-The LoRaWAN gateway running the
-[`packet_forwarder`](https://github.com/Lora-net/packet_forwarder) needs to forward
-received frames to the lorawan_server.
+To the server you need to connect one or more LoRaWAN gateways, who will forward
+received frames to the lorawan_server. It can be any combination of
+[packet_forwarder](https://github.com/Lora-net/packet_forwarder)
+or [Basic Station](https://doc.sm.tc/station) based devices.
 
-Edit the [`global_conf.json`](https://github.com/Lora-net/packet_forwarder/blob/master/lora_pkt_fwd/global_conf.json)
+### packet_forwarder
+
+To connect the [packet_forwarder](https://github.com/Lora-net/packet_forwarder),
+edit the [`global_conf.json`](https://github.com/Lora-net/packet_forwarder/blob/master/lora_pkt_fwd/global_conf.json)
 in your Gateway and update the `server_address`, `serv_port_up` and `serv_port_down` as necessary.
 
 For example:
@@ -133,6 +137,36 @@ For example:
 
 When both packet_forwarder and lorawan-server are running on the same machine
 use `localhost` or `127.0.0.1` as the `server_address`.
+
+### Basic Station
+
+If you don't need authentication:
+ - Make sure that the **Admin URL** in Server -- Configuration contains a correct
+   address and the `http` (or `https`) scheme, e.g.: `http://192.168.0.1:8080`.
+ - In Server -- Users create a user **anonymous** and give it the **gateway:link** scope.
+   (The password is not used.)
+
+In the gateway, create a `tc.uri` file with a single line containing the server
+address with the `ws` (or `wss` scheme), e.g.: `ws://192.168.0.1:8080`. It shall
+match the address configured above (except the scheme).
+
+If you want authentication:
+ - The **Admin URL** scheme shall be `https` and the `tc.uri` shall use `wss`.
+ - In Server -- Users create some user, give it a password and the **gateway:link** scope.
+
+In the gateway, create the `tc.uri` file (see above) and also a `tc.key` file
+with a single line `Authorization: Basic xxxxxx`, terminated by CRLF (0D0A). Instead
+of the "xxxxxx", put a Base64 encoded string `{user}:{password}`.
+
+For example, the following creates the `tc.key` file for the user "gw" and password "123":
+```bash
+echo -e "Authorization: Basic `echo -n gw:123 | base64`\r" > tc.key
+```
+
+When using `wss` (with or without authentication), create in the gateway also a
+`tc.trust` file with a content of the `certfile` used in the server `http_admin_listen_ssl`
+configuration. For example, copy your "cert.pem" to the gateway and rename it
+to `tc.trust`.
 
 
 ## Firewall configuration

@@ -15,6 +15,7 @@ docker run --detach \
   --restart on-failure \
   --volume /path/to/local:/storage \
   --publish 8080:8080/tcp \
+  --publish 8443:8443/tcp \
   --publish 1680:1680/udp \
   gotthardp/lorawan-server:latest
 ```

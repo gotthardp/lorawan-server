@@ -13,12 +13,13 @@ For each User you can set:
 
 The following scopes are defined:
  - *unlimited* enables both read and write access to everything
- - *web-admin* covers the administration web-pages (html, css and javascript)
+ - *web-admin* covers access to the administration web-pages (html, css and javascript)
  - *server:read* and *server:write* covers the entire user and server configuration
  - *network:read* and *network:write* covers the entire area, gateway and network configuration
  - *device:read* and *device:write* covers the entire group, profile, device and node configuration
  - *backend:read* and *backend:write* covers the entire handler and connector configuration
- - *device:send* covers initiating downlinks to a device
+ - *gateway:link* covers ability to connect as a gateway and send/receive frames
+ - *device:send* covers ability to initiate downlinks to a device
 
 Internal applications may add their specific scopes.
 
