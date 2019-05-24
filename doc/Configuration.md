@@ -113,7 +113,8 @@ or [Basic Station](https://doc.sm.tc/station) based devices.
 
 ### packet_forwarder
 
-To connect the [packet_forwarder](https://github.com/Lora-net/packet_forwarder),
+To connect the [packet_forwarder](https://github.com/Lora-net/packet_forwarder)
+via the [UDP Protocol](https://github.com/Lora-net/packet_forwarder/blob/master/PROTOCOL.TXT),
 edit the [`global_conf.json`](https://github.com/Lora-net/packet_forwarder/blob/master/lora_pkt_fwd/global_conf.json)
 in your Gateway and update the `server_address`, `serv_port_up` and `serv_port_down` as necessary.
 
@@ -138,22 +139,25 @@ For example:
 When both packet_forwarder and lorawan-server are running on the same machine
 use `localhost` or `127.0.0.1` as the `server_address`.
 
+This protocol does not support authentication nor encryption, but you can setup
+an own IPsec tunnel to protect the traffic.
+
 ### Basic Station
 
 To connect a [Basic Station](https://doc.sm.tc/station) via the
 [LNS Protocol](https://doc.sm.tc/station/tcproto.html),
 if you don't need authentication:
  - Make sure that the **Admin URL** in Server -- Configuration contains a correct
-   address and the `http` (or `https`) scheme, e.g.: `http://192.168.0.1:8080`.
+   address and the `http://` (or `https://`) scheme, e.g.: `http://192.168.0.1:8080`.
  - In Server -- Users create a user **anonymous** and give it the **gateway:link** scope.
    (The password is not used.)
 
 In the gateway, create a `tc.uri` file with a single line containing the server
-address with the `ws` (or `wss` scheme), e.g.: `ws://192.168.0.1:8080`. It shall
+address with the `ws://` (or `wss://` scheme), e.g.: `ws://192.168.0.1:8080`. It shall
 match the address configured above (except the scheme).
 
 If you want authentication:
- - The **Admin URL** scheme shall be `https` and the `tc.uri` shall use `wss`.
+ - The **Admin URL** scheme shall be `https://` and the `tc.uri` shall use `wss://`.
  - In Server -- Users create some user, give it a password and the **gateway:link** scope.
 
 In the gateway, create the `tc.uri` file (see above) and also a `tc.key` file
@@ -165,7 +169,7 @@ For example, the following creates the `tc.key` file for the user "gw" and passw
 echo -e "Authorization: Basic `echo -n gw:123 | base64`\r" > tc.key
 ```
 
-When using `wss` (with or without authentication), create in the gateway also a
+When using `wss://` (with or without authentication), create in the gateway also a
 `tc.trust` file with a content of the `certfile` used in the server `http_admin_listen_ssl`
 configuration. For example, copy your "cert.pem" to the gateway and rename it
 to `tc.trust`.
@@ -174,9 +178,15 @@ to `tc.trust`.
 ## Firewall configuration
 
 You may need to enable communication channels from LoRaWAN gateways in your firewall.
-If you use the `firewalld` (Fedora, RHEL, CentOS) do:
+To enable the packet_forwarder traffic if you use the `firewalld` (Fedora, RHEL, CentOS) do:
 ```bash
 cp lorawan-forwarder.xml /usr/lib/firewalld/services
 firewall-cmd --permanent --add-service=lorawan-forwarder
+firewall-cmd --reload
+```
+To enable the HTTP(S) traffic for web-admin, do also:
+```bash
+firewall-cmd --permanent --add-service=http-proxy
+firewall-cmd --permanent --add-service=https-proxy
 firewall-cmd --reload
 ```
