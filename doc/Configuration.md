@@ -106,7 +106,7 @@ See [Handlers](Handlers.md) and [Connectors Administration](Connectors.md) for m
 
 ## Gateway Setup
 
-To the server you need to connect one or more LoRaWAN gateways, who will forward
+You need to connect one or more LoRaWAN gateways, who will forward
 received frames to the lorawan_server. It can be any combination of
 [packet_forwarder](https://github.com/Lora-net/packet_forwarder)
 or [Basic Station](https://doc.sm.tc/station) based devices.
@@ -140,7 +140,9 @@ use `localhost` or `127.0.0.1` as the `server_address`.
 
 ### Basic Station
 
-If you don't need authentication:
+To connect a [Basic Station](https://doc.sm.tc/station) via the
+[LNS Protocol](https://doc.sm.tc/station/tcproto.html),
+if you don't need authentication:
  - Make sure that the **Admin URL** in Server -- Configuration contains a correct
    address and the `http` (or `https`) scheme, e.g.: `http://192.168.0.1:8080`.
  - In Server -- Users create a user **anonymous** and give it the **gateway:link** scope.
@@ -155,8 +157,8 @@ If you want authentication:
  - In Server -- Users create some user, give it a password and the **gateway:link** scope.
 
 In the gateway, create the `tc.uri` file (see above) and also a `tc.key` file
-with a single line `Authorization: Basic xxxxxx`, terminated by CRLF (0D0A). Instead
-of the "xxxxxx", put a Base64 encoded string `{user}:{password}`.
+with a single line `Authorization: Basic xxx`, terminated by CRLF (0D0A). Instead
+of the "xxx", put a Base64 encoded string `{user}:{password}`.
 
 For example, the following creates the `tc.key` file for the user "gw" and password "123":
 ```bash
