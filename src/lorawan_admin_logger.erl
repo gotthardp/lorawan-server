@@ -36,10 +36,10 @@ info(StreamId, Response, #state{next=Next0, path=Path, user=User, peer=Peer}=Sta
     {Command, State#state{next=Next}}.
 
 handle_response({response, Status, Headers, Body}, _Path, _User, _Peer)
-        when Status div 100 == 2 ->
+        when Status == 401 orelse Status div 100 == 2 ->
     {response, Status, add_extra_headers(Headers), Body};
 handle_response({headers, Status, Headers}, _Path, _User, _Peer)
-        when Status div 100 == 2 ->
+        when Status == 401 orelse Status div 100 == 2 ->
     {headers, Status, add_extra_headers(Headers)};
 
 handle_response({response, Status, _Headers, _Body}=Response, Path, User, Peer) ->

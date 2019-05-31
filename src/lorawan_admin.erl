@@ -50,11 +50,20 @@ handle_authentication_field(Req, {digest, Params}) ->
             {false, digest_header()}
     end;
 % if nothing was provided
-handle_authentication_field(_Req, _Else) ->
-    {false, digest_header()}.
+handle_authentication_field(Req, _Else) ->
+    case cowboy_req:method(Req) of
+        <<"OPTIONS">> ->
+            preflight;
+        _ ->
+            {false, digest_header()}
+    end.
 
 handle_authorization(Req, {Read, Write}) ->
     case handle_authentication(Req) of
+        preflight ->
+            % we need the list to be non-empty (so the request is not forbidden),
+            % but also must not grant access to any of the existing fields
+            {true, ['_']};
         {true, AuthScopes} ->
             case lists:member(cowboy_req:method(Req), [<<"OPTIONS">>, <<"GET">>]) of
                 true ->
@@ -70,6 +79,8 @@ handle_authorization(Req, Read) ->
 
 handle_authorization_ex(Req, {Read, Write}) ->
     case handle_authentication(Req) of
+        preflight ->
+            {true, ['_'], []};
         {true, AuthScopes} ->
             {true, authorized_fields(AuthScopes, Read++Write), authorized_fields(AuthScopes, Write)};
         {false, Header} ->
