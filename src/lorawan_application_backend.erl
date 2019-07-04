@@ -296,6 +296,15 @@ send_downlink(Handler, #{app := AppID}, Time, TxData) ->
 send_downlink(_Handler, Else, _Time, _TxData) ->
     lager:error("Unknown downlink target: ~p", [Else]).
 
+% when no downlink was ever transmitted, send immediately
+try_class_c(Handler, #node{profile=ProfID, last_rx=undefined}=Node, Time, TxData) ->
+    {atomic, {ok, Network, Profile}} =
+        mnesia:transaction(
+            fun() ->
+                lorawan_mac:load_profile(ProfID)
+            end),
+    send_class_c({Network, Profile, Node}, Handler, Time, TxData);
+% otherwise, try to avoid collision with last class A downlink
 try_class_c(Handler, #node{devaddr=DevAddr, profile=ProfID, last_rx=LastRx}=Node, Time, TxData) ->
     {atomic, {ok, #network{rx2_delay=Delay}=Network, Profile}} =
         mnesia:transaction(
