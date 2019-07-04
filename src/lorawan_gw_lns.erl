@@ -172,7 +172,7 @@ handle_message(Msg, _State) ->
     lager:warning("Unexpected LNS message: ~p", [Msg]),
     stop.
 
-websocket_info({send, _, #{rctx:=RxTx, xtime:=XTime}, DevAddr,
+websocket_info({send, _, GWState, DevAddr,
         #txq{freq=Freq, datr=DatR, time=Time}, _, PHYPayload},
         #state{area=#area{region=Region}, pending=Pending}=State) ->
     <<DIID:64/little-signed-integer>> = crypto:strong_rand_bytes(8),
@@ -184,13 +184,17 @@ websocket_info({send, _, #{rctx:=RxTx, xtime:=XTime}, DevAddr,
         'DR'=>lorawan_mac_region:datar_to_dr(Region, DatR),
         'Freq'=>round(Freq*?MHZ),
         priority=>0,
-        rctx=>RxTx,
         'MuxTime'=>lorawan_utils:time_to_unix()/1000
     },
     Reply =
         case Time of
-            Num when is_number(Num) -> Reply0#{dC=>0, xtime=>XTime, 'RxDelay'=>Num};
-            immediately -> Reply0#{dC=>2}
+            % class A
+            Num when is_number(Num) ->
+                #{rctx:=RxTx, xtime:=XTime} = GWState,
+                Reply0#{dC=>0, xtime=>XTime, rctx=>RxTx, 'RxDelay'=>Num};
+            % class C
+            immediately ->
+                Reply0#{dC=>2}
         end,
     {ok, Timer} = timer:send_after(30000, {no_ack, DIID, DevAddr}),
     %% lager:debug("LNS <- ~p", [Reply]),

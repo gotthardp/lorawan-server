@@ -188,11 +188,15 @@ parse_rxpk(#{tmst:=TmSt, freq:=Freq, datr:=DatR, codr:=CodR, data:=Data}=Pk) ->
         #{tmst => TmSt},
         base64:decode(Data)}.
 
-build_txpk(#txq{freq=Freq, datr=DatR, codr=CodR, time=Time, powe=Power}, #{tmst:=TmSt}, RFch, Data) ->
+build_txpk(#txq{freq=Freq, datr=DatR, codr=CodR, time=Time, powe=Power}, GWState, RFch, Data) ->
     case Time of
+        % class A
         Num when is_number(Num) ->
+            #{tmst:=TmSt} = GWState,
             [{imme, false}, {tmst, TmSt+Time*1000000}];
+        % class C
         immediately ->
+            % note that GWState is undefined in this case
             [{imme, true}];
         Stamp ->
             [{imme, false}, {time, iso8601:format(Stamp)}]
