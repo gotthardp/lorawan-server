@@ -202,12 +202,5 @@ Copyright (c) 2016-2019 Petr Gotthard
 
 ### Sponsors
 
-<a href="https://www.konicaminolta.eu/en/business-solutions/home.html"><img align="left" src="https://raw.githubusercontent.com/gotthardp/lorawan-server/master/doc/images/logo-konica-minolta.png"></a>
-[KMLE](http://research.konicaminolta.eu) is working on the challenge of
-helping customers optimize the way they work by digitizing the workplace
-and their workflows.
-
-<br/>
-
 <a href="https://softline.com/"><img align="left" src="doc/images/X1_Softline.png"></a>
 Softline is a leading global Information Technology solutions and services provider focused on emerging markets such as Eastern Europe, Central Asia, Americas, and Asia. We help our customer achieve digital transformation and protect their business with cybersecurity technologies. Our services include end-to-end technology solutions, public and private clouds, software and hardware provisioning and broad array of associated services.
