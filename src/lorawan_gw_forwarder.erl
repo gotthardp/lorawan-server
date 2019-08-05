@@ -159,7 +159,7 @@ parse_rxpk(#{tmst:=TmSt, freq:=Freq, datr:=DatR, codr:=CodR, data:=Data}=Pk) ->
                 (_Else, A2) ->
                     A2
             end,
-            undefined, maps:get(rsig, Pk, [])),
+            undefined, get_or_default(rsig, Pk, [])),
     % the modu field is ignored
     % we assume "LORA" datr is a binary string and "FSK" datr is an integer
     {#rxq{
@@ -167,11 +167,11 @@ parse_rxpk(#{tmst:=TmSt, freq:=Freq, datr:=DatR, codr:=CodR, data:=Data}=Pk) ->
             datr=DatR,
             codr=CodR,
             time=
-                case maps:get(time, Pk, undefined) of
+                case get_or_undefined(time, Pk) of
                     undefined -> undefined;
                     Value -> iso8601:parse_exact(Value)
                 end,
-            tmms=maps:get(tmms, Pk, undefined),
+            tmms=get_or_undefined(tmms, Pk),
             rssi=
                 case {Pk, Ant} of
                     {#{rssi := RSSI}, _} when is_number(RSSI) -> RSSI;
@@ -187,6 +187,16 @@ parse_rxpk(#{tmst:=TmSt, freq:=Freq, datr:=DatR, codr:=CodR, data:=Data}=Pk) ->
         },
         #{tmst => TmSt},
         base64:decode(Data)}.
+
+% the JSON may contain "null" values that shall be converted to undefined/default
+get_or_undefined(Key, Map) ->
+    get_or_default(Key, Map, undefined).
+get_or_default(Key, Map, Default) ->
+    case maps:get(Key, Map, undefined) of
+        undefined -> Default;
+        null -> Default;
+        Else -> Else
+    end.
 
 build_txpk(#txq{freq=Freq, datr=DatR, codr=CodR, time=Time, powe=Power}, GWState, RFch, Data) ->
     case Time of
