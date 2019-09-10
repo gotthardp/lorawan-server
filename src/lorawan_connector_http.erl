@@ -96,27 +96,34 @@ handle_info({gun_response, C, StreamRef, Fin, 401, Headers},
                 lager:warning("HTTP request failed: 401"),
                 State;
             WWWAuthenticate ->
-                {URI, Auth, ContentType, Body} = maps:get(StreamRef, Streams),
+                {URI, Auth, Headers, Body} = maps:get(StreamRef, Streams),
                 case handle_authenticate([digest, basic], URI, Auth, Body,
                         cow_http_hd:parse_www_authenticate(WWWAuthenticate), State) of
                     {[], State2} ->
                         lager:warning("Authentication failed: ~p", [WWWAuthenticate]),
                         State2;
                     {Auth2, State2} ->
-                        do_publish({URI, authenticated, ContentType, Body}, Auth2, State2)
+                        do_publish({URI, authenticated, Headers++Auth2, Body}, State2)
                 end
         end,
     {noreply, fin_stream(StreamRef, Fin, State3)};
-handle_info({gun_response, C, StreamRef, Fin, Status, _Headers},
+handle_info({gun_response, C, StreamRef, Fin, Status, Headers},
         State=#state{pid = C, streams = Streams, conn = #connector{uri = Uri}}) ->
     if
         Status < 300 ->
             ok;
-        Status >= 300 ->
+        Status < 400 ->
+            case proplists:get_value(<<"location">>, Headers) of
+                undefined ->
+                    lager:warning("Bad HTTP redirection: location header missing");
+                URI2 ->
+                    {_, Auth, ReqHeaders, Body} = maps:get(StreamRef, Streams),
+                    do_publish({URI2, Auth, ReqHeaders, Body}, State)
+            end;
+        true ->
             {Path, _, _, _} = maps:get(StreamRef, Streams),
             lager:debug("HTTP request failed: ~p, ~p", [Status, {Uri, Path}]),
-            lorawan_utils:throw_warning(connector_http, {http_error, {Status, Uri, Path}}),
-            ok
+            lorawan_utils:throw_warning(connector_http, {http_error, {Status, Uri, Path}})
     end,
     {noreply, fin_stream(StreamRef, Fin, State)};
 handle_info({gun_data, C, StreamRef, Fin, _Data}, State=#state{pid=C}) ->
@@ -209,14 +216,13 @@ send_publish(Vars, Publish, ContentType, Body, #state{conn=Conn, prefix=Prefix, 
     [User, Pass] = lorawan_connector:fill_pattern(AuthP, Vars),
     case Conn of
         #connector{auth = <<"token">>} ->
-            do_publish({URI, authenticated, ContentType, Body}, [{User, Pass}], State);
+            do_publish({URI, authenticated, [{<<"content-type">>, ContentType}, {User, Pass}], Body}, State);
         #connector{} ->
-            do_publish({URI, [User, Pass], ContentType, Body}, [], State)
+            do_publish({URI, [User, Pass], [{<<"content-type">>, ContentType}], Body}, State)
     end.
 
-do_publish({URI, _Auth, ContentType, Body}=Msg, Headers, State=#state{pid=C, streams=Streams}) ->
-    StreamRef = gun:post(C, URI,
-        [{<<"content-type">>, ContentType} | Headers], Body),
+do_publish({URI, _Auth, Headers, Body}=Msg, State=#state{pid=C, streams=Streams}) ->
+    StreamRef = gun:post(C, URI, Headers, Body),
     State#state{streams=maps:put(StreamRef, Msg, Streams)}.
 
 fin_stream(StreamRef, fin, State=#state{streams=Streams}) ->
