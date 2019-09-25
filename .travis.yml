@@ -22,6 +22,6 @@ deploy:
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server-*.tar.gz
     - $TRAVIS_BUILD_DIR/_build/default/rel/lorawan-server/lorawan-server_*_all.deb
   on:
-    condition: $TRAVIS_OTP_RELEASE = 20.3
+    condition: $TRAVIS_OTP_RELEASE = 21.2
     tags: true
     repo: gotthardp/lorawan-server
