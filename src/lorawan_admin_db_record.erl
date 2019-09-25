@@ -26,7 +26,8 @@ init(Req, {Table, Fields, Module, Scopes}) ->
     init0(Req, Table, Fields, Module, Scopes).
 
 init0(Req, Table, Fields, Module, Scopes) ->
-    Key = lorawan_admin:parse_field(hd(Fields), cowboy_req:binding(hd(Fields), Req)),
+    Key = lorawan_admin:parse_field(hd(Fields),
+        cowboy_req:binding(id, Req, cowboy_req:binding(hd(Fields), Req))),
     {cowboy_rest, Req,
         #state{table=Table, fields=Fields, key=Key, module=Module, scopes=Scopes}}.
 
@@ -70,12 +71,12 @@ handle_get(Req, #state{table=Table, key=Key}=State) ->
     {jsx:encode(build_record(Rec, State)), Req2, State}.
 
 paginate(Req, State, List) ->
+    Req2 = cowboy_req:set_resp_header(<<"x-total-count">>, integer_to_binary(length(List)), Req),
     case cowboy_req:match_qs([{'_page', [], <<"1">>}, {'_perPage', [], undefined}], Req) of
         #{'_perPage' := undefined} ->
-            {jsx:encode(List), Req, State};
+            {jsx:encode(List), Req2, State};
         #{'_page' := Page0, '_perPage' := PerPage0} ->
             {Page, PerPage} = {binary_to_integer(Page0), binary_to_integer(PerPage0)},
-            Req2 = cowboy_req:set_resp_header(<<"x-total-count">>, integer_to_binary(length(List)), Req),
             % io:format("~p", [List]),
             {jsx:encode(lists:sublist(List, 1+(Page-1)*PerPage, PerPage)), Req2, State}
     end.
@@ -129,55 +130,60 @@ get_filters(Req) ->
     end.
 
 build_record(Rec, #state{fields=Fields, module=Module, auth_fields={ReadFields, _}}) ->
-    apply(Module, build, [
-        maps:from_list(
-            lists:filter(
-                fun
-                    % the module may not removed the null entries
-                    ({_, undefined}) -> false;
-                    % password hash is never sent out
-                    ({pass_ha1, _}) -> false;
-                    ({Name, _}) -> lorawan_admin:auth_field(Name, ReadFields)
-                end,
-                lists:zip(Fields, tl(tuple_to_list(Rec)))))
-        ]).
+    key_to_id(hd(Fields),
+        apply(Module, build, [
+            maps:from_list(
+                lists:filter(
+                    fun
+                        % the module may not removed the null entries
+                        ({_, undefined}) -> false;
+                        % password hash is never sent out
+                        ({pass_ha1, _}) -> false;
+                        ({Name, _}) -> lorawan_admin:auth_field(Name, ReadFields)
+                    end,
+                    lists:zip(Fields, tl(tuple_to_list(Rec)))))
+            ])).
 
 content_types_accepted(Req, State) ->
     {[
         {{<<"application">>, <<"json">>, '*'}, handle_write}
     ], Req, State}.
 
-handle_write(Req, State) ->
+handle_write(Req, #state{fields=Fields}=State) ->
     {ok, Data, Req2} = cowboy_req:read_body(Req),
     case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
-        Struct when is_list(Struct); is_map(Struct) ->
-            ok = import_records(Struct, State),
+        Map when is_map(Map) ->
+            {ok, ID} = write_record(Map, State),
+            Req3 = lorawan_admin:set_body_json_id(hd(Fields), ID, Req2),
+            {true, Req3, State};
+        List when is_list(List) ->
+            _IDs = import_records(List, State),
             {true, Req2, State};
         _Else ->
             lager:debug("Bad JSON in HTTP request"),
             {stop, cowboy_req:reply(400, Req2), State}
     end.
 
-import_records([], _State) -> ok;
 import_records([First|Rest], State) ->
-    {atomic, ok} = write_record(First, State),
-    import_records(Rest, State);
-import_records(Object, State) when is_map(Object) ->
-    {atomic, ok} = write_record(Object, State),
-    ok.
+    {ok, ID} = write_record(First, State),
+    [ID | import_records(Rest, State)];
+import_records([], _State) ->
+    [].
 
 write_record(List, #state{table=Table, fields=Fields, module=Module}=State) ->
-    List2 = apply(Module, parse, [List]),
+    List2 = apply(Module, parse,
+        [id_to_key(hd(Fields), List)]),
     % make sure there is a primary key
     case maps:get(hd(Fields), List2, undefined) of
         undefined ->
             {error, null_key};
-        _Else ->
-            mnesia:transaction(
+        ID ->
+            {atomic, ok} = mnesia:transaction(
                 fun() ->
                     Rec = list_to_tuple([Table | fields_to_write(List2, State)]),
                     apply(Module, write, [Rec])
-                end)
+                end),
+            {ok, ID}
     end.
 
 fields_to_write(List2, #state{table=Table, fields=Fields, auth_fields={_, WriteFields}}) ->
@@ -259,8 +265,24 @@ generate_etag(Req, #state{table=Table, fields=Fields, key=Key, auth_fields={_, W
 delete_resource(Req, #state{table=Table, key=undefined}=State) ->
     {atomic, ok} = mnesia:clear_table(Table),
     {true, Req, State};
-delete_resource(Req, #state{table=Table, key=Key}=State) ->
+delete_resource(Req, #state{table=Table, fields=Fields, key=Key}=State) ->
+    Req2 = lorawan_admin:set_body_json_id(hd(Fields), Key, Req),
     ok = mnesia:dirty_delete(Table, Key),
-    {true, Req, State}.
+    {true, Req2, State}.
+
+
+key_to_id(Key, Rec) ->
+    maps:put(id,
+        maps:get(Key, Rec),
+        Rec).
+
+id_to_key(Key, Rec) ->
+    case maps:is_key(id, Rec) of
+        true ->
+            {Val, Rec2} = maps:take(id, Rec),
+            maps:put(Key, Val, Rec2);
+        false ->
+            Rec
+    end.
 
 % end of file

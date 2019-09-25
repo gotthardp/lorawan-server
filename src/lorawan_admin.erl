@@ -8,7 +8,7 @@
 -export([handle_authorization/2, handle_authorization_ex/2, fields_empty/1, auth_field/2]).
 -export([write/1, parse/1, build/1]).
 -export([parse_field/2, build_field/2]).
--export([timestamp_to_json_date/1]).
+-export([set_body_json_id/3, timestamp_to_json_date/1]).
 
 -include("lorawan.hrl").
 -include("lorawan_db.hrl").
@@ -468,6 +468,10 @@ text_to_intervals(Text) ->
                 [B, C] -> {list_to_integer(B), list_to_integer(C)}
             end
         end, string:tokens(Text, ";, ")).
+
+set_body_json_id(Key, Value, Req) ->
+    cowboy_req:set_resp_body(
+        jsx:encode(#{id => build_field(Key, Value)}), Req).
 
 timestamp_to_json_date({{Yr,Mh,Dy},{Hr,Me,Sc}}) ->
     list_to_binary(
