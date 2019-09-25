@@ -153,7 +153,7 @@ See the **D/L Expires** setting of the corresponding [Handler](Handlers.md).
 ### prerequisite_failed
 
 This is reported when the lorawan-server is started with older Erlang/OTP. At
-least 20.3 (or later) is required.
+least 21.0 (or later) is required.
 
 ### connector_disabled
 

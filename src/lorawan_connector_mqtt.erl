@@ -41,8 +41,8 @@ init([#connector{connid=Id, app=App, uri=Uri, client_id=ClientId, name=UserName,
             hier=[]
         }}
     catch
-        _:Error ->
-            lager:debug("connector ~s failed: ~p~n~p", [Id, Error, erlang:get_stacktrace()]),
+        _:Error:Stack ->
+            lager:debug("connector ~s failed: ~p~n~p", [Id, Error, Stack]),
             lorawan_connector:raise_failed(Id, Error),
             {stop, shutdown}
     end.
