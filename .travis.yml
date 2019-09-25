@@ -4,11 +4,10 @@ addons:
     packages:
       - fakeroot
 otp_release:
-  - 20.3
   # debian buster uses Erlang/OTP 21.2
   - 21.2
   - 21.3
-  - 22.0
+  - 22.1
 install:
   - rebar3 get-deps
 script:
