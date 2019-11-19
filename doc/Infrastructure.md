@@ -124,7 +124,7 @@ On the Channels tab you can set:
 
 Class B and Class C devices support multicast. Multiple devices can be configured
 to listen for downlinks targeted to a given *DevAddr*, so the same frame can be
-received by a group of devices. See also the [Communication](Communication.md) guide.
+received by a group of devices. See also the [Introduction](Introduction.md).
 
 To define a multicast channel you need to set:
  - **DevAddr** of the channel; this must not collide with any *Node* address.
