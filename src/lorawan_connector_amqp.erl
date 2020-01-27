@@ -211,7 +211,7 @@ publish_uplink(PubChannel, Format, PatPub, Vars0) ->
 
 publish_event(PubChannel, PatPub, Vars0) ->
     Vars = lorawan_admin:build(Vars0),
-    amqp_channel:cast(PubChannel, basic_publish(PatPub, Vars0),
+    amqp_channel:cast(PubChannel, basic_publish(PatPub, Vars),
         #amqp_msg{payload = jsx:encode(Vars)}).
 
 basic_publish(PatPub, Vars) ->
