@@ -1746,6 +1746,8 @@ return {
     },
     link: function($scope) {
             function updateData() {
+                if (!value in $scope)
+                    return
                 $http({method: 'GET', url: '/admin/sgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.srvChartObject.data = response.data.array;
@@ -1795,6 +1797,8 @@ return {
     },
     link: function($scope) {
             function updateData() {
+                if (!value in $scope)
+                    return
                 $http({method: 'GET', url: '/admin/pgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.prChartObject.data = response.data.array;
@@ -1843,6 +1847,8 @@ return {
     },
     link: function($scope) {
             function updateData() {
+                if (!value in $scope)
+                    return
                 $http({method: 'GET', url: '/admin/tgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.txChartObject.data = response.data.array;
@@ -1893,6 +1899,8 @@ return {
     },
     link: function($scope) {
             function updateData() {
+                if (!value in $scope)
+                    return
                 $http({method: 'GET', url: '/admin/rgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxChartObject.data = response.data.array;
@@ -1946,6 +1954,8 @@ return {
     },
     link: function($scope) {
             function updateData() {
+                if (!value in $scope)
+                    return
                 $http({method: 'GET', url: '/admin/qgraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxqChartObject.data = response.data.array;
@@ -1998,6 +2008,8 @@ return {
     },
     link: function($scope) {
             function updateData() {
+                if (!value in $scope)
+                    return
                 $http({method: 'GET', url: '/admin/ngraph/'.concat($scope.value)})
                     .then(function(response) {
                         $scope.rxdChartObject.data = response.data.array;
