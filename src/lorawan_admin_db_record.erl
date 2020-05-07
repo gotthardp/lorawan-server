@@ -270,19 +270,20 @@ delete_resource(Req, #state{table=Table, fields=Fields, key=Key}=State) ->
     ok = mnesia:dirty_delete(Table, Key),
     {true, Req2, State}.
 
-
+% React admin requires 'id' to operate
 key_to_id(Key, Rec) ->
     maps:put(id,
         maps:get(Key, Rec),
         Rec).
 
+% Database requires a Key to operate, but React provides an 'id'
 id_to_key(Key, Rec) ->
-    case maps:is_key(id, Rec) of
+    case maps:is_key(Key, Rec) of
         true ->
-            {Val, Rec2} = maps:take(id, Rec),
-            maps:put(Key, Val, Rec2);
+            maps:remove(id, Rec);
         false ->
-            Rec
+            {Val, Rec2} = maps:take(id, Rec),
+            maps:put(Key, Val, Rec2)
     end.
 
 % end of file
