@@ -174,7 +174,7 @@ parse_eid(Value, #{entity:=Entity}) when Entity == server; Entity == connector -
 parse_eid(Value, _) ->
     lorawan_utils:hex_to_binary(Value).
 
-parse_field(_Key, Value) when Value == null; Value == undefined ->
+parse_field(_Key, Value) when Value == null; Value == undefined; Value == <<"undefined">> ->
     undefined;
 parse_field(Key, Value) when Key == mac; Key == netid; Key == mask;
                         Key == deveui; Key == appeui; Key == appkey; Key == node;
