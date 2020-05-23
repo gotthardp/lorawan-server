@@ -24,6 +24,8 @@ binary_to_hex(Id) ->
 
 hex_to_binary(undefined) ->
     undefined;
+hex_to_binary(<<"undefined">>) ->
+    undefined;
 hex_to_binary(Id) ->
     <<<<Z>> || <<X:8,Y:8>> <= Id,Z <- [binary_to_integer(<<X,Y>>,16)]>>.
 
