@@ -18,7 +18,7 @@ stop() ->
 
 invoke(Module, Fun, Params) ->
     % use short names, so only the first part of the hostname
-    [Host | _] = string:tokens(net_adm:localhost(), "."),
+    [Host | _] = string:lexemes(net_adm:localhost(), "."),
     Node = list_to_atom(string:join(["lorawan", Host], "@")),
     case rpc:call(Node, Module, Fun, Params) of
         ok -> ok;

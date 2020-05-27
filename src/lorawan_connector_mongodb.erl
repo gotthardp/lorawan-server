@@ -33,7 +33,7 @@ init([#connector{connid=Id, app=App, uri= <<"mongodb://", Servers0/binary>>,
     % connect
     {UserName, Password} = credentials(Connector),
     mongodb:replicaSets(Pool, 10,
-        string:tokens(binary_to_list(Servers0), ", "), UserName, Password),
+        string:lexemes(binary_to_list(Servers0), ", "), UserName, Password),
     mongodb:connect(Pool),
     try
         {ok, #state{
