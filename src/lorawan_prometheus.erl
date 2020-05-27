@@ -3,36 +3,33 @@
 -module(lorawan_prometheus).
 -behaviour(gen_server).
 
+%% Public API
 -export([start_link/0, event/3, warning/3, error/3, uplink/1, downlink/1]).
+
+%% gen_server Callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
+%% Settings
 -define(METRICS_URL, "/metrics/[:registry]").
+-record(state, {enabled=false}).
 
--record(state, {enabled}).
-
+%% Public API
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-event(warning, {server, Eid}, Text) ->
-    warning(server, Eid, Text);
-event(warning, {connector, Eid}, Text) ->
-    warning(connector, Eid, Text);
-event(warning, {Entity, Eid}, Text) ->
-    warning(Entity, lorawan_utils:binary_to_hex(Eid), Text);
-event(error, {server, Eid}, Text) ->
-    error(server, Eid, Text);
-event(error, {connector, Eid}, Text) ->
-    error(connector, Eid, Text);
-event(error, {Entity, Eid}, Text) ->
-    error(Entity, lorawan_utils:binary_to_hex(Eid), Text);
-event(_Severity, _Source, _Text) ->
-    ok.
+% Deal with value tuples first, ack_lost will match the second clause
+event(Severity, Source, {Text, Num}) when is_integer(Num) ->
+    event0(Severity, Source, Text, Num);
+event(Severity, Source, {Text, _Val}) ->
+    event0(Severity, Source, Text, 1);
+event(Severity, Source, Text) ->
+    event0(Severity, Source, Text, 1).
 
-warning(Entity, Eid, Error) ->
-    gen_server:cast(?MODULE, {warning, Entity, Eid, Error}).
+warning(Source, Text, Num) ->
+    gen_server:cast(?MODULE, {warning, Source, Text, Num}).
 
-error(Entity, Eid, Error) ->
-    gen_server:cast(?MODULE, {error, Entity, Eid, Error}).
+error(Source, Text, Num) ->
+    gen_server:cast(?MODULE, {error, Source, Text, Num}).
 
 uplink(MAC) ->
     gen_server:cast(?MODULE, {uplink, lorawan_utils:binary_to_hex(MAC)}).
@@ -40,6 +37,7 @@ uplink(MAC) ->
 downlink(MAC) ->
     gen_server:cast(?MODULE, {downlink, lorawan_utils:binary_to_hex(MAC)}).
 
+%% gen_server Callbacks
 init([]) ->
     State = case application:get_env(lorawan_server, enable_prometheus, false) of
         false ->
@@ -57,11 +55,13 @@ handle_call(_Request, _From, State) ->
 
 handle_cast(_Message, #state{enabled=false}=State) ->
     {noreply, State};
-handle_cast({warning, Entity, Eid, Error}, State) ->
-    prometheus_counter:inc(lorawan_warnings_total, [Entity, Eid, Error], 1),
+handle_cast({warning, Source, Text, Num}, State) ->
+    {Entity, Eid} = expand_source(Source),
+    prometheus_counter:inc(lorawan_warnings_total, [Entity, Eid, Text], Num),
     {noreply, State};
-handle_cast({error, Entity, Eid, Error}, State) ->
-    prometheus_counter:inc(lorawan_errors_total, [Entity, Eid, Error], 1),
+handle_cast({error, Source, Text, Num}, State) ->
+    {Entity, Eid} = expand_source(Source),
+    prometheus_counter:inc(lorawan_errors_total, [Entity, Eid, Text], Num),
     {noreply, State};
 handle_cast({uplink, MAC}, State) ->
     prometheus_counter:inc(lorawan_uplinks_total, [MAC], 1),
@@ -76,6 +76,9 @@ handle_info(_Message, State) ->
 terminate(_Reason, _State) ->
     ok.
 
+%% Private functions
+
+% Register Prometheus metrics
 create_counters() ->
     prometheus_counter:declare([{name, lorawan_warnings_total},
                                 {help, "Number of warnings registered by the server"},
@@ -89,3 +92,20 @@ create_counters() ->
     prometheus_counter:declare([{name, lorawan_downlinks_total},
                                 {help, "Number of downlink frames sent by the server"},
                                 {labels, [eid]}]).
+
+% Filter errors and warnings
+event0(warning, Source, Text, Num) ->
+    warning(Source, Text, Num);
+event0(error, Source, Text, Num) ->
+    error(Source, Text, Num);
+event0(_Severity, _Source, _Text, _Num) ->
+    ok.
+
+% Expand event source, converting Id to HEX where necessary
+expand_source({server, Eid})    -> {server, Eid};
+expand_source({connector, Eid}) -> {connector, Eid};
+expand_source({handler, Eid})   -> {handler, Eid};
+% node, device, gateway, multicast_channel
+expand_source({Other, Eid})     -> {Other, lorawan_utils:binary_to_hex(Eid)};
+% uncaught in lorawan_utils:throw_event/3-4
+expand_source(Source)           -> {Source, undefined}.
