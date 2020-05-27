@@ -94,7 +94,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
                         <<"NONE">> -> ok;
                         Error ->
                             lorawan_gw_router:downlink_error(MAC, DevAddr,
-                                list_to_binary(string:to_lower(binary_to_list(Error))))
+                                string:lowercase(Error))
                     end;
                 _ ->
                     lager:error("Ignored TX_ACK from ~s: JSON syntax error: ~s", [lorawan_utils:binary_to_hex(MAC), Data])

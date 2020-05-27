@@ -450,11 +450,11 @@ parse_opt(Field, List) ->
     parse_opt(Field, List, undefined).
 
 intervals_to_text(List) when is_list(List) ->
-    lists:flatten(string:join(
+    lists:flatten(lists:join(", ",
         lists:map(
             fun ({A, A}) -> integer_to_list(A);
                 ({B, C}) -> [integer_to_list(B), "-", integer_to_list(C)]
-            end, List), ", "));
+            end, List)));
 intervals_to_text(_) ->
     % this is for backward compatibility, will be removed in few months
     % I don't think anyone ever used anything else than 7
@@ -463,11 +463,11 @@ intervals_to_text(_) ->
 text_to_intervals(Text) ->
     lists:map(
         fun (Item) ->
-            case string:tokens(Item, "- ") of
+            case string:lexemes(Item, "- ") of
                 [A] -> {list_to_integer(A), list_to_integer(A)};
                 [B, C] -> {list_to_integer(B), list_to_integer(C)}
             end
-        end, string:tokens(Text, ";, ")).
+        end, string:lexemes(Text, ";, ")).
 
 set_body_json_id(Key, Value, Req) ->
     cowboy_req:set_resp_body(
