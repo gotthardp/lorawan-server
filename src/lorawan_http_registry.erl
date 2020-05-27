@@ -194,8 +194,7 @@ get_static(routes) ->
         [{<<"device:read">>, '*'}]},
     {"/admin/[...]", lorawan_admin_static,
         {priv_dir, lorawan_server, <<"admin">>,
-            [{<<"web-admin">>, '*'}]}},
-    {"/metrics/[:registry]", prometheus_cowboy2_handler, []}].
+            [{<<"web-admin">>, '*'}]}}].
 
 get_custom(scopes) ->
     [];

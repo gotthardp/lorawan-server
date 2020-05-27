@@ -113,6 +113,7 @@ throw_error(Entity, Text, Mark) ->
 
 throw_event(Severity, {Entity, undefined}, Text, Mark) ->
     lager:log(Severity, self(), "~s ~p", [Entity, Text]),
+    lorawan_prometheus:event(Severity, {Entity, undefined}, Text),
     write_event(Severity, {Entity, undefined}, Text, Mark);
 
 throw_event(Severity, {Entity, EID}, Text, Mark) ->
@@ -122,6 +123,7 @@ throw_event(Severity, {Entity, EID}, Text, Mark) ->
         true ->
             lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_utils:binary_to_hex(EID), Text])
     end,
+    lorawan_prometheus:event(Severity, {Entity, EID}, Text),
     write_event(Severity, {Entity, EID}, Text, Mark).
 
 write_event(Severity, {Entity, EID}, Text, unique) ->
