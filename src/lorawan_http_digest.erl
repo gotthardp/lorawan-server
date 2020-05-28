@@ -69,9 +69,9 @@ digest_test_() -> [
             <<"00000001">>, <<"0a4f113b">>, <<"auth">>))].
 
 integer_to_hex(Num, Len) ->
-    list_to_binary(string:right(string:to_lower(integer_to_list(Num,16)), Len, $0)).
+    list_to_binary(string:right(string:lowercase(integer_to_list(Num,16)), Len, $0)).
 
 binary_to_hex(Id) ->
-    << <<Y>> || <<X:4>> <= Id, Y <- string:to_lower(integer_to_list(X,16))>>.
+    << <<Y>> || <<X:4>> <= Id, Y <- string:lowercase(integer_to_list(X,16))>>.
 
 % end of file

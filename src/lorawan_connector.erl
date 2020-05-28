@@ -24,9 +24,9 @@ pid_to_binary(Pid, Idx) ->
     <<(pid_to_binary(Pid))/binary, "/", (integer_to_binary(Idx))/binary>>.
 
 is_pattern(Pattern) ->
-    case string:chr(Pattern, ${) of
-        0 -> false;
-        N when N > 0 -> true
+    case string:find(Pattern, "{") of
+        nomatch -> false;
+        _ -> true
     end.
 
 pattern_for_cowboy(Empty)
