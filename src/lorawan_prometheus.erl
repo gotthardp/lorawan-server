@@ -88,10 +88,10 @@ create_counters() ->
                                 {labels, [entity, eid, error]}]),
     prometheus_counter:declare([{name, lorawan_uplinks_total},
                                 {help, "Number of uplink frames received by the server"},
-                                {labels, [eid]}]),
+                                {labels, [gateway]}]),
     prometheus_counter:declare([{name, lorawan_downlinks_total},
                                 {help, "Number of downlink frames sent by the server"},
-                                {labels, [eid]}]).
+                                {labels, [gateway]}]).
 
 % Filter errors and warnings
 event0(warning, Source, Text, Num) ->
