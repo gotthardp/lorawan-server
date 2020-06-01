@@ -97,10 +97,10 @@ like [Prometheus](https://prometheus.io/) and [Grafana](https://grafana.com/).
 To enable Prometheus support, add or uncomment the following line in your server's
 configuration file (See [Configuration Guidelines](Configuration.md) for details):
 
-```
+```erlang
 [{lorawan_server, [
     ...
-    % Enable the following line to export statistics metrics in Prometheus format
+    % Set the following parameter to true to export statistics metrics in Prometheus format
     {enable_prometheus, true},
     ...
  ]},
