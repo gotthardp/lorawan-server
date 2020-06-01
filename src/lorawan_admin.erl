@@ -252,7 +252,7 @@ parse_field(_Key, Value) ->
 
 build_eid(undefined, _) ->
     null;
-build_eid(Value, #{entity:=Entity}) when Entity == server; Entity == connector ->
+build_eid(Value, #{entity:=Entity}) when Entity == server; Entity == connector; Entity == handler ->
     Value;
 build_eid(Value, _) ->
     lorawan_utils:binary_to_hex(Value).
@@ -334,6 +334,8 @@ build_field(Key, Value) when Key == all_gw ->
         Value);
 build_field(Key, {IP, Port, Ver}) when Key == ip_address ->
     #{ip=>list_to_binary(inet_parse:ntoa(IP)), port=>Port, ver=>Ver};
+build_field(_Key, Value) when is_tuple(Value) ->
+    tuple_to_list(Value);
 build_field(_Key, Value) ->
     Value.
 

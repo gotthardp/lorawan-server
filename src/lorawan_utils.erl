@@ -124,7 +124,29 @@ throw_event(Severity, {Entity, EID}, Text, Mark) ->
             lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_utils:binary_to_hex(EID), Text])
     end,
     lorawan_prometheus:event(Severity, {Entity, EID}, Text),
+    send_event(Severity, {Entity, EID}, Text),
     write_event(Severity, {Entity, EID}, Text, Mark).
+
+send_event(Severity, {Entity, EID}, Text) ->
+    AppID = case mnesia:dirty_read(config, <<"main">>) of
+        [] ->
+            undefined;
+        [Config] ->
+            Config#config.app
+    end,
+    {Event, Args} = event_args(Text),
+    Vars = #{
+        app => AppID,
+        sname => node(),
+        entity => Entity,
+        eid => EID,
+        severity => Severity,
+        datetime => calendar:universal_time(),
+        event => Event,
+        eargs => Args
+    },
+    % Must load handler and Parse function first!
+    lorawan_backend_factory:event(AppID, undefined, Vars).
 
 write_event(Severity, {Entity, EID}, Text, unique) ->
     % first_rx and last_rx shall be identical
