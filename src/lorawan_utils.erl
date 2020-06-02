@@ -114,6 +114,7 @@ throw_error(Entity, Text, Mark) ->
 throw_event(Severity, {Entity, undefined}, Text, Mark) ->
     lager:log(Severity, self(), "~s ~p", [Entity, Text]),
     lorawan_prometheus:event(Severity, {Entity, undefined}, Text),
+    send_event(Severity, {Entity, undefined}, Text),
     write_event(Severity, {Entity, undefined}, Text, Mark);
 
 throw_event(Severity, {Entity, EID}, Text, Mark) ->
