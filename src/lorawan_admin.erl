@@ -334,8 +334,6 @@ build_field(Key, Value) when Key == all_gw ->
         Value);
 build_field(Key, {IP, Port, Ver}) when Key == ip_address ->
     #{ip=>list_to_binary(inet_parse:ntoa(IP)), port=>Port, ver=>Ver};
-build_field(_Key, Value) when is_tuple(Value) ->
-    tuple_to_list(Value);
 build_field(_Key, Value) ->
     Value.
 

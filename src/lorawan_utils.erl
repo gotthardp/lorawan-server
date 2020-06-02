@@ -178,6 +178,8 @@ write_event(Severity, {Entity, EID}, Text, Mark) ->
 evid(EntityID, Event, Mark) ->
     crypto:hash(md4, term_to_binary({EntityID, Event, Mark})).
 
+event_args({Event, Args}) when is_binary(Args) ->
+    {atom_to_binary(Event, latin1), Args};
 event_args({Event, Args}) ->
     {atom_to_binary(Event, latin1), list_to_binary(io_lib:print(Args))};
 event_args(Event) when is_atom(Event) ->
