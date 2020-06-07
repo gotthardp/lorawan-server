@@ -88,11 +88,15 @@ redirect_dispatch() ->
 start_http(Opts, Dispatch) ->
     {ok, _} = cowboy:start_clear(http, Opts, #{
         env => #{dispatch => Dispatch},
-        stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]}).
+        metrics_callback => fun prometheus_cowboy2_instrumenter:observe/1,
+        stream_handlers => [lorawan_admin_logger, cowboy_compress_h,
+                            cowboy_metrics_h, cowboy_stream_h]}).
 
 start_https(Opts, Dispatch) ->
     {ok, _} = cowboy:start_tls(https, Opts, #{
         env => #{dispatch => Dispatch},
-        stream_handlers => [lorawan_admin_logger, cowboy_compress_h, cowboy_stream_h]}).
+        metrics_callback => fun prometheus_cowboy2_instrumenter:observe/1,
+        stream_handlers => [lorawan_admin_logger, cowboy_compress_h,
+                            cowboy_metrics_h, cowboy_stream_h]}).
 
 % end of file

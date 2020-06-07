@@ -25,6 +25,8 @@ For example:
     {http_admin_listen, [{port, 8080}]},
     % default username and password for the admin interface
     {http_admin_credentials, {<<"admin">>, <<"admin">>}},
+    % Set the following parameter to true to enable statistics metrics in Prometheus format
+    {enable_prometheus, false},
     % amount of rxframes retained for each device/node
     {retained_rxframes, 50},
     % websocket expiration if client sends no data
@@ -46,6 +48,9 @@ To enable/disable applications, modify the `applications` section. For more
 details see the [Custom Application Guide](Applications.md).
 
 To disable the plain HTTP web-admin, set `{http_admin_listen, []}`.
+
+To enable Prometheus statistics metrics export at `/metrics` URL endpoint, set
+`{enable_prometheus, true}`.
 
 ### lager section
 

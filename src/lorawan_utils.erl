@@ -24,6 +24,8 @@ binary_to_hex(Id) ->
 
 hex_to_binary(undefined) ->
     undefined;
+hex_to_binary(<<"undefined">>) ->
+    undefined;
 hex_to_binary(Id) ->
     <<<<Z>> || <<X:8,Y:8>> <= Id,Z <- [binary_to_integer(<<X,Y>>,16)]>>.
 
@@ -111,15 +113,17 @@ throw_error(Entity, Text, Mark) ->
 
 throw_event(Severity, {Entity, undefined}, Text, Mark) ->
     lager:log(Severity, self(), "~s ~p", [Entity, Text]),
+    lorawan_prometheus:event(Severity, {Entity, undefined}, Text),
     write_event(Severity, {Entity, undefined}, Text, Mark);
 
 throw_event(Severity, {Entity, EID}, Text, Mark) ->
     if
-        Entity == server; Entity == connector ->
+        Entity == server; Entity == connector; Entity == handler ->
             lager:log(Severity, self(), "~s ~s ~p", [Entity, EID, Text]);
         true ->
             lager:log(Severity, self(), "~s ~s ~p", [Entity, lorawan_utils:binary_to_hex(EID), Text])
     end,
+    lorawan_prometheus:event(Severity, {Entity, EID}, Text),
     write_event(Severity, {Entity, EID}, Text, Mark).
 
 write_event(Severity, {Entity, EID}, Text, unique) ->

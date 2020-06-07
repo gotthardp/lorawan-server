@@ -25,6 +25,9 @@ init([]) ->
         {http_registry,
             {lorawan_http_registry, start_link, []},
             permanent, 5000, worker, [lorawan_http_registry]},
+        {prometheus,
+            {lorawan_prometheus, start_link, []},
+            permanent, 5000, worker, [lorawan_prometheus]},
         {backends,
             {lorawan_backend_sup, start_link, []},
             permanent, infinity, supervisor, [lorawan_backend_sup]}

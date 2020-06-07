@@ -97,6 +97,7 @@ handle_cast({downlink, {MAC, GWState}, DevAddr, TxQ, RFCh, PHYPayload}, #state{g
             % send data to the gateway interface handler
             Process ! {send, Target, GWState, DevAddr, TxQ, RFCh, PHYPayload},
             % store statistics
+            lorawan_prometheus:downlink(MAC),
             Time = lorawan_mac_region:tx_time(byte_size(PHYPayload), TxQ),
             Dict2 = dict:store(MAC, Stats#gwstats{tx_times=[{TxQ#txq.freq, Time} | TxTimes]}, Dict),
             {noreply, State#state{gateways=Dict2}};
@@ -290,6 +291,7 @@ handle_uplink({{MAC, RxQ, _GWState}=GWData, PHYPayload}, State) ->
             lorawan_utils:throw_error({gateway, MAC}, unknown_mac, aggregated),
             State;
         [_Gateway] ->
+            lorawan_prometheus:uplink(MAC),
             handle_uplink0({GWData, PHYPayload}, store_last_gps(MAC, RxQ, State))
     end.
 
