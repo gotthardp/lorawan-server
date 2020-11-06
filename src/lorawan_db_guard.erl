@@ -254,7 +254,7 @@ send_emails0([#config{admin_url=Prefix, email_from=From, email_server=Server,
     Body =
         {<<"multipart">>, <<"alternative">>, [
             {<<"From">>, From},
-            {<<"To">>, lists:join(<<";">>, ToAddrs)},
+            {<<"To">>, lists:join(<<",">>, ToAddrs)},
             {<<"Subject">>, list_to_binary([TypeTitle, " ", ID])},
             {<<"MIME-Version">>, <<"1.0">>},
             {<<"Content-Type">>, <<"multipart/alternative; boundary=bound-123234234">>}] ++
