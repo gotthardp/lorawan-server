@@ -1749,7 +1749,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                if (!value in $scope)
+                if (!'value' in $scope)
                     return
                 $http({method: 'GET', url: '/admin/sgraph/'.concat($scope.value)})
                     .then(function(response) {
@@ -1800,7 +1800,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                if (!value in $scope)
+                if (!'value' in $scope)
                     return
                 $http({method: 'GET', url: '/admin/pgraph/'.concat($scope.value)})
                     .then(function(response) {
@@ -1850,7 +1850,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                if (!value in $scope)
+                if (!'value' in $scope)
                     return
                 $http({method: 'GET', url: '/admin/tgraph/'.concat($scope.value)})
                     .then(function(response) {
@@ -1902,7 +1902,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                if (!value in $scope)
+                if (!'value' in $scope)
                     return
                 $http({method: 'GET', url: '/admin/rgraph/'.concat($scope.value)})
                     .then(function(response) {
@@ -1957,7 +1957,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                if (!value in $scope)
+                if (!'value' in $scope)
                     return
                 $http({method: 'GET', url: '/admin/qgraph/'.concat($scope.value)})
                     .then(function(response) {
@@ -2011,7 +2011,7 @@ return {
     },
     link: function($scope) {
             function updateData() {
-                if (!value in $scope)
+                if (!'value' in $scope)
                     return
                 $http({method: 'GET', url: '/admin/ngraph/'.concat($scope.value)})
                     .then(function(response) {
