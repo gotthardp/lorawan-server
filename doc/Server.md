@@ -56,6 +56,10 @@ This is a server-server configuration. You can set the following parameters:
  - **Items Per Page** defines maximal length of each web-admin list. Clear this
    value to enable infinite paging.
  - **Slack Token** that identifies the Slack group
+ - **Send events to** allows you to specify a [Handler](Handlers.md) to receive
+   all events, including global server and gateway events that can't be captured
+   otherwise. *Warning!* This handler's attached connectors *must not* have device
+   specific wildcards, like `{devaddr}`, in their **Publish Events** parameter.
 
 In the E-Mail you can set:
  - **From** address, like `noreply@example.com`.
