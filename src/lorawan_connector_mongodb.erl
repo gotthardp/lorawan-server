@@ -109,8 +109,8 @@ store_fields(Pool, Pattern, Vars0) ->
                 {<<"local">>, CN}
         end,
     Mong = mongoapi:new(Pool, Database),
-    Mong:createCollection(Collection),
-    {ok, _} = Mong:save(Collection, prepare_bson(Vars0)).
+    mongoapi:createCollection(Collection, Mong),
+    {ok, _} = mongoapi:save(Collection, prepare_bson(Vars0), Mong).
 
 prepare_bson(Data) ->
     maps:map(
