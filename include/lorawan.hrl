@@ -32,6 +32,7 @@
     admin_url :: string(),
     items_per_page :: integer(),
     slack_token :: 'undefined' | string(),
+    app :: binary(),
     email_from :: 'undefined' | string(),
     email_server :: 'undefined' | string(),
     email_user :: 'undefined' | string(),

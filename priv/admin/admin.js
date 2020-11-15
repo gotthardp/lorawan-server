@@ -141,6 +141,9 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
         nga.field('admin_url').label('Admin URL'),
         nga.field('items_per_page', 'number'),
         nga.field('slack_token'),
+        nga.field('app', 'reference').label('Send events to')
+            .targetEntity(handlers)
+            .targetField(nga.field('app')),
         // E-Mail
         nga.field('email_from').label('From'),
         nga.field('email_server').label('SMTP Server'),

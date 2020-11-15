@@ -252,7 +252,7 @@ parse_field(_Key, Value) ->
 
 build_eid(undefined, _) ->
     null;
-build_eid(Value, #{entity:=Entity}) when Entity == server; Entity == connector ->
+build_eid(Value, #{entity:=Entity}) when Entity == server; Entity == connector; Entity == handler ->
     Value;
 build_eid(Value, _) ->
     lorawan_utils:binary_to_hex(Value).
