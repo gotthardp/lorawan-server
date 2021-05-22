@@ -27,8 +27,8 @@ init([]) ->
 handle_call(_Request, _From, State) ->
     {stop, {error, unknownmsg}, State}.
 
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast(_Msg, #state{period=Period}=State) ->
+    {noreply, State, Period}.
 
 handle_info(timeout, #state{period=Period}=State) ->
     % run through known connectors, attempt restart if failed with 'network'
@@ -40,9 +40,9 @@ handle_info(timeout, #state{period=Period}=State) ->
         mnesia:dirty_all_keys(connector)),
     {noreply, State, Period};
 
-handle_info(Info, State) ->
+handle_info(Info, #state{period=Period}=State) ->
     lager:debug("unknown info ~p", [Info]),
-    {noreply, State}.
+    {noreply, State, Period}.
 
 terminate(_Reason, _State) ->
     ok.
