@@ -20,7 +20,10 @@ init([]) ->
             permanent, infinity, supervisor, [lorawan_connector_sup]},
         {factory,
             {lorawan_backend_factory, start_link, []},
-            permanent, 5000, worker, [lorawan_backend_factory]}
+            permanent, 5000, worker, [lorawan_backend_factory]},
+        {monitor,
+            {lorawan_connector_monitor, start_link, []},
+            permanent, 5000, worker, [lorawan_connector_monitor]}
     ]}}.
 
 % end of file
