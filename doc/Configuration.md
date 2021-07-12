@@ -76,7 +76,7 @@ Unix tools
 
 ## Run-time parameters
 
-Run-time configurtaion can be modified via the web [Administration](Administration.md).
+Run-time configuration can be modified via the web [Administration](Administration.md).
 
 ### Infrastructure
 
