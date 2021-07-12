@@ -976,7 +976,7 @@ myApp.config(['NgAdminConfigurationProvider', function (nga) {
                 { value: 'sas', label: 'Shared Access Signature' }
             ]),
         nga.field('name'),
-        nga.field('pass').label('Password/Key'),
+        nga.field('pass', 'password').label('Password/Key'),
         nga.field('certfile', 'file').label('User Certificate')
             .uploadInformation({'url': '/api/upload'}),
         nga.field('keyfile', 'file').label('Private Key')
