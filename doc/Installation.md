@@ -147,7 +147,7 @@ You will need the following prerequisites:
    * On Windows follow the [installation instructions](https://www.rebar3.org/docs/getting-started).
    * On Mac OS, run `brew install rebar`.
  * npm, the JavaScript package manager.
-   * On Linux follow the instructions bellow.
+   * On Linux follow the instructions below.
    * On Windows, install the [Node.js](https://nodejs.org/en/).
    * On Mac OS, run `brew install node`.
 

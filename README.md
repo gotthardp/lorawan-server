@@ -54,7 +54,7 @@ The server:
      over-the-air activation (OTAA).
    * Supports both unconfirmed and confirmed data uplink and downlink.
    * Supports multicast to user-defined groups.
-   * Supports all regions standartized in LoRaWAN 1.0.3 Regional Parameters for
+   * Supports all regions standardized in LoRaWAN 1.0.3 Regional Parameters for
      Europe, US, China, Australia, Asia, South Korea, India and Russia.
  * Provides a network management interface.
    * Supports both manual and automatic configuration of data rate (ADR) and other parameters.

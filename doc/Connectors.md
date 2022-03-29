@@ -28,7 +28,7 @@ To create a new connector you set:
    topic for event messages.
  - **Subscribe QoS** determines reliability of the subscriptions.
  - **Subscribe**, which is a topic to be subscribed. It may include broker specific
-   wilcards, e.g. `in/#`. The MQTT broker will then send messages with a matching
+   wildcards, e.g. `in/#`. The MQTT broker will then send messages with a matching
    topic to this connector.
  - **Received Topic**, which is a template for parsing the topic of received
    (subscribed) messages, e.g. `in/{devaddr}`. This can be used to retrieve the
@@ -44,7 +44,7 @@ If the Connector is *Enabled* the server will automatically connect to the
 backend server and subscribe this topic.
 
 When a *Failed* flag is raised, the connector is inactive and no connection is
-established. To re-establish the connection after an error occures, fix the
+established. To re-establish the connection after an error occurs, fix the
 indicated root cause and then remove the flag to reactivate the connector.
 
 On the Authentication tab:
