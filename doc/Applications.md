@@ -138,7 +138,7 @@ The function may return:
 
 ### handle_delivery({Network, Profile, Node}, Result, Receipt)
 
-The `handle_delivery/3` will be called after successfull or unsuccessfull delivery
+The `handle_delivery/3` will be called after successful or unsuccessful delivery
 of a confirmed downlink frame:
   - **Network** parameters where the node is operating
   - **Profile** of the node

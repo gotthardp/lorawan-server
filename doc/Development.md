@@ -29,7 +29,7 @@ starts one process for each incoming each connection:
  - **lorawan_admin_...** modules provide handlers for the REST API. They interact with
    the mnesia database only.
  - **lorawan_connector_ws** provide handler for the WebSocket interface. One
-   handler invoked for each incoming connection, ot joins a given pg2 group as
+   handler invoked for each incoming connection, to joins a given pg2 group as
    every connector and then filters the uplink frames based on given URI.
 
 

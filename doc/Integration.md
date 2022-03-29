@@ -1,6 +1,6 @@
 # Integration Guide
 
-This document desribes specific configuration required to integrate with the
+This document describes specific configuration required to integrate with the
 following IoT cloud platforms:
  * [Amazon AWS IoT](https://aws.amazon.com/iot/)
  * [IBM Watson IoT Platform](https://www.ibm.com/cloud-computing/bluemix/internet-of-things)

@@ -65,7 +65,7 @@ frames and (optionally) send downlink frames.
 
 Handlers define externally handled application, including:
  * Format of the uplink and downlink messages
- * Data fields forwared via the backend *Connectors*
+ * Data fields forwarded via the backend *Connectors*
  * Retransmission logic for confirmed downlinks
 
 Each Handler may be linked with one or more backend Connectors, which handle

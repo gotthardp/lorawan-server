@@ -83,7 +83,7 @@ handle_info({udp, Socket, _Host, _Port, <<_Version, Token:16, 5, MAC:8/binary, D
         end,
     case trim_json(Data) of
         <<>> ->
-            % no error occured
+            % no error occurred
             ok;
         _ ->
             case catch jsx:decode(Data, [return_maps, {labels, atom}]) of
