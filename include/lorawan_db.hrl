@@ -29,7 +29,7 @@
     freq :: number(),
     datr :: binary() | integer(),
     codr :: binary(),
-    time :: integer() | 'immediately' | calendar:datetime(),
+    time :: integer() | 'immediately' | calendar:datetime() | 'undefined',
     powe :: 'undefined' | integer()}).
 
 -record(area, {
