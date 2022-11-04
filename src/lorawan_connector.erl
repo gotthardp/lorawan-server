@@ -175,7 +175,7 @@ build_access_token(Res0, AccessKey, Expiry) ->
     ToSign = lists:flatten(
         io_lib:format("~s~n~B", [Res, Now+Expiry])),
     Sig = http_uri:encode(base64:encode_to_string(
-        crypto:hmac(sha256, base64:decode(AccessKey), ToSign))),
+        crypto:mac(hmac, sha256, base64:decode(AccessKey), ToSign))),
     io_lib:format("SharedAccessSignature sr=~s&sig=~s&se=~B", [Res, Sig, Now+Expiry]).
 
 
