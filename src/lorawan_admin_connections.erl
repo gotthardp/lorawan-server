@@ -51,7 +51,7 @@ handle_get(Req, #state{app=undefined}=State) ->
             fun(Conn) ->
                 filter_matches(Conn, Filter)
             end,
-            get_connections(pg2:which_groups(), [])),
+            get_connections(pg:which_groups(), [])),
     {jsx:encode(Items), Req, State};
 handle_get(Req, #state{app=App}=State) ->
     {jsx:encode(get_connection(App)), Req, State}.
@@ -82,7 +82,7 @@ get_connections([], Acc)->
     Acc.
 
 get_connection(App) ->
-    case pg2:get_members({backend, App}) of
+    case pg:get_members({backend, App}) of
         List when is_list(List) ->
             lists:foldl(
                 fun(Pid, Acc) ->

@@ -27,7 +27,7 @@ start_link(Connector) ->
 init([#connector{connid=Id, app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
         subscribe=Sub, publish_uplinks=PubUp, publish_events=PubEv, received=Cons}=Connector]) ->
     process_flag(trap_exit, true),
-    ok = pg2:join({backend, App}, self()),
+    ok = pg:join({backend, App}, self()),
     self() ! nodes_changed,
     timer:send_interval(60*1000, ping),
     try

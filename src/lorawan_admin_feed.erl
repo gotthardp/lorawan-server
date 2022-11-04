@@ -34,7 +34,7 @@ get_filters(Req) ->
     end.
 
 websocket_init(#state{table=Table} = State) ->
-    ok = pg2:join({feed, Table}, self()),
+    ok = pg:join({feed, Table}, self()),
     {reply, {text, encoded_records(State)}, State}.
 
 websocket_handle({ping, _}, State) ->
@@ -69,7 +69,7 @@ lists_match(_, _) ->
 
 notify(Scope) ->
     Table = element(1, Scope),
-    case pg2:get_members({feed, Table}) of
+    case pg:get_members({feed, Table}) of
         {error, _Error} ->
             ok;
         List when is_list(List) ->

@@ -35,7 +35,7 @@ start_link(Connector) ->
 
 init([#connector{connid=Id, app=App,
         publish_uplinks=PubUp, publish_events=PubEv, name=UserName, pass=Password}=Conn]) ->
-    ok = pg2:join({backend, App}, self()),
+    ok = pg:join({backend, App}, self()),
     try
         {ok, ensure_gun(
             #state{conn=Conn,

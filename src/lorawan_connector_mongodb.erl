@@ -27,7 +27,7 @@ start_link(Connector) ->
 init([#connector{connid=Id, app=App, uri= <<"mongodb://", Servers0/binary>>,
         publish_uplinks=PubUp, publish_events=PubEv}=Connector]) ->
     process_flag(trap_exit, true),
-    ok = pg2:join({backend, App}, self()),
+    ok = pg:join({backend, App}, self()),
     lager:debug("Connecting ~s to mongodb ~s", [Id, Servers0]),
     Pool = binary_to_atom(Id, latin1),
     % connect
