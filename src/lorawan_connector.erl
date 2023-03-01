@@ -168,14 +168,14 @@ build_access_token(Res0, AccessKey) ->
     build_access_token(Res0, AccessKey, 60*60*24*7). % expires in a week
 
 build_access_token(Res0, AccessKey, Expiry) ->
-    Res = http_uri:encode(Res0),
+    Res = uri_string:quote(Res0),
     % seconds since the UNIX epoch
     Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time())
      - calendar:datetime_to_gregorian_seconds({{1970,1,1}, {0,0,0}}),
     ToSign = lists:flatten(
         io_lib:format("~s~n~B", [Res, Now+Expiry])),
-    Sig = http_uri:encode(base64:encode_to_string(
-        crypto:hmac(sha256, base64:decode(AccessKey), ToSign))),
+    Sig = uri_string:quote(base64:encode_to_string(
+        crypto:mac(hmac, sha256, base64:decode(AccessKey), ToSign))),
     io_lib:format("SharedAccessSignature sr=~s&sig=~s&se=~B", [Res, Sig, Now+Expiry]).
 
 

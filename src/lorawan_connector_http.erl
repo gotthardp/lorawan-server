@@ -35,7 +35,7 @@ start_link(Connector) ->
 
 init([#connector{connid=Id, app=App,
         publish_uplinks=PubUp, publish_events=PubEv, name=UserName, pass=Password}=Conn]) ->
-    ok = pg2:join({backend, App}, self()),
+    ok = pg:join({backend, App}, self()),
     try
         {ok, ensure_gun(
             #state{conn=Conn,
@@ -165,14 +165,15 @@ ensure_gun(#state{conn=#connector{uri= <<"http:">>}, pid=undefined}=State) ->
     State;
 ensure_gun(#state{conn=#connector{connid=ConnId, uri=Uri}, pid=undefined}=State) ->
     lager:debug("Connecting ~s to ~s", [ConnId, Uri]),
+    #{scheme := Scheme, host := Host, port := Port, path := Path} = uri_string:parse(binary_to_list(Uri)),
     {ConnPid, Prefix} =
-        case http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{http, 80}, {https, 443}]}]) of
-            {ok, {http, _UserInfo, HostName, Port, Path, _Query}} ->
-                {ok, Pid} = gun:open(HostName, Port),
+        case Scheme of
+            "http" ->
+                {ok, Pid} = gun:open(Host, Port),
                 {Pid, Path};
-            {ok, {https, _UserInfo, HostName, Port, Path, _Query}} ->
+            "https" ->
                 Opts = application:get_env(lorawan_server, ssl_options, []),
-                {ok, Pid} = gun:open(HostName, Port, #{transport=>ssl, transport_opts=>Opts}),
+                {ok, Pid} = gun:open(Host, Port, #{transport=>ssl, transport_opts=>Opts}),
                 {Pid, Path}
         end,
     MRef = monitor(process, ConnPid),

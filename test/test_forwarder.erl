@@ -80,10 +80,10 @@ handle_info({pull_expired, Token}, #state{pull_tokens=Tokens}=State) ->
 handle_info({udp, Socket, _, _, <<1, _:16, 3, Data/binary>>},
         #state{socket=Socket, motes=Motes}=State) ->
     Pk = jsx:decode(Data, [{labels, atom}]),
-    TxPk = proplists:get_value(txpk, Pk),
-    Frame = proplists:get_value(data, TxPk),
+    TxPk = maps:get(txpk, Pk),
+    Frame = maps:get(data, TxPk),
     % send to the device that opened the window
-    get_mote(proplists:get_value(tmst, TxPk), Motes) ! {ok, Frame},
+    get_mote(maps:get(tmst, TxPk), Motes) ! {ok, Frame},
     {noreply, State}.
 
 store_rxpk(Mote, Frame, #state{motes=Motes, rxpks=Pks}=State) ->

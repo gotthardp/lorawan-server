@@ -26,7 +26,7 @@ start_link(Connector) ->
 
 init([#connector{connid=Id, app=App, publish_uplinks=PubUp, publish_events=PubEv, received=Cons}=Connector]) ->
     process_flag(trap_exit, true),
-    ok = pg2:join({backend, App}, self()),
+    ok = pg:join({backend, App}, self()),
     self() ! connect,
     try
         {ok, #state{

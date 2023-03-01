@@ -27,7 +27,7 @@ start_link(Connector) ->
 init([#connector{connid=Id, app=App, uri=Uri, client_id=ClientId, name=UserName, pass=Password,
         subscribe=Sub, publish_uplinks=PubUp, publish_events=PubEv, received=Cons}=Connector]) ->
     process_flag(trap_exit, true),
-    ok = pg2:join({backend, App}, self()),
+    ok = pg:join({backend, App}, self()),
     self() ! nodes_changed,
     timer:send_interval(60*1000, ping),
     try
@@ -140,14 +140,14 @@ connect(Vers, Arguments, Conn) ->
 
 connection_args([Uri, ClientId, UserName, Password], Conn) ->
     lager:debug("Connecting ~s to ~p, id ~p, user ~p", [Conn#connector.connid, Uri, ClientId, UserName]),
-    {ok, ConnUri} = http_uri:parse(binary_to_list(Uri), [{scheme_defaults, [{mqtt, 1883}, {mqtts, 8883}]}]),
-    {Scheme, _UserInfo, HostName, Port, _Path, _Query} = ConnUri,
+    ConnUri = uri_string:parse(binary_to_list(Uri)),
+    #{scheme := Scheme, host := Host, port := Port} = ConnUri,
     lists:append([
-        [{host, HostName},
+        [{host, Host},
         {port, Port},
         {keepalive, 0}],
-        auth_args(HostName, Conn#connector.auth, ClientId, UserName, Password),
-        ssl_args(Scheme, Conn)
+        auth_args(Host, Conn#connector.auth, ClientId, UserName, Password),
+        ssl_args(list_to_atom(Scheme), Conn)
     ]).
 
 connect0([Ver | Rest], CArgs) ->

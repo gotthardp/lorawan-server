@@ -22,7 +22,7 @@ $(REBAR3):
 	@chmod a+x rebar3
 
 upgrade: $(REBAR3)
-	@$(REBAR3) upgrade
+	@$(REBAR3) upgrade --all
 
 clean: $(REBAR3)
 	@$(REBAR3) clean --all

@@ -97,11 +97,10 @@ item_deleted(#connector{}=Connector) ->
     stop_connector(Connector).
 
 
-start_connector(#connector{connid=Id, app=App, uri=Uri, enabled=true,
+start_connector(#connector{connid=Id, app=_App, uri=Uri, enabled=true,
         failed=Failed}=Connector) when Failed == undefined; Failed == [] ->
     case find_module(Uri) of
         {ok, Module} ->
-            pg2:create({backend, App}),
             apply(Module, start_connector, [Connector]);
         {error, Error} ->
             lorawan_utils:throw_error({connector, Id}, Error)
@@ -171,7 +170,7 @@ nodes_with_backend(App) ->
         [], mnesia:dirty_index_read(profile, App, #profile.app)).
 
 send_to_connectors(App, Message) ->
-    case pg2:get_members({backend, App}) of
+    case pg:get_members({backend, App}) of
         {error, _Error} ->
             % the application is internal or not defined
             ok;
