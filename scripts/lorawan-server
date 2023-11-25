@@ -23,4 +23,14 @@ else
     ERL_ARGS="-lager log_root \"log\""
 fi
 
-cd $LORAWAN_HOME && erl -noinput +Bd -sname lorawan -pa $ROOT_DIR/lib/*/ebin -s lorawan_app $ERL_ARGS -config $SYS_CONFIG $@
+# trap function and kill underlying process 
+function killer() {
+    kill $!
+    wait $!
+}
+
+# install trap
+trap killer TERM
+
+cd $LORAWAN_HOME && erl -noinput +Bd -sname lorawan -pa $ROOT_DIR/lib/*/ebin -s lorawan_app $ERL_ARGS -config $SYS_CONFIG $@ &
+wait $!
